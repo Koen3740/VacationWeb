@@ -1,0 +1,20 @@
+{
+  "providers": [
+    {
+      "id": "provider-1782334901848",
+      "name": "Corendon",
+      "type": "tour-operator",
+      "createdAt": "2026-06-24T21:01:41.848Z"
+    }
+  ],
+  "feeds": [
+    {
+      "id": "feed-1782334901851",
+      "providerId": "provider-1782334901848",
+      "name": "Corendon primary feed",
+      "status": "active",
+      "sourceType": "json",
+      "createdAt": "2026-06-24T21:01:41.851Z"
+    }
+  ]
+}

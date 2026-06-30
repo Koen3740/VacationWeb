@@ -1,0 +1,467 @@
+{
+  "countries": [
+    "Albanie",
+    "Argentinië",
+    "Aruba",
+    "Barbados",
+    "Bonaire",
+    "Brazilie",
+    "Bulgarije",
+    "Canarische Eilanden",
+    "Costa Rica",
+    "Curacao",
+    "Curaçao",
+    "Cyprus",
+    "Denemarken",
+    "Dominicaanse Republiek",
+    "Duitsland",
+    "Egypte",
+    "Estland",
+    "Finland",
+    "Frankrijk",
+    "Gambia",
+    "Griekenland",
+    "Groot-brittannie",
+    "Hongarije",
+    "Ierland",
+    "Ijsland",
+    "Indonesie",
+    "Italie",
+    "Italië",
+    "Jamaica",
+    "Kaapverdische Eilanden",
+    "Kaapverdië",
+    "Kroatie",
+    "Letland",
+    "Litouwen",
+    "Malta",
+    "Marokko",
+    "Mauritius",
+    "Mexico",
+    "Montenegro",
+    "Nederland",
+    "Noorwegen",
+    "Oman",
+    "Oostenrijk",
+    "Polen",
+    "Portugal",
+    "Qatar",
+    "Saint Martin - French Part",
+    "Seychellen",
+    "Sint Maarten",
+    "Slovenie",
+    "Spanje",
+    "Tanzania",
+    "Thailand",
+    "Tsjechie",
+    "Tunesie",
+    "Turkije",
+    "Verenigde Arabische Emiraten",
+    "Verenigde Staten",
+    "Zuid-afrika",
+    "Zweden",
+    "Zwitserland"
+  ],
+  "regionsByCountry": {
+    "Griekenland": [
+      "Athene",
+      "Attica",
+      "Centraal Griekenland",
+      "Chalkidiki",
+      "Corfu",
+      "Evia",
+      "Karpathos",
+      "Kefalonia",
+      "Kos",
+      "Kreta",
+      "Lefkas",
+      "Lesbos",
+      "Macedonie",
+      "Mykonos",
+      "Olympische Riviera",
+      "Parga",
+      "Parga En Omgeving",
+      "Peloponnesos",
+      "Pilion",
+      "Rhodos",
+      "Samos",
+      "Santorini",
+      "Sithonia",
+      "Skiathos",
+      "Thessaloniki",
+      "Zakynthos"
+    ],
+    "Turkije": [
+      "Egeische Kust",
+      "Egeische kust",
+      "Istanbul",
+      "Lycische Kust",
+      "Rondreizen",
+      "Turkse Riviera"
+    ],
+    "Spanje": [
+      "Alicante",
+      "Andalusie",
+      "Asturias",
+      "Balearen",
+      "Barcelona",
+      "Baskenland",
+      "Canarische Eilanden",
+      "Cantabria",
+      "Castilla La Mancha",
+      "Castilla-leon",
+      "Catalonie",
+      "Cordoba",
+      "Costa Blanca",
+      "Costa Brava",
+      "Costa De Almeria",
+      "Costa De La Luz",
+      "Costa Del Azahar",
+      "Costa Del Sol",
+      "Costa Dorada",
+      "Costa de Almería",
+      "Costa de la Luz",
+      "Costa del Azahar",
+      "Costa del Sol",
+      "Formentera",
+      "Golf Van Cadiz",
+      "Granada",
+      "Ibiza",
+      "La Rioja",
+      "Madrid",
+      "Malaga",
+      "Mallorca",
+      "Menorca",
+      "Murcia",
+      "Sevilla",
+      "Valencia"
+    ],
+    "Gambia": [
+      "Kuststreek",
+      "West Gambia"
+    ],
+    "Egypte": [
+      "Cairo",
+      "Caïro",
+      "Luxor",
+      "Nijl",
+      "Rode Zee"
+    ],
+    "Portugal": [
+      "Alentejo",
+      "Algarve",
+      "Azoren",
+      "Costa De Lisboa",
+      "Costa De Prata",
+      "Costa Verde",
+      "Estoril",
+      "Lissabon",
+      "Madeira",
+      "Midden Portugal",
+      "Noord-portugal",
+      "Porto"
+    ],
+    "Bonaire": [
+      "Bonaire",
+      "Kralendijk"
+    ],
+    "Duitsland": [
+      "Berlijn",
+      "Hamburg",
+      "Kiel",
+      "Munchen"
+    ],
+    "Italië": [
+      "Civitavecchia",
+      "Genua",
+      "Sardinië",
+      "Savona",
+      "Sicilië",
+      "Triëst"
+    ],
+    "Curaçao": [
+      "Jan Thiel Baai",
+      "Mambo Beach",
+      "Piscadera Baai",
+      "Sint Willibrordus",
+      "Willemstad"
+    ],
+    "Kaapverdië": [
+      "Sal"
+    ],
+    "Verenigde Arabische Emiraten": [
+      "Abu Dhabi",
+      "Ajman",
+      "Dubai",
+      "Ras Al Khaimah",
+      "Ras al Khaimah"
+    ],
+    "Verenigde Staten": [
+      "Californie",
+      "Californië",
+      "Florida",
+      "Las Vegas",
+      "New Jersey",
+      "New York",
+      "Pennsylvania",
+      "Philadelphia",
+      "Washington"
+    ],
+    "Argentinië": [
+      "Ushuaia"
+    ],
+    "Bulgarije": [
+      "Zwarte Zee",
+      "Zwarte Zeekust"
+    ],
+    "Marokko": [
+      "Atlantische Kust",
+      "Centraal Marokko",
+      "Marrakech",
+      "Middellandse Zeekust",
+      "Midden- En Hoge Atlas"
+    ],
+    "Nederland": [
+      "Noord-Holland"
+    ],
+    "Canarische Eilanden": [
+      "Fuerteventura",
+      "Gran Canaria",
+      "La Palma",
+      "Lanzarote",
+      "Tenerife"
+    ],
+    "Oostenrijk": [
+      "Salzburg",
+      "Salzburgerland",
+      "Tirol",
+      "Wenen"
+    ],
+    "Italie": [
+      "Adriatische Riviera",
+      "Basilicata",
+      "Bologna",
+      "Brescia",
+      "Calabria",
+      "Campania",
+      "Comomeer",
+      "Emilia-romagna",
+      "Florence",
+      "Friuli-venezia-giulia",
+      "Gardameer",
+      "Italiaanse Riviera",
+      "Lazio",
+      "Lombardije",
+      "Maggioremeer",
+      "Milaan",
+      "Napels",
+      "Piemonte",
+      "Puglia",
+      "Rome",
+      "Sardinie",
+      "Sicilie",
+      "Toscane",
+      "Trentino",
+      "Umbrie",
+      "Val D Aosta",
+      "Venetie",
+      "Veneto",
+      "Verona"
+    ],
+    "Groot-brittannie": [
+      "Birmingham",
+      "Glasgow",
+      "Londen",
+      "Midden Engeland",
+      "Noordoost Engeland",
+      "Schotland",
+      "Wales",
+      "Zuid Engeland"
+    ],
+    "Denemarken": [
+      "Kopenhagen",
+      "Midden Jutland"
+    ],
+    "Cyprus": [
+      "Larnaca",
+      "Limasol",
+      "Paphos"
+    ],
+    "Mauritius": [
+      "Noordwest-kust",
+      "Oostkust",
+      "Westkust",
+      "Zuidkust"
+    ],
+    "Hongarije": [
+      "Budapest"
+    ],
+    "Barbados": [
+      "Barbados"
+    ],
+    "Ijsland": [
+      "Noord Ijsland",
+      "Reykjavik",
+      "Zuidwest En Zuid Ijsland"
+    ],
+    "Curacao": [
+      "Curacao"
+    ],
+    "Aruba": [
+      "Aruba"
+    ],
+    "Kroatie": [
+      "Dubrovnik",
+      "Istrie",
+      "Kvarner",
+      "Midden-dalmatie",
+      "Noord-dalmatie",
+      "Zuid-dalmatie"
+    ],
+    "Sint Maarten": [
+      "Sint Maarten"
+    ],
+    "Thailand": [
+      "Bangkok",
+      "Koh Samui",
+      "Midden Thailand",
+      "Phuket",
+      "Zuid Thailand"
+    ],
+    "Tanzania": [
+      "Zanzibar"
+    ],
+    "Polen": [
+      "Krakau",
+      "Pommeren",
+      "Warschau"
+    ],
+    "Seychellen": [
+      "Mahe"
+    ],
+    "Tunesie": [
+      "Djerba",
+      "Golf Van Hammamet",
+      "Noord-tunesie"
+    ],
+    "Albanie": [
+      "Albanie"
+    ],
+    "Dominicaanse Republiek": [
+      "Noordkust",
+      "Oostkust",
+      "Zuidkust"
+    ],
+    "Zwitserland": [
+      "Bern",
+      "Centraal Zwitserland",
+      "Graubunden",
+      "Zurich"
+    ],
+    "Indonesie": [
+      "Bali"
+    ],
+    "Finland": [
+      "Helsinki",
+      "Lapland"
+    ],
+    "Tsjechie": [
+      "Praag En Omstreken"
+    ],
+    "Mexico": [
+      "Yucatan"
+    ],
+    "Frankrijk": [
+      "Aquitaine",
+      "Corsica",
+      "Cote D Azur",
+      "Nice",
+      "Provence",
+      "Rhone-alpes"
+    ],
+    "Montenegro": [
+      "Kuststreek"
+    ],
+    "Letland": [
+      "Riga"
+    ],
+    "Slovenie": [
+      "Ljubljana"
+    ],
+    "Malta": [
+      "Gozo",
+      "Malta",
+      "Noordoosten"
+    ],
+    "Estland": [
+      "Tallinn"
+    ],
+    "Ierland": [
+      "Dublin"
+    ],
+    "Qatar": [
+      "Qatar"
+    ],
+    "Oman": [
+      "Muscat"
+    ],
+    "Zweden": [
+      "Stockholm"
+    ],
+    "Jamaica": [
+      "Noordkant",
+      "Westkant"
+    ],
+    "Zuid-afrika": [
+      "Gauteng",
+      "West-kaap"
+    ],
+    "Brazilie": [
+      "Kuststreek"
+    ],
+    "Kaapverdische Eilanden": [
+      "Boa Vista",
+      "Ilha Do Sal"
+    ],
+    "Noorwegen": [
+      "Oslo"
+    ],
+    "Costa Rica": [
+      "Alajuela",
+      "Guanacaste",
+      "Puntarenas"
+    ],
+    "Saint Martin - French Part": [
+      "Saint Martin"
+    ],
+    "Litouwen": [
+      "Vilnius"
+    ]
+  },
+  "boardTypes": [
+    "All Inclusive",
+    "Half pension",
+    "Halfpension",
+    "Halfpension Plus",
+    "Logies",
+    "Logies en ontbijt",
+    "Ultra All Inclusive",
+    "Vol pension",
+    "Volpension",
+    "Volpension Plus",
+    "Zie beschrijving"
+  ],
+  "departureAirports": [
+    "AMB",
+    "AMS",
+    "BRU",
+    "CGN",
+    "CRL",
+    "DUS",
+    "EIN",
+    "GRQ",
+    "MST",
+    "NRN",
+    "RTM"
+  ]
+}

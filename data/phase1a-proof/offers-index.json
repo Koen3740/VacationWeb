@@ -1,0 +1,34 @@
+{
+  "documents": [
+    {
+      "id": "cor-1001",
+      "externalId": "cor-1001",
+      "hotelName": "Hotel Palma Bay",
+      "destination": "Mallorca",
+      "country": "Spain",
+      "region": "Balearic Islands",
+      "price": 689,
+      "currency": "EUR",
+      "nights": 7,
+      "boardType": "All Inclusive",
+      "departureDate": "2026-07-10",
+      "provider": "Corendon"
+    },
+    {
+      "id": "cor-1002",
+      "externalId": "cor-1002",
+      "hotelName": "Hotel Playa Azul",
+      "destination": "Tenerife",
+      "country": "Spain",
+      "region": "Canary Islands",
+      "price": 799,
+      "currency": "EUR",
+      "nights": 8,
+      "boardType": "Half Board",
+      "departureDate": "2026-07-18",
+      "provider": "Corendon"
+    }
+  ],
+  "createdAt": "2026-06-24T21:09:43.675Z",
+  "updatedAt": "2026-06-24T21:09:43.679Z"
+}

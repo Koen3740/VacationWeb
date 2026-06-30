@@ -1,0 +1,538 @@
+{
+  "generatedAt": "2026-06-30T20:53:04.741Z",
+  "summary": {
+    "prijsvrijSourceFile": "C:\\Users\\koenm\\Documents\\VacationWeb\\VScode_vacationweb_app\\data\\prijsvrij.xml",
+    "corendonSourceFile": "C:\\Users\\koenm\\Documents\\VacationWeb\\VScode_vacationweb_app\\data\\productfeed.xml",
+    "prijsvrijOfferCount": 67114,
+    "corendonOfferCount": 2860,
+    "prijsvrijNormalizedCount": 67114,
+    "overlappingExternalIdsWithCorendon": 615,
+    "writesToOffersJson": false
+  },
+  "validation": {
+    "missingCountry": 0,
+    "missingHotelName": 0,
+    "missingPrice": 0,
+    "missingDeepLink": 0,
+    "missingImageUrl": 0,
+    "missingNights": 0
+  },
+  "xmlStructure": {
+    "sharedProductFields": [
+      "ID",
+      "campaignID",
+      "name",
+      "price",
+      "URL",
+      "images",
+      "description",
+      "categories",
+      "variations",
+      "properties"
+    ],
+    "prijsvrijPropertyCount": 25,
+    "corendonPropertyCount": 25,
+    "sharedProperties": [
+      "duration",
+      "stars",
+      "descriptionShort",
+      "region",
+      "departureDate",
+      "latitude",
+      "longitude",
+      "accommodationType",
+      "city",
+      "country"
+    ],
+    "prijsvrijOnlyProperties": [
+      "minimum_price",
+      "priority",
+      "country_of_origin",
+      "board_type",
+      "imageURL2",
+      "imageURL3",
+      "imageURL4",
+      "imageURL5",
+      "imageURL6",
+      "imageURL7",
+      "imageURL8",
+      "imageURL9",
+      "imageURL10",
+      "transportType",
+      "minPersons"
+    ],
+    "corendonOnlyProperties": [
+      "accommodation",
+      "airport",
+      "descriptionLong",
+      "durationType",
+      "extraInfo",
+      "flightIncluded",
+      "iataDeparture",
+      "imageURL_large",
+      "imageURL_small",
+      "isoCodeDeparture",
+      "lastminute",
+      "province",
+      "rating",
+      "serviceType",
+      "subcategories"
+    ]
+  },
+  "mapping": {
+    "prijsvrijFieldCoverage": {
+      "externalId": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "provider": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "hotelName": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "accommodation": {
+        "count": 0,
+        "percentage": 0
+      },
+      "accommodationType": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "country": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "province": {
+        "count": 0,
+        "percentage": 0
+      },
+      "region": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "city": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "departureAirport": {
+        "count": 0,
+        "percentage": 0
+      },
+      "departureAirportCode": {
+        "count": 0,
+        "percentage": 0
+      },
+      "airport": {
+        "count": 0,
+        "percentage": 0
+      },
+      "departureDate": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "boardType": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "nights": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "durationType": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "flightIncluded": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "lastMinute": {
+        "count": 0,
+        "percentage": 0
+      },
+      "price": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "currency": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "stars": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "rating": {
+        "count": 0,
+        "percentage": 0
+      },
+      "imageUrl": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "imageLarge": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "imageSmall": {
+        "count": 66983,
+        "percentage": 99.8
+      },
+      "images": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "descriptionShort": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "descriptionLong": {
+        "count": 0,
+        "percentage": 0
+      },
+      "extraInfo": {
+        "count": 0,
+        "percentage": 0
+      },
+      "feedDescription": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "latitude": {
+        "count": 67081,
+        "percentage": 100
+      },
+      "longitude": {
+        "count": 67081,
+        "percentage": 100
+      },
+      "subcategories": {
+        "count": 0,
+        "percentage": 0
+      },
+      "categories": {
+        "count": 0,
+        "percentage": 0
+      },
+      "variations": {
+        "count": 0,
+        "percentage": 0
+      },
+      "deepLink": {
+        "count": 67114,
+        "percentage": 100
+      },
+      "affiliateCampaignId": {
+        "count": 67114,
+        "percentage": 100
+      }
+    },
+    "corendonFieldCoverage": {
+      "externalId": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "provider": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "hotelName": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "accommodation": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "accommodationType": {
+        "count": 2728,
+        "percentage": 95.4
+      },
+      "country": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "province": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "region": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "city": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "departureAirport": {
+        "count": 2850,
+        "percentage": 99.7
+      },
+      "departureAirportCode": {
+        "count": 2738,
+        "percentage": 95.7
+      },
+      "airport": {
+        "count": 2850,
+        "percentage": 99.7
+      },
+      "departureDate": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "boardType": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "nights": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "durationType": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "flightIncluded": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "lastMinute": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "price": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "currency": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "stars": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "rating": {
+        "count": 2045,
+        "percentage": 71.5
+      },
+      "imageUrl": {
+        "count": 2858,
+        "percentage": 99.9
+      },
+      "imageLarge": {
+        "count": 2858,
+        "percentage": 99.9
+      },
+      "imageSmall": {
+        "count": 2858,
+        "percentage": 99.9
+      },
+      "images": {
+        "count": 2858,
+        "percentage": 99.9
+      },
+      "descriptionShort": {
+        "count": 2827,
+        "percentage": 98.8
+      },
+      "descriptionLong": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "extraInfo": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "feedDescription": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "latitude": {
+        "count": 2617,
+        "percentage": 91.5
+      },
+      "longitude": {
+        "count": 2616,
+        "percentage": 91.5
+      },
+      "subcategories": {
+        "count": 2833,
+        "percentage": 99.1
+      },
+      "categories": {
+        "count": 0,
+        "percentage": 0
+      },
+      "variations": {
+        "count": 0,
+        "percentage": 0
+      },
+      "deepLink": {
+        "count": 2860,
+        "percentage": 100
+      },
+      "affiliateCampaignId": {
+        "count": 2860,
+        "percentage": 100
+      }
+    },
+    "prijsvrijFieldsAlwaysMissing": [
+      "accommodation",
+      "province",
+      "departureAirport",
+      "departureAirportCode",
+      "airport",
+      "lastMinute",
+      "rating",
+      "descriptionLong",
+      "extraInfo",
+      "subcategories",
+      "categories",
+      "variations"
+    ],
+    "corendonFieldsAlwaysMissing": [
+      "categories",
+      "variations"
+    ]
+  },
+  "unmappedFeedFields": [
+    {
+      "xmlField": "property: priority",
+      "reason": "Feed-interne ranking, geen TravelOffer-equivalent"
+    },
+    {
+      "xmlField": "property: country_of_origin",
+      "reason": "Markt/locale (nl), geen veld in TravelOffer"
+    },
+    {
+      "xmlField": "property: minPersons",
+      "reason": "Minimum aantal personen, geen veld in TravelOffer"
+    },
+    {
+      "xmlField": "property: board_type (raw code)",
+      "reason": "Opgeslagen als gedecodeerde boardType, ruwe code niet bewaard"
+    },
+    {
+      "xmlField": "property: transportType (raw code)",
+      "reason": "Afgeleid naar flightIncluded=true, ruwe code niet bewaard"
+    },
+    {
+      "xmlField": "product.price",
+      "reason": "Altijd 0.00 in feed; minimum_price gebruikt als price"
+    }
+  ],
+  "proposedTravelOfferFields": [
+    {
+      "field": "minPersons?: number",
+      "source": "property: minPersons",
+      "recommendation": "Optioneel toevoegen voor zoek/filter op reisgezelschap"
+    },
+    {
+      "field": "transportType?: string",
+      "source": "property: transportType",
+      "recommendation": "Optioneel; nu afgeleid naar flightIncluded"
+    },
+    {
+      "field": "marketCountry?: string",
+      "source": "property: country_of_origin",
+      "recommendation": "Optioneel voor BE/NL-markt onderscheid"
+    },
+    {
+      "field": "boardTypeCode?: string",
+      "source": "property: board_type",
+      "recommendation": "Optioneel om ruwe provider-code te bewaren naast boardType"
+    }
+  ],
+  "samples": {
+    "prijsvrijOffer": {
+      "externalId": "446251",
+      "provider": "Prijsvrij",
+      "hotelName": "Portodrach",
+      "accommodationType": "Aparthotel",
+      "stars": 4,
+      "descriptionShort": "8 daagse vliegvakantie naar Portodrach in porto cristo, spanje",
+      "feedDescription": "Toe aan een zonnige vakantie aan de kust van Mallorca? Het 4-sterren Portodrach ligt in het gezellige Porto Cristo, met uitzicht op de charmante haven. Vanuit dit aparthotel wandel je zo naar winkels, restaurants en de Yacht Club. Overdag neem je een verfrissende duik in het zwembad of geniet je van een drankje op het terras. De ruime appartementen met keuken zorgen voor een comfortabel en ontspannen verblijf. Ook leuk: in de omgeving vind je prachtige baaien zoals Cala Anguila en Cala Mendia. Klinkt goed? Boek jouw verblijf in Portodrach bij Prijsvrij met Best Deal Garantie én geen boekingskosten!",
+      "price": 472,
+      "currency": "EUR",
+      "deepLink": "https://www.prijsvrij.be/vakantie/?tt=25331_1480778_511747_&r=https%3A%2F%2Fwww.prijsvrij.be%2Fvakanties%2Fspanje%2Fmallorca%2Fporto-cristo%2Fportodrach%3Fvertrekdatum%3D2026-09-30%26reisduurdagen%3D8%26transport%3Dvl",
+      "imageUrl": "https://objectstore.true.nl/prijsvrij:accommodations/626x416/Y756WYZE7DLT4DKMZF2LGYCSBEY2XCXAN572PN4A.jpg",
+      "imageLarge": "https://objectstore.true.nl/prijsvrij:accommodations/626x416/Y756WYZE7DLT4DKMZF2LGYCSBEY2XCXAN572PN4A.jpg",
+      "imageSmall": "https://objectstore.true.nl/prijsvrij:accommodations/626x416/O0VCTY84SMJJ2HJORSOTEU486QPAO95NJ2UP0Z3B.jpg",
+      "images": [
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/Y756WYZE7DLT4DKMZF2LGYCSBEY2XCXAN572PN4A.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/O0VCTY84SMJJ2HJORSOTEU486QPAO95NJ2UP0Z3B.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/JNW29T9DV90XZZ2DVQ1AU2B98MTZWYO3KNAG8IJ8.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/AHXHV1WT0HVXJ3RSXTJ9M01ZWOMZCSHCX18H8EV7.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/G70GTNJAAKWER5Y8UNONJNP5V81YQUOR7N9MY5I0.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/HIHI1KUEL7ILE8I81MG1BYWD1C7E6RIZKQFL2QY2.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/JSQMURR7HUI4DCBVGF8M7PF10WKYCB2SS9GVASDD.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/7QQ1CIS9ZVIS9IHJQ7UHO6RH9T9S5KTT8LB5J9WO.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/V6L6FRQAGBLRZHE1598J53PKXLR689XQ1KGQ71RV.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/3LWHQI96V59MSZAS9ESVU41KW015IM902DGSRTMK.jpg"
+      ],
+      "nights": 8,
+      "durationType": "dagen",
+      "departureDate": "2026-09-30",
+      "flightIncluded": "true",
+      "boardType": "Half pension",
+      "country": "Spanje",
+      "region": "Mallorca",
+      "city": "Porto Cristo",
+      "latitude": 39.5381,
+      "longitude": 3.33136,
+      "affiliateCampaignId": "25331"
+    },
+    "prijsvrijNormalizedOffer": {
+      "id": "446251",
+      "provider": "Prijsvrij",
+      "hotelName": "Portodrach",
+      "accommodationType": "Aparthotel",
+      "destinationCountry": "Spanje",
+      "destinationRegion": "Mallorca",
+      "destinationCity": "Porto Cristo",
+      "departureDate": "2026-09-30",
+      "boardType": "Half pension",
+      "nights": 8,
+      "durationType": "dagen",
+      "flightIncluded": "true",
+      "price": 472,
+      "currency": "EUR",
+      "pricePerDay": 59,
+      "stars": 4,
+      "imageUrl": "https://objectstore.true.nl/prijsvrij:accommodations/626x416/Y756WYZE7DLT4DKMZF2LGYCSBEY2XCXAN572PN4A.jpg",
+      "imageLarge": "https://objectstore.true.nl/prijsvrij:accommodations/626x416/Y756WYZE7DLT4DKMZF2LGYCSBEY2XCXAN572PN4A.jpg",
+      "imageSmall": "https://objectstore.true.nl/prijsvrij:accommodations/626x416/O0VCTY84SMJJ2HJORSOTEU486QPAO95NJ2UP0Z3B.jpg",
+      "images": [
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/Y756WYZE7DLT4DKMZF2LGYCSBEY2XCXAN572PN4A.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/O0VCTY84SMJJ2HJORSOTEU486QPAO95NJ2UP0Z3B.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/JNW29T9DV90XZZ2DVQ1AU2B98MTZWYO3KNAG8IJ8.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/AHXHV1WT0HVXJ3RSXTJ9M01ZWOMZCSHCX18H8EV7.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/G70GTNJAAKWER5Y8UNONJNP5V81YQUOR7N9MY5I0.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/HIHI1KUEL7ILE8I81MG1BYWD1C7E6RIZKQFL2QY2.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/JSQMURR7HUI4DCBVGF8M7PF10WKYCB2SS9GVASDD.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/7QQ1CIS9ZVIS9IHJQ7UHO6RH9T9S5KTT8LB5J9WO.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/V6L6FRQAGBLRZHE1598J53PKXLR689XQ1KGQ71RV.jpg",
+        "https://objectstore.true.nl/prijsvrij:accommodations/626x416/3LWHQI96V59MSZAS9ESVU41KW015IM902DGSRTMK.jpg"
+      ],
+      "descriptionShort": "8 daagse vliegvakantie naar Portodrach in porto cristo, spanje",
+      "feedDescription": "Toe aan een zonnige vakantie aan de kust van Mallorca? Het 4-sterren Portodrach ligt in het gezellige Porto Cristo, met uitzicht op de charmante haven. Vanuit dit aparthotel wandel je zo naar winkels, restaurants en de Yacht Club. Overdag neem je een verfrissende duik in het zwembad of geniet je van een drankje op het terras. De ruime appartementen met keuken zorgen voor een comfortabel en ontspannen verblijf. Ook leuk: in de omgeving vind je prachtige baaien zoals Cala Anguila en Cala Mendia. Klinkt goed? Boek jouw verblijf in Portodrach bij Prijsvrij met Best Deal Garantie én geen boekingskosten!",
+      "latitude": 39.5381,
+      "longitude": 3.33136,
+      "deepLink": "https://www.prijsvrij.be/vakantie/?tt=25331_1480778_511747_&r=https%3A%2F%2Fwww.prijsvrij.be%2Fvakanties%2Fspanje%2Fmallorca%2Fporto-cristo%2Fportodrach%3Fvertrekdatum%3D2026-09-30%26reisduurdagen%3D8%26transport%3Dvl",
+      "affiliateCampaignId": "25331",
+      "departureWindowStart": "",
+      "departureWindowEnd": "",
+      "valueScore": 0,
+      "flexibilityScore": 0
+    },
+    "missingDepartureAirportExamples": [
+      "446251",
+      "445844",
+      "68741"
+    ]
+  }
+}
