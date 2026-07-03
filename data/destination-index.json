@@ -1,0 +1,1892 @@
+{
+  "version": 2,
+  "generatedAt": "2026-07-03T13:30:07.571Z",
+  "stats": {
+    "countries": 55,
+    "regions": 111,
+    "offers": 71136
+  },
+  "filterOptions": {
+    "countries": [
+      "Albanië",
+      "Aruba",
+      "Barbados",
+      "Bonaire",
+      "Brazilië",
+      "Bulgarije",
+      "Canarische Eilanden",
+      "Costa Rica",
+      "Curaçao",
+      "Cyprus",
+      "Denemarken",
+      "Dominicaanse Republiek",
+      "Duitsland",
+      "Egypte",
+      "Estland",
+      "Finland",
+      "Frankrijk",
+      "Gambia",
+      "Griekenland",
+      "Hongarije",
+      "Ierland",
+      "IJsland",
+      "Indonesië",
+      "Italië",
+      "Jamaica",
+      "Kaapverdische Eilanden",
+      "Kroatië",
+      "Letland",
+      "Litouwen",
+      "Malta",
+      "Marokko",
+      "Mauritius",
+      "Mexico",
+      "Montenegro",
+      "Noorwegen",
+      "Oman",
+      "Oostenrijk",
+      "Polen",
+      "Portugal",
+      "Qatar",
+      "Seychellen",
+      "Sint Maarten",
+      "Slovenië",
+      "Spanje",
+      "Tanzania",
+      "Thailand",
+      "Tsjechië",
+      "Tunesië",
+      "Turkije",
+      "Verenigd Koninkrijk",
+      "Verenigde Arabische Emiraten",
+      "Verenigde Staten",
+      "Zuid-Afrika",
+      "Zweden",
+      "Zwitserland"
+    ],
+    "regionsByCountry": {
+      "Albanië": [],
+      "Aruba": [],
+      "Barbados": [],
+      "Bonaire": [],
+      "Brazilië": [
+        "Kuststreek"
+      ],
+      "Bulgarije": [
+        "Sunny Beach",
+        "Zwarte Zee",
+        "Zwarte Zeekust"
+      ],
+      "Canarische Eilanden": [
+        "Fuerteventura",
+        "Gran Canaria",
+        "La Palma",
+        "Lanzarote",
+        "Tenerife"
+      ],
+      "Costa Rica": [],
+      "Curaçao": [],
+      "Cyprus": [
+        "Larnaca",
+        "Paphos"
+      ],
+      "Denemarken": [],
+      "Dominicaanse Republiek": [
+        "Noordkust",
+        "Oostkust",
+        "Punta Cana",
+        "Zuidkust"
+      ],
+      "Duitsland": [],
+      "Egypte": [
+        "Hurghada",
+        "Marsa Alam",
+        "Rode Zee",
+        "Sharm el Sheikh"
+      ],
+      "Estland": [],
+      "Finland": [],
+      "Frankrijk": [
+        "Corsica",
+        "Cote D Azur",
+        "Normandië",
+        "Provence"
+      ],
+      "Gambia": [
+        "Kuststreek"
+      ],
+      "Griekenland": [
+        "Chalkidiki",
+        "Corfu",
+        "Evia",
+        "Karpathos",
+        "Kefalonia",
+        "Kos",
+        "Kreta",
+        "Lesbos",
+        "Mykonos",
+        "Olympische Riviera",
+        "Parga",
+        "Peloponnesos",
+        "Pieria",
+        "Rhodos",
+        "Samos",
+        "Santorini",
+        "Sithonia",
+        "Skiathos",
+        "Zakynthos"
+      ],
+      "Hongarije": [],
+      "Ierland": [],
+      "IJsland": [],
+      "Indonesië": [
+        "Bali"
+      ],
+      "Italië": [
+        "Adriatische Kust",
+        "Adriatische Riviera",
+        "Dolomieten",
+        "Gardameer",
+        "Italiaanse Riviera",
+        "Puglia",
+        "Sicilië",
+        "Toscaanse kust",
+        "Toscane"
+      ],
+      "Jamaica": [],
+      "Kaapverdische Eilanden": [
+        "Boa Vista",
+        "Sal"
+      ],
+      "Kroatië": [
+        "Adriatische Kust",
+        "Dalmatische kust",
+        "Dubrovnik",
+        "Istrie",
+        "Kvarner",
+        "Midden-dalmatie",
+        "Zuid-dalmatie"
+      ],
+      "Letland": [],
+      "Litouwen": [],
+      "Malta": [],
+      "Marokko": [
+        "Agadir",
+        "Atlantische Kust",
+        "Middellandse Zeekust"
+      ],
+      "Mauritius": [
+        "Noordwest-kust",
+        "Oostkust",
+        "Westkust",
+        "Zuidkust"
+      ],
+      "Mexico": [
+        "Yucatan"
+      ],
+      "Montenegro": [
+        "Kuststreek"
+      ],
+      "Noorwegen": [],
+      "Oman": [],
+      "Oostenrijk": [
+        "Salzburgerland",
+        "Tirol",
+        "Zillertal"
+      ],
+      "Polen": [],
+      "Portugal": [
+        "Algarve",
+        "Azoren",
+        "Costa De Lisboa",
+        "Costa De Prata",
+        "Costa Verde",
+        "Madeira"
+      ],
+      "Qatar": [],
+      "Seychellen": [],
+      "Sint Maarten": [],
+      "Slovenië": [],
+      "Spanje": [
+        "Costa Blanca",
+        "Costa Brava",
+        "Costa de Almería",
+        "Costa de la Luz",
+        "Costa del Azahar",
+        "Costa del Sol",
+        "Costa Dorada",
+        "Formentera",
+        "Fuerteventura",
+        "Gran Canaria",
+        "Ibiza",
+        "La Palma",
+        "Lanzarote",
+        "Mallorca",
+        "Menorca",
+        "Tenerife"
+      ],
+      "Tanzania": [
+        "Zanzibar"
+      ],
+      "Thailand": [
+        "Koh Samui",
+        "Phuket"
+      ],
+      "Tsjechië": [],
+      "Tunesië": [],
+      "Turkije": [
+        "Alanya",
+        "Antalya",
+        "Bodrum",
+        "Didim",
+        "Egeische Kust",
+        "Fethiye",
+        "Kemer",
+        "Kusadasi",
+        "Lycische Kust",
+        "Marmaris",
+        "Side",
+        "Turkse Rivièra"
+      ],
+      "Verenigd Koninkrijk": [],
+      "Verenigde Arabische Emiraten": [],
+      "Verenigde Staten": [],
+      "Zuid-Afrika": [],
+      "Zweden": [],
+      "Zwitserland": []
+    },
+    "boardTypes": [
+      "All Inclusive",
+      "Half pension",
+      "Halfpension",
+      "Halfpension Plus",
+      "Logies",
+      "Logies en ontbijt",
+      "Ultra All Inclusive",
+      "Vol pension",
+      "Volpension",
+      "Volpension Plus",
+      "Zie beschrijving"
+    ],
+    "departureAirports": [
+      "AMB",
+      "AMS",
+      "BRU",
+      "CGN",
+      "CRL",
+      "DUS",
+      "EIN",
+      "GRQ",
+      "MST",
+      "NRN",
+      "RTM"
+    ]
+  },
+  "searchList": [
+    {
+      "id": "Albanië",
+      "label": "Albanië",
+      "count": 1093,
+      "level": "country",
+      "filter": {
+        "country": "Albanië"
+      }
+    },
+    {
+      "id": "Aruba",
+      "label": "Aruba",
+      "count": 226,
+      "level": "country",
+      "filter": {
+        "country": "Aruba"
+      }
+    },
+    {
+      "id": "Barbados",
+      "label": "Barbados",
+      "count": 422,
+      "level": "country",
+      "filter": {
+        "country": "Barbados"
+      }
+    },
+    {
+      "id": "Bonaire",
+      "label": "Bonaire",
+      "count": 115,
+      "level": "country",
+      "filter": {
+        "country": "Bonaire"
+      }
+    },
+    {
+      "id": "Brazilië",
+      "label": "Brazilië",
+      "count": 102,
+      "level": "country",
+      "filter": {
+        "country": "Brazilië"
+      }
+    },
+    {
+      "id": "Brazilië|kuststreek",
+      "label": "Kuststreek",
+      "count": 102,
+      "level": "region",
+      "filter": {
+        "country": "Brazilië",
+        "region": "Kuststreek"
+      }
+    },
+    {
+      "id": "Bulgarije",
+      "label": "Bulgarije",
+      "count": 202,
+      "level": "country",
+      "filter": {
+        "country": "Bulgarije"
+      }
+    },
+    {
+      "id": "Bulgarije|sunnybeach",
+      "label": "Sunny Beach",
+      "count": 41,
+      "level": "region",
+      "filter": {
+        "country": "Bulgarije",
+        "region": "Sunny Beach"
+      }
+    },
+    {
+      "id": "Bulgarije|zwartezee",
+      "label": "Zwarte Zee",
+      "count": 21,
+      "level": "region",
+      "filter": {
+        "country": "Bulgarije",
+        "region": "Zwarte Zee"
+      }
+    },
+    {
+      "id": "Bulgarije|zwartezeekust",
+      "label": "Zwarte Zeekust",
+      "count": 135,
+      "level": "region",
+      "filter": {
+        "country": "Bulgarije",
+        "region": "Zwarte Zeekust"
+      }
+    },
+    {
+      "id": "Canarische Eilanden",
+      "label": "Canarische Eilanden",
+      "count": 5977,
+      "level": "country",
+      "filter": {
+        "country": "Canarische Eilanden"
+      }
+    },
+    {
+      "id": "Canarische Eilanden|fuerteventura",
+      "label": "Fuerteventura",
+      "count": 950,
+      "level": "region",
+      "filter": {
+        "country": "Canarische Eilanden",
+        "region": "Fuerteventura"
+      }
+    },
+    {
+      "id": "Canarische Eilanden|grancanaria",
+      "label": "Gran Canaria",
+      "count": 1731,
+      "level": "region",
+      "filter": {
+        "country": "Canarische Eilanden",
+        "region": "Gran Canaria"
+      }
+    },
+    {
+      "id": "Canarische Eilanden|lapalma",
+      "label": "La Palma",
+      "count": 151,
+      "level": "region",
+      "filter": {
+        "country": "Canarische Eilanden",
+        "region": "La Palma"
+      }
+    },
+    {
+      "id": "Canarische Eilanden|lanzarote",
+      "label": "Lanzarote",
+      "count": 1301,
+      "level": "region",
+      "filter": {
+        "country": "Canarische Eilanden",
+        "region": "Lanzarote"
+      }
+    },
+    {
+      "id": "Canarische Eilanden|tenerife",
+      "label": "Tenerife",
+      "count": 1844,
+      "level": "region",
+      "filter": {
+        "country": "Canarische Eilanden",
+        "region": "Tenerife"
+      }
+    },
+    {
+      "id": "Costa Rica",
+      "label": "Costa Rica",
+      "count": 286,
+      "level": "country",
+      "filter": {
+        "country": "Costa Rica"
+      }
+    },
+    {
+      "id": "Curaçao",
+      "label": "Curaçao",
+      "count": 384,
+      "level": "country",
+      "filter": {
+        "country": "Curaçao"
+      }
+    },
+    {
+      "id": "Cyprus",
+      "label": "Cyprus",
+      "count": 685,
+      "level": "country",
+      "filter": {
+        "country": "Cyprus"
+      }
+    },
+    {
+      "id": "Cyprus|larnaca",
+      "label": "Larnaca",
+      "count": 291,
+      "level": "region",
+      "filter": {
+        "country": "Cyprus",
+        "region": "Larnaca"
+      }
+    },
+    {
+      "id": "Cyprus|paphos",
+      "label": "Paphos",
+      "count": 355,
+      "level": "region",
+      "filter": {
+        "country": "Cyprus",
+        "region": "Paphos"
+      }
+    },
+    {
+      "id": "Denemarken",
+      "label": "Denemarken",
+      "count": 300,
+      "level": "country",
+      "filter": {
+        "country": "Denemarken"
+      }
+    },
+    {
+      "id": "Dominicaanse Republiek",
+      "label": "Dominicaanse Republiek",
+      "count": 975,
+      "level": "country",
+      "filter": {
+        "country": "Dominicaanse Republiek"
+      }
+    },
+    {
+      "id": "Dominicaanse Republiek|noordkust",
+      "label": "Noordkust",
+      "count": 157,
+      "level": "region",
+      "filter": {
+        "country": "Dominicaanse Republiek",
+        "region": "Noordkust"
+      }
+    },
+    {
+      "id": "Dominicaanse Republiek|oostkust",
+      "label": "Oostkust",
+      "count": 585,
+      "level": "region",
+      "filter": {
+        "country": "Dominicaanse Republiek",
+        "region": "Oostkust"
+      }
+    },
+    {
+      "id": "Dominicaanse Republiek|puntacana",
+      "label": "Punta Cana",
+      "count": 1,
+      "level": "region",
+      "filter": {
+        "country": "Dominicaanse Republiek",
+        "region": "Punta Cana"
+      }
+    },
+    {
+      "id": "Dominicaanse Republiek|zuidkust",
+      "label": "Zuidkust",
+      "count": 232,
+      "level": "region",
+      "filter": {
+        "country": "Dominicaanse Republiek",
+        "region": "Zuidkust"
+      }
+    },
+    {
+      "id": "Duitsland",
+      "label": "Duitsland",
+      "count": 1046,
+      "level": "country",
+      "filter": {
+        "country": "Duitsland"
+      }
+    },
+    {
+      "id": "Egypte",
+      "label": "Egypte",
+      "count": 2667,
+      "level": "country",
+      "filter": {
+        "country": "Egypte"
+      }
+    },
+    {
+      "id": "Egypte|hurghada",
+      "label": "Hurghada",
+      "count": 83,
+      "level": "region",
+      "filter": {
+        "country": "Egypte",
+        "region": "Hurghada"
+      }
+    },
+    {
+      "id": "Egypte|marsaalam",
+      "label": "Marsa Alam",
+      "count": 11,
+      "level": "region",
+      "filter": {
+        "country": "Egypte",
+        "region": "Marsa Alam"
+      }
+    },
+    {
+      "id": "Egypte|rodezee",
+      "label": "Rode Zee",
+      "count": 2348,
+      "level": "region",
+      "filter": {
+        "country": "Egypte",
+        "region": "Rode Zee"
+      }
+    },
+    {
+      "id": "Egypte|sharmelsheikh",
+      "label": "Sharm el Sheikh",
+      "count": 19,
+      "level": "region",
+      "filter": {
+        "country": "Egypte",
+        "region": "Sharm el Sheikh"
+      }
+    },
+    {
+      "id": "Estland",
+      "label": "Estland",
+      "count": 98,
+      "level": "country",
+      "filter": {
+        "country": "Estland"
+      }
+    },
+    {
+      "id": "Finland",
+      "label": "Finland",
+      "count": 102,
+      "level": "country",
+      "filter": {
+        "country": "Finland"
+      }
+    },
+    {
+      "id": "Frankrijk",
+      "label": "Frankrijk",
+      "count": 527,
+      "level": "country",
+      "filter": {
+        "country": "Frankrijk"
+      }
+    },
+    {
+      "id": "Frankrijk|corsica",
+      "label": "Corsica",
+      "count": 223,
+      "level": "region",
+      "filter": {
+        "country": "Frankrijk",
+        "region": "Corsica"
+      }
+    },
+    {
+      "id": "Frankrijk|cotedazur",
+      "label": "Cote D Azur",
+      "count": 16,
+      "level": "region",
+      "filter": {
+        "country": "Frankrijk",
+        "region": "Cote D Azur"
+      }
+    },
+    {
+      "id": "Frankrijk|normandie",
+      "label": "Normandië",
+      "count": 1,
+      "level": "region",
+      "filter": {
+        "country": "Frankrijk",
+        "region": "Normandië"
+      }
+    },
+    {
+      "id": "Frankrijk|provence",
+      "label": "Provence",
+      "count": 14,
+      "level": "region",
+      "filter": {
+        "country": "Frankrijk",
+        "region": "Provence"
+      }
+    },
+    {
+      "id": "Gambia",
+      "label": "Gambia",
+      "count": 40,
+      "level": "country",
+      "filter": {
+        "country": "Gambia"
+      }
+    },
+    {
+      "id": "Gambia|kuststreek",
+      "label": "Kuststreek",
+      "count": 29,
+      "level": "region",
+      "filter": {
+        "country": "Gambia",
+        "region": "Kuststreek"
+      }
+    },
+    {
+      "id": "Griekenland",
+      "label": "Griekenland",
+      "count": 6810,
+      "level": "country",
+      "filter": {
+        "country": "Griekenland"
+      }
+    },
+    {
+      "id": "Griekenland|chalkidiki",
+      "label": "Chalkidiki",
+      "count": 346,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Chalkidiki"
+      }
+    },
+    {
+      "id": "Griekenland|corfu",
+      "label": "Corfu",
+      "count": 455,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Corfu"
+      }
+    },
+    {
+      "id": "Griekenland|evia",
+      "label": "Evia",
+      "count": 6,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Evia"
+      }
+    },
+    {
+      "id": "Griekenland|karpathos",
+      "label": "Karpathos",
+      "count": 15,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Karpathos"
+      }
+    },
+    {
+      "id": "Griekenland|kefalonia",
+      "label": "Kefalonia",
+      "count": 88,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Kefalonia"
+      }
+    },
+    {
+      "id": "Griekenland|kos",
+      "label": "Kos",
+      "count": 574,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Kos"
+      }
+    },
+    {
+      "id": "Griekenland|kreta",
+      "label": "Kreta",
+      "count": 2446,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Kreta"
+      }
+    },
+    {
+      "id": "Griekenland|lesbos",
+      "label": "Lesbos",
+      "count": 71,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Lesbos"
+      }
+    },
+    {
+      "id": "Griekenland|mykonos",
+      "label": "Mykonos",
+      "count": 87,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Mykonos"
+      }
+    },
+    {
+      "id": "Griekenland|olympischeriviera",
+      "label": "Olympische Riviera",
+      "count": 39,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Olympische Riviera"
+      }
+    },
+    {
+      "id": "Griekenland|parga",
+      "label": "Parga",
+      "count": 22,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Parga"
+      }
+    },
+    {
+      "id": "Griekenland|peloponnesos",
+      "label": "Peloponnesos",
+      "count": 19,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Peloponnesos"
+      }
+    },
+    {
+      "id": "Griekenland|pieria",
+      "label": "Pieria",
+      "count": 3,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Pieria"
+      }
+    },
+    {
+      "id": "Griekenland|rhodos",
+      "label": "Rhodos",
+      "count": 977,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Rhodos"
+      }
+    },
+    {
+      "id": "Griekenland|samos",
+      "label": "Samos",
+      "count": 151,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Samos"
+      }
+    },
+    {
+      "id": "Griekenland|santorini",
+      "label": "Santorini",
+      "count": 329,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Santorini"
+      }
+    },
+    {
+      "id": "Griekenland|sithonia",
+      "label": "Sithonia",
+      "count": 39,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Sithonia"
+      }
+    },
+    {
+      "id": "Griekenland|skiathos",
+      "label": "Skiathos",
+      "count": 10,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Skiathos"
+      }
+    },
+    {
+      "id": "Griekenland|zakynthos",
+      "label": "Zakynthos",
+      "count": 456,
+      "level": "region",
+      "filter": {
+        "country": "Griekenland",
+        "region": "Zakynthos"
+      }
+    },
+    {
+      "id": "Hongarije",
+      "label": "Hongarije",
+      "count": 331,
+      "level": "country",
+      "filter": {
+        "country": "Hongarije"
+      }
+    },
+    {
+      "id": "Ierland",
+      "label": "Ierland",
+      "count": 135,
+      "level": "country",
+      "filter": {
+        "country": "Ierland"
+      }
+    },
+    {
+      "id": "IJsland",
+      "label": "IJsland",
+      "count": 192,
+      "level": "country",
+      "filter": {
+        "country": "IJsland"
+      }
+    },
+    {
+      "id": "Indonesië",
+      "label": "Indonesië",
+      "count": 1486,
+      "level": "country",
+      "filter": {
+        "country": "Indonesië"
+      }
+    },
+    {
+      "id": "Indonesië|bali",
+      "label": "Bali",
+      "count": 1486,
+      "level": "region",
+      "filter": {
+        "country": "Indonesië",
+        "region": "Bali"
+      }
+    },
+    {
+      "id": "Italië",
+      "label": "Italië",
+      "count": 5547,
+      "level": "country",
+      "filter": {
+        "country": "Italië"
+      }
+    },
+    {
+      "id": "Italië|adriatischekust",
+      "label": "Adriatische Kust",
+      "count": 7,
+      "level": "region",
+      "filter": {
+        "country": "Italië",
+        "region": "Adriatische Kust"
+      }
+    },
+    {
+      "id": "Italië|adriatischeriviera",
+      "label": "Adriatische Riviera",
+      "count": 46,
+      "level": "region",
+      "filter": {
+        "country": "Italië",
+        "region": "Adriatische Riviera"
+      }
+    },
+    {
+      "id": "Italië|dolomieten",
+      "label": "Dolomieten",
+      "count": 6,
+      "level": "region",
+      "filter": {
+        "country": "Italië",
+        "region": "Dolomieten"
+      }
+    },
+    {
+      "id": "Italië|gardameer",
+      "label": "Gardameer",
+      "count": 59,
+      "level": "region",
+      "filter": {
+        "country": "Italië",
+        "region": "Gardameer"
+      }
+    },
+    {
+      "id": "Italië|italiaanseriviera",
+      "label": "Italiaanse Riviera",
+      "count": 105,
+      "level": "region",
+      "filter": {
+        "country": "Italië",
+        "region": "Italiaanse Riviera"
+      }
+    },
+    {
+      "id": "Italië|puglia",
+      "label": "Puglia",
+      "count": 294,
+      "level": "region",
+      "filter": {
+        "country": "Italië",
+        "region": "Puglia"
+      }
+    },
+    {
+      "id": "Italië|sicilie",
+      "label": "Sicilië",
+      "count": 358,
+      "level": "region",
+      "filter": {
+        "country": "Italië",
+        "region": "Sicilië"
+      }
+    },
+    {
+      "id": "Italië|toscaansekust",
+      "label": "Toscaanse kust",
+      "count": 1,
+      "level": "region",
+      "filter": {
+        "country": "Italië",
+        "region": "Toscaanse kust"
+      }
+    },
+    {
+      "id": "Italië|toscane",
+      "label": "Toscane",
+      "count": 278,
+      "level": "region",
+      "filter": {
+        "country": "Italië",
+        "region": "Toscane"
+      }
+    },
+    {
+      "id": "Jamaica",
+      "label": "Jamaica",
+      "count": 111,
+      "level": "country",
+      "filter": {
+        "country": "Jamaica"
+      }
+    },
+    {
+      "id": "Kaapverdische Eilanden",
+      "label": "Kaapverdische Eilanden",
+      "count": 94,
+      "level": "country",
+      "filter": {
+        "country": "Kaapverdische Eilanden"
+      }
+    },
+    {
+      "id": "Kaapverdische Eilanden|boavista",
+      "label": "Boa Vista",
+      "count": 11,
+      "level": "region",
+      "filter": {
+        "country": "Kaapverdische Eilanden",
+        "region": "Boa Vista"
+      }
+    },
+    {
+      "id": "Kaapverdische Eilanden|sal",
+      "label": "Sal",
+      "count": 11,
+      "level": "region",
+      "filter": {
+        "country": "Kaapverdische Eilanden",
+        "region": "Sal"
+      }
+    },
+    {
+      "id": "Kroatië",
+      "label": "Kroatië",
+      "count": 365,
+      "level": "country",
+      "filter": {
+        "country": "Kroatië"
+      }
+    },
+    {
+      "id": "Kroatië|adriatischekust",
+      "label": "Adriatische Kust",
+      "count": 1,
+      "level": "region",
+      "filter": {
+        "country": "Kroatië",
+        "region": "Adriatische Kust"
+      }
+    },
+    {
+      "id": "Kroatië|dalmatischekust",
+      "label": "Dalmatische kust",
+      "count": 1,
+      "level": "region",
+      "filter": {
+        "country": "Kroatië",
+        "region": "Dalmatische kust"
+      }
+    },
+    {
+      "id": "Kroatië|dubrovnik",
+      "label": "Dubrovnik",
+      "count": 27,
+      "level": "region",
+      "filter": {
+        "country": "Kroatië",
+        "region": "Dubrovnik"
+      }
+    },
+    {
+      "id": "Kroatië|istrie",
+      "label": "Istrie",
+      "count": 46,
+      "level": "region",
+      "filter": {
+        "country": "Kroatië",
+        "region": "Istrie"
+      }
+    },
+    {
+      "id": "Kroatië|kvarner",
+      "label": "Kvarner",
+      "count": 10,
+      "level": "region",
+      "filter": {
+        "country": "Kroatië",
+        "region": "Kvarner"
+      }
+    },
+    {
+      "id": "Kroatië|middendalmatie",
+      "label": "Midden-dalmatie",
+      "count": 212,
+      "level": "region",
+      "filter": {
+        "country": "Kroatië",
+        "region": "Midden-dalmatie"
+      }
+    },
+    {
+      "id": "Kroatië|zuiddalmatie",
+      "label": "Zuid-dalmatie",
+      "count": 24,
+      "level": "region",
+      "filter": {
+        "country": "Kroatië",
+        "region": "Zuid-dalmatie"
+      }
+    },
+    {
+      "id": "Letland",
+      "label": "Letland",
+      "count": 176,
+      "level": "country",
+      "filter": {
+        "country": "Letland"
+      }
+    },
+    {
+      "id": "Litouwen",
+      "label": "Litouwen",
+      "count": 59,
+      "level": "country",
+      "filter": {
+        "country": "Litouwen"
+      }
+    },
+    {
+      "id": "Malta",
+      "label": "Malta",
+      "count": 833,
+      "level": "country",
+      "filter": {
+        "country": "Malta"
+      }
+    },
+    {
+      "id": "Marokko",
+      "label": "Marokko",
+      "count": 1254,
+      "level": "country",
+      "filter": {
+        "country": "Marokko"
+      }
+    },
+    {
+      "id": "Marokko|agadir",
+      "label": "Agadir",
+      "count": 15,
+      "level": "region",
+      "filter": {
+        "country": "Marokko",
+        "region": "Agadir"
+      }
+    },
+    {
+      "id": "Marokko|atlantischekust",
+      "label": "Atlantische Kust",
+      "count": 498,
+      "level": "region",
+      "filter": {
+        "country": "Marokko",
+        "region": "Atlantische Kust"
+      }
+    },
+    {
+      "id": "Marokko|middellandsezeekust",
+      "label": "Middellandse Zeekust",
+      "count": 5,
+      "level": "region",
+      "filter": {
+        "country": "Marokko",
+        "region": "Middellandse Zeekust"
+      }
+    },
+    {
+      "id": "Mauritius",
+      "label": "Mauritius",
+      "count": 282,
+      "level": "country",
+      "filter": {
+        "country": "Mauritius"
+      }
+    },
+    {
+      "id": "Mauritius|noordwestkust",
+      "label": "Noordwest-kust",
+      "count": 102,
+      "level": "region",
+      "filter": {
+        "country": "Mauritius",
+        "region": "Noordwest-kust"
+      }
+    },
+    {
+      "id": "Mauritius|oostkust",
+      "label": "Oostkust",
+      "count": 54,
+      "level": "region",
+      "filter": {
+        "country": "Mauritius",
+        "region": "Oostkust"
+      }
+    },
+    {
+      "id": "Mauritius|westkust",
+      "label": "Westkust",
+      "count": 72,
+      "level": "region",
+      "filter": {
+        "country": "Mauritius",
+        "region": "Westkust"
+      }
+    },
+    {
+      "id": "Mauritius|zuidkust",
+      "label": "Zuidkust",
+      "count": 54,
+      "level": "region",
+      "filter": {
+        "country": "Mauritius",
+        "region": "Zuidkust"
+      }
+    },
+    {
+      "id": "Mexico",
+      "label": "Mexico",
+      "count": 1078,
+      "level": "country",
+      "filter": {
+        "country": "Mexico"
+      }
+    },
+    {
+      "id": "Mexico|yucatan",
+      "label": "Yucatan",
+      "count": 1078,
+      "level": "region",
+      "filter": {
+        "country": "Mexico",
+        "region": "Yucatan"
+      }
+    },
+    {
+      "id": "Montenegro",
+      "label": "Montenegro",
+      "count": 53,
+      "level": "country",
+      "filter": {
+        "country": "Montenegro"
+      }
+    },
+    {
+      "id": "Montenegro|kuststreek",
+      "label": "Kuststreek",
+      "count": 52,
+      "level": "region",
+      "filter": {
+        "country": "Montenegro",
+        "region": "Kuststreek"
+      }
+    },
+    {
+      "id": "Noorwegen",
+      "label": "Noorwegen",
+      "count": 21,
+      "level": "country",
+      "filter": {
+        "country": "Noorwegen"
+      }
+    },
+    {
+      "id": "Oman",
+      "label": "Oman",
+      "count": 38,
+      "level": "country",
+      "filter": {
+        "country": "Oman"
+      }
+    },
+    {
+      "id": "Oostenrijk",
+      "label": "Oostenrijk",
+      "count": 562,
+      "level": "country",
+      "filter": {
+        "country": "Oostenrijk"
+      }
+    },
+    {
+      "id": "Oostenrijk|salzburgerland",
+      "label": "Salzburgerland",
+      "count": 32,
+      "level": "region",
+      "filter": {
+        "country": "Oostenrijk",
+        "region": "Salzburgerland"
+      }
+    },
+    {
+      "id": "Oostenrijk|tirol",
+      "label": "Tirol",
+      "count": 121,
+      "level": "region",
+      "filter": {
+        "country": "Oostenrijk",
+        "region": "Tirol"
+      }
+    },
+    {
+      "id": "Oostenrijk|zillertal",
+      "label": "Zillertal",
+      "count": 1,
+      "level": "region",
+      "filter": {
+        "country": "Oostenrijk",
+        "region": "Zillertal"
+      }
+    },
+    {
+      "id": "Polen",
+      "label": "Polen",
+      "count": 475,
+      "level": "country",
+      "filter": {
+        "country": "Polen"
+      }
+    },
+    {
+      "id": "Portugal",
+      "label": "Portugal",
+      "count": 4550,
+      "level": "country",
+      "filter": {
+        "country": "Portugal"
+      }
+    },
+    {
+      "id": "Portugal|algarve",
+      "label": "Algarve",
+      "count": 1703,
+      "level": "region",
+      "filter": {
+        "country": "Portugal",
+        "region": "Algarve"
+      }
+    },
+    {
+      "id": "Portugal|azoren",
+      "label": "Azoren",
+      "count": 14,
+      "level": "region",
+      "filter": {
+        "country": "Portugal",
+        "region": "Azoren"
+      }
+    },
+    {
+      "id": "Portugal|costadelisboa",
+      "label": "Costa De Lisboa",
+      "count": 140,
+      "level": "region",
+      "filter": {
+        "country": "Portugal",
+        "region": "Costa De Lisboa"
+      }
+    },
+    {
+      "id": "Portugal|costadeprata",
+      "label": "Costa De Prata",
+      "count": 44,
+      "level": "region",
+      "filter": {
+        "country": "Portugal",
+        "region": "Costa De Prata"
+      }
+    },
+    {
+      "id": "Portugal|costaverde",
+      "label": "Costa Verde",
+      "count": 120,
+      "level": "region",
+      "filter": {
+        "country": "Portugal",
+        "region": "Costa Verde"
+      }
+    },
+    {
+      "id": "Portugal|madeira",
+      "label": "Madeira",
+      "count": 757,
+      "level": "region",
+      "filter": {
+        "country": "Portugal",
+        "region": "Madeira"
+      }
+    },
+    {
+      "id": "Qatar",
+      "label": "Qatar",
+      "count": 308,
+      "level": "country",
+      "filter": {
+        "country": "Qatar"
+      }
+    },
+    {
+      "id": "Seychellen",
+      "label": "Seychellen",
+      "count": 179,
+      "level": "country",
+      "filter": {
+        "country": "Seychellen"
+      }
+    },
+    {
+      "id": "Sint Maarten",
+      "label": "Sint Maarten",
+      "count": 22,
+      "level": "country",
+      "filter": {
+        "country": "Sint Maarten"
+      }
+    },
+    {
+      "id": "Slovenië",
+      "label": "Slovenië",
+      "count": 145,
+      "level": "country",
+      "filter": {
+        "country": "Slovenië"
+      }
+    },
+    {
+      "id": "Spanje",
+      "label": "Spanje",
+      "count": 13699,
+      "level": "country",
+      "filter": {
+        "country": "Spanje"
+      }
+    },
+    {
+      "id": "Spanje|costablanca",
+      "label": "Costa Blanca",
+      "count": 769,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Costa Blanca"
+      }
+    },
+    {
+      "id": "Spanje|costabrava",
+      "label": "Costa Brava",
+      "count": 839,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Costa Brava"
+      }
+    },
+    {
+      "id": "Spanje|costadealmeria",
+      "label": "Costa de Almería",
+      "count": 88,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Costa de Almería"
+      }
+    },
+    {
+      "id": "Spanje|costadelaluz",
+      "label": "Costa de la Luz",
+      "count": 162,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Costa de la Luz"
+      }
+    },
+    {
+      "id": "Spanje|costadelazahar",
+      "label": "Costa del Azahar",
+      "count": 228,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Costa del Azahar"
+      }
+    },
+    {
+      "id": "Spanje|costadelsol",
+      "label": "Costa del Sol",
+      "count": 1341,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Costa del Sol"
+      }
+    },
+    {
+      "id": "Spanje|costadorada",
+      "label": "Costa Dorada",
+      "count": 471,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Costa Dorada"
+      }
+    },
+    {
+      "id": "Spanje|formentera",
+      "label": "Formentera",
+      "count": 11,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Formentera"
+      }
+    },
+    {
+      "id": "Spanje|fuerteventura",
+      "label": "Fuerteventura",
+      "count": 73,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Fuerteventura"
+      }
+    },
+    {
+      "id": "Spanje|grancanaria",
+      "label": "Gran Canaria",
+      "count": 103,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Gran Canaria"
+      }
+    },
+    {
+      "id": "Spanje|ibiza",
+      "label": "Ibiza",
+      "count": 776,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Ibiza"
+      }
+    },
+    {
+      "id": "Spanje|lapalma",
+      "label": "La Palma",
+      "count": 8,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "La Palma"
+      }
+    },
+    {
+      "id": "Spanje|lanzarote",
+      "label": "Lanzarote",
+      "count": 62,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Lanzarote"
+      }
+    },
+    {
+      "id": "Spanje|mallorca",
+      "label": "Mallorca",
+      "count": 2958,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Mallorca"
+      }
+    },
+    {
+      "id": "Spanje|menorca",
+      "label": "Menorca",
+      "count": 223,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Menorca"
+      }
+    },
+    {
+      "id": "Spanje|tenerife",
+      "label": "Tenerife",
+      "count": 92,
+      "level": "region",
+      "filter": {
+        "country": "Spanje",
+        "region": "Tenerife"
+      }
+    },
+    {
+      "id": "Tanzania",
+      "label": "Tanzania",
+      "count": 206,
+      "level": "country",
+      "filter": {
+        "country": "Tanzania"
+      }
+    },
+    {
+      "id": "Tanzania|zanzibar",
+      "label": "Zanzibar",
+      "count": 206,
+      "level": "region",
+      "filter": {
+        "country": "Tanzania",
+        "region": "Zanzibar"
+      }
+    },
+    {
+      "id": "Thailand",
+      "label": "Thailand",
+      "count": 1286,
+      "level": "country",
+      "filter": {
+        "country": "Thailand"
+      }
+    },
+    {
+      "id": "Thailand|kohsamui",
+      "label": "Koh Samui",
+      "count": 101,
+      "level": "region",
+      "filter": {
+        "country": "Thailand",
+        "region": "Koh Samui"
+      }
+    },
+    {
+      "id": "Thailand|phuket",
+      "label": "Phuket",
+      "count": 394,
+      "level": "region",
+      "filter": {
+        "country": "Thailand",
+        "region": "Phuket"
+      }
+    },
+    {
+      "id": "Tsjechië",
+      "label": "Tsjechië",
+      "count": 630,
+      "level": "country",
+      "filter": {
+        "country": "Tsjechië"
+      }
+    },
+    {
+      "id": "Tunesië",
+      "label": "Tunesië",
+      "count": 399,
+      "level": "country",
+      "filter": {
+        "country": "Tunesië"
+      }
+    },
+    {
+      "id": "Turkije",
+      "label": "Turkije",
+      "count": 6623,
+      "level": "country",
+      "filter": {
+        "country": "Turkije"
+      }
+    },
+    {
+      "id": "Turkije|alanya",
+      "label": "Alanya",
+      "count": 169,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Alanya"
+      }
+    },
+    {
+      "id": "Turkije|antalya",
+      "label": "Antalya",
+      "count": 38,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Antalya"
+      }
+    },
+    {
+      "id": "Turkije|bodrum",
+      "label": "Bodrum",
+      "count": 44,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Bodrum"
+      }
+    },
+    {
+      "id": "Turkije|didim",
+      "label": "Didim",
+      "count": 12,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Didim"
+      }
+    },
+    {
+      "id": "Turkije|egeischekust",
+      "label": "Egeische Kust",
+      "count": 614,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Egeische Kust"
+      }
+    },
+    {
+      "id": "Turkije|fethiye",
+      "label": "Fethiye",
+      "count": 22,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Fethiye"
+      }
+    },
+    {
+      "id": "Turkije|kemer",
+      "label": "Kemer",
+      "count": 22,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Kemer"
+      }
+    },
+    {
+      "id": "Turkije|kusadasi",
+      "label": "Kusadasi",
+      "count": 31,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Kusadasi"
+      }
+    },
+    {
+      "id": "Turkije|lycischekust",
+      "label": "Lycische Kust",
+      "count": 306,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Lycische Kust"
+      }
+    },
+    {
+      "id": "Turkije|marmaris",
+      "label": "Marmaris",
+      "count": 56,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Marmaris"
+      }
+    },
+    {
+      "id": "Turkije|side",
+      "label": "Side",
+      "count": 109,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Side"
+      }
+    },
+    {
+      "id": "Turkije|turkseriviera",
+      "label": "Turkse Rivièra",
+      "count": 3799,
+      "level": "region",
+      "filter": {
+        "country": "Turkije",
+        "region": "Turkse Rivièra"
+      }
+    },
+    {
+      "id": "Verenigd Koninkrijk",
+      "label": "Verenigd Koninkrijk",
+      "count": 2287,
+      "level": "country",
+      "filter": {
+        "country": "Verenigd Koninkrijk"
+      }
+    },
+    {
+      "id": "Verenigde Arabische Emiraten",
+      "label": "Verenigde Arabische Emiraten",
+      "count": 2750,
+      "level": "country",
+      "filter": {
+        "country": "Verenigde Arabische Emiraten"
+      }
+    },
+    {
+      "id": "Verenigde Staten",
+      "label": "Verenigde Staten",
+      "count": 1675,
+      "level": "country",
+      "filter": {
+        "country": "Verenigde Staten"
+      }
+    },
+    {
+      "id": "Zuid-Afrika",
+      "label": "Zuid-Afrika",
+      "count": 16,
+      "level": "country",
+      "filter": {
+        "country": "Zuid-Afrika"
+      }
+    },
+    {
+      "id": "Zweden",
+      "label": "Zweden",
+      "count": 38,
+      "level": "country",
+      "filter": {
+        "country": "Zweden"
+      }
+    },
+    {
+      "id": "Zwitserland",
+      "label": "Zwitserland",
+      "count": 57,
+      "level": "country",
+      "filter": {
+        "country": "Zwitserland"
+      }
+    }
+  ]
+}
