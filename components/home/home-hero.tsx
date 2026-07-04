@@ -1,13 +1,11 @@
 import Image from 'next/image';
-import Link from 'next/link';
+import { HomeFeatures } from '@/components/home/home-features';
+import { HomeHeader } from '@/components/home/home-header';
 import { HomeSearch } from '@/components/home/home-search';
-import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 
 export function HomeHero() {
-  const { countries } = loadFilterOptions();
-
   return (
-    <section className="relative min-h-[75vh] w-full overflow-hidden">
+    <section className="relative h-[500px] w-full overflow-hidden">
       <Image
         src="/images/hero.jpg"
         alt=""
@@ -18,46 +16,38 @@ export function HomeHero() {
       />
 
       <div
-        className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10"
+        className="absolute inset-0 bg-gradient-to-r from-[#0A2D62]/75 via-[#0A2D62]/45 to-[#0A2D62]/15"
         aria-hidden="true"
       />
       <div
-        className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"
+        className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10"
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto flex min-h-[75vh] max-w-7xl flex-col justify-between px-6 pb-10 pt-16 sm:px-8 sm:pb-12 sm:pt-20 lg:px-12">
-        <div className="max-w-2xl pt-6 lg:pt-12">
-          <p className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium tracking-wide text-white/90 backdrop-blur-sm">
-            VacationWeb
-          </p>
+      <div className="relative mx-auto flex h-full max-w-[1200px] flex-col px-4 pb-8 pt-4 sm:px-5 lg:px-6">
+        <HomeHeader />
 
-          <h1 className="mt-8 max-w-xl text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Jouw volgende reis begint hier.
-          </h1>
+        <div className="flex flex-1 flex-col justify-center">
+          <div className="max-w-3xl">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
+              <span aria-hidden="true">✦</span>
+              Jouw vakantie, jouw keuze
+            </p>
 
-          <p className="mt-6 max-w-md text-base leading-relaxed text-white/75 sm:text-lg">
-            Rustig vergelijken. Eén overzicht. Geen ruis.
-          </p>
+            <h1 className="mt-5 max-w-2xl text-[32px] font-bold leading-tight tracking-[-0.5px] text-white sm:text-[40px] lg:text-[56px]">
+              Vind jouw perfecte vakantie
+            </h1>
 
-          <div className="mt-10 flex flex-wrap items-center gap-4">
-            <a
-              href="#home-search"
-              className="inline-flex rounded-full bg-white px-7 py-3.5 text-sm font-medium text-stone-900 transition hover:bg-white/90"
-            >
-              Start met zoeken
-            </a>
-            <Link
-              href="/search"
-              className="inline-flex rounded-full border border-white/30 px-7 py-3.5 text-sm font-medium text-white transition hover:border-white/50 hover:bg-white/10"
-            >
-              Uitgebreid zoeken
-            </Link>
+            <p className="mt-4 max-w-2xl text-base leading-[1.6] text-white sm:text-lg">
+              Vergelijk aanbiedingen van meer dan 300 reispartners en boek met vertrouwen.
+            </p>
           </div>
-        </div>
 
-        <div id="home-search" className="mt-16 lg:mt-0">
-          <HomeSearch countries={countries} />
+          <div className="mt-8">
+            <HomeSearch />
+          </div>
+
+          <HomeFeatures />
         </div>
       </div>
     </section>

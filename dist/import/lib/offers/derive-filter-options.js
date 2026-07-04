@@ -1,6 +1,23 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.deriveFilterExtras = deriveFilterExtras;
 exports.deriveFilterOptions = deriveFilterOptions;
+function deriveFilterExtras(offers) {
+    const boardTypeSet = new Set();
+    const airportSet = new Set();
+    for (const offer of offers) {
+        if (offer.boardType) {
+            boardTypeSet.add(offer.boardType);
+        }
+        if (offer.departureAirport) {
+            airportSet.add(offer.departureAirport);
+        }
+    }
+    return {
+        boardTypes: [...boardTypeSet].sort(),
+        departureAirports: [...airportSet].sort(),
+    };
+}
 function deriveFilterOptions(offers) {
     const countrySet = new Set();
     const regionsByCountryMap = new Map();

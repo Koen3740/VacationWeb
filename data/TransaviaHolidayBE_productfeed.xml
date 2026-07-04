@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated on 07/01/26 at 00:15:59 (https://pf.tradetracker.net) -->
+<products>
+<product ID="2">
+<campaignID>38662</campaignID>
+<name>Hotel Albahia</name>
+<price currency="EUR">390.00</price>
+<URL>https://click.transavia.com/holidays/?tt=38662_2450882_511873_&amp;r=https%3A%2F%2Fholidays.transavia.com%2Fapp%2Fholiday%3Fdeparturelocation%3DBRU%26destinationlocation%3DAlicante_ES%26departuredate%3D2025-12-10%26returndate%3D2025-12-12%26hotelid%3DALC0001K%26culture%3Dnl-NL</URL>
+<images>
+<image>https://app.smartly.io/filestore/images/57fd1cff-2d89-4a30-8199-9f2ac29717e1/blob</image>
+</images>
+<description><![CDATA[]]></description>
+<categories>
+<category path="Alicante">Alicante</category>
+</categories>
+<properties>
+<property name="airport">
+<value>alicante_es</value>
+</property>
+<property name="arrivalDate">
+<value>2025-12-10</value>
+</property>
+<property name="city">
+<value>alicante_es</value>
+</property>
+<property name="country">
+<value>Alicante</value>
+</property>
+<property name="departure">
+<value>BRU</value>
+</property>
+<property name="departureDate">
+<value>2025-12-10</value>
+</property>
+<property name="descriptionShort">
+<value>Alicante</value>
+</property>
+<property name="descriptionLong">
+<value>Boek een volledige vakantie met Transavia Holidays en vlieg zonder zorgen naar jouw ideale vakantie.</value>
+</property>
+<property name="duration">
+<value>3</value>
+</property>
+<property name="price_per_passenger">
+<value>195</value>
+</property>
+<property name="region">
+<value>Alicante</value>
+</property>
+</properties>
+<variations/>
+</product>
+<product ID="5">
+<campaignID>38662</campaignID>
+<name>Stay Hotel Faro Centro</name>
+<price currency="EUR">398.00</price>
+<URL>https://click.transavia.com/holidays/?tt=38662_2450882_511873_&amp;r=https%3A%2F%2Fholidays.transavia.com%2Fapp%2Fholiday%3Fdeparturelocation%3DBRU%26destinationlocation%3DFaro_PT%26departuredate%3D2025-11-09%26returndate%3D2025-11-11%26hotelid%3DFAO0000J%26culture%3Dnl-NL</URL>
+<images>
+<image>https://app.smartly.io/filestore/images/c236e2c1-c80f-48d0-bbb7-d322c6424879/blob</image>
+</images>
+<description><![CDATA[]]></description>
+<categories>
+<category path="Faro">Faro</category>
+</categories>
+<properties>
+<property name="airport">
+<value>faro_pt</value>
+</property>
+<property name="arrivalDate">
+<value>2025-11-09</value>
+</property>
+<property name="city">
+<value>faro_pt</value>
+</property>
+<property name="country">
+<value>Faro</value>
+</property>
+<property name="departure">
+<value>BRU</value>
+</property>
+<property name="departureDate">
+<value>2025-11-09</value>
+</property>
+<property name="descriptionShort">
+<value>Faro</value>
+</property>
+<property name="descriptionLong">
+<value>Boek een volledige vakantie met Transavia Holidays en vlieg zonder zorgen naar jouw ideale vakantie.</value>
+</property>
+<property name="duration">
+<value>3</value>
+</property>
+<property name="price_per_passenger">
+<value>199</value>
+</property>
+<property name="region">
+<value>Faro</value>
+</property>
+</properties>
+<variations/>
+</product>
+<product ID="6">
+<campaignID>38662</campaignID>
+<name>Moroccan House Marrakech</name>
+<price currency="EUR">398.00</price>
+<URL>https://click.transavia.com/holidays/?tt=38662_2450882_511873_&amp;r=https%3A%2F%2Fholidays.transavia.com%2Fapp%2Fholiday%3Fdeparturelocation%3DBRU%26destinationlocation%3DMarrakech_MA%26departuredate%3D2025-12-01%26returndate%3D2025-12-03%26hotelid%3DRAK000DL%26culture%3Dnl-NL</URL>
+<images>
+<image>https://app.smartly.io/filestore/images/6385517a-7d4b-49cf-b8d0-2a5cedb9ed22/blob</image>
+</images>
+<description><![CDATA[]]></description>
+<categories>
+<category path="Marrakech">Marrakech</category>
+</categories>
+<properties>
+<property name="airport">
+<value>marrakech_ma</value>
+</property>
+<property name="arrivalDate">
+<value>2025-12-01</value>
+</property>
+<property name="city">
+<value>marrakech_ma</value>
+</property>
+<property name="country">
+<value>Marrakech</value>
+</property>
+<property name="departure">
+<value>BRU</value>
+</property>
+<property name="departureDate">
+<value>2025-12-01</value>
+</property>
+<property name="descriptionShort">
+<value>Marrakech</value>
+</property>
+<property name="descriptionLong">
+<value>Boek een volledige vakantie met Transavia Holidays en vlieg zonder zorgen naar jouw ideale vakantie.</value>
+</property>
+<property name="duration">
+<value>3</value>
+</property>
+<property name="price_per_passenger">
+<value>199</value>
+</property>
+<property name="region">
+<value>Marrakech</value>
+</property>
+</properties>
+<variations/>
+</product>
+<product ID="17">
+<campaignID>38662</campaignID>
+<name>Catalonia Oro Negro Hotel</name>
+<price currency="EUR">546.00</price>
+<URL>https://click.transavia.com/holidays/?tt=38662_2450882_511873_&amp;r=https%3A%2F%2Fholidays.transavia.com%2Fapp%2Fholiday%3Fdeparturelocation%3DBRU%26destinationlocation%3DTenerife_ES%26departuredate%3D2025-11-25%26returndate%3D2025-11-27%26hotelid%3DTCI0000U%26culture%3Dnl-NL</URL>
+<images>
+<image>https://app.smartly.io/filestore/images/b41c9981-5ff8-4d9d-b8a4-f2224e17db90/blob</image>
+</images>
+<description><![CDATA[]]></description>
+<categories>
+<category path="Tenerife">Tenerife</category>
+</categories>
+<properties>
+<property name="airport">
+<value>tenerife_es</value>
+</property>
+<property name="arrivalDate">
+<value>2025-11-25</value>
+</property>
+<property name="city">
+<value>tenerife_es</value>
+</property>
+<property name="country">
+<value>Tenerife</value>
+</property>
+<property name="departure">
+<value>BRU</value>
+</property>
+<property name="departureDate">
+<value>2025-11-25</value>
+</property>
+<property name="descriptionShort">
+<value>Tenerife</value>
+</property>
+<property name="descriptionLong">
+<value>Boek een volledige vakantie met Transavia Holidays en vlieg zonder zorgen naar jouw ideale vakantie.</value>
+</property>
+<property name="duration">
+<value>3</value>
+</property>
+<property name="price_per_passenger">
+<value>273</value>
+</property>
+<property name="region">
+<value>Tenerife</value>
+</property>
+</properties>
+<variations/>
+</product>
+</products>
+<!-- Total number of products: 4 -->

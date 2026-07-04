@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-07-02T11:49:46.580Z",
+  "passed": true,
+  "stats": {
+    "countries": 64,
+    "regions": 113,
+    "offers": 71136
+  },
+  "issueCount": 0,
+  "issues": []
+}

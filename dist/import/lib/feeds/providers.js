@@ -12,6 +12,10 @@ exports.PROVIDERS = {
         name: 'Prijsvrij',
         slug: 'prijsvrij',
     },
+    traveldeal: {
+        name: 'Traveldeal',
+        slug: 'traveldeal',
+    },
 };
 function buildExternalId(provider, rawId, variantParts = []) {
     const parts = [exports.PROVIDERS[provider].slug, String(rawId), ...variantParts.map(String).filter(Boolean)];

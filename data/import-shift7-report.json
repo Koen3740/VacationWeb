@@ -1,0 +1,58 @@
+{
+  "canonicalCountryAliases": {
+    "engeland": "verenigdkoninkrijk",
+    "grootbrittannie": "verenigdkoninkrijk",
+    "kaapverdie": "kaapverdischeeilanden"
+  },
+  "canonicalCountryLabels": {
+    "albanie": "Albanië",
+    "brazilie": "Brazilië",
+    "curacao": "Curaçao",
+    "ijsland": "IJsland",
+    "indonesie": "Indonesië",
+    "italie": "Italië",
+    "kroatie": "Kroatië",
+    "slovenie": "Slovenië",
+    "tsjechie": "Tsjechië",
+    "tunesie": "Tunesië",
+    "verenigdkoninkrijk": "Verenigd Koninkrijk",
+    "kaapverdischeeilanden": "Kaapverdische Eilanden",
+    "dominicaanserepubliek": "Dominicaanse Republiek",
+    "verenigdarabischeemiraten": "Verenigde Arabische Emiraten",
+    "verenigdestaten": "Verenigde Staten",
+    "canarischeeilanden": "Canarische Eilanden",
+    "zuidafrika": "Zuid-Afrika",
+    "zuidkorea": "Zuid-Korea",
+    "costarica": "Costa Rica",
+    "puertorico": "Puerto Rico",
+    "srilanka": "Sri Lanka",
+    "nieuwzeeland": "Nieuw-Zeeland",
+    "saudiarabie": "Saudi-Arabië"
+  },
+  "countryMerges": [
+    "Albanie → Albanië",
+    "Brazilie → Brazilië",
+    "Curacao → Curaçao",
+    "Engeland → Verenigd Koninkrijk",
+    "Groot-brittannie → Verenigd Koninkrijk",
+    "Ijsland → IJsland",
+    "Indonesie → Indonesië",
+    "Italie → Italië",
+    "Kaapverdië → Kaapverdische Eilanden",
+    "Kroatie → Kroatië",
+    "Slovenie → Slovenië",
+    "Tsjechie → Tsjechië",
+    "Tunesie → Tunesië",
+    "Zuid-afrika → Zuid-Afrika"
+  ],
+  "hiddenCountries": [
+    "Saint Martin - French Part"
+  ],
+  "removedDestinations": [],
+  "excludedProductOffers": 1113,
+  "stats": {
+    "countries": 55,
+    "regions": 111,
+    "offers": 71136
+  }
+}

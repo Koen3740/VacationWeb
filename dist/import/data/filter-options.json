@@ -1,0 +1,743 @@
+{
+    "countries": [
+        "Albanie",
+        "Albanië",
+        "Argentinië",
+        "Aruba",
+        "Barbados",
+        "België",
+        "Bonaire",
+        "Brazilie",
+        "Bulgarije",
+        "Canada",
+        "Canarische Eilanden",
+        "Costa Rica",
+        "Cuba",
+        "Curacao",
+        "Curaçao",
+        "Cyprus",
+        "Denemarken",
+        "Dominicaanse Republiek",
+        "Duitsland",
+        "Egypte",
+        "Engeland",
+        "Estland",
+        "Finland",
+        "Frankrijk",
+        "Gambia",
+        "Griekenland",
+        "Groot-brittannie",
+        "Hongarije",
+        "IJsland",
+        "Ierland",
+        "Ijsland",
+        "Indonesie",
+        "Italie",
+        "Italië",
+        "Jamaica",
+        "Kaapverdische Eilanden",
+        "Kaapverdië",
+        "Kroatie",
+        "Kroatië",
+        "Letland",
+        "Litouwen",
+        "Luxemburg",
+        "Malta",
+        "Marokko",
+        "Mauritius",
+        "Mexico",
+        "Montenegro",
+        "Nederland",
+        "Noorwegen",
+        "Oman",
+        "Oostenrijk",
+        "Polen",
+        "Portugal",
+        "Qatar",
+        "Saint Martin - French Part",
+        "Servië",
+        "Seychellen",
+        "Sint Maarten",
+        "Slovenie",
+        "Slovenië",
+        "Slowakije",
+        "Spanje",
+        "Tanzania",
+        "Thailand",
+        "Tsjechie",
+        "Tsjechië",
+        "Tunesie",
+        "Tunesië",
+        "Turkije",
+        "Verenigd Koninkrijk",
+        "Verenigde Arabische Emiraten",
+        "Verenigde Staten",
+        "Zuid-afrika",
+        "Zweden",
+        "Zwitserland"
+    ],
+    "regionsByCountry": {
+        "Griekenland": [
+            "Athene",
+            "Attica",
+            "Centraal Griekenland",
+            "Chalkidiki",
+            "Corfu",
+            "Evia",
+            "Haldiki",
+            "Karpathos",
+            "Katerinis",
+            "Kefalonia",
+            "Kokkini Hani",
+            "Kos",
+            "Kreta",
+            "Lefkas",
+            "Lesbos",
+            "Limenas Chersonissos",
+            "Macedonie",
+            "Mykonos",
+            "Olympische Riviera",
+            "Panagias",
+            "Parga",
+            "Parga En Omgeving",
+            "Peloponnesos",
+            "Pieria",
+            "Pilion",
+            "Rhodos",
+            "Samos",
+            "Santorini",
+            "Sithonia",
+            "Skiathos",
+            "Thessaloniki",
+            "Zakynthos",
+            "Zakythos",
+            "samos"
+        ],
+        "Turkije": [
+            "Egeische Kust",
+            "Egeische kust",
+            "Istanbul",
+            "Lycische Kust",
+            "Rondreizen",
+            "Turkse Riviera"
+        ],
+        "Spanje": [
+            ".",
+            "Alicante",
+            "Andalusie",
+            "Andalusië",
+            "Asturias",
+            "Balearen",
+            "Barcelona",
+            "Baskenland",
+            "Canarische Eilanden",
+            "Cantabria",
+            "Castilla La Mancha",
+            "Castilla-leon",
+            "Catalonie",
+            "Catalonië",
+            "Cordoba",
+            "Costa Blanca",
+            "Costa Brava",
+            "Costa De Almeria",
+            "Costa De La Luz",
+            "Costa Del Azahar",
+            "Costa Del Sol",
+            "Costa Dorada",
+            "Costa de Almería",
+            "Costa de la Luz",
+            "Costa del Azahar",
+            "Costa del Sol",
+            "Formentera",
+            "Fuerteventura",
+            "Gerona",
+            "Girona",
+            "Golf Van Cadiz",
+            "Gran Canaria",
+            "Granada",
+            "Ibiza",
+            "La Rioja",
+            "Lanzarote",
+            "Las Palmas",
+            "Madrid",
+            "Malaga",
+            "Mallorca",
+            "Menorca",
+            "Murcia",
+            "Málaga",
+            "San Bartolomé de Tirajana",
+            "Sevilla",
+            "Tarragona",
+            "Tenerife",
+            "Torremolinos",
+            "Valencia"
+        ],
+        "Gambia": [
+            "Kuststreek",
+            "West Gambia"
+        ],
+        "Egypte": [
+            "Cairo",
+            "Caïro",
+            "Giza",
+            "Hurghada",
+            "Luxor",
+            "Nijl",
+            "Rode Zee"
+        ],
+        "Portugal": [
+            "Albufeira",
+            "Alentejo",
+            "Algarve",
+            "Azoren",
+            "Costa De Lisboa",
+            "Costa De Prata",
+            "Costa Verde",
+            "Estoril",
+            "Estremadura",
+            "Lissabon",
+            "Madeira",
+            "Midden Portugal",
+            "Noord-portugal",
+            "Porto",
+            "Praia de Porto Novo",
+            "São Mamede de Infesta"
+        ],
+        "Bonaire": [
+            "Bonaire",
+            "Kralendijk"
+        ],
+        "Duitsland": [
+            "Baden-Württemberg",
+            "Beieren",
+            "Berlijn",
+            "Bernkastel",
+            "Cochem",
+            "Düsseldorf",
+            "Ernst",
+            "Hamburg",
+            "Herten",
+            "Hillscheid",
+            "Kiel",
+            "Köln",
+            "Lohr am Main",
+            "Markneukirchen",
+            "Mayschoß",
+            "Mecklenburg-Voor-Pommeren",
+            "Mecklenburg-Vorpommern",
+            "Mistelgau-Obernsees",
+            "Munchen",
+            "Nedersaksen",
+            "Neukirchen beim Heiligen Blut",
+            "Nordrhein-Westfalen",
+            "Rheinland Pfalz",
+            "Saksen",
+            "Saksen-Anhalt",
+            "Sauerland",
+            "Schleswig-Holstein",
+            "Thüringen"
+        ],
+        "Italië": [
+            "-",
+            ".",
+            "Adriatische Kust",
+            "Agrigento",
+            "Albinia",
+            "Apulië",
+            "Bologna",
+            "Bolzano",
+            "Brenta Dolomieten",
+            "Brescia",
+            "Campanië",
+            "Civitavecchia",
+            "Dolomieten",
+            "Emilia-Romagna",
+            "Florence",
+            "Foggia",
+            "Frescada",
+            "Gardameer",
+            "Genua",
+            "Jesolo",
+            "La Spezia",
+            "Lago Maggiore",
+            "Lake Garda",
+            "Lazio",
+            "Lecce",
+            "Ligurië",
+            "Livorno",
+            "Lombardije",
+            "Macerata",
+            "Marlengo by Merano",
+            "Molise",
+            "Perugia",
+            "Pesaro-Urbino",
+            "Piemonte",
+            "Piëmont",
+            "Puglia",
+            "Rimini",
+            "Rome",
+            "San Salvo Marina",
+            "Sardinië",
+            "Savona",
+            "Sicilië",
+            "Siena",
+            "Terranuova Bracciolini",
+            "Torre dell&#039;Orso",
+            "Toscaanse kust",
+            "Toscane",
+            "Trentino",
+            "Trentino-Zuid-Tirol",
+            "Trento",
+            "Triëst",
+            "Umbrië",
+            "Vason",
+            "Venetië",
+            "Veneto",
+            "Zuid-Tirol"
+        ],
+        "Curaçao": [
+            "Jan Thiel Baai",
+            "Mambo Beach",
+            "Piscadera Baai",
+            "Sint Willibrordus",
+            "Willemstad"
+        ],
+        "Kaapverdië": [
+            "Sal"
+        ],
+        "Verenigde Arabische Emiraten": [
+            "Abu Dhabi",
+            "Ajman",
+            "Dubai",
+            "Ras Al Khaimah",
+            "Ras al Khaimah"
+        ],
+        "Verenigde Staten": [
+            "Californie",
+            "Californië",
+            "Dodge Island",
+            "Florida",
+            "Las Vegas",
+            "Los Angeles",
+            "Nevada",
+            "New Jersey",
+            "New Orleans",
+            "New York",
+            "Orlando",
+            "Pennsylvania",
+            "Philadelphia",
+            "Washington"
+        ],
+        "Argentinië": [
+            "Ushuaia"
+        ],
+        "Bulgarije": [
+            "Nesebar",
+            "Sofia",
+            "Zwarte Zee",
+            "Zwarte Zeekust"
+        ],
+        "Marokko": [
+            "Atlantische Kust",
+            "Centraal Marokko",
+            "Fez",
+            "Marrakech",
+            "Marrakech Tensift el Haouz",
+            "Middellandse Zeekust",
+            "Midden- En Hoge Atlas"
+        ],
+        "Nederland": [
+            "Brabant",
+            "Drenthe",
+            "Eindhoven",
+            "Flevoland",
+            "Friesland",
+            "Gelderland",
+            "Groningen",
+            "Limburg",
+            "Noord-Brabant",
+            "Noord-Holland",
+            "Overijssel",
+            "Schiermonnikoog",
+            "Terschelling",
+            "Texel",
+            "Utrecht",
+            "Vlieland",
+            "Zeeland",
+            "Zuid-Holland",
+            "valkenburg"
+        ],
+        "Canarische Eilanden": [
+            "Fuerteventura",
+            "Gran Canaria",
+            "La Palma",
+            "Lanzarote",
+            "Tenerife"
+        ],
+        "Oostenrijk": [
+            ".",
+            "Abersee",
+            "Archkogl",
+            "Berg im drautal",
+            "Innsbruck",
+            "Karinthië",
+            "Kitzbüheler Alpen",
+            "Lungau",
+            "Opper-Oostenrijk",
+            "Paznauntal",
+            "Salzburg",
+            "Salzburgerland",
+            "Stiermarken",
+            "Tirol",
+            "Waldviertel",
+            "Wenen",
+            "Wildschönau-Niederau",
+            "Zillertal",
+            "rattenberg"
+        ],
+        "Italie": [
+            "Adriatische Riviera",
+            "Basilicata",
+            "Bologna",
+            "Brescia",
+            "Calabria",
+            "Campania",
+            "Comomeer",
+            "Emilia-romagna",
+            "Florence",
+            "Friuli-venezia-giulia",
+            "Gardameer",
+            "Italiaanse Riviera",
+            "Lazio",
+            "Lombardije",
+            "Maggioremeer",
+            "Milaan",
+            "Napels",
+            "Piemonte",
+            "Puglia",
+            "Rome",
+            "Sardinie",
+            "Sicilie",
+            "Toscane",
+            "Trentino",
+            "Umbrie",
+            "Val D Aosta",
+            "Venetie",
+            "Veneto",
+            "Verona"
+        ],
+        "Groot-brittannie": [
+            "Birmingham",
+            "Glasgow",
+            "Londen",
+            "Midden Engeland",
+            "Noordoost Engeland",
+            "Schotland",
+            "Wales",
+            "Zuid Engeland"
+        ],
+        "Denemarken": [
+            "Kopenhagen",
+            "Midden Jutland"
+        ],
+        "Cyprus": [
+            "Larnaca",
+            "Limasol",
+            "Paphos"
+        ],
+        "Mauritius": [
+            "Noordwest-kust",
+            "Oostkust",
+            "Westkust",
+            "Zuidkust"
+        ],
+        "Hongarije": [
+            "Boedapest",
+            "Budapest"
+        ],
+        "Barbados": [
+            "Barbados"
+        ],
+        "Ijsland": [
+            "Noord Ijsland",
+            "Reykjavik",
+            "Zuidwest En Zuid Ijsland"
+        ],
+        "Curacao": [
+            "Curacao"
+        ],
+        "Aruba": [
+            "Aruba"
+        ],
+        "Kroatie": [
+            "Dubrovnik",
+            "Istrie",
+            "Kvarner",
+            "Midden-dalmatie",
+            "Noord-dalmatie",
+            "Zuid-dalmatie"
+        ],
+        "Sint Maarten": [
+            "Sint Maarten"
+        ],
+        "Thailand": [
+            "Bangkok",
+            "Koh Samui",
+            "Midden Thailand",
+            "Phuket",
+            "Zuid Thailand"
+        ],
+        "Tanzania": [
+            "Zanzibar"
+        ],
+        "Polen": [
+            ".",
+            "Klein-Polen",
+            "Krakau",
+            "Mazovië",
+            "Pommeren",
+            "Warschau"
+        ],
+        "Seychellen": [
+            "Mahe"
+        ],
+        "Tunesie": [
+            "Djerba",
+            "Golf Van Hammamet",
+            "Noord-tunesie"
+        ],
+        "Albanie": [
+            "Albanie"
+        ],
+        "Dominicaanse Republiek": [
+            "Noordkust",
+            "Oostkust",
+            "Punta Cana",
+            "Zuidkust"
+        ],
+        "Zwitserland": [
+            "Bern",
+            "Centraal Zwitserland",
+            "Genève",
+            "Graubunden",
+            "Zurich",
+            "Zürich"
+        ],
+        "Indonesie": [
+            "Bali"
+        ],
+        "Finland": [
+            "Helsinki",
+            "Lapland"
+        ],
+        "Tsjechie": [
+            "Praag En Omstreken"
+        ],
+        "Mexico": [
+            "Yucatan"
+        ],
+        "Frankrijk": [
+            "-",
+            "Amiens",
+            "Aquitaine",
+            "Ardèche",
+            "Champagne",
+            "Cogolin",
+            "Corsica",
+            "Cote D Azur",
+            "Dordogne",
+            "Elzas",
+            "Gascogne",
+            "Grand Est",
+            "Hauts de France",
+            "Hauts-de-France",
+            "Ile de France",
+            "Marne",
+            "Moselle",
+            "Nice",
+            "Niedermorschwihr",
+            "Nord-Pas-de-Calais",
+            "Normandië",
+            "Pas-de-Calais",
+            "Place des Halles",
+            "Provence",
+            "Provence-Alpes-Côte d&#039;Azur",
+            "Rhone-alpes",
+            "Rijsel",
+            "Saint-Germain-en-Laye",
+            "Somme"
+        ],
+        "Montenegro": [
+            "Budva",
+            "Kuststreek"
+        ],
+        "Letland": [
+            "Riga"
+        ],
+        "Slovenie": [
+            "Ljubljana"
+        ],
+        "Malta": [
+            "Gozo",
+            "Malta",
+            "Noordoosten",
+            "Valetta"
+        ],
+        "Estland": [
+            "Harjumaa",
+            "Tallinn"
+        ],
+        "Ierland": [
+            "Dublin",
+            "Leinster"
+        ],
+        "Qatar": [
+            "Qatar"
+        ],
+        "Oman": [
+            "Muscat"
+        ],
+        "Zweden": [
+            "Stockholm"
+        ],
+        "Jamaica": [
+            "Noordkant",
+            "Westkant"
+        ],
+        "Zuid-afrika": [
+            "Gauteng",
+            "West-kaap"
+        ],
+        "Brazilie": [
+            "Kuststreek"
+        ],
+        "Kaapverdische Eilanden": [
+            "Boa Vista",
+            "Ilha Do Sal"
+        ],
+        "Noorwegen": [
+            "Akershus",
+            "Oslo",
+            "Troms"
+        ],
+        "Costa Rica": [
+            "Alajuela",
+            "Guanacaste",
+            "Puntarenas"
+        ],
+        "Saint Martin - French Part": [
+            "Saint Martin"
+        ],
+        "Litouwen": [
+            "Litouwen",
+            "Vilnius"
+        ],
+        "Tsjechië": [
+            "Praag"
+        ],
+        "IJsland": [
+            "Keflavík"
+        ],
+        "Tunesië": [
+            "Golf van Hammamet",
+            "Hammamet",
+            "Monastir",
+            "Sousse"
+        ],
+        "België": [
+            "Antwerpen",
+            "Ardennen",
+            "Belgisch Limburg",
+            "Bergen",
+            "Brussel",
+            "Gent",
+            "Henegouwen",
+            "Limburg",
+            "Luik",
+            "Luxemburg",
+            "Namen",
+            "Oost-Vlaanderen",
+            "Pelt",
+            "Vallée De la Lesse",
+            "Vlaams-Brabant",
+            "Waals-Brabant",
+            "Wallonië",
+            "West Vlaanderen",
+            "West-Vlaanderen"
+        ],
+        "Verenigd Koninkrijk": [
+            "Greater Manchester",
+            "Londen",
+            "Schotland",
+            "Ulster"
+        ],
+        "Albanië": [
+            ".",
+            "Albanese Rivièra",
+            "Durrës",
+            "Golem",
+            "Radhimë",
+            "Saranda",
+            "Tirana",
+            "Vlore"
+        ],
+        "Kroatië": [
+            "Adriatische Kust",
+            "Dalmatische kust",
+            "Split-Dalmatië",
+            "Tuhelj",
+            "Zagreb"
+        ],
+        "Slovenië": [
+            "Bohinj Commune",
+            "Gorenjska",
+            "Podčetrtek",
+            "Savinjska",
+            "Šmarje pri Jelšah"
+        ],
+        "Canada": [
+            "Toronto"
+        ],
+        "Luxemburg": [
+            "Luxemburg"
+        ],
+        "Servië": [
+            "Belgrado"
+        ],
+        "Slowakije": [
+            "Bratislava"
+        ],
+        "Engeland": [
+            "Greater Manchester"
+        ],
+        "Cuba": [
+            "Havana"
+        ]
+    },
+    "boardTypes": [
+        "All Inclusive",
+        "Half pension",
+        "Halfpension",
+        "Halfpension Plus",
+        "Logies",
+        "Logies en ontbijt",
+        "Ultra All Inclusive",
+        "Vol pension",
+        "Volpension",
+        "Volpension Plus",
+        "Zie beschrijving"
+    ],
+    "departureAirports": [
+        "AMB",
+        "AMS",
+        "BRU",
+        "CGN",
+        "CRL",
+        "DUS",
+        "EIN",
+        "GRQ",
+        "MST",
+        "NRN",
+        "RTM"
+    ]
+}
