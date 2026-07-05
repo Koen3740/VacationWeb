@@ -1,17 +1,32 @@
 'use client';
 
-import { CalendarIcon, DurationIcon, LocationIcon, TravelersIcon } from '@/components/home/home-search-icons';
+import {
+  CalendarIcon,
+  ChevronDownIcon,
+  DurationIcon,
+  LocationIcon,
+  SearchButtonIcon,
+  TravelersIcon,
+} from '@/components/home/home-search-icons';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
 import Link from 'next/link';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 
 const DURATION_OPTIONS = [
-  { label: 'Hoe lang wil je weg?', nightsMin: 7, nightsMax: 12, placeholder: true },
-  { label: '5-7 dagen', nightsMin: 5, nightsMax: 7, placeholder: false },
-  { label: '7-9 dagen', nightsMin: 7, nightsMax: 9, placeholder: false },
-  { label: '8-12 dagen', nightsMin: 8, nightsMax: 12, placeholder: false },
-  { label: '10-14 dagen', nightsMin: 10, nightsMax: 14, placeholder: false },
+  { label: '5-7 dagen', nightsMin: 5, nightsMax: 7 },
+  { label: '7-9 dagen', nightsMin: 7, nightsMax: 9 },
+  { label: '8-12 dagen', nightsMin: 8, nightsMax: 12 },
+  { label: '10-14 dagen', nightsMin: 10, nightsMax: 14 },
+];
+
+const TRAVELER_OPTIONS = [
+  { label: '1 persoon', adults: 1 },
+  { label: '2 personen', adults: 2 },
+  { label: '3 personen', adults: 3 },
+  { label: '4 personen', adults: 4 },
+  { label: '5 personen', adults: 5 },
+  { label: '6 personen', adults: 6 },
 ];
 
 function addDays(isoDate: string, days: number): string {
@@ -20,50 +35,60 @@ function addDays(isoDate: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+function formatDate(isoDate: string): string {
+  const date = new Date(isoDate);
+  return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 function SearchField({
-  label,
+  displayText,
   icon,
   children,
   className = '',
 }: {
-  label: string;
+  displayText: string;
   icon: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={`flex min-h-14 min-w-0 flex-1 flex-col justify-center px-4 py-3 lg:h-[72px] lg:px-0 lg:py-0 ${className}`}>
-      <span className="text-sm font-semibold text-[#55647A]">{label}</span>
-      <div className="mt-1 flex items-center gap-3">
-        {icon}
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
+    <div className={`relative flex min-w-0 flex-1 items-center gap-3 px-4 py-3 lg:px-5 lg:py-4 ${className}`}>
+      {icon}
+      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#0A2D62]">{displayText}</span>
+      {children}
+      <ChevronDownIcon />
     </div>
   );
 }
 
 function Divider() {
-  return <div className="hidden h-10 w-px shrink-0 bg-[#E6ECF3] lg:block" aria-hidden="true" />;
+  return <div className="hidden h-10 w-px shrink-0 bg-[#E2E8F0] lg:block" aria-hidden="true" />;
 }
 
 export function HomeSearch() {
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [popupOpen, setPopupOpen] = useState(false);
   const [departureStart, setDepartureStart] = useState('');
-  const [durationIndex, setDurationIndex] = useState(0);
-  const [adults, setAdults] = useState(2);
+  const [durationIndex, setDurationIndex] = useState<number | null>(null);
+  const [travelerIndex, setTravelerIndex] = useState<number | null>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const durationSelectRef = useRef<HTMLSelectElement>(null);
+  const travelerSelectRef = useRef<HTMLSelectElement>(null);
 
-  const duration = DURATION_OPTIONS[durationIndex] ?? DURATION_OPTIONS[0];
+  const duration = durationIndex !== null ? DURATION_OPTIONS[durationIndex] : null;
+  const travelers = travelerIndex !== null ? TRAVELER_OPTIONS[travelerIndex] : null;
 
-  const destinationLabel = selectedCountries.length === 0
-    ? 'Waar wil je naartoe?'
+  const destinationText = selectedCountries.length === 0
+    ? 'Bestemming'
     : formatSelectedCountriesLabel(selectedCountries);
 
-  const travelersLabel = adults === 1 ? '1 persoon' : `${adults} personen`;
+  const departureText = departureStart ? formatDate(departureStart) : 'Vertrekdatum';
+  const durationText = duration ? duration.label : 'Reisduur';
+  const travelersText = travelers ? travelers.label : 'Reisgezelschap';
 
   const searchHref = useMemo(() => {
     const params = new URLSearchParams({
-      adults: adults.toString(),
+      adults: (travelers?.adults ?? 2).toString(),
     });
 
     if (selectedCountries[0]) {
@@ -72,82 +97,98 @@ export function HomeSearch() {
 
     if (departureStart) {
       params.set('departureStart', departureStart);
-      params.set('departureEnd', addDays(departureStart, duration.nightsMax));
+      params.set('departureEnd', addDays(departureStart, duration?.nightsMax ?? 12));
     }
 
-    if (!duration.placeholder) {
+    if (duration) {
       params.set('nightsMin', duration.nightsMin.toString());
       params.set('nightsMax', duration.nightsMax.toString());
     }
 
     return `/results?${params.toString()}`;
-  }, [adults, departureStart, duration, selectedCountries]);
+  }, [departureStart, duration, selectedCountries, travelers]);
 
   return (
     <>
-      <div className="w-full rounded-2xl bg-white px-4 py-3 shadow-[0_10px_30px_rgba(10,45,98,0.08)] lg:h-[72px] lg:px-6 lg:py-0">
-        <div className="flex flex-col gap-3 lg:h-full lg:flex-row lg:items-center lg:gap-0">
+      <div className="w-full rounded-full bg-white py-1.5 pl-1.5 pr-1.5 shadow-[0_8px_32px_rgba(10,45,98,0.12)] lg:pr-2">
+        <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:gap-0">
           <button
             type="button"
             onClick={() => setPopupOpen(true)}
-            className="w-full rounded-xl text-left transition hover:bg-[#F5F7FA] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
+            className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
           >
-            <SearchField label="Bestemming" icon={<LocationIcon />}>
-              <span className={`block truncate text-base ${selectedCountries.length === 0 ? 'text-[#94A3B8]' : 'font-medium text-[#0D1B2A]'}`}>
-                {destinationLabel}
-              </span>
+            <SearchField displayText={destinationText} icon={<LocationIcon />} />
+          </button>
+
+          <Divider />
+
+          <button
+            type="button"
+            onClick={() => dateInputRef.current?.showPicker?.() ?? dateInputRef.current?.click()}
+            className="relative w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
+          >
+            <SearchField displayText={departureText} icon={<CalendarIcon />}>
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={departureStart}
+                onChange={(event) => setDepartureStart(event.target.value)}
+                className="pointer-events-none absolute inset-0 opacity-0"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
             </SearchField>
           </button>
 
           <Divider />
 
-          <SearchField label="Vertrekdatum" icon={<CalendarIcon />}>
-            <input
-              type="date"
-              value={departureStart}
-              onChange={(event) => setDepartureStart(event.target.value)}
-              placeholder="Kies je vertrekdatum"
-              className={`w-full bg-transparent text-base outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] ${departureStart ? 'font-medium text-[#0D1B2A]' : 'text-[#94A3B8]'}`}
-            />
-          </SearchField>
-
-          <Divider />
-
-          <SearchField label="Reisduur" icon={<DurationIcon />}>
+          <div className="relative w-full lg:min-w-0 lg:flex-1">
+            <SearchField displayText={durationText} icon={<DurationIcon />} />
             <select
-              value={durationIndex}
-              onChange={(event) => setDurationIndex(Number(event.target.value))}
-              className={`w-full cursor-pointer bg-transparent text-base outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] ${duration.placeholder ? 'text-[#94A3B8]' : 'font-medium text-[#0D1B2A]'}`}
+              ref={durationSelectRef}
+              value={durationIndex ?? ''}
+              onChange={(event) => setDurationIndex(event.target.value === '' ? null : Number(event.target.value))}
+              className="absolute inset-0 cursor-pointer opacity-0"
+              aria-label="Reisduur"
             >
+              <option value="" disabled hidden>
+                Reisduur
+              </option>
               {DURATION_OPTIONS.map((option, index) => (
                 <option key={option.label} value={index}>
                   {option.label}
                 </option>
               ))}
             </select>
-          </SearchField>
+          </div>
 
           <Divider />
 
-          <SearchField label="Reisgezelschap" icon={<TravelersIcon />}>
+          <div className="relative w-full lg:min-w-0 lg:flex-1">
+            <SearchField displayText={travelersText} icon={<TravelersIcon />} />
             <select
-              value={adults}
-              onChange={(event) => setAdults(Number(event.target.value))}
-              className="w-full cursor-pointer bg-transparent text-base font-medium text-[#0D1B2A] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5]"
+              ref={travelerSelectRef}
+              value={travelerIndex ?? ''}
+              onChange={(event) => setTravelerIndex(event.target.value === '' ? null : Number(event.target.value))}
+              className="absolute inset-0 cursor-pointer opacity-0"
+              aria-label="Reisgezelschap"
             >
-              {[1, 2, 3, 4, 5, 6].map((count) => (
-                <option key={count} value={count}>
-                  {count === 1 ? '1 persoon' : `${count} personen`}
+              <option value="" disabled hidden>
+                Reisgezelschap
+              </option>
+              {TRAVELER_OPTIONS.map((option, index) => (
+                <option key={option.label} value={index}>
+                  {option.label}
                 </option>
               ))}
             </select>
-            <span className="sr-only">{travelersLabel}</span>
-          </SearchField>
+          </div>
 
           <Link
             href={searchHref}
-            className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#0A2D62] px-7 text-base font-semibold text-white transition hover:-translate-y-px hover:bg-[#082452] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:ml-4 lg:w-auto lg:shrink-0"
+            className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-[#0A2D62] px-6 text-sm font-semibold text-white transition hover:bg-[#082452] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:ml-1 lg:h-14 lg:w-auto lg:px-8"
           >
+            <SearchButtonIcon />
             Vakanties zoeken
           </Link>
         </div>

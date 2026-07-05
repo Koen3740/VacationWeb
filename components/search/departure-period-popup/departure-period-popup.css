@@ -1,0 +1,187 @@
+.departure-period-calendar {
+  width: 100%;
+}
+
+.departure-period-calendar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.departure-period-calendar__title {
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.departure-period-calendar__nav {
+  display: flex;
+  height: 32px;
+  width: 32px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 9999px;
+  transition: background-color 0.15s ease;
+}
+
+.departure-period-calendar__nav:hover {
+  background: #f1f5f9;
+}
+
+.departure-period-calendar__grid {
+  display: grid;
+  grid-template-columns: 32px repeat(7, 1fr);
+  gap: 2px 0;
+}
+
+.departure-period-calendar__wk-label,
+.departure-period-calendar__weekday {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.departure-period-calendar__week-number {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.departure-period-calendar__day-cell {
+  position: relative;
+  display: flex;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+}
+
+.departure-period-calendar__day {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 36px;
+  width: 36px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 9999px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.departure-period-calendar__day--outside {
+  color: #cbd5e1;
+}
+
+.departure-period-calendar__day--default {
+  color: #1f2937;
+}
+
+.departure-period-calendar__day--hover:not(.departure-period-calendar__day--selected) {
+  background: #eff6ff;
+}
+
+.departure-period-calendar__day--in-range::before,
+.departure-period-calendar__day--preview-range::before {
+  content: '';
+  position: absolute;
+  inset: 0 -2px;
+  z-index: -1;
+  background: #dbeafe;
+}
+
+.departure-period-calendar__day--range-start::before,
+.departure-period-calendar__day--preview-start::before {
+  content: '';
+  position: absolute;
+  inset: 0 -2px 0 0;
+  z-index: -1;
+  background: #dbeafe;
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+}
+
+.departure-period-calendar__day--range-end::before,
+.departure-period-calendar__day--preview-end::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 -2px;
+  z-index: -1;
+  background: #dbeafe;
+  border-top-right-radius: 9999px;
+  border-bottom-right-radius: 9999px;
+}
+
+.departure-period-calendar__day--range-start.departure-period-calendar__day--range-end::before,
+.departure-period-calendar__day--preview-start.departure-period-calendar__day--preview-end::before {
+  inset: 0;
+  border-radius: 9999px;
+}
+
+.departure-period-calendar__day--selected,
+.departure-period-calendar__day--preview-selected {
+  border-radius: 9999px;
+  background: #1e40af;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.departure-period-calendar__day--selected::before,
+.departure-period-calendar__day--preview-selected::before {
+  display: none;
+}
+
+.departure-period-popup__flexibility {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.departure-period-popup__flexibility-option {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.departure-period-popup__flexibility-option:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.departure-period-popup__flexibility-option--active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.departure-period-popup__footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #64748b;
+}
