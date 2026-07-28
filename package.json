@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
     "import:corendon": "tsc -p tsconfig.import.json && node dist/import/scripts/import-corendon-xml.js",
     "import:feeds": "tsc -p tsconfig.import.json && node dist/import/scripts/import-all-feeds.js",
     "validate:prijsvrij": "tsc -p tsconfig.import.json && node dist/import/scripts/validate-prijsvrij-import.js"
