@@ -10,24 +10,21 @@ import {
 } from '@/components/home/home-search-icons';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
+import {
+  DeparturePeriodPopup,
+  type FlexibilityDays,
+} from '@/components/search/departure-period-popup/departure-period-popup';
+import { DurationPopup } from '@/components/search/duration-popup/duration-popup';
+import { formatSelectedDurationsLabel } from '@/components/search/duration-popup/duration-popup-utils';
+import { TravelersPopup } from '@/components/search/travelers-popup/travelers-popup';
+import {
+  createDefaultTravelersState,
+  formatTravelersLabel,
+  getTravelersTotals,
+  type TravelersState,
+} from '@/components/search/travelers-popup/travelers-popup-utils';
 import Link from 'next/link';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-
-const DURATION_OPTIONS = [
-  { label: '5-7 dagen', nightsMin: 5, nightsMax: 7 },
-  { label: '7-9 dagen', nightsMin: 7, nightsMax: 9 },
-  { label: '8-12 dagen', nightsMin: 8, nightsMax: 12 },
-  { label: '10-14 dagen', nightsMin: 10, nightsMax: 14 },
-];
-
-const TRAVELER_OPTIONS = [
-  { label: '1 persoon', adults: 1 },
-  { label: '2 personen', adults: 2 },
-  { label: '3 personen', adults: 3 },
-  { label: '4 personen', adults: 4 },
-  { label: '5 personen', adults: 5 },
-  { label: '6 personen', adults: 6 },
-];
 
 function addDays(isoDate: string, days: number): string {
   const date = new Date(isoDate);
@@ -67,29 +64,43 @@ function Divider() {
 
 export function HomeSearch() {
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [popupOpen, setPopupOpen] = useState(false);
-  const [departureStart, setDepartureStart] = useState('');
-  const [durationIndex, setDurationIndex] = useState<number | null>(null);
-  const [travelerIndex, setTravelerIndex] = useState<number | null>(null);
-  const dateInputRef = useRef<HTMLInputElement>(null);
-  const durationSelectRef = useRef<HTMLSelectElement>(null);
-  const travelerSelectRef = useRef<HTMLSelectElement>(null);
+  const [destinationPopupOpen, setDestinationPopupOpen] = useState(false);
+  const [departurePopupOpen, setDeparturePopupOpen] = useState(false);
+  const [departureStart, setDepartureStart] = useState<string | null>(null);
+  const [departureEnd, setDepartureEnd] = useState<string | null>(null);
+  const [flexibilityDays, setFlexibilityDays] = useState<FlexibilityDays>(0);
+  const [selectedDurations, setSelectedDurations] = useState<number[]>([]);
+  const [durationPopupOpen, setDurationPopupOpen] = useState(false);
+  const [travelers, setTravelers] = useState<TravelersState>(() => createDefaultTravelersState());
+  const [travelersPopupOpen, setTravelersPopupOpen] = useState(false);
+  const suppressDepartureOpenRef = useRef(false);
 
-  const duration = durationIndex !== null ? DURATION_OPTIONS[durationIndex] : null;
-  const travelers = travelerIndex !== null ? TRAVELER_OPTIONS[travelerIndex] : null;
+  const travelerTotals = getTravelersTotals(travelers.rooms);
 
   const destinationText = selectedCountries.length === 0
     ? 'Bestemming'
     : formatSelectedCountriesLabel(selectedCountries);
 
-  const departureText = departureStart ? formatDate(departureStart) : 'Vertrekdatum';
-  const durationText = duration ? duration.label : 'Reisduur';
-  const travelersText = travelers ? travelers.label : 'Reisgezelschap';
+  const departureText = departureStart
+    ? departureEnd
+      ? `${formatDate(departureStart)} – ${formatDate(departureEnd)}`
+      : formatDate(departureStart)
+    : 'Vertrekdatum';
+  const durationText = formatSelectedDurationsLabel(selectedDurations);
+  const travelersText = formatTravelersLabel(travelers.rooms);
 
   const searchHref = useMemo(() => {
     const params = new URLSearchParams({
-      adults: (travelers?.adults ?? 2).toString(),
+      adults: travelerTotals.adults.toString(),
     });
+
+    if (travelerTotals.children > 0) {
+      params.set('children', travelerTotals.children.toString());
+    }
+
+    if (travelers.rooms.length > 1) {
+      params.set('rooms', travelers.rooms.length.toString());
+    }
 
     if (selectedCountries[0]) {
       params.set('country', selectedCountries[0]);
@@ -97,16 +108,42 @@ export function HomeSearch() {
 
     if (departureStart) {
       params.set('departureStart', departureStart);
-      params.set('departureEnd', addDays(departureStart, duration?.nightsMax ?? 12));
+      if (departureEnd) {
+        params.set('departureEnd', departureEnd);
+      } else {
+        const fallbackNightsMax = selectedDurations.length > 0
+          ? Math.max(...selectedDurations)
+          : 12;
+        params.set('departureEnd', addDays(departureStart, fallbackNightsMax));
+      }
     }
 
-    if (duration) {
-      params.set('nightsMin', duration.nightsMin.toString());
-      params.set('nightsMax', duration.nightsMax.toString());
+    if (selectedDurations.length > 0) {
+      params.set('nightsMin', Math.min(...selectedDurations).toString());
+      params.set('nightsMax', Math.max(...selectedDurations).toString());
     }
 
     return `/results?${params.toString()}`;
-  }, [departureStart, duration, selectedCountries, travelers]);
+  }, [departureEnd, departureStart, selectedDurations, selectedCountries, travelerTotals.adults, travelerTotals.children, travelers.rooms.length]);
+
+  const openDeparturePopup = () => {
+    if (suppressDepartureOpenRef.current) {
+      return;
+    }
+    setDeparturePopupOpen(true);
+  };
+
+  const closeDeparturePopup = () => {
+    suppressDepartureOpenRef.current = true;
+    setDeparturePopupOpen(false);
+    window.setTimeout(() => {
+      suppressDepartureOpenRef.current = false;
+    }, 100);
+  };
+
+  const openDurationPopup = () => {
+    setDurationPopupOpen(true);
+  };
 
   return (
     <>
@@ -114,7 +151,7 @@ export function HomeSearch() {
         <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:gap-0">
           <button
             type="button"
-            onClick={() => setPopupOpen(true)}
+            onClick={() => setDestinationPopupOpen(true)}
             className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
           >
             <SearchField displayText={destinationText} icon={<LocationIcon />} />
@@ -124,65 +161,31 @@ export function HomeSearch() {
 
           <button
             type="button"
-            onClick={() => dateInputRef.current?.showPicker?.() ?? dateInputRef.current?.click()}
-            className="relative w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
+            onClick={openDeparturePopup}
+            className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
           >
-            <SearchField displayText={departureText} icon={<CalendarIcon />}>
-              <input
-                ref={dateInputRef}
-                type="date"
-                value={departureStart}
-                onChange={(event) => setDepartureStart(event.target.value)}
-                className="pointer-events-none absolute inset-0 opacity-0"
-                tabIndex={-1}
-                aria-hidden="true"
-              />
-            </SearchField>
+            <SearchField displayText={departureText} icon={<CalendarIcon />} />
           </button>
 
           <Divider />
 
-          <div className="relative w-full lg:min-w-0 lg:flex-1">
+          <button
+            type="button"
+            onClick={openDurationPopup}
+            className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
+          >
             <SearchField displayText={durationText} icon={<DurationIcon />} />
-            <select
-              ref={durationSelectRef}
-              value={durationIndex ?? ''}
-              onChange={(event) => setDurationIndex(event.target.value === '' ? null : Number(event.target.value))}
-              className="absolute inset-0 cursor-pointer opacity-0"
-              aria-label="Reisduur"
-            >
-              <option value="" disabled hidden>
-                Reisduur
-              </option>
-              {DURATION_OPTIONS.map((option, index) => (
-                <option key={option.label} value={index}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          </button>
 
           <Divider />
 
-          <div className="relative w-full lg:min-w-0 lg:flex-1">
+          <button
+            type="button"
+            onClick={() => setTravelersPopupOpen(true)}
+            className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
+          >
             <SearchField displayText={travelersText} icon={<TravelersIcon />} />
-            <select
-              ref={travelerSelectRef}
-              value={travelerIndex ?? ''}
-              onChange={(event) => setTravelerIndex(event.target.value === '' ? null : Number(event.target.value))}
-              className="absolute inset-0 cursor-pointer opacity-0"
-              aria-label="Reisgezelschap"
-            >
-              <option value="" disabled hidden>
-                Reisgezelschap
-              </option>
-              {TRAVELER_OPTIONS.map((option, index) => (
-                <option key={option.label} value={index}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          </button>
 
           <Link
             href={searchHref}
@@ -195,13 +198,42 @@ export function HomeSearch() {
       </div>
 
       <DestinationPopup
-        open={popupOpen}
+        open={destinationPopupOpen}
         appliedCountries={selectedCountries}
-        onClose={() => setPopupOpen(false)}
+        onClose={() => setDestinationPopupOpen(false)}
         onApply={(countries) => {
           setSelectedCountries(countries);
-          setPopupOpen(false);
+          setDestinationPopupOpen(false);
         }}
+      />
+
+      <DeparturePeriodPopup
+        open={departurePopupOpen}
+        startDate={departureStart}
+        endDate={departureEnd}
+        flexibilityDays={flexibilityDays}
+        onClose={closeDeparturePopup}
+        onChange={(start, end, flexibility) => {
+          setDepartureStart(start);
+          setDepartureEnd(end);
+          if (flexibility !== undefined) {
+            setFlexibilityDays(flexibility);
+          }
+        }}
+      />
+
+      <DurationPopup
+        open={durationPopupOpen}
+        selectedDurations={selectedDurations}
+        onClose={() => setDurationPopupOpen(false)}
+        onChange={setSelectedDurations}
+      />
+
+      <TravelersPopup
+        open={travelersPopupOpen}
+        travelers={travelers}
+        onClose={() => setTravelersPopupOpen(false)}
+        onChange={setTravelers}
       />
     </>
   );

@@ -1,0 +1,209 @@
+.travelers-popup__top-bar {
+  margin-bottom: 20px;
+}
+
+.travelers-popup__tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.travelers-popup__tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.travelers-popup__tabs::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.travelers-popup__room-tab,
+.travelers-popup__add-room {
+  box-sizing: border-box;
+  height: 34px;
+  min-width: 50px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.travelers-popup__room-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid #d1e3fc;
+  background: #ffffff;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: #0a2d62;
+}
+
+.travelers-popup__room-tab:hover:not(.travelers-popup__room-tab--active) {
+  border-color: #bfdbfe;
+  background: #fafbfd;
+}
+
+.travelers-popup__room-tab:focus-visible,
+.travelers-popup__add-room:focus-visible {
+  outline: 2px solid #1e66f5;
+  outline-offset: 2px;
+}
+
+.travelers-popup__room-tab--active {
+  border-color: #1e40af;
+  background: #1e40af;
+  color: #ffffff;
+  box-shadow: 0 1px 5px rgba(30, 64, 175, 0.18);
+}
+
+.travelers-popup__room-tab-icon {
+  flex-shrink: 0;
+  display: block;
+}
+
+.travelers-popup__room-tab-number {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.travelers-popup__add-room {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  padding: 0;
+  border: 1px solid #d1e3fc;
+  background: #ffffff;
+  color: #0a2d62;
+}
+
+.travelers-popup__add-room:hover:not(:disabled) {
+  border-color: #bfdbfe;
+  background: #fafbfd;
+  color: #1e40af;
+}
+
+.travelers-popup__add-room:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.travelers-popup__section-title {
+  margin-bottom: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.travelers-popup__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.travelers-popup__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.travelers-popup__row-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.travelers-popup__row-subtext {
+  margin-top: 2px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.travelers-popup__stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.travelers-popup__stepper-value {
+  min-width: 20px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.travelers-popup__stepper-button {
+  display: flex;
+  height: 32px;
+  width: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #1e40af;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.travelers-popup__stepper-button:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.travelers-popup__stepper-button:disabled {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.travelers-popup__max-notice {
+  margin-top: 16px;
+  border-radius: 8px;
+  background: #eff6ff;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #1e40af;
+}
+
+.travelers-popup__remove-room {
+  margin-top: 20px;
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.travelers-popup__remove-room:hover:not(:disabled) {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.travelers-popup__remove-room:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

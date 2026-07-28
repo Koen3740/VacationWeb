@@ -2,7 +2,7 @@
 
 import { DeparturePeriodCalendar } from '@/components/search/departure-period-popup/departure-period-calendar';
 import '@/components/search/departure-period-popup/departure-period-popup.css';
-import { parseIsoDate } from '@/components/search/departure-period-popup/departure-period-popup-utils';
+import { isSameDay, parseIsoDate } from '@/components/search/departure-period-popup/departure-period-popup-utils';
 import { destinationPopupPoppins } from '@/components/search/destination-popup/destination-popup-font';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -41,7 +41,8 @@ function CloseIcon() {
 
 function DeparturePeriodPopupPanel({
   activeTab,
-  kalenderDate,
+  kalenderStart,
+  kalenderEnd,
   flexStart,
   flexEnd,
   flexibilityDays,
@@ -56,7 +57,8 @@ function DeparturePeriodPopupPanel({
   showClose = true,
 }: {
   activeTab: TabId;
-  kalenderDate: string | null;
+  kalenderStart: string | null;
+  kalenderEnd: string | null;
   flexStart: string | null;
   flexEnd: string | null;
   flexibilityDays: FlexibilityDays;
@@ -128,11 +130,11 @@ function DeparturePeriodPopupPanel({
 
       <div role="tabpanel" aria-label={isKalender ? 'Kalender' : 'Ik ben flexibel'}>
         <DeparturePeriodCalendar
-          mode={isKalender ? 'single' : 'range'}
+          mode={isKalender ? 'kalender' : 'range'}
           viewYear={viewYear}
           viewMonth={viewMonth}
-          startDate={isKalender ? kalenderDate : flexStart}
-          endDate={isKalender ? null : flexEnd}
+          startDate={isKalender ? kalenderStart : flexStart}
+          endDate={isKalender ? kalenderEnd : flexEnd}
           flexibilityDays={isKalender ? flexibilityDays : undefined}
           onPrevMonth={onPrevMonth}
           onNextMonth={onNextMonth}
@@ -162,7 +164,7 @@ function DeparturePeriodPopupPanel({
         </div>
       ) : (
         <p className="departure-period-popup__footer">
-          Selecteer de datums waartussen je wilt vertrekken.
+          Selecteer de datums waarbinnen je wil vertrekken.
         </p>
       )}
     </div>
@@ -183,7 +185,8 @@ export function DeparturePeriodPopup({
   const [activeTab, setActiveTab] = useState<TabId>('kalender');
   const [viewYear, setViewYear] = useState(2024);
   const [viewMonth, setViewMonth] = useState(6);
-  const [kalenderDate, setKalenderDate] = useState<string | null>(null);
+  const [kalenderStart, setKalenderStart] = useState<string | null>(null);
+  const [kalenderEnd, setKalenderEnd] = useState<string | null>(null);
   const [flexStart, setFlexStart] = useState<string | null>(null);
   const [flexEnd, setFlexEnd] = useState<string | null>(null);
   const [flexibilityDays, setFlexibilityDays] = useState<FlexibilityDays>(flexibilityDaysProp);
@@ -201,7 +204,8 @@ export function DeparturePeriodPopup({
 
     if (!wasOpenRef.current) {
       setActiveTab('kalender');
-      setKalenderDate(startDate);
+      setKalenderStart(startDate);
+      setKalenderEnd(endDate);
       setFlexStart(startDate);
       setFlexEnd(endDate);
       setFlexibilityDays(flexibilityDaysProp);
@@ -248,7 +252,7 @@ export function DeparturePeriodPopup({
     onTabChange?.(tab);
 
     if (tab === 'kalender') {
-      onChange(kalenderDate, null, flexibilityDays);
+      onChange(kalenderStart, kalenderEnd, flexibilityDays);
     } else {
       onChange(flexStart, flexEnd, undefined);
     }
@@ -256,8 +260,34 @@ export function DeparturePeriodPopup({
 
   const handleSelectDate = (isoDate: string) => {
     if (activeTab === 'kalender') {
-      setKalenderDate(isoDate);
-      onChange(isoDate, null, flexibilityDays);
+      if (!kalenderStart || (kalenderStart && kalenderEnd)) {
+        setKalenderStart(isoDate);
+        setKalenderEnd(null);
+        onChange(isoDate, null, flexibilityDays);
+        return;
+      }
+
+      const start = parseIsoDate(kalenderStart);
+      const selected = parseIsoDate(isoDate);
+
+      if (selected < start) {
+        setKalenderStart(isoDate);
+        setKalenderEnd(null);
+        onChange(isoDate, null, flexibilityDays);
+        return;
+      }
+
+      if (isSameDay(selected, start)) {
+        setKalenderEnd(null);
+        onChange(isoDate, null, flexibilityDays);
+        return;
+      }
+
+      setKalenderEnd(isoDate);
+      onChange(kalenderStart, isoDate, flexibilityDays);
+      if (!embedded) {
+        window.setTimeout(onClose, 0);
+      }
       return;
     }
 
@@ -287,8 +317,9 @@ export function DeparturePeriodPopup({
 
   const handleFlexibilityChange = (days: FlexibilityDays) => {
     setFlexibilityDays(days);
-    onChange(kalenderDate, null, days);
-    if (kalenderDate && !embedded) {
+    onChange(kalenderStart, kalenderEnd, days);
+    const isSingleDate = kalenderStart && !kalenderEnd;
+    if (isSingleDate && !embedded) {
       window.setTimeout(onClose, 0);
     }
   };
@@ -314,7 +345,8 @@ export function DeparturePeriodPopup({
   const panel = (
     <DeparturePeriodPopupPanel
       activeTab={activeTab}
-      kalenderDate={kalenderDate}
+      kalenderStart={kalenderStart}
+      kalenderEnd={kalenderEnd}
       flexStart={flexStart}
       flexEnd={flexEnd}
       flexibilityDays={flexibilityDays}
@@ -355,91 +387,5 @@ export function DeparturePeriodPopup({
       </div>
     </div>,
     document.body,
-  );
-}
-
-function formatPreviewDate(isoDate: string | null): string {
-  if (!isoDate) {
-    return '—';
-  }
-
-  const date = parseIsoDate(isoDate);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  return `${day}-${month}-${date.getFullYear()}`;
-}
-
-const FLEXIBILITY_LABELS: Record<FlexibilityDays, string> = {
-  0: 'Exacte datum',
-  1: '± 1 dag',
-  2: '± 2 dagen',
-};
-
-export function DeparturePeriodPopupPreview() {
-  const [open, setOpen] = useState(false);
-  const [startDate, setStartDate] = useState<string | null>('2024-07-10');
-  const [endDate, setEndDate] = useState<string | null>(null);
-  const [flexibilityDays, setFlexibilityDays] = useState<FlexibilityDays>(0);
-  const [activeTab, setActiveTab] = useState<TabId>('kalender');
-  const suppressOpenClickRef = useRef(false);
-
-  const handleOpen = () => {
-    if (suppressOpenClickRef.current) {
-      return;
-    }
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    suppressOpenClickRef.current = true;
-    setOpen(false);
-    window.setTimeout(() => {
-      suppressOpenClickRef.current = false;
-    }, 100);
-  };
-
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#F5F7FA] p-8">
-      {!open ? (
-        <button
-          type="button"
-          onClick={handleOpen}
-          className="rounded-md bg-[#1E40AF] px-6 py-3 text-sm font-semibold text-white"
-        >
-          Open Vertrekperiode-popup
-        </button>
-      ) : null}
-
-      <DeparturePeriodPopup
-        open={open}
-        startDate={startDate}
-        endDate={endDate}
-        flexibilityDays={flexibilityDays}
-        onClose={handleClose}
-        onChange={(start, end, flexibility) => {
-          setStartDate(start);
-          setEndDate(end);
-          if (flexibility !== undefined) {
-            setFlexibilityDays(flexibility);
-          }
-        }}
-        onTabChange={setActiveTab}
-      />
-
-      <div className="rounded-lg bg-white px-4 py-3 text-sm shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-        <p className="font-semibold text-[#1E40AF]">Preview status</p>
-        <p className="mt-1 text-[#64748b]">Actieve tab: {activeTab === 'kalender' ? 'Kalender' : 'Ik ben flexibel'}</p>
-        {activeTab === 'kalender' || endDate === null ? (
-          <>
-            <p className="text-[#64748b]">Vertrekdatum: {formatPreviewDate(startDate)}</p>
-            <p className="text-[#64748b]">Flexibiliteit: {FLEXIBILITY_LABELS[flexibilityDays]}</p>
-          </>
-        ) : (
-          <p className="text-[#64748b]">
-            Vertrekvenster: {formatPreviewDate(startDate)} – {formatPreviewDate(endDate)}
-          </p>
-        )}
-      </div>
-    </div>
   );
 }

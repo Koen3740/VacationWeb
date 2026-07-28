@@ -13,7 +13,7 @@ import { Fragment, useMemo, useState } from 'react';
 
 const WEEKDAY_LABELS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
 
-export type CalendarMode = 'single' | 'range';
+export type CalendarMode = 'kalender' | 'range';
 
 function ChevronLeftIcon() {
   return (
@@ -83,19 +83,25 @@ export function DeparturePeriodCalendar({
   const { orderedStart, orderedEnd } = getOrderedRange(startDate, endDate);
   const hoverParsed = hoverDate ? parseIsoDate(hoverDate) : null;
 
-  const flexWindowStart = mode === 'single' && orderedStart && flexibilityDays > 0
+  const isKalenderSingleDate = mode === 'kalender' && orderedStart
+    && (!orderedEnd || isSameDay(orderedStart, orderedEnd));
+
+  const flexWindowStart = isKalenderSingleDate && flexibilityDays > 0
     ? addDaysToDate(orderedStart, -flexibilityDays)
     : null;
-  const flexWindowEnd = mode === 'single' && orderedStart && flexibilityDays > 0
+  const flexWindowEnd = isKalenderSingleDate && flexibilityDays > 0
     ? addDaysToDate(orderedStart, flexibilityDays)
     : null;
 
-  const previewStart = mode === 'range' && orderedStart && !orderedEnd && hoverParsed
+  const previewStart = (mode === 'range' || mode === 'kalender') && orderedStart && !orderedEnd && hoverParsed
     ? (hoverParsed < orderedStart ? hoverParsed : orderedStart)
     : null;
-  const previewEnd = mode === 'range' && orderedStart && !orderedEnd && hoverParsed
+  const previewEnd = (mode === 'range' || mode === 'kalender') && orderedStart && !orderedEnd && hoverParsed
     ? (hoverParsed < orderedStart ? orderedStart : hoverParsed)
     : null;
+
+  const isKalenderRange = mode === 'kalender' && orderedStart && orderedEnd
+    && !isSameDay(orderedStart, orderedEnd);
 
   return (
     <div className="departure-period-calendar">
@@ -137,28 +143,28 @@ export function DeparturePeriodCalendar({
             {week.days.map((day) => {
               const dayDate = day.date;
 
-              const isCenter = mode === 'single' && orderedStart
+              const isCenter = isKalenderSingleDate && orderedStart
                 ? isSameDay(dayDate, orderedStart)
                 : false;
 
-              const inFlexBuffer = mode === 'single' && flexWindowStart && flexWindowEnd && orderedStart
+              const inFlexBuffer = flexWindowStart && flexWindowEnd && orderedStart
                 ? isBetween(dayDate, flexWindowStart, flexWindowEnd)
                 : false;
 
-              const isFlexStart = mode === 'single' && flexWindowStart
+              const isFlexStart = flexWindowStart
                 ? isSameDay(dayDate, flexWindowStart) && !isCenter
                 : false;
-              const isFlexEnd = mode === 'single' && flexWindowEnd
+              const isFlexEnd = flexWindowEnd
                 ? isSameDay(dayDate, flexWindowEnd) && !isCenter
                 : false;
 
-              const isStart = mode === 'range' && orderedStart
+              const isStart = (mode === 'range' || isKalenderRange) && orderedStart
                 ? isSameDay(dayDate, orderedStart)
                 : false;
-              const isEnd = mode === 'range' && orderedEnd
+              const isEnd = (mode === 'range' || isKalenderRange) && orderedEnd
                 ? isSameDay(dayDate, orderedEnd)
                 : false;
-              const inRange = mode === 'range' && orderedStart && orderedEnd
+              const inRange = (mode === 'range' || isKalenderRange) && orderedStart && orderedEnd
                 ? isBetween(dayDate, orderedStart, orderedEnd)
                 : false;
 
@@ -169,7 +175,7 @@ export function DeparturePeriodCalendar({
                 : false;
 
               const isHovered = hoverDate === day.isoDate;
-              const usePreview = mode === 'range' && !orderedEnd && previewStart && previewEnd;
+              const usePreview = (mode === 'range' || mode === 'kalender') && !orderedEnd && previewStart && previewEnd;
 
               const classNames = ['departure-period-calendar__day'];
 
@@ -179,7 +185,7 @@ export function DeparturePeriodCalendar({
                 classNames.push('departure-period-calendar__day--default');
               }
 
-              if (mode === 'single') {
+              if (isKalenderSingleDate) {
                 if (isFlexStart) {
                   classNames.push('departure-period-calendar__day--range-start');
                 }
