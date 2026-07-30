@@ -28,7 +28,7 @@ export interface StoredOffer {
   stars?: number | null;
   rating?: number | null;
 
-  imageUrl: string;
+  imageUrl?: string;
   imageLarge?: string;
   imageSmall?: string;
   images?: string[];
@@ -46,6 +46,6 @@ export interface StoredOffer {
 
   variations?: string;
 
-  deepLink: string;
+  deepLink?: string;
   affiliateCampaignId?: string;
 }

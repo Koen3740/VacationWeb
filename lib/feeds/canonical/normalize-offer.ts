@@ -55,7 +55,7 @@ export function normalizeOffer(offer: StoredOffer): TravelOffer {
     stars: offer.stars,
     rating: offer.rating,
 
-    imageUrl: offer.imageUrl,
+    imageUrl: offer.imageUrl ?? '',
     imageLarge: offer.imageLarge,
     imageSmall: offer.imageSmall,
     images: offer.images,
@@ -73,7 +73,7 @@ export function normalizeOffer(offer: StoredOffer): TravelOffer {
 
     variations: offer.variations,
 
-    deepLink: offer.deepLink,
+    deepLink: offer.deepLink ?? '',
     affiliateCampaignId: offer.affiliateCampaignId,
 
     departureWindowStart: '',
