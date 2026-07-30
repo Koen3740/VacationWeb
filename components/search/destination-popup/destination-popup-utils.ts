@@ -1,18 +1,8 @@
-import destinationIndex from '@/data/destination-index.json';
+import filterOptions from '@/data/filter-options.json';
 
 export type DestinationCountryOption = {
   name: string;
   count: number;
-};
-
-type DestinationIndexEntry = {
-  label: string;
-  count: number;
-  level: 'country' | 'region';
-  filter: {
-    country: string;
-    region?: string;
-  };
 };
 
 export const POPULAR_COUNTRY_NAMES = [
@@ -95,13 +85,10 @@ export function formatOfferCount(count: number): string {
 }
 
 export function loadDestinationCountries(): DestinationCountryOption[] {
-  const searchList = (destinationIndex as { searchList: DestinationIndexEntry[] }).searchList;
-
-  return searchList
-    .filter((entry) => entry.level === 'country')
-    .map((entry) => ({
-      name: entry.label,
-      count: entry.count,
+  return filterOptions.countries
+    .map((name) => ({
+      name,
+      count: 0,
     }))
     .sort((left, right) => left.name.localeCompare(right.name, 'nl'));
 }
@@ -115,12 +102,6 @@ export function loadPopularDestinationCountries(
     const country = byName.get(name);
     return country ? [country] : [];
   });
-}
-
-export function loadTotalOffersLabel(): string {
-  const offers = (destinationIndex as { stats: { offers: number } }).stats.offers;
-  const thousands = Math.floor(offers / 1000);
-  return `${thousands.toLocaleString('nl-NL')}.000+ vakanties`;
 }
 
 export function filterCountriesByQuery(

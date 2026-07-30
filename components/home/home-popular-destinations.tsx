@@ -1,13 +1,16 @@
 import { DestinationCountryFlagIcon } from '@/components/search/destination-popup/destination-country-flag-icon';
 import {
   formatOfferCount,
-  loadDestinationCountries,
   loadPopularDestinationCountries,
 } from '@/components/search/destination-popup/destination-popup-utils';
+import { deriveDestinationCountryCounts } from '@/lib/offers/derive-destination-countries';
+import { loadOffers } from '@/lib/offers/load-offers';
 import Link from 'next/link';
 
 export function HomePopularDestinations() {
-  const popularDestinations = loadPopularDestinationCountries(loadDestinationCountries());
+  const popularDestinations = loadPopularDestinationCountries(
+    deriveDestinationCountryCounts(loadOffers()),
+  );
 
   return (
     <section className="mx-auto max-w-[1200px] px-4 py-14 sm:px-5 lg:px-6">

@@ -1,5 +1,5 @@
 import leftPanelIllustration from '@/components/search/destination-popup/assets/left-panel-illustration.png';
-import { loadTotalOffersLabel } from '@/components/search/destination-popup/destination-popup-utils';
+import { loadTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 import Image from 'next/image';
 
 function PalmIcon() {
