@@ -1,42 +1,62 @@
-function PartnerIcon() {
+function CompareProvidersIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
-      <circle cx="12" cy="8" r="3.5" stroke="white" strokeWidth="1.6" />
-      <path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="4" y="5" width="6" height="14" rx="1.5" stroke="white" strokeWidth="1.6" />
+      <rect x="14" y="5" width="6" height="14" rx="1.5" stroke="white" strokeWidth="1.6" />
+      <path d="M10 10h4M10 14h4" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
 
-function ShieldIcon() {
+function BudgetValueIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
       <path
-        d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"
+        d="M4 18V6l8-3 8 3v12l-8 3-8-3z"
         stroke="white"
         strokeWidth="1.6"
         strokeLinejoin="round"
       />
-      <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M9 12.5c0-1.2 1-2 3-2s3 .8 3 2-1 2-3 2-3 .8-3 2 1 2 3 2 3 .8 3 2"
+        stroke="white"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
-function LockIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
-      <rect x="6" y="11" width="12" height="9" rx="2" stroke="white" strokeWidth="1.6" />
-      <path d="M8 11V8a4 4 0 118 0v3" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function SupportIcon() {
+function FilterPreferencesIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
       <path
-        d="M4 8a8 8 0 0116 0v3a2 2 0 002 2v1a2 2 0 01-2 2h-1.5a2.5 2.5 0 01-5 0h-3a2.5 2.5 0 01-5 0H6a2 2 0 01-2-2v-1a2 2 0 012-2V8z"
+        d="M4 6h16M7 12h10M10 18h4"
         stroke="white"
         strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <circle cx="6" cy="6" r="2" stroke="white" strokeWidth="1.6" />
+      <circle cx="14" cy="12" r="2" stroke="white" strokeWidth="1.6" />
+      <circle cx="12" cy="18" r="2" stroke="white" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function DirectBookingIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+      <path
+        d="M7 7h10v10H7V7z"
+        stroke="white"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M11 12h6M15 9l3 3-3 3"
+        stroke="white"
+        strokeWidth="1.6"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
@@ -44,19 +64,19 @@ function SupportIcon() {
 }
 
 const features = [
-  { icon: <PartnerIcon />, label: 'Meer dan 300 reispartners' },
-  { icon: <ShieldIcon />, label: 'Laagste prijsgarantie' },
-  { icon: <LockIcon />, label: 'Veilig boeken' },
-  { icon: <SupportIcon />, label: '24/7 klantenservice' },
+  { icon: <CompareProvidersIcon />, label: 'Vergelijk meerdere reisaanbieders' },
+  { icon: <BudgetValueIcon />, label: 'Ontdek waar jouw budget het meeste oplevert' },
+  { icon: <FilterPreferencesIcon />, label: 'Filter op budget, reisduur en voorkeuren' },
+  { icon: <DirectBookingIcon />, label: 'Boek rechtstreeks bij de reisorganisatie' },
 ];
 
 export function HomeFeatures() {
   return (
-    <div className="mt-7 flex flex-wrap items-center justify-center gap-x-10 gap-y-3">
+    <div className="mt-7 grid grid-cols-1 gap-y-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-0">
       {features.map((feature) => (
-        <div key={feature.label} className="flex items-center gap-2.5">
+        <div key={feature.label} className="flex min-w-0 items-start gap-2.5 lg:items-center">
           {feature.icon}
-          <span className="text-sm font-medium text-white">{feature.label}</span>
+          <span className="min-w-0 text-sm font-medium leading-snug text-white">{feature.label}</span>
         </div>
       ))}
     </div>
