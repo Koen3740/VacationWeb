@@ -1,4 +1,5 @@
-import filterOptions from '@/data/filter-options.json';
+import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
+import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 
 export type DestinationCountryOption = {
   name: string;
@@ -77,7 +78,7 @@ const COUNTRY_FLAG_CODES: Record<string, string> = {
 };
 
 export function getCountryFlagCode(country: string): string | undefined {
-  return COUNTRY_FLAG_CODES[country];
+  return COUNTRY_FLAG_CODES[canonicalizeCountryName(country)];
 }
 
 export function formatOfferCount(count: number): string {
@@ -85,12 +86,10 @@ export function formatOfferCount(count: number): string {
 }
 
 export function loadDestinationCountries(): DestinationCountryOption[] {
-  return filterOptions.countries
-    .map((name) => ({
-      name,
-      count: 0,
-    }))
-    .sort((left, right) => left.name.localeCompare(right.name, 'nl'));
+  return loadFilterOptions().countries.map((name) => ({
+    name,
+    count: 0,
+  }));
 }
 
 export function loadPopularDestinationCountries(

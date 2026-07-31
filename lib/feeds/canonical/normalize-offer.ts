@@ -1,3 +1,4 @@
+import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { TravelOffer } from './travel-offer';
 import { StoredOffer } from '../types/stored-offer';
 
@@ -32,7 +33,7 @@ export function normalizeOffer(offer: StoredOffer): TravelOffer {
     accommodation: offer.accommodation,
     accommodationType: offer.accommodationType,
 
-    destinationCountry: offer.country,
+    destinationCountry: canonicalizeCountryName(offer.country),
     destinationProvince: offer.province,
     destinationRegion: offer.region,
     destinationCity: offer.city,

@@ -1,3 +1,4 @@
+import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { SearchParams, TravelOffer } from '@/types/travel';
 
 function computeValueScore(offer: TravelOffer) {
@@ -15,7 +16,7 @@ export function filterOffers(
   return offers.filter((offer) => {
     if (
       params.country &&
-      offer.destinationCountry !== params.country
+      canonicalizeCountryName(offer.destinationCountry) !== canonicalizeCountryName(params.country)
     ) {
       return false;
     }

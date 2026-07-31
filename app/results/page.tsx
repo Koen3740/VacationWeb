@@ -1,6 +1,7 @@
 import { FilterSidebar } from '@/components/results/filter-sidebar';
 import { SortSelector } from '@/components/results/sort-selector';
 import { TravelCard } from '@/components/results/travel-card';
+import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 import { loadOffers } from '@/lib/offers/load-offers';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
@@ -12,7 +13,9 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
   const boardTypes = typeof searchParams.boardTypes === 'string' ? searchParams.boardTypes.split(',') : undefined;
 
   return {
-    country: typeof searchParams.country === 'string' ? searchParams.country : undefined,
+    country: typeof searchParams.country === 'string'
+      ? canonicalizeCountryName(searchParams.country)
+      : undefined,
     region: typeof searchParams.region === 'string' ? searchParams.region : undefined,
     budgetMin: typeof searchParams.budgetMin === 'string' ? Number(searchParams.budgetMin) : undefined,
     budgetMax: typeof searchParams.budgetMax === 'string' ? Number(searchParams.budgetMax) : undefined,

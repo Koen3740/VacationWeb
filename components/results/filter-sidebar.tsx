@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { FilterOptions } from '@/types/travel';
 
 function parseFilters(searchParams: URLSearchParams) {
   return {
-    country: searchParams.get('country') || '',
+    country: canonicalizeCountryName(searchParams.get('country') || ''),
     region: searchParams.get('region') || '',
     budgetMin: Number(searchParams.get('budgetMin') || 500),
     budgetMax: Number(searchParams.get('budgetMax') || 1500),
