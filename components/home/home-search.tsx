@@ -62,7 +62,11 @@ function Divider() {
   return <div className="hidden h-10 w-px shrink-0 bg-[#E2E8F0] lg:block" aria-hidden="true" />;
 }
 
-export function HomeSearch() {
+type HomeSearchProps = {
+  countryCounts: Record<string, number>;
+};
+
+export function HomeSearch({ countryCounts }: HomeSearchProps) {
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [destinationPopupOpen, setDestinationPopupOpen] = useState(false);
   const [departurePopupOpen, setDeparturePopupOpen] = useState(false);
@@ -200,6 +204,7 @@ export function HomeSearch() {
       <DestinationPopup
         open={destinationPopupOpen}
         appliedCountries={selectedCountries}
+        countryCounts={countryCounts}
         onClose={() => setDestinationPopupOpen(false)}
         onApply={(countries) => {
           setSelectedCountries(countries);

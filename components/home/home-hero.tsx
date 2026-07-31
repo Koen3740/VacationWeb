@@ -2,7 +2,11 @@ import Image from 'next/image';
 import { HomeHeader } from '@/components/home/home-header';
 import { HomeSearch } from '@/components/home/home-search';
 
-export function HomeHero() {
+type HomeHeroProps = {
+  countryCounts: Record<string, number>;
+};
+
+export function HomeHero({ countryCounts }: HomeHeroProps) {
   return (
     <section className="relative min-h-[680px] w-full overflow-hidden lg:min-h-[720px]">
       <Image
@@ -45,7 +49,7 @@ export function HomeHero() {
           </div>
 
           <div className="mx-auto mt-11 w-full max-w-[1200px] px-4 sm:px-5 lg:mt-14 lg:px-6">
-            <HomeSearch />
+            <HomeSearch countryCounts={countryCounts} />
           </div>
         </div>
       </div>

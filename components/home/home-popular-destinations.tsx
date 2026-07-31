@@ -1,16 +1,7 @@
 import { DestinationCountryFlagIcon } from '@/components/search/destination-popup/destination-country-flag-icon';
-import { formatOfferCount } from '@/components/search/destination-popup/destination-popup-utils';
 import { derivePopularDestinations } from '@/lib/offers/derive-destination-countries';
 import { loadOffers } from '@/lib/offers/load-offers';
 import Link from 'next/link';
-
-function formatDestinationSubtitle(count: number): string {
-  if (count > 0) {
-    return `${formatOfferCount(count)} vakanties`;
-  }
-
-  return 'Bekijk aanbiedingen';
-}
 
 export function HomePopularDestinations() {
   const popularDestinations = derivePopularDestinations(loadOffers());
@@ -42,9 +33,6 @@ export function HomePopularDestinations() {
                   <h3 className="truncate text-base font-semibold text-slate-950 group-hover:text-brand-700">
                     {destination.name}
                   </h3>
-                  <p className="mt-0.5 text-sm text-slate-500">
-                    {formatDestinationSubtitle(destination.count)}
-                  </p>
                 </div>
               </div>
             </Link>

@@ -85,10 +85,12 @@ export function formatOfferCount(count: number): string {
   return count.toLocaleString('nl-NL');
 }
 
-export function loadDestinationCountries(): DestinationCountryOption[] {
+export function loadDestinationCountries(
+  countryCounts: Record<string, number>,
+): DestinationCountryOption[] {
   return loadFilterOptions().countries.map((name) => ({
     name,
-    count: 0,
+    count: countryCounts[name] ?? 0,
   }));
 }
 

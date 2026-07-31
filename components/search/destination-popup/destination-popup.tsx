@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 type DestinationPopupProps = {
   open: boolean;
   appliedCountries: string[];
+  countryCounts: Record<string, number>;
   onClose: () => void;
   onApply: (countries: string[]) => void;
 };
@@ -97,6 +98,7 @@ function DestinationSection({
 export function DestinationPopup({
   open,
   appliedCountries,
+  countryCounts,
   onClose,
   onApply,
 }: DestinationPopupProps) {
@@ -104,7 +106,10 @@ export function DestinationPopup({
   const [query, setQuery] = useState('');
   const [draftSelection, setDraftSelection] = useState<string[]>(appliedCountries);
 
-  const allCountries = useMemo(() => loadDestinationCountries(), []);
+  const allCountries = useMemo(
+    () => loadDestinationCountries(countryCounts),
+    [countryCounts],
+  );
   const popularCountries = useMemo(
     () => loadPopularDestinationCountries(allCountries),
     [allCountries],
@@ -265,6 +270,7 @@ export function DestinationPopupPreview() {
     <DestinationPopup
       open={open}
       appliedCountries={['Spanje', 'Italië', 'Marokko']}
+      countryCounts={{}}
       onClose={() => setOpen(false)}
       onApply={() => setOpen(true)}
     />
