@@ -31,3 +31,6 @@ yarn-error.log*
 .DS_Store
 .vercel
 _preview-check.png
+
+# generated runtime data
+data/offers.json

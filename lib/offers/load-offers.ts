@@ -1,4 +1,4 @@
-import offers from '@/data/phase1a-proof/offers.json';
+import offers from '@/data/offers.json';
 import { normalizeOffer } from '@/lib/feeds/canonical/normalize-offer';
 import { TravelOffer } from '@/types/travel';
 
