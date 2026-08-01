@@ -1,4 +1,5 @@
 import { FilterSidebar } from '@/components/results/filter-sidebar';
+import { ResultsPagination } from '@/components/results/results-pagination';
 import { SortSelector } from '@/components/results/sort-selector';
 import { TravelCard } from '@/components/results/travel-card';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
@@ -76,6 +77,8 @@ export default async function ResultsPage({ searchParams }: { searchParams: Reco
               <TravelCard key={offer.id} offer={offer} />
             ))}
           </div>
+
+          <ResultsPagination params={params} totalResults={filtered.length} />
         </section>
       </div>
     </main>
