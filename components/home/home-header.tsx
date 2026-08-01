@@ -1,3 +1,4 @@
+import { HomeMobileNav } from '@/components/home/home-mobile-nav';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -7,7 +8,7 @@ const navLinks = [
   { label: 'Deals', href: '/results' },
   { label: 'Inspiratie', href: '/search' },
   { label: 'Over ons', href: '/search' },
-];
+] as const;
 
 export function HomeHeader() {
   return (
@@ -23,7 +24,7 @@ export function HomeHeader() {
         />
       </Link>
 
-      <nav className="hidden items-center gap-9 lg:flex">
+      <nav className="hidden items-center gap-9 lg:flex" aria-label="Hoofdnavigatie">
         {navLinks.map((link) => (
           <Link
             key={link.label}
@@ -34,6 +35,10 @@ export function HomeHeader() {
           </Link>
         ))}
       </nav>
+
+      <div className="justify-self-end lg:hidden">
+        <HomeMobileNav links={navLinks} />
+      </div>
 
       <div aria-hidden="true" className="hidden lg:block" />
     </header>
