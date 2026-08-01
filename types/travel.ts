@@ -23,4 +23,6 @@ export interface SearchParams {
   departureAirport?: string;
   stars?: number;
   sort?: string;
+  page?: number;
+  pageSize?: number;
 }

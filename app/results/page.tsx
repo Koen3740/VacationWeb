@@ -5,6 +5,7 @@ import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 import { loadOffers } from '@/lib/offers/load-offers';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
+import { parseResultsPageParam, parseResultsPageSizeParam } from '@/lib/search/pagination';
 import { SearchParams } from '@/types/travel';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,12 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
     departureAirport: typeof searchParams.departureAirport === 'string' ? searchParams.departureAirport : undefined,
     stars: typeof searchParams.stars === 'string' ? Number(searchParams.stars) : undefined,
     sort: typeof searchParams.sort === 'string' ? searchParams.sort : 'value',
+    page: parseResultsPageParam(
+      typeof searchParams.page === 'string' ? searchParams.page : undefined,
+    ),
+    pageSize: parseResultsPageSizeParam(
+      typeof searchParams.pageSize === 'string' ? searchParams.pageSize : undefined,
+    ),
   };
 }
 
