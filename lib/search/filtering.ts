@@ -1,6 +1,24 @@
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { SearchParams, TravelOffer } from '@/types/travel';
 
+function shiftIsoDate(isoDate: string, days: number): string {
+  const date = new Date(isoDate);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function resolveCountryFilters(params: SearchParams): string[] {
+  if (params.countries?.length) {
+    return params.countries.map((country) => canonicalizeCountryName(country));
+  }
+
+  if (params.country) {
+    return [canonicalizeCountryName(params.country)];
+  }
+
+  return [];
+}
+
 function computeValueScore(offer: TravelOffer) {
   const priceScore = Math.max(0, 100 - offer.pricePerDay * 0.6);
   const ratingScore = (offer.rating ?? 4) * 10;
@@ -13,12 +31,22 @@ export function filterOffers(
   offers: TravelOffer[],
   params: SearchParams
 ): TravelOffer[] {
+  const countryFilters = resolveCountryFilters(params);
+  const flexibilityDays = params.flexibilityDays ?? 0;
+  const effectiveDepartureStart = params.departureStart && flexibilityDays > 0
+    ? shiftIsoDate(params.departureStart, -flexibilityDays)
+    : params.departureStart;
+  const effectiveDepartureEnd = params.departureEnd && flexibilityDays > 0
+    ? shiftIsoDate(params.departureEnd, flexibilityDays)
+    : params.departureEnd;
+
   return offers.filter((offer) => {
-    if (
-      params.country &&
-      canonicalizeCountryName(offer.destinationCountry) !== canonicalizeCountryName(params.country)
-    ) {
-      return false;
+    if (countryFilters.length > 0) {
+      const offerCountry = canonicalizeCountryName(offer.destinationCountry);
+
+      if (!countryFilters.some((country) => country === offerCountry)) {
+        return false;
+      }
     }
 
     if (
@@ -80,17 +108,17 @@ export function filterOffers(
 
     // Nieuwe Corendon-feed: filter op vertrekdatum
     if (
-      params.departureStart &&
+      effectiveDepartureStart &&
       offer.departureDate &&
-      offer.departureDate < params.departureStart
+      offer.departureDate < effectiveDepartureStart
     ) {
       return false;
     }
 
     if (
-      params.departureEnd &&
+      effectiveDepartureEnd &&
       offer.departureDate &&
-      offer.departureDate > params.departureEnd
+      offer.departureDate > effectiveDepartureEnd
     ) {
       return false;
     }

@@ -102,12 +102,16 @@ export function HomeSearch({ countryCounts }: HomeSearchProps) {
       params.set('children', travelerTotals.children.toString());
     }
 
+    if (travelerTotals.babies > 0) {
+      params.set('babies', travelerTotals.babies.toString());
+    }
+
     if (travelers.rooms.length > 1) {
       params.set('rooms', travelers.rooms.length.toString());
     }
 
-    if (selectedCountries[0]) {
-      params.set('country', selectedCountries[0]);
+    if (selectedCountries.length > 0) {
+      params.set('country', selectedCountries.join(','));
     }
 
     if (departureStart) {
@@ -122,13 +126,17 @@ export function HomeSearch({ countryCounts }: HomeSearchProps) {
       }
     }
 
+    if (flexibilityDays > 0) {
+      params.set('flexibilityDays', flexibilityDays.toString());
+    }
+
     if (selectedDurations.length > 0) {
       params.set('nightsMin', Math.min(...selectedDurations).toString());
       params.set('nightsMax', Math.max(...selectedDurations).toString());
     }
 
     return `/results?${params.toString()}`;
-  }, [departureEnd, departureStart, selectedDurations, selectedCountries, travelerTotals.adults, travelerTotals.children, travelers.rooms.length]);
+  }, [departureEnd, departureStart, flexibilityDays, selectedDurations, selectedCountries, travelerTotals.adults, travelerTotals.babies, travelerTotals.children, travelers.rooms.length]);
 
   const openDeparturePopup = () => {
     if (suppressDepartureOpenRef.current) {

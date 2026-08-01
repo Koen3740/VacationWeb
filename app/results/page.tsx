@@ -13,11 +13,14 @@ export const dynamic = 'force-dynamic';
 
 function parseSearchParams(searchParams: Record<string, string | string[] | undefined>): SearchParams {
   const boardTypes = typeof searchParams.boardTypes === 'string' ? searchParams.boardTypes.split(',') : undefined;
+  const countryRaw = typeof searchParams.country === 'string' ? searchParams.country : undefined;
+  const countries = countryRaw
+    ? countryRaw.split(',').map((country) => canonicalizeCountryName(country.trim())).filter(Boolean)
+    : undefined;
 
   return {
-    country: typeof searchParams.country === 'string'
-      ? canonicalizeCountryName(searchParams.country)
-      : undefined,
+    country: countries?.length === 1 ? countries[0] : undefined,
+    countries: countries?.length ? countries : undefined,
     region: typeof searchParams.region === 'string' ? searchParams.region : undefined,
     budgetMin: typeof searchParams.budgetMin === 'string' ? Number(searchParams.budgetMin) : undefined,
     budgetMax: typeof searchParams.budgetMax === 'string' ? Number(searchParams.budgetMax) : undefined,
@@ -26,9 +29,23 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
     boardTypes,
     adults: typeof searchParams.adults === 'string' ? Number(searchParams.adults) : undefined,
     children: typeof searchParams.children === 'string' ? Number(searchParams.children) : undefined,
+    babies: typeof searchParams.babies === 'string' ? Number(searchParams.babies) : undefined,
     rooms: typeof searchParams.rooms === 'string' ? Number(searchParams.rooms) : undefined,
     departureStart: typeof searchParams.departureStart === 'string' ? searchParams.departureStart : undefined,
     departureEnd: typeof searchParams.departureEnd === 'string' ? searchParams.departureEnd : undefined,
+    flexibilityDays: (() => {
+      if (typeof searchParams.flexibilityDays !== 'string') {
+        return undefined;
+      }
+
+      const parsed = Number(searchParams.flexibilityDays);
+
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 2) {
+        return undefined;
+      }
+
+      return parsed;
+    })(),
     departureAirport: typeof searchParams.departureAirport === 'string' ? searchParams.departureAirport : undefined,
     stars: typeof searchParams.stars === 'string' ? Number(searchParams.stars) : undefined,
     sort: typeof searchParams.sort === 'string' ? searchParams.sort : 'value',

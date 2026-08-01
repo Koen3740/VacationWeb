@@ -58,7 +58,9 @@ export function getResultsTotalPages(totalResults: number, pageSize: number): nu
 export function buildResultsPageHref(params: SearchParams, page: number): string {
   const query = new URLSearchParams();
 
-  if (params.country) {
+  if (params.countries?.length) {
+    query.set('country', params.countries.join(','));
+  } else if (params.country) {
     query.set('country', params.country);
   }
 
@@ -94,6 +96,10 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
     query.set('children', String(params.children));
   }
 
+  if (params.babies !== undefined && !Number.isNaN(params.babies)) {
+    query.set('babies', String(params.babies));
+  }
+
   if (params.rooms !== undefined && !Number.isNaN(params.rooms)) {
     query.set('rooms', String(params.rooms));
   }
@@ -104,6 +110,10 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
 
   if (params.departureEnd) {
     query.set('departureEnd', params.departureEnd);
+  }
+
+  if (params.flexibilityDays !== undefined && !Number.isNaN(params.flexibilityDays) && params.flexibilityDays > 0) {
+    query.set('flexibilityDays', String(params.flexibilityDays));
   }
 
   if (params.departureAirport) {

@@ -9,6 +9,7 @@ export interface FilterOptions {
 
 export interface SearchParams {
   country?: string;
+  countries?: string[];
   region?: string;
   budgetMin?: number;
   budgetMax?: number;
@@ -17,9 +18,11 @@ export interface SearchParams {
   boardTypes?: string[];
   adults?: number;
   children?: number;
+  babies?: number;
   rooms?: number;
   departureStart?: string;
   departureEnd?: string;
+  flexibilityDays?: number;
   departureAirport?: string;
   stars?: number;
   sort?: string;
