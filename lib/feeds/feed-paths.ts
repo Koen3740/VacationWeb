@@ -6,5 +6,6 @@ export const FEED_PATHS = {
   corendon: path.join(DATA_DIR, 'productfeed.xml'),
   prijsvrij: path.join(DATA_DIR, 'prijsvrij.xml'),
   offers: path.join(DATA_DIR, 'offers.json'),
+  offersObjectKey: 'offers.json',
   filterOptions: path.join(DATA_DIR, 'filter-options.json'),
 } as const;

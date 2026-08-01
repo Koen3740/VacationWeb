@@ -33,9 +33,9 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
   };
 }
 
-export default function ResultsPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
+export default async function ResultsPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const params = parseSearchParams(searchParams);
-  const offers = loadOffers();
+  const offers = await loadOffers();
   const filterOptions = loadFilterOptions();
   const filtered = sortOffers(filterOffers(offers, params), params.sort);
   return (

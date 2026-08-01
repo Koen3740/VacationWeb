@@ -5,12 +5,12 @@ import { loadOffers } from '@/lib/offers/load-offers';
 
 export const dynamic = 'force-dynamic';
 
-export default function OfferDetailPage({
+export default async function OfferDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const offer = loadOffers().find((item) => item.id === params.id);
+  const offer = (await loadOffers()).find((item) => item.id === params.id);
 
   if (!offer) {
     notFound();

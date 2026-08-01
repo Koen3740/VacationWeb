@@ -6,9 +6,9 @@ import { loadOffers } from '@/lib/offers/load-offers';
 
 export const dynamic = 'force-dynamic';
 
-export default function HomePage() {
+export default async function HomePage() {
   const countryCounts = Object.fromEntries(
-    deriveDestinationCountryCounts(loadOffers()).map(({ name, count }) => [name, count]),
+    deriveDestinationCountryCounts(await loadOffers()).map(({ name, count }) => [name, count]),
   );
 
   return (

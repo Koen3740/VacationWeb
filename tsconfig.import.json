@@ -16,7 +16,9 @@
   "include": [
     "scripts/import-corendon-xml.ts",
     "scripts/import-all-feeds.ts",
+    "scripts/upload-offers.ts",
     "scripts/validate-prijsvrij-import.ts",
+    "lib/storage/**/*.ts",
     "lib/feeds/providers.ts",
     "lib/offers/derive-filter-options.ts",
     "types/travel.ts",

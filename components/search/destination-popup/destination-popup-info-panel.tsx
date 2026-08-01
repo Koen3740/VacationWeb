@@ -46,8 +46,8 @@ function ShieldIcon() {
   );
 }
 
-export function DestinationPopupInfoPanel() {
-  const totalOffersLabel = loadTotalOffersLabel();
+export async function DestinationPopupInfoPanel() {
+  const totalOffersLabel = await loadTotalOffersLabel();
 
   return (
     <aside className="relative hidden w-[300px] shrink-0 overflow-hidden bg-[#E0F2FE] lg:flex lg:flex-col">

@@ -3,8 +3,8 @@ import { derivePopularDestinations } from '@/lib/offers/derive-destination-count
 import { loadOffers } from '@/lib/offers/load-offers';
 import Link from 'next/link';
 
-export function HomePopularDestinations() {
-  const popularDestinations = derivePopularDestinations(loadOffers());
+export async function HomePopularDestinations() {
+  const popularDestinations = derivePopularDestinations(await loadOffers());
 
   return (
     <section className="mx-auto max-w-[1200px] px-4 py-14 sm:px-5 lg:px-6">
