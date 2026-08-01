@@ -5,7 +5,7 @@ import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 import { loadOffers } from '@/lib/offers/load-offers';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
-import { parseResultsPageParam, parseResultsPageSizeParam } from '@/lib/search/pagination';
+import { paginateResults, parseResultsPageParam, parseResultsPageSizeParam } from '@/lib/search/pagination';
 import { SearchParams } from '@/types/travel';
 
 export const dynamic = 'force-dynamic';
@@ -45,6 +45,11 @@ export default async function ResultsPage({ searchParams }: { searchParams: Reco
   const offers = await loadOffers();
   const filterOptions = loadFilterOptions();
   const filtered = sortOffers(filterOffers(offers, params), params.sort);
+  const visibleOffers = paginateResults(
+    filtered,
+    params.page ?? 1,
+    params.pageSize ?? 24,
+  );
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto grid max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[320px_1fr] lg:px-8">
@@ -67,7 +72,7 @@ export default async function ResultsPage({ searchParams }: { searchParams: Reco
           </div>
 
           <div className="mt-6 grid gap-6 xl:grid-cols-2">
-            {filtered.map((offer) => (
+            {visibleOffers.map((offer) => (
               <TravelCard key={offer.id} offer={offer} />
             ))}
           </div>

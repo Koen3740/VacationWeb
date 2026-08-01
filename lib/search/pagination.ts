@@ -34,3 +34,13 @@ export function parseResultsPageSizeParam(raw: string | undefined): number {
     RESULTS_PAGE_SIZE_MAX,
   );
 }
+
+export function paginateResults<T>(items: T[], page: number, pageSize: number): T[] {
+  const startIndex = (page - 1) * pageSize;
+
+  if (startIndex >= items.length || pageSize <= 0) {
+    return [];
+  }
+
+  return items.slice(startIndex, startIndex + pageSize);
+}
