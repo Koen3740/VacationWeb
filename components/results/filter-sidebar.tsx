@@ -39,6 +39,7 @@ export function FilterSidebar({
     setFilters(next);
 
     const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
     params.set('country', next.country);
     params.set('region', next.region);
     params.set('budgetMin', String(next.budgetMin));
