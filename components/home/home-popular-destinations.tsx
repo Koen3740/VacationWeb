@@ -1,11 +1,12 @@
 import { DestinationCountryFlagIcon } from '@/components/search/destination-popup/destination-country-flag-icon';
-import { derivePopularDestinations } from '@/lib/offers/derive-destination-countries';
-import { loadOffers } from '@/lib/offers/load-offers';
+import { PopularDestination } from '@/lib/offers/derive-destination-countries';
 import Link from 'next/link';
 
-export async function HomePopularDestinations() {
-  const popularDestinations = derivePopularDestinations(await loadOffers());
+type HomePopularDestinationsProps = {
+  destinations: PopularDestination[];
+};
 
+export function HomePopularDestinations({ destinations }: HomePopularDestinationsProps) {
   return (
     <section className="mx-auto max-w-[1200px] px-4 py-14 sm:px-5 lg:px-6">
       <div className="max-w-2xl">
@@ -17,9 +18,9 @@ export async function HomePopularDestinations() {
         </p>
       </div>
 
-      {popularDestinations.length > 0 ? (
+      {destinations.length > 0 ? (
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {popularDestinations.map((destination) => (
+          {destinations.map((destination) => (
             <Link
               key={destination.name}
               href={`/results?country=${encodeURIComponent(destination.name)}`}

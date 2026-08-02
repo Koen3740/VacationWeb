@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { HomeHeader } from '@/components/home/home-header';
 import { HomeSearch } from '@/components/home/home-search';
+import { StarBadgeIcon } from '@/components/home/home-search-icons';
 
 type HomeHeroProps = {
   countryCounts: Record<string, number>;
@@ -32,7 +33,8 @@ export function HomeHero({ countryCounts, totalOffersLabel }: HomeHeroProps) {
         <div className="flex flex-1 flex-col justify-center pt-6 lg:pt-8">
           <div className="px-4 sm:px-5 lg:px-8">
             <div className="max-w-xl lg:max-w-2xl">
-              <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[13px] font-medium tracking-wide text-white/95 backdrop-blur-sm">
+              <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[13px] font-medium tracking-wide text-white/95 backdrop-blur-sm">
+                <StarBadgeIcon />
                 Eén zoekopdracht
               </p>
 

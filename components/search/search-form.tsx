@@ -1,14 +1,20 @@
 "use client";
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  loadSharedSearchState,
+  mergeSharedStateIntoSearchForm,
+  saveSharedSearchState,
+  sharedStateFromSearchForm,
+} from '@/components/search/shared-search-state';
 import { FilterOptions } from '@/types/travel';
 
 function createInitialFormState({ countries, regionsByCountry }: FilterOptions) {
   const country = countries[0] ?? '';
   const region = regionsByCountry[country]?.[0] ?? '';
 
-  return {
+  const base = {
     country,
     region,
     budgetMin: 500,
@@ -24,11 +30,22 @@ function createInitialFormState({ countries, regionsByCountry }: FilterOptions) 
     departureAirport: '',
     stars: 0,
   };
+
+  const shared = loadSharedSearchState();
+  if (!shared) {
+    return base;
+  }
+
+  return mergeSharedStateIntoSearchForm(base, shared, regionsByCountry);
 }
 
 export function SearchForm({ countries, regionsByCountry, boardTypes, departureAirports }: FilterOptions) {
   const [form, setForm] = useState(() => createInitialFormState({ countries, regionsByCountry, boardTypes, departureAirports }));
   const availableRegions = useMemo(() => regionsByCountry[form.country] || [], [form.country, regionsByCountry]);
+
+  useEffect(() => {
+    saveSharedSearchState(sharedStateFromSearchForm(form));
+  }, [form]);
 
   const toggleBoardType = (value: string) => {
     setForm((current) => ({
