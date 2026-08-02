@@ -4,9 +4,10 @@ import { HomeSearch } from '@/components/home/home-search';
 
 type HomeHeroProps = {
   countryCounts: Record<string, number>;
+  totalOffersLabel: string;
 };
 
-export function HomeHero({ countryCounts }: HomeHeroProps) {
+export function HomeHero({ countryCounts, totalOffersLabel }: HomeHeroProps) {
   return (
     <section className="relative min-h-[680px] w-full overflow-hidden lg:min-h-[720px]">
       <Image
@@ -49,7 +50,7 @@ export function HomeHero({ countryCounts }: HomeHeroProps) {
           </div>
 
           <div className="mx-auto mt-11 w-full max-w-[1200px] px-4 sm:px-5 lg:mt-14 lg:px-6">
-            <HomeSearch countryCounts={countryCounts} />
+            <HomeSearch countryCounts={countryCounts} totalOffersLabel={totalOffersLabel} />
           </div>
         </div>
       </div>

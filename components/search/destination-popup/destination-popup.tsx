@@ -2,6 +2,7 @@
 
 import { DestinationCountryChip } from '@/components/search/destination-popup/destination-country-chip';
 import { DestinationCountryRow } from '@/components/search/destination-popup/destination-country-row';
+import { DestinationPopupInfoPanelView } from '@/components/search/destination-popup/destination-popup-info-panel-view';
 import '@/components/search/destination-popup/destination-popup.css';
 import { destinationPopupPoppins } from '@/components/search/destination-popup/destination-popup-font';
 import {
@@ -17,6 +18,7 @@ type DestinationPopupProps = {
   open: boolean;
   appliedCountries: string[];
   countryCounts: Record<string, number>;
+  totalOffersLabel: string;
   onClose: () => void;
   onApply: (countries: string[]) => void;
 };
@@ -99,6 +101,7 @@ export function DestinationPopup({
   open,
   appliedCountries,
   countryCounts,
+  totalOffersLabel,
   onClose,
   onApply,
 }: DestinationPopupProps) {
@@ -188,8 +191,11 @@ export function DestinationPopup({
         role="dialog"
         aria-modal="true"
         aria-labelledby="destination-popup-title"
-        className="relative flex h-[640px] w-[600px] flex-col overflow-hidden rounded-xl bg-white p-5 shadow-[0_8px_24px_rgba(0,0,0,0.15)]"
+        className="relative flex h-[640px] w-[600px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.15)] lg:w-[920px] lg:max-w-[920px] lg:flex-row"
       >
+        <DestinationPopupInfoPanelView totalOffersLabel={totalOffersLabel} />
+
+        <div className="flex min-h-0 flex-1 flex-col p-5 lg:w-[620px] lg:shrink-0">
         <div className="flex h-14 shrink-0 items-center justify-between">
           <h2 id="destination-popup-title" className="text-base font-semibold text-[#1E40AF]">
             Bestemming
@@ -257,6 +263,7 @@ export function DestinationPopup({
             OPSLAAN
           </button>
         </div>
+        </div>
       </div>
     </div>,
     document.body,
@@ -271,6 +278,7 @@ export function DestinationPopupPreview() {
       open={open}
       appliedCountries={['Spanje', 'Italië', 'Marokko']}
       countryCounts={{}}
+      totalOffersLabel="69.000+ vakanties"
       onClose={() => setOpen(false)}
       onApply={() => setOpen(true)}
     />

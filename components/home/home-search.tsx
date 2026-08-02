@@ -64,9 +64,10 @@ function Divider() {
 
 type HomeSearchProps = {
   countryCounts: Record<string, number>;
+  totalOffersLabel: string;
 };
 
-export function HomeSearch({ countryCounts }: HomeSearchProps) {
+export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps) {
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [destinationPopupOpen, setDestinationPopupOpen] = useState(false);
   const [departurePopupOpen, setDeparturePopupOpen] = useState(false);
@@ -213,6 +214,7 @@ export function HomeSearch({ countryCounts }: HomeSearchProps) {
         open={destinationPopupOpen}
         appliedCountries={selectedCountries}
         countryCounts={countryCounts}
+        totalOffersLabel={totalOffersLabel}
         onClose={() => setDestinationPopupOpen(false)}
         onApply={(countries) => {
           setSelectedCountries(countries);
