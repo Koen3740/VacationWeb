@@ -1,8 +1,10 @@
 import { HomeFeatures } from '@/components/home/home-features';
 import { HomeHero } from '@/components/home/home-hero';
+import { HomePopularCountries } from '@/components/home/home-popular-countries';
 import { HomePopularDestinations } from '@/components/home/home-popular-destinations';
 import {
   deriveDestinationCountryCounts,
+  derivePopularCountries,
   derivePopularDestinations,
 } from '@/lib/offers/derive-destination-countries';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
@@ -16,6 +18,7 @@ export default async function HomePage() {
     deriveDestinationCountryCounts(offers).map(({ name, count }) => [name, count]),
   );
   const popularDestinations = derivePopularDestinations(offers);
+  const popularCountries = derivePopularCountries(offers);
   const totalOffersLabel = formatTotalOffersLabel(offers.length);
 
   return (
@@ -27,6 +30,7 @@ export default async function HomePage() {
         </div>
       </section>
       <HomePopularDestinations destinations={popularDestinations} />
+      <HomePopularCountries countries={popularCountries} />
     </main>
   );
 }
