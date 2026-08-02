@@ -13,7 +13,10 @@ const navLinks = [
 export function HomeHeader() {
   return (
     <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 pt-2">
-      <Link href="/" className="justify-self-start">
+      <Link
+        href="/"
+        className="inline-flex justify-self-start rounded-2xl bg-white/95 px-4 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+      >
         <Image
           src="/images/logo.png"
           alt="VacationWeb"

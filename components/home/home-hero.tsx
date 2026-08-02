@@ -15,12 +15,12 @@ export function HomeHero({ countryCounts, totalOffersLabel }: HomeHeroProps) {
         alt=""
         fill
         priority
-        className="object-cover object-center sm:object-[68%_center] lg:object-[76%_center]"
+        className="object-cover object-center"
         sizes="100vw"
       />
 
       <div
-        className="absolute inset-0 bg-gradient-to-r from-[#0A2D62]/90 from-0% via-[#0A2D62]/50 via-45% to-transparent to-80%"
+        className="absolute inset-0 bg-gradient-to-r from-[#0A2D62]/70 from-0% via-[#0A2D62]/28 via-32% to-transparent to-52%"
         aria-hidden="true"
       />
 
