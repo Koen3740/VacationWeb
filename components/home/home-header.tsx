@@ -15,13 +15,13 @@ export function HomeHeader() {
     <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 pt-2">
       <Link
         href="/"
-        className="inline-flex justify-self-start rounded-2xl bg-white/95 px-4 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+        className="inline-flex items-center justify-self-start rounded-2xl bg-white px-6 py-3 shadow-[0_2px_6px_rgba(0,0,0,0.05)]"
       >
         <Image
           src="/images/logo.png"
           alt="VacationWeb"
-          width={180}
-          height={48}
+          width={119}
+          height={40}
           priority
           className="h-10 w-auto"
         />
