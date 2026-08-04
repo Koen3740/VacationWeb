@@ -1,6 +1,3 @@
-import leftPanelIllustration from '@/components/search/destination-popup/assets/left-panel-illustration.png';
-import Image from 'next/image';
-
 function PalmIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -52,13 +49,6 @@ type DestinationPopupInfoPanelViewProps = {
 export function DestinationPopupInfoPanelView({ totalOffersLabel }: DestinationPopupInfoPanelViewProps) {
   return (
     <aside className="relative hidden w-[300px] shrink-0 overflow-hidden bg-[#E0F2FE] lg:flex lg:flex-col">
-      <Image
-        src={leftPanelIllustration}
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%] w-full object-cover object-bottom"
-      />
-
       <div className="relative z-10 flex flex-1 flex-col px-8 pb-8 pt-10">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#E0F2FE]">
           <PalmIcon />
