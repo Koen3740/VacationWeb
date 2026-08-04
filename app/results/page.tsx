@@ -1,4 +1,5 @@
 import { FilterSidebar } from '@/components/results/filter-sidebar';
+import { NoResults } from '@/components/results/no-results';
 import { ResultsPagination } from '@/components/results/results-pagination';
 import { SortSelector } from '@/components/results/sort-selector';
 import { TravelCard } from '@/components/results/travel-card';
@@ -89,11 +90,15 @@ export default async function ResultsPage({ searchParams }: { searchParams: Reco
             </div>
           </div>
 
-          <div className="mt-6 grid gap-6 xl:grid-cols-2">
-            {visibleOffers.map((offer) => (
-              <TravelCard key={offer.id} offer={offer} />
-            ))}
-          </div>
+          {visibleOffers.length > 0 ? (
+            <div className="mt-6 grid gap-6 xl:grid-cols-2">
+              {visibleOffers.map((offer) => (
+                <TravelCard key={offer.id} offer={offer} />
+              ))}
+            </div>
+          ) : (
+            <NoResults />
+          )}
 
           <ResultsPagination params={params} totalResults={filtered.length} />
         </section>

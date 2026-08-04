@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { FilterOptions } from '@/types/travel';
 
@@ -34,6 +35,12 @@ export function FilterSidebar({
   }, [searchParams]);
 
   const availableRegions = useMemo(() => regionsByCountry[filters.country] || [], [filters.country, regionsByCountry]);
+
+  const selectedCountries = useMemo(
+    () => filters.country.split(',').map((country) => country.trim()).filter(Boolean),
+    [filters.country],
+  );
+  const isMultiCountrySelection = selectedCountries.length > 1;
 
   const updateFilters = (next: typeof filters) => {
     setFilters(next);
@@ -87,6 +94,11 @@ export function FilterSidebar({
               className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 outline-none"
             >
               <option value="">Alle landen</option>
+              {isMultiCountrySelection && (
+                <option value={filters.country}>
+                  {formatSelectedCountriesLabel(selectedCountries)}
+                </option>
+              )}
               {countries.map((country) => (
                 <option key={country} value={country}>
                   {country}
