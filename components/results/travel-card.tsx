@@ -46,9 +46,11 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
             </span>
           )}
 
-          <span className="rounded-full bg-slate-100 px-3 py-1">
-            {offer.boardType}
-          </span>
+          {offer.boardType && (
+            <span className="rounded-full bg-slate-100 px-3 py-1">
+              {offer.boardType}
+            </span>
+          )}
 
           <span className="rounded-full bg-slate-100 px-3 py-1">
             {offer.nights} nachten
