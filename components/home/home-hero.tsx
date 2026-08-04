@@ -10,7 +10,14 @@ type HomeHeroProps = {
 
 export function HomeHero({ countryCounts, totalOffersLabel }: HomeHeroProps) {
   return (
-    <section className="relative min-h-[680px] w-full overflow-hidden lg:min-h-[720px]">
+    <>
+      <div className="border-b border-slate-200/80 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04)]">
+        <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-5 lg:px-6">
+          <HomeHeader />
+        </div>
+      </div>
+
+      <section className="relative min-h-[620px] w-full overflow-hidden lg:min-h-[660px]">
       <Image
         src="/images/homepage-hero-background.png"
         alt=""
@@ -25,12 +32,8 @@ export function HomeHero({ countryCounts, totalOffersLabel }: HomeHeroProps) {
         aria-hidden="true"
       />
 
-      <div className="relative flex min-h-[680px] flex-col pb-10 pt-5 lg:min-h-[720px] lg:pb-14">
-        <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-5 lg:px-6">
-          <HomeHeader />
-        </div>
-
-        <div className="flex flex-1 flex-col justify-center pt-6 lg:pt-8">
+      <div className="relative flex min-h-[620px] flex-col pb-10 pt-8 lg:min-h-[660px] lg:pb-14 lg:pt-10">
+        <div className="flex flex-1 flex-col justify-center">
           <div className="px-4 sm:px-5 lg:px-8">
             <div className="max-w-xl lg:max-w-2xl">
               <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[13px] font-medium tracking-wide text-white/95 backdrop-blur-sm">
@@ -57,5 +60,6 @@ export function HomeHero({ countryCounts, totalOffersLabel }: HomeHeroProps) {
         </div>
       </div>
     </section>
+    </>
   );
 }

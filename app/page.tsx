@@ -1,12 +1,15 @@
+import { HomeCookieBanner } from '@/components/home/home-cookie-banner';
 import { HomeFeatures } from '@/components/home/home-features';
+import { HomeFooter } from '@/components/home/home-footer';
 import { HomeHero } from '@/components/home/home-hero';
-import { HomePopularCountries } from '@/components/home/home-popular-countries';
 import { HomePopularDestinations } from '@/components/home/home-popular-destinations';
+import { HomeThemes } from '@/components/home/home-themes';
+import { HomeWhyVacationWeb } from '@/components/home/home-why-vacationweb';
 import {
   deriveDestinationCountryCounts,
-  derivePopularCountries,
   derivePopularDestinations,
 } from '@/lib/offers/derive-destination-countries';
+import { deriveHomeThemes } from '@/lib/offers/derive-home-themes';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 import { loadOffers } from '@/lib/offers/load-offers';
 
@@ -18,7 +21,7 @@ export default async function HomePage() {
     deriveDestinationCountryCounts(offers).map(({ name, count }) => [name, count]),
   );
   const popularDestinations = derivePopularDestinations(offers);
-  const popularCountries = derivePopularCountries(offers);
+  const homeThemes = deriveHomeThemes(offers);
   const totalOffersLabel = formatTotalOffersLabel(offers.length);
 
   return (
@@ -30,7 +33,10 @@ export default async function HomePage() {
         </div>
       </section>
       <HomePopularDestinations destinations={popularDestinations} />
-      <HomePopularCountries countries={popularCountries} />
+      <HomeThemes themes={homeThemes} />
+      <HomeWhyVacationWeb />
+      <HomeFooter />
+      <HomeCookieBanner />
     </main>
   );
 }

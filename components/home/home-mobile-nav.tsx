@@ -71,7 +71,7 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
         aria-expanded={open}
         aria-controls="home-mobile-nav-panel"
         aria-label="Menu openen"
-        className="flex h-10 w-10 items-center justify-center rounded-full text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]"
       >
         <MenuIcon />
       </button>

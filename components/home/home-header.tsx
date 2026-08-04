@@ -10,40 +10,78 @@ const navLinks = [
   { label: 'Over ons', href: '/search' },
 ] as const;
 
+function AccountPlaceholderIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M5 20c1.5-3.5 4.5-5.5 7-5.5s5.5 2 7 5.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function FavoritesPlaceholderIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+      <path
+        d="M12 20.5 5.5 13.8a4.7 4.7 0 0 1 0-6.6 4.5 4.5 0 0 1 6.4 0L12 7.1l.1-.1a4.5 4.5 0 0 1 6.4 0 4.7 4.7 0 0 1 0 6.6L12 20.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function HomeHeader() {
   return (
-    <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 pt-2">
-      <Link
-        href="/"
-        className="inline-flex items-center justify-self-start rounded-2xl bg-white px-6 py-3 shadow-[0_2px_6px_rgba(0,0,0,0.05)]"
-      >
+    <header className="flex items-center gap-4 py-3 lg:py-3.5">
+      <Link href="/" className="inline-flex shrink-0 items-center">
         <Image
           src="/images/logo.png"
           alt="VacationWeb"
           width={119}
           height={40}
           priority
-          className="h-10 w-auto"
+          className="h-9 w-auto lg:h-10"
         />
       </Link>
 
-      <nav className="hidden items-center gap-9 lg:flex" aria-label="Hoofdnavigatie">
+      <nav className="hidden flex-1 items-center justify-center gap-8 lg:flex" aria-label="Hoofdnavigatie">
         {navLinks.map((link) => (
           <Link
             key={link.label}
             href={link.href}
-            className="text-[15px] font-medium text-white transition hover:text-white/80"
+            className="text-[15px] font-medium text-slate-700 transition hover:text-[#0A2D62]"
           >
             {link.label}
           </Link>
         ))}
       </nav>
 
-      <div className="justify-self-end lg:hidden">
-        <HomeMobileNav links={navLinks} />
+      <div className="ml-auto flex items-center gap-1 sm:gap-2 lg:gap-3">
+        <span
+          aria-hidden="true"
+          className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-slate-600 sm:inline-flex"
+        >
+          <AccountPlaceholderIcon />
+          Account
+        </span>
+        <span
+          aria-hidden="true"
+          className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-slate-600 md:inline-flex"
+        >
+          <FavoritesPlaceholderIcon />
+          Favorieten
+        </span>
+        <div className="lg:hidden">
+          <HomeMobileNav links={navLinks} />
+        </div>
       </div>
-
-      <div aria-hidden="true" className="hidden lg:block" />
     </header>
   );
 }
