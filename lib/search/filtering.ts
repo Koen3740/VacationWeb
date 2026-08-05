@@ -70,18 +70,24 @@ export function filterOffers(
       return false;
     }
 
-    if (
-      params.nightsMin !== undefined &&
-      offer.nights < params.nightsMin
-    ) {
-      return false;
-    }
+    if (params.nights?.length) {
+      if (!params.nights.includes(offer.nights)) {
+        return false;
+      }
+    } else {
+      if (
+        params.nightsMin !== undefined &&
+        offer.nights < params.nightsMin
+      ) {
+        return false;
+      }
 
-    if (
-      params.nightsMax !== undefined &&
-      offer.nights > params.nightsMax
-    ) {
-      return false;
+      if (
+        params.nightsMax !== undefined &&
+        offer.nights > params.nightsMax
+      ) {
+        return false;
+      }
     }
 
     if (

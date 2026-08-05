@@ -2,18 +2,25 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { DURATION_MAX, DURATION_MIN } from '@/components/search/duration-popup/duration-popup-utils';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { FilterOptions } from '@/types/travel';
+
+const BUDGET_MIN_BOUND = 500;
+const BUDGET_MAX_BOUND = 2000;
 
 function parseFilters(searchParams: URLSearchParams) {
   return {
     country: canonicalizeCountryName(searchParams.get('country') || ''),
     region: searchParams.get('region') || '',
-    budgetMin: Number(searchParams.get('budgetMin') || 500),
-    budgetMax: Number(searchParams.get('budgetMax') || 1500),
-    nightsMin: Number(searchParams.get('nightsMin') || 7),
-    nightsMax: Number(searchParams.get('nightsMax') || 12),
+    // Wanneer geen budget-/reisduurfilter in de URL staat, wordt er door filterOffers()
+    // objectief geen beperking toegepast. De sliders tonen daarom de volledige
+    // slider-range (= "geen filter actief") in plaats van een misleidende sub-range.
+    budgetMin: Number(searchParams.get('budgetMin') || BUDGET_MIN_BOUND),
+    budgetMax: Number(searchParams.get('budgetMax') || BUDGET_MAX_BOUND),
+    nightsMin: Number(searchParams.get('nightsMin') || DURATION_MIN),
+    nightsMax: Number(searchParams.get('nightsMax') || DURATION_MAX),
     departureAirport: searchParams.get('departureAirport') || '',
     stars: Number(searchParams.get('stars') || 0),
     boardTypes: searchParams.get('boardTypes')?.split(',').filter(Boolean) || [],
@@ -125,8 +132,8 @@ export function FilterSidebar({
           <div className="grid gap-3">
             <input
               type="range"
-              min="500"
-              max="2000"
+              min={BUDGET_MIN_BOUND}
+              max={BUDGET_MAX_BOUND}
               value={filters.budgetMin}
               onChange={(event) => {
                 const nextBudgetMin = Number(event.target.value);
@@ -136,8 +143,8 @@ export function FilterSidebar({
             />
             <input
               type="range"
-              min="500"
-              max="2000"
+              min={BUDGET_MIN_BOUND}
+              max={BUDGET_MAX_BOUND}
               value={filters.budgetMax}
               onChange={(event) => {
                 const nextBudgetMax = Number(event.target.value);
@@ -157,8 +164,8 @@ export function FilterSidebar({
           <div className="grid gap-3">
             <input
               type="range"
-              min="4"
-              max="14"
+              min={DURATION_MIN}
+              max={DURATION_MAX}
               value={filters.nightsMin}
               onChange={(event) => {
                 const nextNightsMin = Number(event.target.value);
@@ -168,8 +175,8 @@ export function FilterSidebar({
             />
             <input
               type="range"
-              min="4"
-              max="14"
+              min={DURATION_MIN}
+              max={DURATION_MAX}
               value={filters.nightsMax}
               onChange={(event) => {
                 const nextNightsMax = Number(event.target.value);

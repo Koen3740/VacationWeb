@@ -16,12 +16,6 @@ export type SharedSearchState = {
 
 const STORAGE_KEY = 'vacationweb.shared-search-state';
 
-function addDays(isoDate: string, days: number): string {
-  const date = new Date(isoDate);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
 export function createDefaultSharedSearchState(): SharedSearchState {
   return {
     selectedCountries: [],
@@ -96,14 +90,7 @@ export function buildResultsHref(state: SharedSearchState): string {
 
   if (state.departureStart) {
     params.set('departureStart', state.departureStart);
-    if (state.departureEnd) {
-      params.set('departureEnd', state.departureEnd);
-    } else {
-      const fallbackNightsMax = state.selectedDurations.length > 0
-        ? Math.max(...state.selectedDurations)
-        : 12;
-      params.set('departureEnd', addDays(state.departureStart, fallbackNightsMax));
-    }
+    params.set('departureEnd', state.departureEnd ?? state.departureStart);
   }
 
   if (state.flexibilityDays > 0) {
@@ -111,8 +98,7 @@ export function buildResultsHref(state: SharedSearchState): string {
   }
 
   if (state.selectedDurations.length > 0) {
-    params.set('nightsMin', Math.min(...state.selectedDurations).toString());
-    params.set('nightsMax', Math.max(...state.selectedDurations).toString());
+    params.set('nights', [...state.selectedDurations].sort((a, b) => a - b).join(','));
   }
 
   return `/results?${params.toString()}`;

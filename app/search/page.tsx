@@ -3,7 +3,11 @@ import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 
 export const dynamic = 'force-dynamic';
 
-export default function SearchPage() {
+export default function SearchPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const filterOptions = loadFilterOptions();
 
   return (
@@ -20,7 +24,7 @@ export default function SearchPage() {
             </div>
           </div>
           <div className="p-8 lg:p-10">
-            <SearchForm {...filterOptions} />
+            <SearchForm {...filterOptions} searchParams={searchParams} />
           </div>
         </div>
       </section>

@@ -15,6 +15,7 @@ export interface SearchParams {
   budgetMax?: number;
   nightsMin?: number;
   nightsMax?: number;
+  nights?: number[];
   boardTypes?: string[];
   adults?: number;
   children?: number;

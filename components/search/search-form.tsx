@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { DURATION_MAX, DURATION_MIN } from '@/components/search/duration-popup/duration-popup-utils';
 import {
   loadSharedSearchState,
   mergeSharedStateIntoSearchForm,
@@ -10,7 +11,33 @@ import {
 } from '@/components/search/shared-search-state';
 import { FilterOptions } from '@/types/travel';
 
-function createInitialFormState({ countries, regionsByCountry }: FilterOptions) {
+type IncomingSearchParams = Record<string, string | string[] | undefined>;
+
+function getParamString(params: IncomingSearchParams | undefined, key: string): string | undefined {
+  const value = params?.[key];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function getParamNumber(params: IncomingSearchParams | undefined, key: string): number | undefined {
+  const raw = getParamString(params, key);
+  const parsed = raw !== undefined ? Number(raw) : NaN;
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function defaultDepartureWindow(): { departureStart: string; departureEnd: string } {
+  const toIsoDate = (date: Date) => date.toISOString().slice(0, 10);
+  const start = new Date();
+  start.setDate(start.getDate() + 14);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 35);
+
+  return { departureStart: toIsoDate(start), departureEnd: toIsoDate(end) };
+}
+
+function createInitialFormState(
+  { countries, regionsByCountry }: FilterOptions,
+  urlParams?: IncomingSearchParams,
+) {
   const country = countries[0] ?? '';
   const region = regionsByCountry[country]?.[0] ?? '';
 
@@ -25,22 +52,61 @@ function createInitialFormState({ countries, regionsByCountry }: FilterOptions) 
     adults: 2,
     children: 0,
     rooms: 1,
-    departureStart: '2026-07-10',
-    departureEnd: '2026-08-15',
+    ...defaultDepartureWindow(),
     departureAirport: '',
     stars: 0,
   };
 
   const shared = loadSharedSearchState();
-  if (!shared) {
-    return base;
+  const merged = shared ? mergeSharedStateIntoSearchForm(base, shared, regionsByCountry) : base;
+
+  if (!urlParams) {
+    return merged;
   }
 
-  return mergeSharedStateIntoSearchForm(base, shared, regionsByCountry);
+  const urlCountry = getParamString(urlParams, 'country')?.split(',')[0]?.trim();
+  const urlRegion = getParamString(urlParams, 'region');
+  const nextCountry = urlCountry || merged.country;
+
+  return {
+    ...merged,
+    country: nextCountry,
+    region: urlRegion || regionsByCountry[nextCountry]?.[0] || merged.region,
+    budgetMin: getParamNumber(urlParams, 'budgetMin') ?? merged.budgetMin,
+    budgetMax: getParamNumber(urlParams, 'budgetMax') ?? merged.budgetMax,
+    nightsMin: getParamNumber(urlParams, 'nightsMin') ?? merged.nightsMin,
+    nightsMax: getParamNumber(urlParams, 'nightsMax') ?? merged.nightsMax,
+    boardTypes: getParamString(urlParams, 'boardTypes')?.split(',').filter(Boolean) ?? merged.boardTypes,
+    adults: getParamNumber(urlParams, 'adults') ?? merged.adults,
+    children: getParamNumber(urlParams, 'children') ?? merged.children,
+    rooms: getParamNumber(urlParams, 'rooms') ?? merged.rooms,
+    departureStart: getParamString(urlParams, 'departureStart') || merged.departureStart,
+    departureEnd: getParamString(urlParams, 'departureEnd') || merged.departureEnd,
+    departureAirport: getParamString(urlParams, 'departureAirport') ?? merged.departureAirport,
+    stars: getParamNumber(urlParams, 'stars') ?? merged.stars,
+  };
 }
 
-export function SearchForm({ countries, regionsByCountry, boardTypes, departureAirports }: FilterOptions) {
-  const [form, setForm] = useState(() => createInitialFormState({ countries, regionsByCountry, boardTypes, departureAirports }));
+function findOriginalCountrySelection(urlParams: IncomingSearchParams | undefined): string[] {
+  const urlCountry = getParamString(urlParams, 'country');
+  if (urlCountry) {
+    const list = urlCountry.split(',').map((value) => value.trim()).filter(Boolean);
+    return list.length > 1 ? list : [];
+  }
+
+  const shared = loadSharedSearchState();
+  return shared && shared.selectedCountries.length > 1 ? shared.selectedCountries : [];
+}
+
+type SearchFormProps = FilterOptions & {
+  searchParams?: IncomingSearchParams;
+};
+
+export function SearchForm({ countries, regionsByCountry, boardTypes, departureAirports, searchParams }: SearchFormProps) {
+  const [form, setForm] = useState(() =>
+    createInitialFormState({ countries, regionsByCountry, boardTypes, departureAirports }, searchParams),
+  );
+  const [originalCountrySelection] = useState(() => findOriginalCountrySelection(searchParams));
   const availableRegions = useMemo(() => regionsByCountry[form.country] || [], [form.country, regionsByCountry]);
 
   useEffect(() => {
@@ -109,6 +175,13 @@ export function SearchForm({ countries, regionsByCountry, boardTypes, departureA
               ))}
             </select>
           </div>
+          {originalCountrySelection.length > 1 && (
+            <p className="mt-2 text-xs text-amber-700">
+              Er waren meerdere bestemmingen geselecteerd ({originalCountrySelection.join(', ')}). Dit zoekformulier ondersteunt
+              voorlopig één bestemming tegelijk. Controleer of &quot;{form.country}&quot; de juiste bestemming is voordat je
+              opnieuw zoekt.
+            </p>
+          )}
         </div>
 
         <div>
@@ -150,8 +223,8 @@ export function SearchForm({ countries, regionsByCountry, boardTypes, departureA
               <span>{form.nightsMin} dagen</span>
               <span>{form.nightsMax} dagen</span>
             </div>
-            <input type="range" min="4" max="14" value={form.nightsMin} onChange={(event) => setForm({ ...form, nightsMin: Number(event.target.value) })} className="mt-3 w-full" />
-            <input type="range" min="4" max="14" value={form.nightsMax} onChange={(event) => setForm({ ...form, nightsMax: Number(event.target.value) })} className="mt-2 w-full" />
+            <input type="range" min={DURATION_MIN} max={DURATION_MAX} value={form.nightsMin} onChange={(event) => setForm({ ...form, nightsMin: Number(event.target.value) })} className="mt-3 w-full" />
+            <input type="range" min={DURATION_MIN} max={DURATION_MAX} value={form.nightsMax} onChange={(event) => setForm({ ...form, nightsMax: Number(event.target.value) })} className="mt-2 w-full" />
           </div>
         </div>
       </div>

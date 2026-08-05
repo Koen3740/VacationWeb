@@ -12,11 +12,35 @@ import { SearchParams } from '@/types/travel';
 
 export const dynamic = 'force-dynamic';
 
+function buildAdjustSearchHref(searchParams: Record<string, string | string[] | undefined>): string {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (key === 'page' || key === 'pageSize' || key === 'sort') {
+      continue;
+    }
+
+    if (typeof value === 'string' && value.length > 0) {
+      params.set(key, value);
+    }
+  }
+
+  const query = params.toString();
+  return query ? `/search?${query}` : '/search';
+}
+
 function parseSearchParams(searchParams: Record<string, string | string[] | undefined>): SearchParams {
   const boardTypes = typeof searchParams.boardTypes === 'string' ? searchParams.boardTypes.split(',') : undefined;
   const countryRaw = typeof searchParams.country === 'string' ? searchParams.country : undefined;
   const countries = countryRaw
     ? countryRaw.split(',').map((country) => canonicalizeCountryName(country.trim())).filter(Boolean)
+    : undefined;
+  const nightsRaw = typeof searchParams.nights === 'string' ? searchParams.nights : undefined;
+  const nights = nightsRaw
+    ? nightsRaw
+        .split(',')
+        .map((value) => Number(value.trim()))
+        .filter((value) => Number.isFinite(value))
     : undefined;
 
   return {
@@ -27,6 +51,7 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
     budgetMax: typeof searchParams.budgetMax === 'string' ? Number(searchParams.budgetMax) : undefined,
     nightsMin: typeof searchParams.nightsMin === 'string' ? Number(searchParams.nightsMin) : undefined,
     nightsMax: typeof searchParams.nightsMax === 'string' ? Number(searchParams.nightsMax) : undefined,
+    nights: nights?.length ? nights : undefined,
     boardTypes,
     adults: typeof searchParams.adults === 'string' ? Number(searchParams.adults) : undefined,
     children: typeof searchParams.children === 'string' ? Number(searchParams.children) : undefined,
@@ -82,7 +107,7 @@ export default async function ResultsPage({ searchParams }: { searchParams: Reco
                 <h1 className="mt-1 text-3xl font-semibold text-slate-950">Beste vakanties voor jouw profiel</h1>
               </div>
               <div className="flex flex-wrap gap-3">
-                <a href="/search" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-500 hover:text-brand-700">
+                <a href={buildAdjustSearchHref(searchParams)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-500 hover:text-brand-700">
                   Pas zoekopdracht aan
                 </a>
                 <SortSelector currentSort={params.sort || 'value'} />
