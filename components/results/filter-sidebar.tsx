@@ -55,7 +55,13 @@ export function FilterSidebar({
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
     params.set('country', next.country);
-    params.set('region', next.region);
+
+    if (next.region) {
+      params.set('region', next.region);
+    } else {
+      params.delete('region');
+    }
+
     params.set('budgetMin', String(next.budgetMin));
     params.set('budgetMax', String(next.budgetMax));
     params.set('nightsMin', String(next.nightsMin));
@@ -95,8 +101,7 @@ export function FilterSidebar({
               value={filters.country}
               onChange={(event) => {
                 const nextCountry = event.target.value;
-                const nextRegion = regionsByCountry[nextCountry]?.[0] || '';
-                updateFilters({ ...filters, country: nextCountry, region: nextRegion });
+                updateFilters({ ...filters, country: nextCountry, region: '' });
               }}
               className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 outline-none"
             >
