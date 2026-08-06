@@ -16,6 +16,15 @@ export default async function OfferDetailPage({
     notFound();
   }
 
+  const themes = (offer.subcategories ?? '')
+    .split(',')
+    .map((theme) => theme.trim())
+    .filter((theme) => theme.length > 0);
+
+  const isLastMinute = (offer.lastMinute ?? '').toLowerCase() === 'true';
+
+  const hasAttributes = themes.length > 0 || isLastMinute;
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
@@ -86,6 +95,31 @@ export default async function OfferDetailPage({
                   </span>
                 )}
               </div>
+
+              {hasAttributes && (
+                <div className="mt-6">
+                  <p className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-700">
+                    Kenmerken
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                    {isLastMinute && (
+                      <span className="rounded-full bg-amber-100 px-3 py-1 font-semibold text-amber-800">
+                        Last minute
+                      </span>
+                    )}
+
+                    {themes.map((theme) => (
+                      <span
+                        key={theme}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-slate-700"
+                      >
+                        {theme}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {(offer.descriptionShort || offer.descriptionLong) && (
                 <div className="mt-8 space-y-4">
@@ -168,6 +202,15 @@ export default async function OfferDetailPage({
                     {offer.accommodationType || '-'}
                   </span>
                 </div>
+
+                {offer.extraInfo && (
+                  <div className="flex justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span>Kamertype</span>
+                    <span className="font-semibold">
+                      {offer.extraInfo}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex justify-between rounded-2xl bg-slate-50 px-4 py-3">
                   <span>Beoordeling</span>
