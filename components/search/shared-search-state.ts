@@ -105,7 +105,7 @@ export function buildResultsHref(state: SharedSearchState): string {
 }
 
 export function sharedStateFromSearchForm(form: {
-  country: string;
+  countries: string[];
   departureStart: string;
   departureEnd: string;
   nightsMin: number;
@@ -130,7 +130,7 @@ export function sharedStateFromSearchForm(form: {
   }
 
   return {
-    selectedCountries: form.country ? [form.country] : [],
+    selectedCountries: form.countries,
     departureStart: form.departureStart || null,
     departureEnd: form.departureEnd || null,
     flexibilityDays: 0,
@@ -140,7 +140,7 @@ export function sharedStateFromSearchForm(form: {
 }
 
 export function mergeSharedStateIntoSearchForm<T extends {
-  country: string;
+  countries: string[];
   region: string;
   departureStart: string;
   departureEnd: string;
@@ -149,15 +149,14 @@ export function mergeSharedStateIntoSearchForm<T extends {
   adults: number;
   children: number;
   rooms: number;
-}>(form: T, shared: SharedSearchState, regionsByCountry: Record<string, string[]>): T {
-  const country = shared.selectedCountries[0] ?? form.country;
-  const region = regionsByCountry[country]?.[0] ?? form.region;
+}>(form: T, shared: SharedSearchState): T {
+  const countries = shared.selectedCountries.length > 0 ? shared.selectedCountries : form.countries;
   const totals = getTravelersTotals(shared.travelers.rooms);
 
   return {
     ...form,
-    country,
-    region,
+    countries,
+    region: '',
     departureStart: shared.departureStart ?? form.departureStart,
     departureEnd: shared.departureEnd ?? form.departureEnd,
     nightsMin: shared.selectedDurations.length > 0 ? Math.min(...shared.selectedDurations) : form.nightsMin,

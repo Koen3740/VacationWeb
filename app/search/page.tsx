@@ -1,14 +1,22 @@
 import { SearchForm } from '@/components/search/search-form';
+import { deriveDestinationCountryCounts } from '@/lib/offers/derive-destination-countries';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
+import { loadOffers } from '@/lib/offers/load-offers';
+import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 
 export const dynamic = 'force-dynamic';
 
-export default function SearchPage({
+export default async function SearchPage({
   searchParams,
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
   const filterOptions = loadFilterOptions();
+  const offers = await loadOffers();
+  const countryCounts = Object.fromEntries(
+    deriveDestinationCountryCounts(offers).map(({ name, count }) => [name, count]),
+  );
+  const totalOffersLabel = formatTotalOffersLabel(offers.length);
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -24,7 +32,12 @@ export default function SearchPage({
             </div>
           </div>
           <div className="p-8 lg:p-10">
-            <SearchForm {...filterOptions} searchParams={searchParams} />
+            <SearchForm
+              {...filterOptions}
+              searchParams={searchParams}
+              countryCounts={countryCounts}
+              totalOffersLabel={totalOffersLabel}
+            />
           </div>
         </div>
       </section>

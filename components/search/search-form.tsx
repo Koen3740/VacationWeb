@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { DURATION_MAX, DURATION_MIN } from '@/components/search/duration-popup/duration-popup-utils';
+import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
+import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
 import {
   loadSharedSearchState,
   mergeSharedStateIntoSearchForm,
@@ -35,15 +37,12 @@ function defaultDepartureWindow(): { departureStart: string; departureEnd: strin
 }
 
 function createInitialFormState(
-  { countries, regionsByCountry }: FilterOptions,
+  { countries }: FilterOptions,
   urlParams?: IncomingSearchParams,
 ) {
-  const country = countries[0] ?? '';
-  const region = regionsByCountry[country]?.[0] ?? '';
-
   const base = {
-    country,
-    region,
+    countries: countries[0] ? [countries[0]] : [],
+    region: '',
     budgetMin: 500,
     budgetMax: 1500,
     nightsMin: 7,
@@ -58,20 +57,22 @@ function createInitialFormState(
   };
 
   const shared = loadSharedSearchState();
-  const merged = shared ? mergeSharedStateIntoSearchForm(base, shared, regionsByCountry) : base;
+  const merged = shared ? mergeSharedStateIntoSearchForm(base, shared) : base;
 
   if (!urlParams) {
     return merged;
   }
 
-  const urlCountry = getParamString(urlParams, 'country')?.split(',')[0]?.trim();
+  const urlCountries = getParamString(urlParams, 'country')
+    ?.split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
   const urlRegion = getParamString(urlParams, 'region');
-  const nextCountry = urlCountry || merged.country;
 
   return {
     ...merged,
-    country: nextCountry,
-    region: urlRegion || regionsByCountry[nextCountry]?.[0] || merged.region,
+    countries: urlCountries && urlCountries.length > 0 ? urlCountries : merged.countries,
+    region: urlRegion ?? merged.region,
     budgetMin: getParamNumber(urlParams, 'budgetMin') ?? merged.budgetMin,
     budgetMax: getParamNumber(urlParams, 'budgetMax') ?? merged.budgetMax,
     nightsMin: getParamNumber(urlParams, 'nightsMin') ?? merged.nightsMin,
@@ -87,27 +88,34 @@ function createInitialFormState(
   };
 }
 
-function findOriginalCountrySelection(urlParams: IncomingSearchParams | undefined): string[] {
-  const urlCountry = getParamString(urlParams, 'country');
-  if (urlCountry) {
-    const list = urlCountry.split(',').map((value) => value.trim()).filter(Boolean);
-    return list.length > 1 ? list : [];
-  }
-
-  const shared = loadSharedSearchState();
-  return shared && shared.selectedCountries.length > 1 ? shared.selectedCountries : [];
-}
-
 type SearchFormProps = FilterOptions & {
   searchParams?: IncomingSearchParams;
+  countryCounts: Record<string, number>;
+  totalOffersLabel: string;
 };
 
-export function SearchForm({ countries, regionsByCountry, boardTypes, departureAirports, searchParams }: SearchFormProps) {
+export function SearchForm({
+  countries,
+  regionsByCountry,
+  boardTypes,
+  departureAirports,
+  searchParams,
+  countryCounts,
+  totalOffersLabel,
+}: SearchFormProps) {
   const [form, setForm] = useState(() =>
     createInitialFormState({ countries, regionsByCountry, boardTypes, departureAirports }, searchParams),
   );
-  const [originalCountrySelection] = useState(() => findOriginalCountrySelection(searchParams));
-  const availableRegions = useMemo(() => regionsByCountry[form.country] || [], [form.country, regionsByCountry]);
+  const [destinationPopupOpen, setDestinationPopupOpen] = useState(false);
+  const availableRegions = useMemo(() => {
+    const merged = new Set<string>();
+    for (const country of form.countries) {
+      for (const region of regionsByCountry[country] ?? []) {
+        merged.add(region);
+      }
+    }
+    return [...merged].sort((left, right) => left.localeCompare(right, 'nl'));
+  }, [form.countries, regionsByCountry]);
 
   useEffect(() => {
     saveSharedSearchState(sharedStateFromSearchForm(form));
@@ -124,8 +132,7 @@ export function SearchForm({ countries, regionsByCountry, boardTypes, departureA
 
   const buildQuery = () => {
     const params = new URLSearchParams({
-      country: form.country,
-      region: form.region,
+      country: form.countries.join(','),
       budgetMin: form.budgetMin.toString(),
       budgetMax: form.budgetMax.toString(),
       nightsMin: form.nightsMin.toString(),
@@ -138,6 +145,10 @@ export function SearchForm({ countries, regionsByCountry, boardTypes, departureA
       departureAirport: form.departureAirport,
       stars: form.stars.toString(),
     });
+
+    if (form.region) {
+      params.set('region', form.region);
+    }
 
     if (form.boardTypes.length > 0) {
       params.set('boardTypes', form.boardTypes.join(','));
@@ -152,22 +163,19 @@ export function SearchForm({ countries, regionsByCountry, boardTypes, departureA
         <div>
           <label className="mb-2 block text-sm font-semibold text-slate-700">Bestemming</label>
           <div className="grid gap-4 sm:grid-cols-2">
-            <select
-              value={form.country}
-              onChange={(event) => setForm({ ...form, country: event.target.value, region: regionsByCountry[event.target.value]?.[0] || '' })}
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
+            <button
+              type="button"
+              onClick={() => setDestinationPopupOpen(true)}
+              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm outline-none"
             >
-              {countries.map((country) => (
-                <option key={country} value={country}>
-                  {country}
-                </option>
-              ))}
-            </select>
+              {formatSelectedCountriesLabel(form.countries)}
+            </button>
             <select
               value={form.region}
               onChange={(event) => setForm({ ...form, region: event.target.value })}
               className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
             >
+              <option value="">Alle regio&apos;s</option>
               {availableRegions.map((region) => (
                 <option key={region} value={region}>
                   {region}
@@ -175,13 +183,6 @@ export function SearchForm({ countries, regionsByCountry, boardTypes, departureA
               ))}
             </select>
           </div>
-          {originalCountrySelection.length > 1 && (
-            <p className="mt-2 text-xs text-amber-700">
-              Er waren meerdere bestemmingen geselecteerd ({originalCountrySelection.join(', ')}). Dit zoekformulier ondersteunt
-              voorlopig één bestemming tegelijk. Controleer of &quot;{form.country}&quot; de juiste bestemming is voordat je
-              opnieuw zoekt.
-            </p>
-          )}
         </div>
 
         <div>
@@ -301,6 +302,18 @@ export function SearchForm({ countries, regionsByCountry, boardTypes, departureA
           Zoek vakanties
         </Link>
       </div>
+
+      <DestinationPopup
+        open={destinationPopupOpen}
+        appliedCountries={form.countries}
+        countryCounts={countryCounts}
+        totalOffersLabel={totalOffersLabel}
+        onClose={() => setDestinationPopupOpen(false)}
+        onApply={(selectedCountries) => {
+          setForm((current) => ({ ...current, countries: selectedCountries, region: '' }));
+          setDestinationPopupOpen(false);
+        }}
+      />
     </div>
   );
 }
