@@ -11,10 +11,16 @@ import { ResultsUspBar } from '@/components/results-v2/results-usp-bar';
 import { ResultsVariantTabs } from '@/components/results-v2/results-variant-tabs';
 import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import {
+  RESULTS_BORDER,
+  RESULTS_CARD_BG,
+  RESULTS_CARD_SHADOW,
   RESULTS_CTA,
   RESULTS_CTA_HOVER,
   RESULTS_NAVY,
+  RESULTS_PANEL_BG,
+  RESULTS_PANEL_SHADOW,
   RESULTS_RATING_GREEN,
+  RESULTS_STAR_GOLD,
 } from '@/components/results-v2/results-design-tokens';
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
 import { getDepartureDisplay } from '@/components/search/departure-display';
@@ -193,17 +199,24 @@ function Accordion({
   children?: ReactNode;
 }) {
   return (
-    <div className="border-b border-[#E8ECF2]">
+    <div className="border-b border-[#EDE8E0]">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 py-[14px] text-left"
+        className="flex w-full items-center justify-between gap-3 py-[15px] text-left"
         aria-expanded={open}
       >
-        <span className="text-[15px] font-semibold text-[#0A2D62]">{title}</span>
+        <span className="flex min-w-0 items-center gap-2.5">
+          <span
+            className="h-3.5 w-[3px] shrink-0 rounded-full"
+            style={{ backgroundColor: RESULTS_NAVY, opacity: open ? 0.9 : 0.35 }}
+            aria-hidden
+          />
+          <span className="text-[14.5px] font-semibold tracking-[-0.01em] text-[#0A2D62]">{title}</span>
+        </span>
         <Chevron open={open} />
       </button>
-      {open && children ? <div className="pb-4">{children}</div> : null}
+      {open && children ? <div className="pb-4 pl-[13px]">{children}</div> : null}
     </div>
   );
 }
@@ -216,7 +229,14 @@ function StaticFilters() {
 
   return (
     <aside>
-      <div className="rounded-[16px] border border-[#E5E9F0] bg-white px-4 shadow-[0_4px_16px_rgba(10,45,98,0.04)]">
+      <div
+        className="rounded-[16px] border px-4"
+        style={{
+          backgroundColor: RESULTS_PANEL_BG,
+          borderColor: RESULTS_BORDER,
+          boxShadow: RESULTS_PANEL_SHADOW,
+        }}
+      >
         <Accordion
           title="Bestemmingen"
           open={!!open.destinations}
@@ -229,7 +249,9 @@ function StaticFilters() {
               ['Plaats', 'Alle plaatsen'],
             ].map(([label, value]) => (
               <div key={label}>
-                <p className="mb-1.5 text-[12px] font-medium text-[#64748B]">{label}</p>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#8A93A3]">
+                  {label}
+                </p>
                 <div className="flex h-11 w-full items-center justify-between rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-[14px] text-[#0A2D62]">
                   <span>{value}</span>
                   <Chevron open={false} />
@@ -244,13 +266,38 @@ function StaticFilters() {
           open={!!open.budget}
           onToggle={() => setOpen((p) => ({ ...p, budget: !p.budget }))}
         >
-          <div className="space-y-3">
-            <div className="relative h-2 rounded-full bg-[#E8ECF2]">
-              <div className="absolute left-[8%] right-[18%] top-0 h-2 rounded-full bg-[#89ACD3]" />
+          <div className="space-y-4 pt-1">
+            <div className="relative h-8">
+              <div className="absolute left-0 right-0 top-1/2 h-[6px] -translate-y-1/2 rounded-full bg-[#E6EAF1]" />
+              <div
+                className="absolute top-1/2 h-[6px] -translate-y-1/2 rounded-full"
+                style={{
+                  left: '8%',
+                  right: '18%',
+                  background: `linear-gradient(90deg, ${RESULTS_NAVY} 0%, #89ACD3 100%)`,
+                }}
+              />
+              <span
+                className="absolute top-1/2 z-[2] h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2.5px] border-[#0A2D62] bg-white shadow-[0_0_0_3px_rgba(137,172,211,0.28),0_2px_10px_rgba(10,45,98,0.2)]"
+                style={{ left: '8%' }}
+                aria-hidden
+              />
+              <span
+                className="absolute top-1/2 z-[2] h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2.5px] border-[#0A2D62] bg-white shadow-[0_0_0_3px_rgba(137,172,211,0.28),0_2px_10px_rgba(10,45,98,0.2)]"
+                style={{ left: '82%' }}
+                aria-hidden
+              />
             </div>
-            <div className="flex justify-between text-[12px] text-[#64748B]">
-              <span>€0</span>
-              <span>€2.000+</span>
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#8A93A3]">Van</p>
+                <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[#0A2D62]">€ 0</p>
+              </div>
+              <div className="mb-1.5 h-px flex-1 bg-[#E8E4DC]" aria-hidden />
+              <div className="text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#8A93A3]">Tot</p>
+                <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[#0A2D62]">€ 2.000+</p>
+              </div>
             </div>
           </div>
         </Accordion>
@@ -290,7 +337,14 @@ function MockCard({ card }: { card: (typeof MOCK_CARDS)[number] }) {
   const metaLine = `${card.nights} nachten • ${card.board} • ${card.airport}`;
 
   return (
-    <article className="overflow-hidden rounded-[16px] border border-[#E5E9F0] bg-white shadow-[0_4px_18px_rgba(10,45,98,0.05)]">
+    <article
+      className="overflow-hidden rounded-[16px] border"
+      style={{
+        backgroundColor: RESULTS_CARD_BG,
+        borderColor: RESULTS_BORDER,
+        boxShadow: RESULTS_CARD_SHADOW,
+      }}
+    >
       <div className="flex flex-col md:flex-row">
         <div className="relative w-full shrink-0 md:w-[320px] lg:w-[340px]">
           <TravelCardGallery
@@ -307,7 +361,9 @@ function MockCard({ card }: { card: (typeof MOCK_CARDS)[number] }) {
               <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
                 {card.hotel}
               </h3>
-              <span className="text-[14px] text-[#F5C542]">{'★'.repeat(card.stars)}</span>
+              <span className="text-[16px] leading-none tracking-tight" style={{ color: RESULTS_STAR_GOLD }}>
+                {'★'.repeat(card.stars)}
+              </span>
             </div>
             <p className="mt-0.5 text-[13px] text-[#64748B]">{card.location}</p>
             <div className="mt-2.5 flex items-center gap-2">
@@ -325,7 +381,7 @@ function MockCard({ card }: { card: (typeof MOCK_CARDS)[number] }) {
             <p className="mt-1 text-[12.5px] text-[#64748B]">Vertrek tussen {card.departure}</p>
           </div>
 
-          <div className="flex w-full shrink-0 flex-col items-end justify-between border-t border-[#EEF2F6] pt-3 md:w-[158px] md:border-l md:border-t-0 md:pl-5 md:pt-0">
+          <div className="flex w-full shrink-0 flex-col items-end justify-between border-t border-[#EDE8E0] pt-3 md:w-[158px] md:border-l md:border-t-0 md:pl-5 md:pt-0">
             <span className="inline-flex h-10 w-10 items-center justify-center text-[22px] leading-none text-[#94A3B8]" aria-hidden>
               ♡
             </span>
@@ -334,8 +390,8 @@ function MockCard({ card }: { card: (typeof MOCK_CARDS)[number] }) {
                 €&nbsp;{card.price.toLocaleString('nl-NL')}
               </p>
               <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
-              <p className="mt-2 text-[11px] font-normal text-[#A8B3C4]">
-                € {card.pricePerDay} per dag
+              <p className="mt-2 text-[11px] font-normal text-[#A39A8C]">
+                € {card.pricePerDay} p.p. / dag
               </p>
             </div>
             <div className="mt-3 w-full">

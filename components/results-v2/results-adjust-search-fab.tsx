@@ -2,11 +2,14 @@
 
 import { RESULTS_CTA, RESULTS_NAVY } from '@/components/results-v2/results-design-tokens';
 
-/** Floating UI placeholder — no action yet (WP7-004) */
+/** Scrolls to top so the search bar is in view — no popup yet */
 export function ResultsAdjustSearchFab() {
   return (
     <button
       type="button"
+      onClick={() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }}
       className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-white px-4 py-3 text-[13px] font-semibold text-[#0A2D62] shadow-[0_10px_28px_rgba(10,45,98,0.18)] ring-1 ring-[#D9E0EA] transition hover:shadow-[0_12px_32px_rgba(10,45,98,0.22)]"
       aria-label="Zoekopdracht aanpassen"
     >

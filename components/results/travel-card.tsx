@@ -1,8 +1,12 @@
 import {
+  RESULTS_BORDER,
+  RESULTS_CARD_BG,
+  RESULTS_CARD_SHADOW,
   RESULTS_CTA,
   RESULTS_CTA_HOVER,
   RESULTS_NAVY,
   RESULTS_RATING_GREEN,
+  RESULTS_STAR_GOLD,
 } from '@/components/results-v2/results-design-tokens';
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
 import { TravelOffer } from '@/types/travel';
@@ -71,7 +75,14 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
     .join(' • ');
 
   return (
-    <article className="overflow-hidden rounded-[16px] border border-[#E5E9F0] bg-white shadow-[0_4px_18px_rgba(10,45,98,0.05)]">
+    <article
+      className="overflow-hidden rounded-[16px] border"
+      style={{
+        backgroundColor: RESULTS_CARD_BG,
+        borderColor: RESULTS_BORDER,
+        boxShadow: RESULTS_CARD_SHADOW,
+      }}
+    >
       <div className="flex flex-col md:flex-row">
         <div className="relative w-full shrink-0 md:w-[320px] lg:w-[340px]">
           <TravelCardGallery
@@ -88,7 +99,11 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
                 {offer.hotelName}
               </h3>
               {stars > 0 ? (
-                <span className="text-[14px] tracking-tight text-[#F5C542]" aria-label={`${stars} sterren`}>
+                <span
+                  className="text-[16px] leading-none tracking-tight"
+                  style={{ color: RESULTS_STAR_GOLD }}
+                  aria-label={`${stars} sterren`}
+                >
                   {'★'.repeat(stars)}
                 </span>
               ) : null}
@@ -120,7 +135,7 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
             ) : null}
           </div>
 
-          <div className="flex w-full shrink-0 flex-col items-end justify-between border-t border-[#EEF2F6] pt-3 md:w-[158px] md:border-l md:border-t-0 md:pl-5 md:pt-0">
+          <div className="flex w-full shrink-0 flex-col items-end justify-between border-t border-[#EDE8E0] pt-3 md:w-[158px] md:border-l md:border-t-0 md:pl-5 md:pt-0">
             <div className="flex w-full items-start justify-end">
               <HeartButton />
             </div>
@@ -129,8 +144,8 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
                 €&nbsp;{formatPrice(offer.price)}
               </p>
               <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
-              <p className="mt-2 text-[11px] font-normal text-[#A8B3C4]">
-                € {formatPrice(offer.pricePerDay)} per dag
+              <p className="mt-2 text-[11px] font-normal text-[#A39A8C]">
+                € {formatPrice(offer.pricePerDay)} p.p. / dag
               </p>
             </div>
             <div className="mt-3 w-full">

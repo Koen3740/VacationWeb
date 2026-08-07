@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  RESULTS_BORDER,
+  RESULTS_NAVY,
+  RESULTS_PANEL_BG,
+  RESULTS_PANEL_SHADOW,
+} from '@/components/results-v2/results-design-tokens';
 import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
@@ -66,17 +72,24 @@ function Accordion({
   children?: ReactNode;
 }) {
   return (
-    <div className="border-b border-[#E8ECF2]">
+    <div className="border-b border-[#EDE8E0]">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 py-[14px] text-left"
+        className="flex w-full items-center justify-between gap-3 py-[15px] text-left"
         aria-expanded={open}
       >
-        <span className="text-[15px] font-semibold text-[#0A2D62]">{title}</span>
+        <span className="flex min-w-0 items-center gap-2.5">
+          <span
+            className="h-3.5 w-[3px] shrink-0 rounded-full"
+            style={{ backgroundColor: RESULTS_NAVY, opacity: open ? 0.9 : 0.35 }}
+            aria-hidden
+          />
+          <span className="text-[14.5px] font-semibold tracking-[-0.01em] text-[#0A2D62]">{title}</span>
+        </span>
         <Chevron open={open} />
       </button>
-      {open && children ? <div className="pb-4">{children}</div> : null}
+      {open && children ? <div className="pb-4 pl-[13px]">{children}</div> : null}
     </div>
   );
 }
@@ -215,9 +228,25 @@ export function FilterSidebar({
   const budgetMinPct = ((filters.budgetMin - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
   const budgetMaxPct = ((filters.budgetMax - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
 
+  const budgetMinLabel =
+    filters.budgetMin === BUDGET_FILTER_MIN
+      ? '€ 0'
+      : `€ ${filters.budgetMin.toLocaleString('nl-NL')}`;
+  const budgetMaxLabel =
+    filters.budgetMax >= BUDGET_FILTER_MAX
+      ? '€ 2.000+'
+      : `€ ${filters.budgetMax.toLocaleString('nl-NL')}`;
+
   return (
     <aside>
-      <div className="rounded-[16px] border border-[#E5E9F0] bg-white px-4 shadow-[0_4px_16px_rgba(10,45,98,0.04)]">
+      <div
+        className="rounded-[16px] border px-4"
+        style={{
+          backgroundColor: RESULTS_PANEL_BG,
+          borderColor: RESULTS_BORDER,
+          boxShadow: RESULTS_PANEL_SHADOW,
+        }}
+      >
         <Accordion
           title="Bestemmingen"
           open={!!openSections.destinations}
@@ -225,7 +254,9 @@ export function FilterSidebar({
         >
           <div className="space-y-3">
             <div>
-              <p className="mb-1.5 text-[12px] font-medium text-[#64748B]">Land</p>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#8A93A3]">
+                Land
+              </p>
               <SelectLike onClick={() => setDestinationPopupOpen(true)}>
                 {selectedCountries.length > 0
                   ? formatSelectedCountriesLabel(selectedCountries)
@@ -233,7 +264,9 @@ export function FilterSidebar({
               </SelectLike>
             </div>
             <div>
-              <p className="mb-1.5 text-[12px] font-medium text-[#64748B]">Streek / Regio</p>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#8A93A3]">
+                Streek / Regio
+              </p>
               <select
                 value={filters.region}
                 onChange={(event) => updateFilters({ ...filters, region: event.target.value })}
@@ -248,26 +281,32 @@ export function FilterSidebar({
               </select>
             </div>
             <div>
-              <p className="mb-1.5 text-[12px] font-medium text-[#64748B]">Plaats</p>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#8A93A3]">
+                Plaats
+              </p>
               <SelectLike>Alle plaatsen</SelectLike>
             </div>
           </div>
         </Accordion>
 
         <Accordion title="Prijs per persoon" open={!!openSections.budget} onToggle={() => toggleSection('budget')}>
-          <div className="space-y-3">
-            <div className="relative h-2 rounded-full bg-[#E8ECF2]">
+          <div className="space-y-4 pt-1">
+            <div className="relative h-8">
+              <div className="absolute left-0 right-0 top-1/2 h-[6px] -translate-y-1/2 rounded-full bg-[#E6EAF1]" />
               <div
-                className="absolute top-0 h-2 rounded-full bg-[#89ACD3]"
-                style={{ left: `${budgetMinPct}%`, right: `${100 - budgetMaxPct}%` }}
+                className="absolute top-1/2 h-[6px] -translate-y-1/2 rounded-full"
+                style={{
+                  left: `${budgetMinPct}%`,
+                  right: `${100 - budgetMaxPct}%`,
+                  background: `linear-gradient(90deg, ${RESULTS_NAVY} 0%, #89ACD3 100%)`,
+                }}
               />
-            </div>
-            <div className="grid gap-2">
               <input
                 type="range"
                 min={BUDGET_FILTER_MIN}
                 max={BUDGET_FILTER_MAX}
                 value={filters.budgetMin}
+                aria-label="Minimumprijs per persoon"
                 onChange={(event) => {
                   const nextBudgetMin = Number(event.target.value);
                   updateFilters({
@@ -276,13 +315,14 @@ export function FilterSidebar({
                     budgetMax: Math.max(filters.budgetMax, nextBudgetMin),
                   });
                 }}
-                className="w-full accent-[#89ACD3]"
+                className="vw-budget-range z-[2]"
               />
               <input
                 type="range"
                 min={BUDGET_FILTER_MIN}
                 max={BUDGET_FILTER_MAX}
                 value={filters.budgetMax}
+                aria-label="Maximumprijs per persoon"
                 onChange={(event) => {
                   const nextBudgetMax = Number(event.target.value);
                   updateFilters({
@@ -291,12 +331,19 @@ export function FilterSidebar({
                     budgetMin: Math.min(filters.budgetMin, nextBudgetMax),
                   });
                 }}
-                className="w-full accent-[#89ACD3]"
+                className="vw-budget-range z-[3]"
               />
             </div>
-            <div className="flex justify-between text-[12px] text-[#64748B]">
-              <span>€{filters.budgetMin === BUDGET_FILTER_MIN ? 0 : filters.budgetMin}</span>
-              <span>€{filters.budgetMax >= BUDGET_FILTER_MAX ? '2.000+' : filters.budgetMax}</span>
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#8A93A3]">Van</p>
+                <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[#0A2D62]">{budgetMinLabel}</p>
+              </div>
+              <div className="mb-1.5 h-px flex-1 bg-[#E8E4DC]" aria-hidden />
+              <div className="text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#8A93A3]">Tot</p>
+                <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[#0A2D62]">{budgetMaxLabel}</p>
+              </div>
             </div>
           </div>
         </Accordion>
