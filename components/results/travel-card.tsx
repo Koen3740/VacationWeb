@@ -1,106 +1,152 @@
-import Image from 'next/image';
-import Link from 'next/link';
+import {
+  RESULTS_CTA,
+  RESULTS_CTA_HOVER,
+  RESULTS_NAVY,
+  RESULTS_RATING_GREEN,
+} from '@/components/results-v2/results-design-tokens';
+import { TravelCardGallery } from '@/components/results/travel-card-gallery';
 import { TravelOffer } from '@/types/travel';
+import Link from 'next/link';
+
+function ratingLabel(rating: number | null | undefined): string {
+  if (rating == null) return '';
+  if (rating >= 9) return 'Fantastisch';
+  if (rating >= 8) return 'Uitstekend';
+  if (rating >= 7) return 'Zeer goed';
+  return 'Goed';
+}
+
+function formatPrice(value: number): string {
+  return new Intl.NumberFormat('nl-NL', {
+    style: 'decimal',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function collectImages(offer: TravelOffer): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const url of [offer.imageUrl, offer.imageLarge, ...(offer.images ?? [])]) {
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    out.push(url);
+  }
+  return out;
+}
+
+function HeartButton() {
+  return (
+    <span
+      aria-hidden
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#94A3B8] transition hover:bg-[#F1F5F9] hover:text-[#0A2D62]"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M12 20.5 5.5 13.8a4.7 4.7 0 0 1 0-6.6 4.5 4.5 0 0 1 6.4 0L12 7.1l.1-.1a4.5 4.5 0 0 1 6.4 0 4.7 4.7 0 0 1 0 6.6L12 20.5Z"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
+  );
+}
 
 export function TravelCard({ offer }: { offer: TravelOffer }) {
+  const location = [offer.destinationRegion || offer.destinationCity, offer.destinationCountry]
+    .filter(Boolean)
+    .join(', ');
+  const stars = offer.stars && offer.stars > 0 ? offer.stars : 0;
+  const isLastMinute = offer.lastMinute === 'true' || offer.lastMinute === '1' || offer.lastMinute === 'yes';
+  const ratingText = ratingLabel(offer.rating);
+  const airport = offer.departureAirport || offer.departureAirportCode || offer.airport;
+  const images = collectImages(offer);
+
+  const metaLine = [
+    `${offer.nights} nachten`,
+    offer.boardType,
+    airport,
+  ]
+    .filter(Boolean)
+    .join(' • ');
+
   return (
-    <article className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-      <div className="relative h-56 w-full">
-        <Image
-          src={offer.imageUrl}
-          alt={offer.hotelName}
-          fill
-          className="object-cover"
-        />
-      </div>
-
-      <div className="p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium text-brand-700">
-              {offer.provider}
-            </p>
-
-            <h3 className="mt-1 text-xl font-semibold text-slate-950">
-              {offer.hotelName}
-            </h3>
-
-            <p className="mt-1 text-sm text-slate-500">
-              {offer.destinationCity &&
-                `${offer.destinationCity}, `}
-              {offer.destinationRegion}
-              {offer.destinationRegion ? ', ' : ''}
-              {offer.destinationCountry}
-            </p>
-          </div>
-
-          <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
-            ⭐ {offer.stars ?? '-'}
-          </div>
+    <article className="overflow-hidden rounded-[16px] border border-[#E5E9F0] bg-white shadow-[0_4px_18px_rgba(10,45,98,0.05)]">
+      <div className="flex flex-col md:flex-row">
+        <div className="relative w-full shrink-0 md:w-[320px] lg:w-[340px]">
+          <TravelCardGallery
+            images={images}
+            alt={offer.hotelName}
+            isLastMinute={isLastMinute}
+          />
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2 text-sm text-slate-600">
-          {offer.accommodationType && (
-            <span className="rounded-full bg-slate-100 px-3 py-1">
-              {offer.accommodationType}
-            </span>
-          )}
+        <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-4 sm:px-5 sm:py-4 md:flex-row md:gap-6">
+          <div className="min-w-0 flex-1 py-0.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
+                {offer.hotelName}
+              </h3>
+              {stars > 0 ? (
+                <span className="text-[14px] tracking-tight text-[#F5C542]" aria-label={`${stars} sterren`}>
+                  {'★'.repeat(stars)}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-0.5 text-[13px] text-[#64748B]">{location}</p>
 
-          {offer.boardType && (
-            <span className="rounded-full bg-slate-100 px-3 py-1">
-              {offer.boardType}
-            </span>
-          )}
+            {offer.rating != null ? (
+              <div className="mt-2.5 flex items-center gap-2">
+                <span
+                  className="inline-flex h-6 min-w-[1.85rem] items-center justify-center rounded-[5px] px-1.5 text-[12px] font-bold text-white"
+                  style={{ backgroundColor: RESULTS_RATING_GREEN }}
+                >
+                  {String(offer.rating).replace('.', ',')}
+                </span>
+                <span className="text-[13px] font-semibold" style={{ color: RESULTS_RATING_GREEN }}>
+                  {ratingText}
+                </span>
+              </div>
+            ) : null}
 
-          <span className="rounded-full bg-slate-100 px-3 py-1">
-            {offer.nights} nachten
-          </span>
+            {metaLine ? (
+              <p className="mt-2.5 text-[13px] leading-relaxed text-[#475569]">{metaLine}</p>
+            ) : null}
 
-          {offer.departureDate && (
-            <span className="rounded-full bg-slate-100 px-3 py-1">
-              {offer.departureDate}
-            </span>
-          )}
-        </div>
-
-        {offer.descriptionShort && (
-          <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-600">
-            {offer.descriptionShort}
-          </p>
-        )}
-
-        <div className="mt-5 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm text-slate-500">
-              Beoordeling
-            </p>
-
-            <p className="text-lg font-semibold text-slate-950">
-              {offer.rating ?? '-'}
-            </p>
-
-            <p className="text-sm text-slate-500">
-              €{offer.pricePerDay} / dag
-            </p>
+            {offer.departureDate ? (
+              <p className="mt-1 text-[12.5px] text-[#64748B]">
+                Vertrek tussen {offer.departureDate}
+              </p>
+            ) : null}
           </div>
 
-          <div className="text-right">
-            <p className="text-sm text-slate-500">
-              Vanaf
-            </p>
-
-            <p className="text-2xl font-semibold text-slate-950">
-              €{offer.price}
-            </p>
+          <div className="flex w-full shrink-0 flex-col items-end justify-between border-t border-[#EEF2F6] pt-3 md:w-[158px] md:border-l md:border-t-0 md:pl-5 md:pt-0">
+            <div className="flex w-full items-start justify-end">
+              <HeartButton />
+            </div>
+            <div className="mt-1 flex w-full flex-1 flex-col items-end justify-center text-right">
+              <p className="text-[28px] font-bold leading-none tracking-tight" style={{ color: RESULTS_NAVY }}>
+                €&nbsp;{formatPrice(offer.price)}
+              </p>
+              <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
+              <p className="mt-2 text-[11px] font-normal text-[#A8B3C4]">
+                € {formatPrice(offer.pricePerDay)} per dag
+              </p>
+            </div>
+            <div className="mt-3 w-full">
+              <Link
+                href={`/offers/${offer.id}`}
+                className="inline-flex h-10 w-full items-center justify-center rounded-[11px] text-[13px] font-semibold text-white transition"
+                style={{ backgroundColor: RESULTS_CTA }}
+              >
+                Bekijk aanbieding
+              </Link>
+              <p className="mt-1.5 text-center text-[11.5px] font-medium" style={{ color: RESULTS_CTA_HOVER }}>
+                Bekijk bij {offer.provider}
+              </p>
+            </div>
           </div>
         </div>
-
-        <Link
-          href={`/offers/${offer.id}`}
-          className="mt-6 inline-flex rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
-        >
-          Bekijk aanbieding
-        </Link>
       </div>
     </article>
   );

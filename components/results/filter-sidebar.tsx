@@ -1,15 +1,18 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
 import { DURATION_MAX, DURATION_MIN } from '@/components/search/duration-popup/duration-popup-utils';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { FilterOptions } from '@/types/travel';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-const BUDGET_MIN_BOUND = 500;
+const BUDGET_MIN_BOUND = 0;
 const BUDGET_MAX_BOUND = 2000;
+const BUDGET_FILTER_MIN = 500;
+const BUDGET_FILTER_MAX = 2000;
 
 function parseFilters(searchParams: URLSearchParams) {
   const country = (searchParams.get('country') || '')
@@ -21,11 +24,8 @@ function parseFilters(searchParams: URLSearchParams) {
   return {
     country,
     region: searchParams.get('region') || '',
-    // Wanneer geen budget-/reisduurfilter in de URL staat, wordt er door filterOffers()
-    // objectief geen beperking toegepast. De sliders tonen daarom de volledige
-    // slider-range (= "geen filter actief") in plaats van een misleidende sub-range.
-    budgetMin: Number(searchParams.get('budgetMin') || BUDGET_MIN_BOUND),
-    budgetMax: Number(searchParams.get('budgetMax') || BUDGET_MAX_BOUND),
+    budgetMin: Number(searchParams.get('budgetMin') || BUDGET_FILTER_MIN),
+    budgetMax: Number(searchParams.get('budgetMax') || BUDGET_FILTER_MAX),
     nightsMin: Number(searchParams.get('nightsMin') || DURATION_MIN),
     nightsMax: Number(searchParams.get('nightsMax') || DURATION_MAX),
     departureAirport: searchParams.get('departureAirport') || '',
@@ -39,10 +39,71 @@ type FilterSidebarProps = FilterOptions & {
   totalOffersLabel: string;
 };
 
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden
+      className={`shrink-0 text-[#64748B] transition-transform ${open ? 'rotate-180' : ''}`}
+    >
+      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Accordion({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="border-b border-[#E8ECF2]">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 py-[14px] text-left"
+        aria-expanded={open}
+      >
+        <span className="text-[15px] font-semibold text-[#0A2D62]">{title}</span>
+        <Chevron open={open} />
+      </button>
+      {open && children ? <div className="pb-4">{children}</div> : null}
+    </div>
+  );
+}
+
+function SelectLike({ children, onClick }: { children: ReactNode; onClick?: () => void }) {
+  const className =
+    'flex h-11 w-full items-center justify-between rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-left text-[14px] text-[#0A2D62]';
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className}>
+        <span className="truncate">{children}</span>
+        <Chevron open={false} />
+      </button>
+    );
+  }
+  return (
+    <div className={className}>
+      <span className="truncate">{children}</span>
+      <Chevron open={false} />
+    </div>
+  );
+}
+
 export function FilterSidebar({
   regionsByCountry,
   boardTypes,
-  departureAirports,
+  departureAirports: _departureAirports,
   countryCounts,
   totalOffersLabel,
 }: FilterSidebarProps) {
@@ -51,6 +112,17 @@ export function FilterSidebar({
   const searchParams = useSearchParams();
   const [filters, setFilters] = useState(() => parseFilters(new URLSearchParams(searchParams.toString())));
   const [destinationPopupOpen, setDestinationPopupOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    destinations: true,
+    budget: true,
+    stay: false,
+    board: false,
+    stars: false,
+    rating: false,
+    type: false,
+    departure: false,
+    bedrooms: false,
+  });
 
   useEffect(() => {
     setFilters(parseFilters(new URLSearchParams(searchParams.toString())));
@@ -116,152 +188,217 @@ export function FilterSidebar({
     updateFilters(next);
   };
 
+  const toggleSection = (id: string) => {
+    setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const clearAllFilters = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const key of [
+      'country',
+      'region',
+      'budgetMin',
+      'budgetMax',
+      'nightsMin',
+      'nightsMax',
+      'stars',
+      'boardTypes',
+      'departureAirport',
+      'page',
+    ]) {
+      params.delete(key);
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
+
+  const budgetMinPct = ((filters.budgetMin - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
+  const budgetMaxPct = ((filters.budgetMax - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
+
   return (
-    <aside className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-semibold text-slate-950">Filters</h2>
-      <p className="mt-2 text-sm text-slate-600">Pas je zoekopdracht direct aan zonder terug te gaan.</p>
-
-      <div className="mt-6 space-y-5 text-sm text-slate-700">
-        <div>
-          <label className="mb-2 block font-semibold">Bestemming</label>
-          <div className="grid gap-3">
-            <button
-              type="button"
-              onClick={() => setDestinationPopupOpen(true)}
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-left outline-none"
-            >
-              {selectedCountries.length > 0
-                ? formatSelectedCountriesLabel(selectedCountries)
-                : 'Alle landen'}
-            </button>
-            <select
-              value={filters.region}
-              onChange={(event) => updateFilters({ ...filters, region: event.target.value })}
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 outline-none"
-            >
-              <option value="">Alle regio&apos;s</option>
-              {availableRegions.map((region) => (
-                <option key={region} value={region}>
-                  {region}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="mb-2 block font-semibold">Budget</label>
-          <div className="grid gap-3">
-            <input
-              type="range"
-              min={BUDGET_MIN_BOUND}
-              max={BUDGET_MAX_BOUND}
-              value={filters.budgetMin}
-              onChange={(event) => {
-                const nextBudgetMin = Number(event.target.value);
-                const next = { ...filters, budgetMin: nextBudgetMin, budgetMax: Math.max(filters.budgetMax, nextBudgetMin) };
-                updateFilters(next);
-              }}
-            />
-            <input
-              type="range"
-              min={BUDGET_MIN_BOUND}
-              max={BUDGET_MAX_BOUND}
-              value={filters.budgetMax}
-              onChange={(event) => {
-                const nextBudgetMax = Number(event.target.value);
-                const next = { ...filters, budgetMax: nextBudgetMax, budgetMin: Math.min(filters.budgetMin, nextBudgetMax) };
-                updateFilters(next);
-              }}
-            />
-            <div className="flex justify-between text-xs text-slate-500">
-              <span>€{filters.budgetMin}</span>
-              <span>€{filters.budgetMax}</span>
+    <aside>
+      <div className="rounded-[16px] border border-[#E5E9F0] bg-white px-4 shadow-[0_4px_16px_rgba(10,45,98,0.04)]">
+        <Accordion
+          title="Bestemmingen"
+          open={!!openSections.destinations}
+          onToggle={() => toggleSection('destinations')}
+        >
+          <div className="space-y-3">
+            <div>
+              <p className="mb-1.5 text-[12px] font-medium text-[#64748B]">Land</p>
+              <SelectLike onClick={() => setDestinationPopupOpen(true)}>
+                {selectedCountries.length > 0
+                  ? formatSelectedCountriesLabel(selectedCountries)
+                  : 'Alle landen'}
+              </SelectLike>
+            </div>
+            <div>
+              <p className="mb-1.5 text-[12px] font-medium text-[#64748B]">Streek / Regio</p>
+              <select
+                value={filters.region}
+                onChange={(event) => updateFilters({ ...filters, region: event.target.value })}
+                className="h-11 w-full rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-[14px] text-[#0A2D62] outline-none"
+              >
+                <option value="">Alle streken</option>
+                {availableRegions.map((region) => (
+                  <option key={region} value={region}>
+                    {region}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <p className="mb-1.5 text-[12px] font-medium text-[#64748B]">Plaats</p>
+              <SelectLike>Alle plaatsen</SelectLike>
             </div>
           </div>
-        </div>
+        </Accordion>
 
-        <div>
-          <label className="mb-2 block font-semibold">Reisduur</label>
-          <div className="grid gap-3">
-            <input
-              type="range"
-              min={DURATION_MIN}
-              max={DURATION_MAX}
-              value={filters.nightsMin}
-              onChange={(event) => {
-                const nextNightsMin = Number(event.target.value);
-                const next = { ...filters, nightsMin: nextNightsMin, nightsMax: Math.max(filters.nightsMax, nextNightsMin) };
-                updateFilters(next);
-              }}
-            />
-            <input
-              type="range"
-              min={DURATION_MIN}
-              max={DURATION_MAX}
-              value={filters.nightsMax}
-              onChange={(event) => {
-                const nextNightsMax = Number(event.target.value);
-                const next = { ...filters, nightsMax: nextNightsMax, nightsMin: Math.min(filters.nightsMin, nextNightsMax) };
-                updateFilters(next);
-              }}
-            />
-            <div className="flex justify-between text-xs text-slate-500">
-              <span>{filters.nightsMin} dagen</span>
-              <span>{filters.nightsMax} dagen</span>
+        <Accordion title="Prijs per persoon" open={!!openSections.budget} onToggle={() => toggleSection('budget')}>
+          <div className="space-y-3">
+            <div className="relative h-2 rounded-full bg-[#E8ECF2]">
+              <div
+                className="absolute top-0 h-2 rounded-full bg-[#89ACD3]"
+                style={{ left: `${budgetMinPct}%`, right: `${100 - budgetMaxPct}%` }}
+              />
+            </div>
+            <div className="grid gap-2">
+              <input
+                type="range"
+                min={BUDGET_FILTER_MIN}
+                max={BUDGET_FILTER_MAX}
+                value={filters.budgetMin}
+                onChange={(event) => {
+                  const nextBudgetMin = Number(event.target.value);
+                  updateFilters({
+                    ...filters,
+                    budgetMin: nextBudgetMin,
+                    budgetMax: Math.max(filters.budgetMax, nextBudgetMin),
+                  });
+                }}
+                className="w-full accent-[#89ACD3]"
+              />
+              <input
+                type="range"
+                min={BUDGET_FILTER_MIN}
+                max={BUDGET_FILTER_MAX}
+                value={filters.budgetMax}
+                onChange={(event) => {
+                  const nextBudgetMax = Number(event.target.value);
+                  updateFilters({
+                    ...filters,
+                    budgetMax: nextBudgetMax,
+                    budgetMin: Math.min(filters.budgetMin, nextBudgetMax),
+                  });
+                }}
+                className="w-full accent-[#89ACD3]"
+              />
+            </div>
+            <div className="flex justify-between text-[12px] text-[#64748B]">
+              <span>€{filters.budgetMin === BUDGET_FILTER_MIN ? 0 : filters.budgetMin}</span>
+              <span>€{filters.budgetMax >= BUDGET_FILTER_MAX ? '2.000+' : filters.budgetMax}</span>
             </div>
           </div>
-        </div>
+        </Accordion>
 
-        <div>
-          <label className="mb-2 block font-semibold">Vertrekluchthaven</label>
-          <select
-            value={filters.departureAirport}
-            onChange={(event) => updateFilters({ ...filters, departureAirport: event.target.value })}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 outline-none"
-          >
-            <option value="">Alle luchthavens</option>
-            {departureAirports.map((airport) => (
-              <option key={airport} value={airport}>
-                {airport}
-              </option>
+        <Accordion title="Verblijf" open={!!openSections.stay} onToggle={() => toggleSection('stay')}>
+          <div className="space-y-2 text-[14px] text-[#334155]">
+            {['Hotel', 'Appartement', 'Resort'].map((item) => (
+              <label key={item} className="flex items-center gap-2.5">
+                <input type="checkbox" disabled className="h-4 w-4 rounded border-[#CBD5E1]" />
+                {item}
+              </label>
             ))}
-          </select>
-        </div>
+          </div>
+        </Accordion>
 
-        <div>
-          <label className="mb-2 block font-semibold">Minimum sterren</label>
+        <Accordion title="Verzorging" open={!!openSections.board} onToggle={() => toggleSection('board')}>
+          <div className="space-y-2">
+            {boardTypes.map((type) => {
+              const active = filters.boardTypes.includes(type);
+              return (
+                <label key={type} className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={() => toggleBoardType(type)}
+                    className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                  />
+                  {type}
+                </label>
+              );
+            })}
+          </div>
+        </Accordion>
+
+        <Accordion title="Aantal sterren" open={!!openSections.stars} onToggle={() => toggleSection('stars')}>
           <select
             value={filters.stars}
             onChange={(event) => updateFilters({ ...filters, stars: Number(event.target.value) })}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 outline-none"
+            className="h-11 w-full rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-[14px] text-[#0A2D62] outline-none"
           >
             <option value={0}>Alle hotels</option>
             <option value={3}>3 sterren en hoger</option>
             <option value={4}>4 sterren en hoger</option>
             <option value={5}>5 sterren</option>
           </select>
-        </div>
+        </Accordion>
 
-        <div>
-          <label className="mb-2 block font-semibold">Verzorging</label>
-          <div className="flex flex-wrap gap-2">
-            {boardTypes.map((type) => {
-              const active = filters.boardTypes.includes(type);
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => toggleBoardType(type)}
-                  className={`rounded-full border px-3 py-2 text-sm ${active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700'}`}
-                >
-                  {type}
-                </button>
-              );
-            })}
+        <Accordion title="Beoordeling" open={!!openSections.rating} onToggle={() => toggleSection('rating')}>
+          <div className="space-y-2 text-[14px] text-[#334155]">
+            {['9+', '8+', '7+'].map((item) => (
+              <label key={item} className="flex items-center gap-2.5">
+                <input type="checkbox" disabled className="h-4 w-4 rounded border-[#CBD5E1]" />
+                {item}
+              </label>
+            ))}
           </div>
+        </Accordion>
+
+        <Accordion title="Type vakantie" open={!!openSections.type} onToggle={() => toggleSection('type')}>
+          <div className="space-y-2 text-[14px] text-[#334155]">
+            {['Strand', 'Stad', 'Natuur'].map((item) => (
+              <label key={item} className="flex items-center gap-2.5">
+                <input type="checkbox" disabled className="h-4 w-4 rounded border-[#CBD5E1]" />
+                {item}
+              </label>
+            ))}
+          </div>
+        </Accordion>
+
+        <Accordion title="Vertrekdatum" open={!!openSections.departure} onToggle={() => toggleSection('departure')}>
+          <p className="text-[13px] leading-relaxed text-[#64748B]">
+            Stel de vertrekperiode in via Wanneer in de zoekbalk.
+          </p>
+        </Accordion>
+
+        <Accordion
+          title="Aantal slaapkamers"
+          open={!!openSections.bedrooms}
+          onToggle={() => toggleSection('bedrooms')}
+        >
+          <div className="space-y-2 text-[14px] text-[#334155]">
+            {['1+', '2+', '3+'].map((item) => (
+              <label key={item} className="flex items-center gap-2.5">
+                <input type="checkbox" disabled className="h-4 w-4 rounded border-[#CBD5E1]" />
+                {item}
+              </label>
+            ))}
+          </div>
+        </Accordion>
+
+        <div className="py-4">
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="w-full rounded-[10px] border border-[#D9E0EA] bg-white px-3 py-2.5 text-[14px] font-medium text-[#0A2D62] transition hover:bg-[#F8FAFC]"
+          >
+            Wis alle filters
+          </button>
         </div>
       </div>
+
+      <ResultsWhyCard />
 
       <DestinationPopup
         open={destinationPopupOpen}

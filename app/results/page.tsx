@@ -3,6 +3,8 @@ import { NoResults } from '@/components/results/no-results';
 import { ResultsPagination } from '@/components/results/results-pagination';
 import { SortSelector } from '@/components/results/sort-selector';
 import { TravelCard } from '@/components/results/travel-card';
+import { ResultsPageClient } from '@/components/results-v2/results-page-client';
+import { getDepartureDisplay } from '@/components/search/departure-display';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { deriveDestinationCountryCounts } from '@/lib/offers/derive-destination-countries';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
@@ -11,25 +13,9 @@ import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
 import { paginateResults, parseResultsPageParam, parseResultsPageSizeParam } from '@/lib/search/pagination';
 import { SearchParams } from '@/types/travel';
+import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
-
-function buildAdjustSearchHref(searchParams: Record<string, string | string[] | undefined>): string {
-  const params = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(searchParams)) {
-    if (key === 'page' || key === 'pageSize' || key === 'sort') {
-      continue;
-    }
-
-    if (typeof value === 'string' && value.length > 0) {
-      params.set(key, value);
-    }
-  }
-
-  const query = params.toString();
-  return query ? `/search?${query}` : '/search';
-}
 
 function parseSearchParams(searchParams: Record<string, string | string[] | undefined>): SearchParams {
   const boardTypes = typeof searchParams.boardTypes === 'string' ? searchParams.boardTypes.split(',') : undefined;
@@ -86,7 +72,55 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
   };
 }
 
-export default async function ResultsPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
+function buildSummaryLine(params: SearchParams): string {
+  const parts: string[] = [];
+
+  if (params.countries?.length) {
+    parts.push(params.countries.join(', '));
+  } else if (params.country) {
+    parts.push(params.country);
+  }
+
+  if (params.region) {
+    parts.push(params.region);
+  }
+
+  const departureSegment = getDepartureDisplay({
+    departureStart: params.departureStart,
+    departureEnd: params.departureEnd,
+    flexibilityDays: params.flexibilityDays,
+  }).summarySegment;
+  if (departureSegment) {
+    parts.push(departureSegment);
+  }
+
+  if (params.nights?.length) {
+    const min = Math.min(...params.nights);
+    const max = Math.max(...params.nights);
+    parts.push(min === max ? `${min} dagen` : `${min} - ${max} dagen`);
+  } else if (params.nightsMin != null && params.nightsMax != null) {
+    parts.push(
+      params.nightsMin === params.nightsMax
+        ? `${params.nightsMin} dagen`
+        : `${params.nightsMin} - ${params.nightsMax} dagen`,
+    );
+  }
+
+  const adults = params.adults ?? 2;
+  parts.push(`${adults} volwassene${adults === 1 ? '' : 'n'}`);
+
+  if (params.rooms && params.rooms > 0) {
+    parts.push(`${params.rooms} kamer${params.rooms === 1 ? '' : 's'}`);
+  }
+
+  return parts.join(' • ');
+}
+
+export default async function ResultsPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const params = parseSearchParams(searchParams);
   const offers = await loadOffers();
   const filterOptions = loadFilterOptions();
@@ -100,44 +134,34 @@ export default async function ResultsPage({ searchParams }: { searchParams: Reco
     params.page ?? 1,
     params.pageSize ?? 24,
   );
+
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[320px_1fr] lg:px-8">
-        <FilterSidebar
-          {...filterOptions}
-          countryCounts={countryCounts}
-          totalOffersLabel={totalOffersLabel}
-        />
-
-        <section>
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-brand-700">{filtered.length} resultaten</p>
-                <h1 className="mt-1 text-3xl font-semibold text-slate-950">Beste vakanties voor jouw profiel</h1>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <a href={buildAdjustSearchHref(searchParams)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-500 hover:text-brand-700">
-                  Pas zoekopdracht aan
-                </a>
-                <SortSelector currentSort={params.sort || 'value'} />
-              </div>
-            </div>
-          </div>
-
-          {visibleOffers.length > 0 ? (
-            <div className="mt-6 grid gap-6 xl:grid-cols-2">
+    <Suspense fallback={<main className="min-h-screen bg-[#F3F5F8]" />}>
+      <ResultsPageClient
+        departureAirports={filterOptions.departureAirports}
+        resultCount={filtered.length}
+        summaryLine={buildSummaryLine(params)}
+        sortControl={<SortSelector currentSort={params.sort || 'value'} />}
+        filters={
+          <FilterSidebar
+            {...filterOptions}
+            countryCounts={countryCounts}
+            totalOffersLabel={totalOffersLabel}
+          />
+        }
+        results={
+          visibleOffers.length > 0 ? (
+            <div className="space-y-3.5">
               {visibleOffers.map((offer) => (
                 <TravelCard key={offer.id} offer={offer} />
               ))}
             </div>
           ) : (
             <NoResults />
-          )}
-
-          <ResultsPagination params={params} totalResults={filtered.length} />
-        </section>
-      </div>
-    </main>
+          )
+        }
+        pagination={<ResultsPagination params={params} totalResults={filtered.length} />}
+      />
+    </Suspense>
   );
 }
