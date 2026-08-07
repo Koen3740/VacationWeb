@@ -1,10 +1,28 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { OfferImageGallery } from '@/components/offers/offer-image-gallery';
 import { loadOffers } from '@/lib/offers/load-offers';
 import type { TravelOffer } from '@/types/travel';
 
 export const dynamic = 'force-dynamic';
+
+function buildGalleryImages(offer: TravelOffer): string[] {
+  const primary = offer.imageLarge || offer.imageUrl || '';
+  const candidates = [primary, ...(offer.images ?? [])];
+  const seen = new Set<string>();
+  const images: string[] = [];
+
+  for (const candidate of candidates) {
+    const url = candidate?.trim();
+    if (!url || seen.has(url)) {
+      continue;
+    }
+    seen.add(url);
+    images.push(url);
+  }
+
+  return images;
+}
 
 function formatDestination(offer: TravelOffer): string {
   const parts = [
@@ -51,7 +69,7 @@ export default async function OfferDetailPage({
   const isLastMinute = (offer.lastMinute ?? '').toLowerCase() === 'true';
   const hasAttributes = themes.length > 0 || isLastMinute;
 
-  const heroImage = offer.imageLarge || offer.imageUrl;
+  const galleryImages = buildGalleryImages(offer);
   const destination = formatDestination(offer);
   const hasStars = typeof offer.stars === 'number' && offer.stars > 0;
   const hasRating = typeof offer.rating === 'number';
@@ -84,17 +102,7 @@ export default async function OfferDetailPage({
           ← Terug naar resultaten
         </Link>
 
-        <section className="relative mt-8 h-[320px] overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-200 shadow-sm sm:h-[420px]">
-          {heroImage ? (
-            <Image
-              src={heroImage}
-              alt={offer.hotelName}
-              fill
-              priority
-              className="object-cover"
-            />
-          ) : null}
-        </section>
+        <OfferImageGallery images={galleryImages} alt={offer.hotelName} />
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
