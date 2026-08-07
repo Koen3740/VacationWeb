@@ -50,6 +50,31 @@ function formatDepartureDate(value: string): string {
   });
 }
 
+function normalizeDescriptionText(value: string | undefined): string {
+  return (value ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function getUniqueFeedDescription(offer: TravelOffer): string | undefined {
+  const feedDescription = offer.feedDescription?.trim();
+  if (!feedDescription) {
+    return undefined;
+  }
+
+  const feedNormalized = normalizeDescriptionText(feedDescription);
+  const shortNormalized = normalizeDescriptionText(offer.descriptionShort);
+  const longNormalized = normalizeDescriptionText(offer.descriptionLong);
+
+  if (shortNormalized && feedNormalized === shortNormalized) {
+    return undefined;
+  }
+
+  if (longNormalized && feedNormalized === longNormalized) {
+    return undefined;
+  }
+
+  return feedDescription;
+}
+
 function formatFlightIncluded(value: string | undefined): string | undefined {
   if (!value?.trim()) {
     return undefined;
@@ -133,6 +158,7 @@ export default async function OfferDetailPage({
   const destination = formatDestination(offer);
   const hasStars = typeof offer.stars === 'number' && offer.stars > 0;
   const hasRating = typeof offer.rating === 'number';
+  const uniqueFeedDescription = getUniqueFeedDescription(offer);
 
   const departureAirportLabel = formatDepartureAirport(offer);
   const additionalAirport = formatAdditionalAirport(offer);
@@ -247,7 +273,7 @@ export default async function OfferDetailPage({
               </div>
             )}
 
-            {(offer.descriptionShort || offer.descriptionLong) && (
+            {(offer.descriptionShort || offer.descriptionLong || uniqueFeedDescription) && (
               <div className="mt-8 space-y-4">
                 {offer.descriptionShort && (
                   <p className="text-base leading-7 text-slate-700">
@@ -260,6 +286,12 @@ export default async function OfferDetailPage({
                     {offer.descriptionLong}
                   </p>
                 )}
+
+                {uniqueFeedDescription ? (
+                  <p className="text-base leading-7 text-slate-600">
+                    {uniqueFeedDescription}
+                  </p>
+                ) : null}
               </div>
             )}
           </div>
