@@ -7,13 +7,16 @@ import type { TravelOffer } from '@/types/travel';
 export const dynamic = 'force-dynamic';
 
 function formatDestination(offer: TravelOffer): string {
-  return [
+  const parts = [
     offer.destinationCity,
-    offer.destinationRegion || offer.destinationProvince,
+    offer.destinationRegion,
+    offer.destinationProvince,
     offer.destinationCountry,
   ]
-    .filter((part): part is string => Boolean(part && part.trim()))
-    .join(', ');
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part));
+
+  return parts.filter((part, index) => part !== parts[index - 1]).join(', ');
 }
 
 function formatDepartureDate(value: string): string {
@@ -50,20 +53,25 @@ export default async function OfferDetailPage({
 
   const heroImage = offer.imageLarge || offer.imageUrl;
   const destination = formatDestination(offer);
-  const accommodationType = offer.accommodationType || offer.accommodation;
   const hasStars = typeof offer.stars === 'number' && offer.stars > 0;
+  const hasRating = typeof offer.rating === 'number';
 
   const basisFacts = [
     { label: 'Aanbieder', value: offer.provider },
-    { label: 'Bestemming', value: destination || undefined },
+    { label: 'Stad', value: offer.destinationCity },
+    { label: 'Regio', value: offer.destinationRegion },
+    { label: 'Provincie', value: offer.destinationProvince },
+    { label: 'Land', value: offer.destinationCountry },
     { label: 'Verzorging', value: offer.boardType },
-    { label: 'Accommodatietype', value: accommodationType },
+    { label: 'Accommodatie', value: offer.accommodation },
+    { label: 'Accommodatietype', value: offer.accommodationType },
     { label: 'Aantal nachten', value: offer.nights ? `${offer.nights} nachten` : undefined },
     {
       label: 'Vertrekdatum',
       value: offer.departureDate ? formatDepartureDate(offer.departureDate) : undefined,
     },
     { label: 'Vertrekluchthaven', value: offer.departureAirport },
+    { label: 'Beoordeling', value: hasRating ? String(offer.rating) : undefined },
   ].filter((fact) => Boolean(fact.value));
 
   return (
@@ -245,11 +253,29 @@ export default async function OfferDetailPage({
                   </div>
                 ) : null}
 
-                {accommodationType ? (
+                {offer.accommodation ? (
+                  <div className="flex justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span>Accommodatie</span>
+                    <span className="font-semibold">
+                      {offer.accommodation}
+                    </span>
+                  </div>
+                ) : null}
+
+                {offer.accommodationType ? (
                   <div className="flex justify-between rounded-2xl bg-slate-50 px-4 py-3">
                     <span>Accommodatietype</span>
                     <span className="font-semibold">
-                      {accommodationType}
+                      {offer.accommodationType}
+                    </span>
+                  </div>
+                ) : null}
+
+                {hasRating ? (
+                  <div className="flex justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span>Beoordeling</span>
+                    <span className="font-semibold">
+                      {offer.rating}
                     </span>
                   </div>
                 ) : null}
