@@ -4,8 +4,10 @@ import { ResultsPagination } from '@/components/results/results-pagination';
 import { SortSelector } from '@/components/results/sort-selector';
 import { TravelCard } from '@/components/results/travel-card';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
+import { deriveDestinationCountryCounts } from '@/lib/offers/derive-destination-countries';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 import { loadOffers } from '@/lib/offers/load-offers';
+import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
 import { paginateResults, parseResultsPageParam, parseResultsPageSizeParam } from '@/lib/search/pagination';
 import { SearchParams } from '@/types/travel';
@@ -88,6 +90,10 @@ export default async function ResultsPage({ searchParams }: { searchParams: Reco
   const params = parseSearchParams(searchParams);
   const offers = await loadOffers();
   const filterOptions = loadFilterOptions();
+  const countryCounts = Object.fromEntries(
+    deriveDestinationCountryCounts(offers).map(({ name, count }) => [name, count]),
+  );
+  const totalOffersLabel = formatTotalOffersLabel(offers.length);
   const filtered = sortOffers(filterOffers(offers, params), params.sort);
   const visibleOffers = paginateResults(
     filtered,
@@ -97,7 +103,11 @@ export default async function ResultsPage({ searchParams }: { searchParams: Reco
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto grid max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[320px_1fr] lg:px-8">
-        <FilterSidebar {...filterOptions} />
+        <FilterSidebar
+          {...filterOptions}
+          countryCounts={countryCounts}
+          totalOffersLabel={totalOffersLabel}
+        />
 
         <section>
           <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">

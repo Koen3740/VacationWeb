@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { DURATION_MAX, DURATION_MIN } from '@/components/search/duration-popup/duration-popup-utils';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
+import { DURATION_MAX, DURATION_MIN } from '@/components/search/duration-popup/duration-popup-utils';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { FilterOptions } from '@/types/travel';
 
@@ -11,8 +12,14 @@ const BUDGET_MIN_BOUND = 500;
 const BUDGET_MAX_BOUND = 2000;
 
 function parseFilters(searchParams: URLSearchParams) {
+  const country = (searchParams.get('country') || '')
+    .split(',')
+    .map((entry) => canonicalizeCountryName(entry.trim()))
+    .filter(Boolean)
+    .join(',');
+
   return {
-    country: canonicalizeCountryName(searchParams.get('country') || ''),
+    country,
     region: searchParams.get('region') || '',
     // Wanneer geen budget-/reisduurfilter in de URL staat, wordt er door filterOffers()
     // objectief geen beperking toegepast. De sliders tonen daarom de volledige
@@ -27,34 +34,54 @@ function parseFilters(searchParams: URLSearchParams) {
   };
 }
 
+type FilterSidebarProps = FilterOptions & {
+  countryCounts: Record<string, number>;
+  totalOffersLabel: string;
+};
+
 export function FilterSidebar({
-  countries,
   regionsByCountry,
   boardTypes,
   departureAirports,
-}: FilterOptions) {
+  countryCounts,
+  totalOffersLabel,
+}: FilterSidebarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [filters, setFilters] = useState(() => parseFilters(new URLSearchParams(searchParams.toString())));
+  const [destinationPopupOpen, setDestinationPopupOpen] = useState(false);
 
   useEffect(() => {
     setFilters(parseFilters(new URLSearchParams(searchParams.toString())));
   }, [searchParams]);
 
-  const availableRegions = useMemo(() => regionsByCountry[filters.country] || [], [filters.country, regionsByCountry]);
-
   const selectedCountries = useMemo(
     () => filters.country.split(',').map((country) => country.trim()).filter(Boolean),
     [filters.country],
   );
-  const isMultiCountrySelection = selectedCountries.length > 1;
+
+  const availableRegions = useMemo(() => {
+    const merged = new Set<string>();
+    for (const country of selectedCountries) {
+      for (const region of regionsByCountry[country] ?? []) {
+        merged.add(region);
+      }
+    }
+    return [...merged].sort((left, right) => left.localeCompare(right, 'nl'));
+  }, [regionsByCountry, selectedCountries]);
 
   const updateFilters = (next: typeof filters) => {
     setFilters(next);
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
-    params.set('country', next.country);
+
+    if (next.country) {
+      params.set('country', next.country);
+    } else {
+      params.delete('country');
+    }
 
     if (next.region) {
       params.set('region', next.region);
@@ -75,7 +102,8 @@ export function FilterSidebar({
       params.delete('boardTypes');
     }
 
-    router.replace(`/results?${params.toString()}`, { scroll: false });
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
 
   const toggleBoardType = (value: string) => {
@@ -97,26 +125,15 @@ export function FilterSidebar({
         <div>
           <label className="mb-2 block font-semibold">Bestemming</label>
           <div className="grid gap-3">
-            <select
-              value={filters.country}
-              onChange={(event) => {
-                const nextCountry = event.target.value;
-                updateFilters({ ...filters, country: nextCountry, region: '' });
-              }}
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 outline-none"
+            <button
+              type="button"
+              onClick={() => setDestinationPopupOpen(true)}
+              className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-left outline-none"
             >
-              <option value="">Alle landen</option>
-              {isMultiCountrySelection && (
-                <option value={filters.country}>
-                  {formatSelectedCountriesLabel(selectedCountries)}
-                </option>
-              )}
-              {countries.map((country) => (
-                <option key={country} value={country}>
-                  {country}
-                </option>
-              ))}
-            </select>
+              {selectedCountries.length > 0
+                ? formatSelectedCountriesLabel(selectedCountries)
+                : 'Alle landen'}
+            </button>
             <select
               value={filters.region}
               onChange={(event) => updateFilters({ ...filters, region: event.target.value })}
@@ -245,6 +262,22 @@ export function FilterSidebar({
           </div>
         </div>
       </div>
+
+      <DestinationPopup
+        open={destinationPopupOpen}
+        appliedCountries={selectedCountries}
+        countryCounts={countryCounts}
+        totalOffersLabel={totalOffersLabel}
+        onClose={() => setDestinationPopupOpen(false)}
+        onApply={(nextCountries) => {
+          setDestinationPopupOpen(false);
+          updateFilters({
+            ...filters,
+            country: nextCountries.join(','),
+            region: '',
+          });
+        }}
+      />
     </aside>
   );
 }
