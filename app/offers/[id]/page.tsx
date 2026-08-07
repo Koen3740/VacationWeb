@@ -50,6 +50,66 @@ function formatDepartureDate(value: string): string {
   });
 }
 
+function formatFlightIncluded(value: string | undefined): string | undefined {
+  if (!value?.trim()) {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true' || normalized === 'ja' || normalized === '1') {
+    return 'Vlucht inbegrepen';
+  }
+  if (normalized === 'false' || normalized === 'nee' || normalized === '0') {
+    return 'Zonder vlucht';
+  }
+
+  return value.trim();
+}
+
+function formatDurationType(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+function formatDepartureAirport(offer: TravelOffer): string | undefined {
+  const airport = offer.departureAirport?.trim();
+  const code = offer.departureAirportCode?.trim();
+
+  if (airport && code && airport.toUpperCase() !== code.toUpperCase()) {
+    return `${airport} (${code})`;
+  }
+
+  return airport || code || undefined;
+}
+
+function formatAdditionalAirport(offer: TravelOffer): string | undefined {
+  const airport = offer.airport?.trim();
+  if (!airport) {
+    return undefined;
+  }
+
+  const departure = offer.departureAirport?.trim();
+  if (!departure) {
+    return airport;
+  }
+
+  const airportLower = airport.toLowerCase();
+  const departureLower = departure.toLowerCase();
+  if (
+    airportLower === departureLower
+    || departureLower.includes(airportLower)
+    || airportLower.includes(departureLower)
+  ) {
+    return undefined;
+  }
+
+  return airport;
+}
+
 export default async function OfferDetailPage({
   params,
 }: {
@@ -74,6 +134,11 @@ export default async function OfferDetailPage({
   const hasStars = typeof offer.stars === 'number' && offer.stars > 0;
   const hasRating = typeof offer.rating === 'number';
 
+  const departureAirportLabel = formatDepartureAirport(offer);
+  const additionalAirport = formatAdditionalAirport(offer);
+  const flightIncludedLabel = formatFlightIncluded(offer.flightIncluded);
+  const durationTypeLabel = formatDurationType(offer.durationType);
+
   const basisFacts = [
     { label: 'Aanbieder', value: offer.provider },
     { label: 'Stad', value: offer.destinationCity },
@@ -84,11 +149,14 @@ export default async function OfferDetailPage({
     { label: 'Accommodatie', value: offer.accommodation },
     { label: 'Accommodatietype', value: offer.accommodationType },
     { label: 'Aantal nachten', value: offer.nights ? `${offer.nights} nachten` : undefined },
+    { label: 'Duurtype', value: durationTypeLabel },
+    { label: 'Vlucht', value: flightIncludedLabel },
     {
       label: 'Vertrekdatum',
       value: offer.departureDate ? formatDepartureDate(offer.departureDate) : undefined,
     },
-    { label: 'Vertrekluchthaven', value: offer.departureAirport },
+    { label: 'Vertrekluchthaven', value: departureAirportLabel },
+    { label: 'Luchthaven', value: additionalAirport },
     { label: 'Beoordeling', value: hasRating ? String(offer.rating) : undefined },
   ].filter((fact) => Boolean(fact.value));
 
@@ -234,11 +302,20 @@ export default async function OfferDetailPage({
                   </div>
                 ) : null}
 
-                {offer.departureAirport ? (
+                {departureAirportLabel ? (
                   <div className="flex justify-between rounded-2xl bg-slate-50 px-4 py-3">
                     <span>Vertrekluchthaven</span>
                     <span className="font-semibold">
-                      {offer.departureAirport}
+                      {departureAirportLabel}
+                    </span>
+                  </div>
+                ) : null}
+
+                {additionalAirport ? (
+                  <div className="flex justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span>Luchthaven</span>
+                    <span className="font-semibold">
+                      {additionalAirport}
                     </span>
                   </div>
                 ) : null}
@@ -248,6 +325,24 @@ export default async function OfferDetailPage({
                     <span>Aantal nachten</span>
                     <span className="font-semibold">
                       {offer.nights} nachten
+                    </span>
+                  </div>
+                ) : null}
+
+                {durationTypeLabel ? (
+                  <div className="flex justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span>Duurtype</span>
+                    <span className="font-semibold">
+                      {durationTypeLabel}
+                    </span>
+                  </div>
+                ) : null}
+
+                {flightIncludedLabel ? (
+                  <div className="flex justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span>Vlucht</span>
+                    <span className="font-semibold">
+                      {flightIncludedLabel}
                     </span>
                   </div>
                 ) : null}
