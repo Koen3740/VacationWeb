@@ -21,14 +21,19 @@
     "lib/storage/**/*.ts",
     "lib/feeds/providers.ts",
     "lib/offers/derive-filter-options.ts",
+    "lib/offers/canonical-country.ts",
     "types/travel.ts",
     "lib/feeds/importers/corendon.ts",
     "lib/feeds/importers/prijsvrij.ts",
+    "lib/feeds/importers/sunweb.ts",
+    "lib/feeds/feed-registry.ts",
+    "lib/feeds/importer-router.ts",
     "lib/feeds/feed-paths.ts",
     "lib/feeds/canonical/normalize-offer.ts",
     "lib/feeds/canonical/travel-offer.ts",
     "lib/feeds/types/corendon-xml.ts",
     "lib/feeds/types/prijsvrij-xml.ts",
+    "lib/feeds/types/sunweb-xml.ts",
     "lib/feeds/types/stored-offer.ts"
   ]
 }

@@ -1,4 +1,4 @@
-import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
+import { canonicalizeCountryName } from '../../offers/canonical-country';
 import { TravelOffer } from './travel-offer';
 import { StoredOffer } from '../types/stored-offer';
 
@@ -79,7 +79,7 @@ export function normalizeOffer(offer: StoredOffer): TravelOffer {
 
     departureWindowStart: '',
     departureWindowEnd: '',
-    valueScore: 0,
+    // valueScore intentionally omitted — sortOffers falls back to computeValueScore via ??
     flexibilityScore: 0,
   };
 }

@@ -156,6 +156,11 @@ export function sortOffers(
         (a, b) => a.price - b.price
       );
 
+    case 'price-desc':
+      return [...ranked].sort(
+        (a, b) => b.price - a.price
+      );
+
     case 'price-per-day':
       return [...ranked].sort(
         (a, b) => a.pricePerDay - b.pricePerDay
@@ -169,6 +174,21 @@ export function sortOffers(
     case 'stars':
       return [...ranked].sort(
         (a, b) => (b.stars ?? 0) - (a.stars ?? 0)
+      );
+
+    case 'departure':
+      return [...ranked].sort((a, b) => {
+        const dateA = a.departureDate?.trim() || '';
+        const dateB = b.departureDate?.trim() || '';
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.localeCompare(dateB);
+      });
+
+    case 'duration':
+      return [...ranked].sort(
+        (a, b) => a.nights - b.nights
       );
 
     case 'value':

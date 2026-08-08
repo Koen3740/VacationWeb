@@ -2,13 +2,9 @@
 
 import { ResultsAdjustSearchFab } from '@/components/results-v2/results-adjust-search-fab';
 import { ResultsHero } from '@/components/results-v2/results-hero';
-import {
-  RESULTS_INTRO_BY_VARIANT,
-  type ResultsIntroVariant,
-} from '@/components/results-v2/results-intro-copy';
+import { DEFAULT_RESULTS_HERO_SUBTITLE } from '@/components/results-v2/results-intro-copy';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import { ResultsUspBar } from '@/components/results-v2/results-usp-bar';
-import { ResultsVariantTabs } from '@/components/results-v2/results-variant-tabs';
 import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import {
   RESULTS_BORDER,
@@ -414,36 +410,51 @@ function MockCard({ card }: { card: (typeof MOCK_CARDS)[number] }) {
 }
 
 export function ResultsPreviewStatic() {
-  const [variant, setVariant] = useState<ResultsIntroVariant>('country');
-  const intro = RESULTS_INTRO_BY_VARIANT[variant];
-  const previewResultsSummary =
-    variant === 'country'
-      ? ['Spanje', PREVIEW_DEPARTURE.summarySegment, '8 - 11 dagen', '2 volwassenen', '1 kamer']
-          .filter(Boolean)
-          .join(' • ')
-      : intro.resultsSummary;
+  const previewResultsSummary = [
+    'Spanje',
+    PREVIEW_DEPARTURE.summarySegment,
+    '8–11 dagen',
+    '2 volwassenen',
+    '1 kamer',
+  ]
+    .filter(Boolean)
+    .join(' • ');
 
   return (
     <div className="min-h-screen bg-[#F3F5F8] text-slate-900">
       <ResultsSiteHeader />
-      <ResultsHero intro={intro} searchBar={<StaticSearchBar />} />
+      <ResultsHero
+        intro={{
+          heroTitle: '188 vakanties in Spanje',
+          heroSubtitle: DEFAULT_RESULTS_HERO_SUBTITLE,
+        }}
+        searchBar={<StaticSearchBar />}
+      />
 
       <main className="mx-auto max-w-[1280px] px-6 pb-10 pt-10 lg:px-8 lg:pt-12">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[270px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
           <StaticFilters />
           <section>
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <ResultsVariantTabs active={variant} onChange={setVariant} />
-              <label className="inline-flex items-center gap-2 text-[13px] text-[#64748B]">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[22px] font-bold tracking-tight text-[#0A2D62]">
+                  188 vakanties gevonden
+                </h2>
+                <p className="mt-1.5 text-[13px] text-[#64748B]">{previewResultsSummary}</p>
+              </div>
+              <label className="inline-flex shrink-0 items-center gap-2 text-[13px] text-[#64748B]">
                 <span>Sorteren op:</span>
-                <select className="h-10 rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-[13px] font-semibold text-[#0A2D62]">
-                  <option>Beste prijs/kwaliteit</option>
+                <select className="h-10 max-w-full rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-[13px] font-semibold text-[#0A2D62]">
+                  <option>Aanbevolen</option>
+                  <option>Prijs (laag → hoog)</option>
+                  <option>Prijs (hoog → laag)</option>
+                  <option>Prijs per vakantiedag</option>
+                  <option>Beoordeling</option>
+                  <option>Sterren</option>
+                  <option>Vertrekdatum</option>
+                  <option>Reisduur</option>
                 </select>
               </label>
-            </div>
-            <div className="mb-5">
-              <h2 className="text-[22px] font-bold tracking-tight text-[#0A2D62]">{intro.resultsTitle}</h2>
-              <p className="mt-1.5 text-[13px] text-[#64748B]">{previewResultsSummary}</p>
             </div>
             <div className="space-y-3.5">
               {MOCK_CARDS.map((card) => (

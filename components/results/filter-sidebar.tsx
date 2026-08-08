@@ -9,7 +9,6 @@ import {
 import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
-import { DURATION_MAX, DURATION_MIN } from '@/components/search/duration-popup/duration-popup-utils';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { FilterOptions } from '@/types/travel';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -32,8 +31,6 @@ function parseFilters(searchParams: URLSearchParams) {
     region: searchParams.get('region') || '',
     budgetMin: Number(searchParams.get('budgetMin') || BUDGET_FILTER_MIN),
     budgetMax: Number(searchParams.get('budgetMax') || BUDGET_FILTER_MAX),
-    nightsMin: Number(searchParams.get('nightsMin') || DURATION_MIN),
-    nightsMax: Number(searchParams.get('nightsMax') || DURATION_MAX),
     departureAirport: searchParams.get('departureAirport') || '',
     stars: Number(searchParams.get('stars') || 0),
     boardTypes: searchParams.get('boardTypes')?.split(',').filter(Boolean) || [],
@@ -176,10 +173,15 @@ export function FilterSidebar({
 
     params.set('budgetMin', String(next.budgetMin));
     params.set('budgetMax', String(next.budgetMax));
-    params.set('nightsMin', String(next.nightsMin));
-    params.set('nightsMax', String(next.nightsMax));
+    // Duration is owned by the search bar via `nights` only — never write/pollute nightsMin/Max
+    params.delete('nightsMin');
+    params.delete('nightsMax');
     params.set('stars', String(next.stars));
-    params.set('departureAirport', next.departureAirport);
+    if (next.departureAirport) {
+      params.set('departureAirport', next.departureAirport);
+    } else {
+      params.delete('departureAirport');
+    }
 
     if (next.boardTypes.length > 0) {
       params.set('boardTypes', next.boardTypes.join(','));

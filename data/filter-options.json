@@ -1,15 +1,14 @@
 {
   "countries": [
-    "Albanie",
+    "Albanië",
     "Argentinië",
     "Aruba",
     "Barbados",
     "Bonaire",
-    "Brazilie",
+    "Brazilië",
     "Bulgarije",
     "Canarische Eilanden",
     "Costa Rica",
-    "Curacao",
     "Curaçao",
     "Cyprus",
     "Denemarken",
@@ -23,15 +22,13 @@
     "Griekenland",
     "Groot-brittannie",
     "Hongarije",
+    "IJsland",
     "Ierland",
-    "Ijsland",
-    "Indonesie",
-    "Italie",
+    "Indonesië",
     "Italië",
     "Jamaica",
     "Kaapverdische Eilanden",
-    "Kaapverdië",
-    "Kroatie",
+    "Kroatië",
     "Letland",
     "Litouwen",
     "Malta",
@@ -49,12 +46,12 @@
     "Saint Martin - French Part",
     "Seychellen",
     "Sint Maarten",
-    "Slovenie",
+    "Slovenië",
     "Spanje",
     "Tanzania",
     "Thailand",
-    "Tsjechie",
-    "Tunesie",
+    "Tsjechië",
+    "Tunesië",
     "Turkije",
     "Verenigde Arabische Emiraten",
     "Verenigde Staten",
@@ -69,6 +66,7 @@
       "Centraal Griekenland",
       "Chalkidiki",
       "Corfu",
+      "Epirus (Parga)",
       "Evia",
       "Karpathos",
       "Kefalonia",
@@ -81,7 +79,9 @@
       "Olympische Riviera",
       "Parga",
       "Parga En Omgeving",
+      "Paxos",
       "Peloponnesos",
+      "Pieria - Olympus Riviera",
       "Pilion",
       "Rhodos",
       "Samos",
@@ -94,10 +94,14 @@
     "Turkije": [
       "Egeische Kust",
       "Egeische kust",
+      "Egeïsche Kust",
       "Istanbul",
+      "Klassieke Kust",
       "Lycische Kust",
       "Rondreizen",
-      "Turkse Riviera"
+      "Turkse Riviera",
+      "Turkse Rivièra",
+      "Zuid-Egeïsche Kust"
     ],
     "Spanje": [
       "Alicante",
@@ -124,16 +128,20 @@
       "Costa del Azahar",
       "Costa del Sol",
       "Formentera",
+      "Fuerteventura",
       "Golf Van Cadiz",
+      "Gran Canaria",
       "Granada",
       "Ibiza",
       "La Rioja",
+      "Lanzarote",
       "Madrid",
       "Malaga",
       "Mallorca",
       "Menorca",
       "Murcia",
       "Sevilla",
+      "Tenerife",
       "Valencia"
     ],
     "Gambia": [
@@ -144,7 +152,9 @@
       "Cairo",
       "Caïro",
       "Luxor",
+      "Marsa Alam",
       "Nijl",
+      "Nijlcruises",
       "Rode Zee"
     ],
     "Portugal": [
@@ -154,6 +164,7 @@
       "Costa De Lisboa",
       "Costa De Prata",
       "Costa Verde",
+      "Costa de Lisboa",
       "Estoril",
       "Lissabon",
       "Madeira",
@@ -172,21 +183,56 @@
       "Munchen"
     ],
     "Italië": [
+      "Adriatische Kust",
+      "Adriatische Riviera",
+      "Basilicata",
+      "Bloemenriviera",
+      "Bologna",
+      "Brescia",
+      "Calabria",
+      "Campania",
       "Civitavecchia",
+      "Comomeer",
+      "Emilia-romagna",
+      "Florence",
+      "Friuli-venezia-giulia",
+      "Gardameer",
       "Genua",
+      "Italiaanse Riviera",
+      "Lazio",
+      "Lombardije",
+      "Maggioremeer",
+      "Milaan",
+      "Napels",
+      "Piemonte",
+      "Puglia",
+      "Rome",
+      "Sardinie",
       "Sardinië",
       "Savona",
+      "Sicilie",
       "Sicilië",
-      "Triëst"
+      "Toscane",
+      "Trentino",
+      "Triëst",
+      "Umbrie",
+      "Val D Aosta",
+      "Venetie",
+      "Veneto",
+      "Verona",
+      "Zuid Tirol"
     ],
     "Curaçao": [
+      "Curacao",
       "Jan Thiel Baai",
       "Mambo Beach",
       "Piscadera Baai",
       "Sint Willibrordus",
       "Willemstad"
     ],
-    "Kaapverdië": [
+    "Kaapverdische Eilanden": [
+      "Boa Vista",
+      "Ilha Do Sal",
       "Sal"
     ],
     "Verenigde Arabische Emiraten": [
@@ -235,38 +281,8 @@
       "Salzburg",
       "Salzburgerland",
       "Tirol",
+      "Vorarlberg",
       "Wenen"
-    ],
-    "Italie": [
-      "Adriatische Riviera",
-      "Basilicata",
-      "Bologna",
-      "Brescia",
-      "Calabria",
-      "Campania",
-      "Comomeer",
-      "Emilia-romagna",
-      "Florence",
-      "Friuli-venezia-giulia",
-      "Gardameer",
-      "Italiaanse Riviera",
-      "Lazio",
-      "Lombardije",
-      "Maggioremeer",
-      "Milaan",
-      "Napels",
-      "Piemonte",
-      "Puglia",
-      "Rome",
-      "Sardinie",
-      "Sicilie",
-      "Toscane",
-      "Trentino",
-      "Umbrie",
-      "Val D Aosta",
-      "Venetie",
-      "Veneto",
-      "Verona"
     ],
     "Groot-brittannie": [
       "Birmingham",
@@ -283,6 +299,7 @@
       "Midden Jutland"
     ],
     "Cyprus": [
+      "Cyprus",
       "Larnaca",
       "Limasol",
       "Paphos"
@@ -299,18 +316,15 @@
     "Barbados": [
       "Barbados"
     ],
-    "Ijsland": [
+    "IJsland": [
       "Noord Ijsland",
       "Reykjavik",
       "Zuidwest En Zuid Ijsland"
     ],
-    "Curacao": [
-      "Curacao"
-    ],
     "Aruba": [
       "Aruba"
     ],
-    "Kroatie": [
+    "Kroatië": [
       "Dubrovnik",
       "Istrie",
       "Kvarner",
@@ -339,12 +353,13 @@
     "Seychellen": [
       "Mahe"
     ],
-    "Tunesie": [
+    "Tunesië": [
       "Djerba",
       "Golf Van Hammamet",
+      "Golf van Hammamet",
       "Noord-tunesie"
     ],
-    "Albanie": [
+    "Albanië": [
       "Albanie"
     ],
     "Dominicaanse Republiek": [
@@ -358,14 +373,14 @@
       "Graubunden",
       "Zurich"
     ],
-    "Indonesie": [
+    "Indonesië": [
       "Bali"
     ],
     "Finland": [
       "Helsinki",
       "Lapland"
     ],
-    "Tsjechie": [
+    "Tsjechië": [
       "Praag En Omstreken"
     ],
     "Mexico": [
@@ -373,11 +388,23 @@
     ],
     "Frankrijk": [
       "Aquitaine",
+      "Ardèche",
+      "Bouches-du-Rhône",
+      "Bretagne",
       "Corsica",
       "Cote D Azur",
+      "Côte d&#039;Azur",
+      "Elzas",
+      "Languedoc-Roussillon",
+      "Loire",
       "Nice",
+      "Normandië",
+      "Pas-de-Calais",
+      "Picardië",
       "Provence",
-      "Rhone-alpes"
+      "Pyreneeën",
+      "Rhone-alpes",
+      "Vendée"
     ],
     "Montenegro": [
       "Kuststreek"
@@ -385,7 +412,7 @@
     "Letland": [
       "Riga"
     ],
-    "Slovenie": [
+    "Slovenië": [
       "Ljubljana"
     ],
     "Malta": [
@@ -416,12 +443,8 @@
       "Gauteng",
       "West-kaap"
     ],
-    "Brazilie": [
+    "Brazilië": [
       "Kuststreek"
-    ],
-    "Kaapverdische Eilanden": [
-      "Boa Vista",
-      "Ilha Do Sal"
     ],
     "Noorwegen": [
       "Oslo"
@@ -440,12 +463,18 @@
   },
   "boardTypes": [
     "All Inclusive",
+    "All inclusive",
+    "All-inclusive",
     "Half pension",
     "Halfpension",
     "Halfpension Plus",
     "Logies",
     "Logies en ontbijt",
+    "Logies ontbijt",
+    "Logies/ontbijt",
     "Ultra All Inclusive",
+    "Ultra all inclusive",
+    "Ultra all-inclusive",
     "Vol pension",
     "Volpension",
     "Volpension Plus",
@@ -460,6 +489,8 @@
     "DUS",
     "EIN",
     "GRQ",
+    "LIL",
+    "LUX",
     "MST",
     "NRN",
     "RTM"

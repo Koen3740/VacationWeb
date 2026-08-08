@@ -1,0 +1,202 @@
+{
+  "manifestVersion": 1,
+  "description": "Declarative inventory of TradeTracker feeds for VacationWeb. Not consumed by the current import pipeline (WP8B-007).",
+  "fieldDocs": {
+    "id": "Stable unique feed identifier used by future discovery/queue logic.",
+    "provider": "Display/provider name matching runtime StoredOffer.provider (e.g. Corendon, Prijsvrij, Sunweb).",
+    "profile": "Importer profile key that maps XML fields to StoredOffer (corendon | prijsvrij | sunweb).",
+    "format": "Feed payload format (currently tradetracker-xml for all active feeds).",
+    "enabled": "Whether this feed is intended for import when a registry-driven pipeline exists. Does not affect today's scripts.",
+    "source.type": "How the feed is located today: file = single local path; future: url | glob.",
+    "source.path": "Project-relative path to the local XML file (current manual drop location).",
+    "campaignId": "TradeTracker campaign ID observed in the feed XML (optional metadata).",
+    "preferredFormat": "Preferred download/export format when fetch exists (e.g. xml). Empty until used.",
+    "checksum": "Optional content hash after last successful fetch/import. Empty until used.",
+    "lastImport": "ISO timestamp of last import attempt. Empty until used.",
+    "lastSuccess": "ISO timestamp of last successful import. Empty until used.",
+    "version": "Feed or mapping version label for migrations. Empty until used.",
+    "priority": "Relative import/merge order hint (lower = earlier). Informational only today."
+  },
+  "feeds": [
+    {
+      "id": "corendon-primary",
+      "provider": "Corendon",
+      "profile": "corendon",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "data/productfeed.xml"
+      },
+      "campaignId": "38103",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 10
+    },
+    {
+      "id": "prijsvrij-primary",
+      "provider": "Prijsvrij",
+      "profile": "prijsvrij",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "data/prijsvrij.xml"
+      },
+      "campaignId": "25331",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 20
+    },
+    {
+      "id": "sunweb-accomodatie",
+      "provider": "Sunweb",
+      "profile": "sunweb",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "data/sunweb/productfeed Sunweb Zon Accomodatie.xml"
+      },
+      "campaignId": "1393",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 30
+    },
+    {
+      "id": "sunweb-spanje",
+      "provider": "Sunweb",
+      "profile": "sunweb",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "data/sunweb/productfeed Sunweb Zon Spanje BENL.xml"
+      },
+      "campaignId": "1393",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 40
+    },
+    {
+      "id": "sunweb-griekenland",
+      "provider": "Sunweb",
+      "profile": "sunweb",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "data/sunweb/productfeed Sunweb Zon Griekenland BENL.xml"
+      },
+      "campaignId": "1393",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 50
+    },
+    {
+      "id": "sunweb-turkije",
+      "provider": "Sunweb",
+      "profile": "sunweb",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "data/sunweb/productfeed Sunweb Zon Turkije BENL.xml"
+      },
+      "campaignId": "1393",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 60
+    },
+    {
+      "id": "sunweb-egypte",
+      "provider": "Sunweb",
+      "profile": "sunweb",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "data/sunweb/productfeed Sunweb Zon Egypte BENL.xml"
+      },
+      "campaignId": "1393",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 70
+    },
+    {
+      "id": "sunweb-lastminute",
+      "provider": "Sunweb",
+      "profile": "sunweb",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "data/sunweb/productfeed Sunweb Zon Lastminute BENL (new).xml"
+      },
+      "campaignId": "1393",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 80
+    },
+    {
+      "id": "sunweb-citytrips",
+      "provider": "Sunweb",
+      "profile": "sunweb",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "data/sunweb/productfeed Sunweb Zon Citytrips.xml"
+      },
+      "campaignId": "1393",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 90
+    },
+    {
+      "id": "sunweb-topdeals",
+      "provider": "Sunweb",
+      "profile": "sunweb",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "data/sunweb/productfeed Sunweb Zon Sunweb Topdeals.xml"
+      },
+      "campaignId": "1393",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 100
+    }
+  ]
+}

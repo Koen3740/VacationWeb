@@ -2,15 +2,11 @@
 
 import { ResultsAdjustSearchFab } from '@/components/results-v2/results-adjust-search-fab';
 import { ResultsHero } from '@/components/results-v2/results-hero';
-import {
-  RESULTS_INTRO_BY_VARIANT,
-  type ResultsIntroVariant,
-} from '@/components/results-v2/results-intro-copy';
+import { DEFAULT_RESULTS_HERO_SUBTITLE } from '@/components/results-v2/results-intro-copy';
 import { ResultsSearchBar } from '@/components/results-v2/results-search-bar';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import { ResultsUspBar } from '@/components/results-v2/results-usp-bar';
-import { ResultsVariantTabs } from '@/components/results-v2/results-variant-tabs';
-import { useMemo, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 type ResultsPageClientProps = {
   departureAirports: string[];
@@ -22,10 +18,20 @@ type ResultsPageClientProps = {
   pagination: ReactNode;
 };
 
-function inferVariant(summaryCountryHint: string): ResultsIntroVariant {
-  if (!summaryCountryHint) return 'all';
-  if (summaryCountryHint.includes(',')) return 'multi';
-  return 'country';
+function buildHeroTitle(resultCount: number, summaryLine: string): string {
+  const first = summaryLine.split(' • ')[0]?.trim() ?? '';
+  const looksLikeDestination =
+    first.length > 0 && !/\d/.test(first) && !/volwassene/i.test(first);
+
+  if (resultCount > 0 && looksLikeDestination) {
+    return `${resultCount} vakanties in ${first}`;
+  }
+
+  if (resultCount > 0) {
+    return `${resultCount} vakanties gevonden`;
+  }
+
+  return 'Geen vakanties gevonden';
 }
 
 export function ResultsPageClient({
@@ -37,25 +43,15 @@ export function ResultsPageClient({
   results,
   pagination,
 }: ResultsPageClientProps) {
-  const initialVariant = useMemo(() => inferVariant(summaryLine), [summaryLine]);
-  const [variant, setVariant] = useState<ResultsIntroVariant>(initialVariant);
-  const intro = RESULTS_INTRO_BY_VARIANT[variant];
-
-  const resultsTitle =
-    variant === 'country' || variant === 'region' || variant === 'multi' || variant === 'all'
-      ? `${resultCount} vakanties gevonden`
-      : intro.resultsTitle;
+  const heroTitle = buildHeroTitle(resultCount, summaryLine);
 
   return (
     <div className="min-h-screen bg-[#F3F5F8] text-slate-900">
       <ResultsSiteHeader />
       <ResultsHero
         intro={{
-          ...intro,
-          heroTitle:
-            variant === 'country' && resultCount > 0
-              ? intro.heroTitle.replace(/^\d+/, String(resultCount))
-              : intro.heroTitle,
+          heroTitle,
+          heroSubtitle: DEFAULT_RESULTS_HERO_SUBTITLE,
         }}
         searchBar={<ResultsSearchBar departureAirports={departureAirports} />}
       />
@@ -65,28 +61,16 @@ export function ResultsPageClient({
           {filters}
 
           <section>
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <ResultsVariantTabs active={variant} onChange={setVariant} />
-              {sortControl}
-            </div>
-
-            <div className="mb-5">
-              <h2 className="text-[22px] font-bold tracking-tight text-[#0A2D62]">{resultsTitle}</h2>
-              <p className="mt-1.5 text-[13px] text-[#64748B]">
-                {variant === 'country' || variant === 'region' ? summaryLine || intro.resultsSummary : intro.resultsSummary}
-              </p>
-              {intro.badges ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {intro.badges.map((badge) => (
-                    <span
-                      key={badge}
-                      className="rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-[#0A2D62] ring-1 ring-[#D9E0EA]"
-                    >
-                      {badge}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[22px] font-bold tracking-tight text-[#0A2D62]">
+                  {resultCount} vakanties gevonden
+                </h2>
+                {summaryLine ? (
+                  <p className="mt-1.5 text-[13px] text-[#64748B]">{summaryLine}</p>
+                ) : null}
+              </div>
+              <div className="shrink-0">{sortControl}</div>
             </div>
 
             {results}

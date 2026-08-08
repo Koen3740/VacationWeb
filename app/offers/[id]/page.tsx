@@ -140,7 +140,8 @@ export default async function OfferDetailPage({
 }: {
   params: { id: string };
 }) {
-  const offer = (await loadOffers()).find((item) => item.id === params.id);
+  const offerId = decodeURIComponent(params.id);
+  const offer = (await loadOffers()).find((item) => item.id === offerId);
 
   if (!offer) {
     notFound();

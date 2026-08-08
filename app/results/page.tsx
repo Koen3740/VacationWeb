@@ -5,6 +5,10 @@ import { SortSelector } from '@/components/results/sort-selector';
 import { TravelCard } from '@/components/results/travel-card';
 import { ResultsPageClient } from '@/components/results-v2/results-page-client';
 import { getDepartureDisplay } from '@/components/search/departure-display';
+import {
+  expandDurationRange,
+  formatSelectedDurationsLabel,
+} from '@/components/search/duration-popup/duration-popup-utils';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { deriveDestinationCountryCounts } from '@/lib/offers/derive-destination-countries';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
@@ -94,16 +98,13 @@ function buildSummaryLine(params: SearchParams): string {
     parts.push(departureSegment);
   }
 
-  if (params.nights?.length) {
-    const min = Math.min(...params.nights);
-    const max = Math.max(...params.nights);
-    parts.push(min === max ? `${min} dagen` : `${min} - ${max} dagen`);
-  } else if (params.nightsMin != null && params.nightsMax != null) {
-    parts.push(
-      params.nightsMin === params.nightsMax
-        ? `${params.nightsMin} dagen`
-        : `${params.nightsMin} - ${params.nightsMax} dagen`,
-    );
+  const activeDurations = params.nights?.length
+    ? params.nights
+    : params.nightsMin != null && params.nightsMax != null
+      ? expandDurationRange(params.nightsMin, params.nightsMax)
+      : [];
+  if (activeDurations.length > 0) {
+    parts.push(formatSelectedDurationsLabel(activeDurations));
   }
 
   const adults = params.adults ?? 2;

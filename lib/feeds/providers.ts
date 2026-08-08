@@ -7,6 +7,10 @@ export const PROVIDERS = {
     name: 'Prijsvrij',
     slug: 'prijsvrij',
   },
+  sunweb: {
+    name: 'Sunweb',
+    slug: 'sunweb',
+  },
 } as const;
 
 export type ProviderSlug = keyof typeof PROVIDERS;

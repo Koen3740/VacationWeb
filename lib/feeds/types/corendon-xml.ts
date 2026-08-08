@@ -1,6 +1,6 @@
 export interface CorendonXmlProperty {
   name: string;
-  value: string | number | boolean;
+  value: string | number | boolean | Array<string | number | boolean>;
 }
 
 export interface CorendonXmlPrice {

@@ -38,6 +38,50 @@ function collectImages(offer: TravelOffer): string[] {
   return out;
 }
 
+/** Plain-text snippet from feed text fields (no descriptionLong). */
+function plainTextSnippet(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+
+  const text = trimmed
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&apos;/gi, "'")
+    .replace(/&#0?39;/g, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return text || undefined;
+}
+
+function flightIncludedLabel(value: string | undefined): string | undefined {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (normalized === 'true' || normalized === 'ja' || normalized === '1') {
+    return 'Inclusief vlucht';
+  }
+  return undefined;
+}
+
+function subcategoryLabels(value: string | undefined): string[] {
+  if (!value?.trim()) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of value.split(',')) {
+    const label = part.trim();
+    if (!label) continue;
+    const key = label.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(label);
+    if (out.length >= 3) break;
+  }
+  return out;
+}
+
 function HeartButton() {
   return (
     <span
@@ -65,10 +109,17 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
   const ratingText = ratingLabel(offer.rating);
   const airport = offer.departureAirport || offer.departureAirportCode || offer.airport;
   const images = collectImages(offer);
+  const shortDescription = plainTextSnippet(offer.descriptionShort);
+  const accommodationType = offer.accommodationType?.trim() || undefined;
+  const flightLabel = flightIncludedLabel(offer.flightIncluded);
+  const themes = subcategoryLabels(offer.subcategories);
+  const extraInfo = plainTextSnippet(offer.extraInfo);
 
   const metaLine = [
+    accommodationType,
     `${offer.nights} nachten`,
     offer.boardType,
+    flightLabel,
     airport,
   ]
     .filter(Boolean)
@@ -110,6 +161,18 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
             </div>
             <p className="mt-0.5 text-[13px] text-[#64748B]">{location}</p>
 
+            {shortDescription ? (
+              <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-[#64748B]">
+                {shortDescription}
+              </p>
+            ) : null}
+
+            {extraInfo ? (
+              <p className="mt-1 line-clamp-1 text-[12.5px] leading-snug text-[#64748B]">
+                {extraInfo}
+              </p>
+            ) : null}
+
             {offer.rating != null ? (
               <div className="mt-2.5 flex items-center gap-2">
                 <span
@@ -126,6 +189,10 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
 
             {metaLine ? (
               <p className="mt-2.5 text-[13px] leading-relaxed text-[#475569]">{metaLine}</p>
+            ) : null}
+
+            {themes.length > 0 ? (
+              <p className="mt-1 text-[12.5px] leading-snug text-[#64748B]">{themes.join(' • ')}</p>
             ) : null}
 
             {offer.departureDate ? (

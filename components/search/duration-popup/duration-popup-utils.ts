@@ -45,3 +45,47 @@ export function formatSelectedDurationsLabel(selected: number[]): string {
 
   return `${formattedGroups.join(', ')} dagen`;
 }
+
+/** Expand an inclusive nightsMin..nightsMax range into discrete duration days. */
+export function expandDurationRange(min: number, max: number): number[] {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min > max) {
+    return [];
+  }
+
+  const start = Math.max(DURATION_MIN, Math.floor(min));
+  const end = Math.min(DURATION_MAX, Math.floor(max));
+  if (start > end) {
+    return [];
+  }
+
+  const out: number[] = [];
+  for (let day = start; day <= end; day += 1) {
+    out.push(day);
+  }
+  return out;
+}
+
+/**
+ * Single source of truth for active duration criteria from the URL.
+ * Prefers discrete `nights`; falls back to explicit `nightsMin`+`nightsMax`.
+ */
+export function parseDurationsFromSearchParams(searchParams: {
+  get(name: string): string | null;
+}): number[] {
+  const nights = searchParams.get('nights');
+  if (nights) {
+    return nights
+      .split(',')
+      .map((value) => Number(value.trim()))
+      .filter((value) => Number.isFinite(value))
+      .sort((a, b) => a - b);
+  }
+
+  const minRaw = searchParams.get('nightsMin');
+  const maxRaw = searchParams.get('nightsMax');
+  if (minRaw === null || maxRaw === null) {
+    return [];
+  }
+
+  return expandDurationRange(Number(minRaw), Number(maxRaw));
+}

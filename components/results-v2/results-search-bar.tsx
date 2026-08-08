@@ -7,11 +7,12 @@ import {
 } from '@/components/home/home-search-icons';
 import { DeparturePeriodPopup, type FlexibilityDays } from '@/components/search/departure-period-popup/departure-period-popup';
 import { DurationPopup } from '@/components/search/duration-popup/duration-popup';
-import { formatSelectedDurationsLabel } from '@/components/search/duration-popup/duration-popup-utils';
+import {
+  formatSelectedDurationsLabel,
+  parseDurationsFromSearchParams,
+} from '@/components/search/duration-popup/duration-popup-utils';
 import {
   buildResultsHref,
-  createDefaultSharedSearchState,
-  loadSharedSearchState,
   saveSharedSearchState,
 } from '@/components/search/shared-search-state';
 import { TravelersPopup } from '@/components/search/travelers-popup/travelers-popup';
@@ -71,13 +72,12 @@ function Divider() {
   return <div className="hidden w-px self-stretch bg-[#E8ECF2] lg:block" aria-hidden />;
 }
 
+/** Applied criteria from the URL only — single source of truth with summary/filters. */
 function stateFromUrl(searchParams: URLSearchParams) {
-  const shared = loadSharedSearchState() ?? createDefaultSharedSearchState();
   const country = searchParams.get('country');
   const departureStart = searchParams.get('departureStart');
   const departureEnd = searchParams.get('departureEnd');
   const flexibilityRaw = Number(searchParams.get('flexibilityDays') || 0);
-  const nights = searchParams.get('nights');
   const adults = Number(searchParams.get('adults') || 0);
   const children = Number(searchParams.get('children') || 0);
   const babies = Number(searchParams.get('babies') || 0);
@@ -85,15 +85,13 @@ function stateFromUrl(searchParams: URLSearchParams) {
 
   const selectedCountries = country
     ? country.split(',').map((c) => c.trim()).filter(Boolean)
-    : shared.selectedCountries;
+    : [];
 
-  const selectedDurations = nights
-    ? nights.split(',').map((n) => Number(n.trim())).filter((n) => Number.isFinite(n))
-    : shared.selectedDurations;
+  const selectedDurations = parseDurationsFromSearchParams(searchParams);
 
-  let travelers: TravelersState = shared.travelers ?? createDefaultTravelersState();
+  let travelers: TravelersState = createDefaultTravelersState();
   if (adults > 0 || rooms > 0) {
-    const roomCount = Math.max(1, rooms || travelers.rooms.length || 1);
+    const roomCount = Math.max(1, rooms || 1);
     travelers = {
       rooms: Array.from({ length: roomCount }, (_, index) => ({
         adults: index === 0 ? adults || 2 : 2,
@@ -105,9 +103,9 @@ function stateFromUrl(searchParams: URLSearchParams) {
 
   return {
     selectedCountries,
-    departureStart: departureStart || shared.departureStart,
-    departureEnd: departureEnd || shared.departureEnd,
-    flexibilityDays: (flexibilityRaw === 1 || flexibilityRaw === 2 ? flexibilityRaw : shared.flexibilityDays) as FlexibilityDays,
+    departureStart: departureStart || null,
+    departureEnd: departureEnd || null,
+    flexibilityDays: (flexibilityRaw === 1 || flexibilityRaw === 2 ? flexibilityRaw : 0) as FlexibilityDays,
     selectedDurations,
     travelers,
     departureAirport: searchParams.get('departureAirport') || '',
@@ -164,10 +162,7 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
   const wanneerHint = departureDisplay.hint ?? 'Kies een datum of periode';
 
   const durationLabel = formatSelectedDurationsLabel(state.selectedDurations);
-  const durationValue =
-    durationLabel === 'Reisduur'
-      ? '8 - 11 dagen'
-      : durationLabel.replace('nachten', 'dagen');
+  const durationValue = durationLabel;
 
   const searchHref = useMemo(() => {
     const href = buildResultsHref({
@@ -179,11 +174,17 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
       travelers: state.travelers,
     });
     const params = new URLSearchParams(href.split('?')[1] || '');
-    // Preserve existing filter params from current URL (no new filter logic)
-    const preserve = ['budgetMin', 'budgetMax', 'nightsMin', 'nightsMax', 'region', 'boardTypes', 'stars', 'sort'];
+    // Preserve non-duration filter params from current URL (no new filter logic)
+    const preserve = ['budgetMin', 'budgetMax', 'region', 'boardTypes', 'stars', 'sort'];
     for (const key of preserve) {
       const value = searchParams.get(key);
       if (value) params.set(key, value);
+    }
+    // Duration: only `nights` when consciously selected — never pollute with nightsMin/Max
+    params.delete('nightsMin');
+    params.delete('nightsMax');
+    if (state.selectedDurations.length === 0) {
+      params.delete('nights');
     }
     if (state.departureAirport) {
       params.set('departureAirport', state.departureAirport);

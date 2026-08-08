@@ -12,6 +12,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'objectstore.true.nl',
       },
+      {
+        protocol: 'https',
+        hostname: 'static.sunweb.be',
+      },
     ],
   },
 };
