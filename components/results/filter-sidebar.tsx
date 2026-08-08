@@ -10,7 +10,11 @@ import {
 import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
-import { canonicalizeBoardTypes } from '@/lib/offers/canonicalize-board-type';
+import {
+  canonicalizeBoardType,
+  canonicalizeBoardTypes,
+  type CanonicalBoardType,
+} from '@/lib/offers/canonicalize-board-type';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import {
   ACCOMMODATION_TYPE_FILTER_VALUES,
@@ -365,7 +369,7 @@ export function FilterSidebar({
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
 
-  const toggleBoardType = (value: string) => {
+  const toggleBoardType = (value: CanonicalBoardType) => {
     updateFilters({
       ...filters,
       boardTypes: filters.boardTypes.includes(value)
@@ -631,16 +635,23 @@ export function FilterSidebar({
               <FieldLabel>Verzorging</FieldLabel>
               <div className="space-y-2">
                 {boardTypes.map((type) => {
-                  const active = filters.boardTypes.includes(type);
+                  const canonical = canonicalizeBoardType(type);
+                  if (!canonical) {
+                    return null;
+                  }
+                  const active = filters.boardTypes.includes(canonical);
                   return (
-                    <label key={type} className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
+                    <label
+                      key={canonical}
+                      className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]"
+                    >
                       <input
                         type="checkbox"
                         checked={active}
-                        onChange={() => toggleBoardType(type)}
+                        onChange={() => toggleBoardType(canonical)}
                         className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
                       />
-                      {type}
+                      {canonical}
                     </label>
                   );
                 })}
