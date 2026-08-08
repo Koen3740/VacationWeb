@@ -1,5 +1,9 @@
 import filterOptions from '@/data/filter-options.json';
 import { FilterOptions } from '@/types/travel';
+import {
+  CANONICAL_BOARD_TYPES,
+  canonicalizeBoardType,
+} from './canonicalize-board-type';
 import { canonicalizeCountryName } from './canonical-country';
 
 export function loadFilterOptions(): FilterOptions {
@@ -20,10 +24,16 @@ export function loadFilterOptions(): FilterOptions {
     );
   }
 
+  const boardTypeSet = new Set(
+    filterOptions.boardTypes
+      .map((value) => canonicalizeBoardType(value))
+      .filter((value): value is NonNullable<typeof value> => Boolean(value)),
+  );
+
   return {
     countries,
     regionsByCountry,
-    boardTypes: filterOptions.boardTypes,
+    boardTypes: CANONICAL_BOARD_TYPES.filter((type) => boardTypeSet.has(type)),
     departureAirports: filterOptions.departureAirports,
   };
 }

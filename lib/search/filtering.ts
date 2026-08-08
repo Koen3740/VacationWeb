@@ -1,4 +1,24 @@
+import { canonicalizeBoardType } from '@/lib/offers/canonicalize-board-type';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
+import {
+  offerMatchesAccommodationType,
+  parseAccommodationTypesParam,
+} from '@/lib/search/accommodation-type-filter';
+import {
+  offerMatchesAnyAmenity,
+  parseAmenitiesParam,
+} from '@/lib/search/amenity-filters';
+import {
+  offerHasSeaView,
+  offerMatchesBeachLocation,
+  offerMatchesCenterLocation,
+  parseBeachLocationParam,
+  parseCenterLocationParam,
+} from '@/lib/search/location-filters';
+import {
+  offerMatchesAnyVacationType,
+  parseVacationTypesParam,
+} from '@/lib/search/vacation-type';
 import { SearchParams, TravelOffer } from '@/types/travel';
 
 function shiftIsoDate(isoDate: string, days: number): string {
@@ -56,6 +76,10 @@ export function filterOffers(
       return false;
     }
 
+    if (params.city && offer.destinationCity !== params.city) {
+      return false;
+    }
+
     if (
       params.budgetMin !== undefined &&
       offer.price < params.budgetMin
@@ -90,11 +114,17 @@ export function filterOffers(
       }
     }
 
-    if (
-      params.boardTypes?.length &&
-      !params.boardTypes.includes(offer.boardType ?? '')
-    ) {
-      return false;
+    if (params.boardTypes?.length) {
+      const selectedBoardTypes = new Set(
+        params.boardTypes
+          .map((value) => canonicalizeBoardType(value))
+          .filter((value): value is NonNullable<typeof value> => Boolean(value)),
+      );
+      const offerBoardType = canonicalizeBoardType(offer.boardType);
+
+      if (selectedBoardTypes.size > 0 && (!offerBoardType || !selectedBoardTypes.has(offerBoardType))) {
+        return false;
+      }
     }
 
     if (
@@ -105,11 +135,50 @@ export function filterOffers(
       return false;
     }
 
-    if (
-      params.stars &&
-      (offer.stars ?? 0) < params.stars
-    ) {
+    if (params.stars?.length) {
+      const offerStars = offer.stars ?? 0;
+      if (!params.stars.includes(offerStars)) {
+        return false;
+      }
+    }
+
+    if (params.accommodationTypes?.length) {
+      const selected = parseAccommodationTypesParam(params.accommodationTypes.join(','));
+      if (selected.length > 0 && !offerMatchesAccommodationType(offer.accommodationType, selected)) {
+        return false;
+      }
+    }
+
+    if (params.vacationTypes?.length) {
+      const selectedTypes = parseVacationTypesParam(params.vacationTypes.join(','));
+      if (selectedTypes.length > 0 && !offerMatchesAnyVacationType(offer, selectedTypes)) {
+        return false;
+      }
+    }
+
+    if (params.beachLocation) {
+      const beach = parseBeachLocationParam(params.beachLocation);
+      if (beach && !offerMatchesBeachLocation(offer, beach)) {
+        return false;
+      }
+    }
+
+    if (params.centerLocation) {
+      const center = parseCenterLocationParam(params.centerLocation);
+      if (center && !offerMatchesCenterLocation(offer, center)) {
+        return false;
+      }
+    }
+
+    if (params.seaView && !offerHasSeaView(offer)) {
       return false;
+    }
+
+    if (params.amenities?.length) {
+      const selectedAmenities = parseAmenitiesParam(params.amenities.join(','));
+      if (selectedAmenities.length > 0 && !offerMatchesAnyAmenity(offer, selectedAmenities)) {
+        return false;
+      }
     }
 
     // Nieuwe Corendon-feed: filter op vertrekdatum

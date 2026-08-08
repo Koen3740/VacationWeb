@@ -68,6 +68,10 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
     query.set('region', params.region);
   }
 
+  if (params.city) {
+    query.set('city', params.city);
+  }
+
   if (params.budgetMin !== undefined && !Number.isNaN(params.budgetMin)) {
     query.set('budgetMin', String(params.budgetMin));
   }
@@ -86,6 +90,10 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
 
   if (params.boardTypes?.length) {
     query.set('boardTypes', params.boardTypes.join(','));
+  }
+
+  if (params.accommodationTypes?.length) {
+    query.set('accommodationTypes', params.accommodationTypes.join(','));
   }
 
   if (params.adults !== undefined && !Number.isNaN(params.adults)) {
@@ -120,8 +128,28 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
     query.set('departureAirport', params.departureAirport);
   }
 
-  if (params.stars !== undefined && !Number.isNaN(params.stars) && params.stars > 0) {
-    query.set('stars', String(params.stars));
+  if (params.stars?.length) {
+    query.set('stars', params.stars.join(','));
+  }
+
+  if (params.vacationTypes?.length) {
+    query.set('vacationTypes', params.vacationTypes.join(','));
+  }
+
+  if (params.beachLocation) {
+    query.set('beachLocation', params.beachLocation);
+  }
+
+  if (params.centerLocation) {
+    query.set('centerLocation', params.centerLocation);
+  }
+
+  if (params.seaView) {
+    query.set('seaView', '1');
+  }
+
+  if (params.amenities?.length) {
+    query.set('amenities', params.amenities.join(','));
   }
 
   if (params.sort) {

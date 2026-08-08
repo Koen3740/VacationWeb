@@ -462,23 +462,14 @@
     ]
   },
   "boardTypes": [
-    "All Inclusive",
-    "All inclusive",
-    "All-inclusive",
-    "Half pension",
+    "Logies",
+    "Logies & ontbijt",
     "Halfpension",
     "Halfpension Plus",
-    "Logies",
-    "Logies en ontbijt",
-    "Logies ontbijt",
-    "Logies/ontbijt",
-    "Ultra All Inclusive",
-    "Ultra all inclusive",
-    "Ultra all-inclusive",
-    "Vol pension",
     "Volpension",
     "Volpension Plus",
-    "Zie beschrijving"
+    "All Inclusive",
+    "Ultra All Inclusive"
   ],
   "departureAirports": [
     "AMB",

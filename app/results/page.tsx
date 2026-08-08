@@ -16,8 +16,46 @@ import { loadOffers } from '@/lib/offers/load-offers';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
 import { paginateResults, parseResultsPageParam, parseResultsPageSizeParam } from '@/lib/search/pagination';
-import { SearchParams } from '@/types/travel';
+import { parseAccommodationTypesParam } from '@/lib/search/accommodation-type-filter';
+import { parseAmenitiesParam } from '@/lib/search/amenity-filters';
+import {
+  parseBeachLocationParam,
+  parseCenterLocationParam,
+  parseSeaViewParam,
+} from '@/lib/search/location-filters';
+import { parseStarsParam } from '@/lib/search/stars-param';
+import { parseVacationTypesParam } from '@/lib/search/vacation-type';
+import { SearchParams, type TravelOffer } from '@/types/travel';
 import { Suspense } from 'react';
+
+function deriveCitiesByCountry(offers: TravelOffer[]): Record<string, string[]> {
+  const map = new Map<string, Set<string>>();
+  for (const offer of offers) {
+    const country = canonicalizeCountryName(offer.destinationCountry);
+    const city = offer.destinationCity?.trim();
+    if (!country || !city) continue;
+    const set = map.get(country) ?? new Set<string>();
+    set.add(city);
+    map.set(country, set);
+  }
+  const result: Record<string, string[]> = {};
+  for (const [country, cities] of map) {
+    result[country] = [...cities].sort((a, b) => a.localeCompare(b, 'nl'));
+  }
+  return result;
+}
+
+function deriveAccommodationTypes(offers: TravelOffer[]): string[] {
+  const counts = new Map<string, number>();
+  for (const offer of offers) {
+    const type = offer.accommodationType?.trim();
+    if (!type) continue;
+    counts.set(type, (counts.get(type) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'nl'))
+    .map(([type]) => type);
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -39,12 +77,20 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
     country: countries?.length === 1 ? countries[0] : undefined,
     countries: countries?.length ? countries : undefined,
     region: typeof searchParams.region === 'string' ? searchParams.region : undefined,
+    city: typeof searchParams.city === 'string' ? searchParams.city : undefined,
     budgetMin: typeof searchParams.budgetMin === 'string' ? Number(searchParams.budgetMin) : undefined,
     budgetMax: typeof searchParams.budgetMax === 'string' ? Number(searchParams.budgetMax) : undefined,
     nightsMin: typeof searchParams.nightsMin === 'string' ? Number(searchParams.nightsMin) : undefined,
     nightsMax: typeof searchParams.nightsMax === 'string' ? Number(searchParams.nightsMax) : undefined,
     nights: nights?.length ? nights : undefined,
     boardTypes,
+    accommodationTypes: (() => {
+      if (typeof searchParams.accommodationTypes !== 'string') {
+        return undefined;
+      }
+      const parsed = parseAccommodationTypesParam(searchParams.accommodationTypes);
+      return parsed.length > 0 ? parsed : undefined;
+    })(),
     adults: typeof searchParams.adults === 'string' ? Number(searchParams.adults) : undefined,
     children: typeof searchParams.children === 'string' ? Number(searchParams.children) : undefined,
     babies: typeof searchParams.babies === 'string' ? Number(searchParams.babies) : undefined,
@@ -65,7 +111,43 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
       return parsed;
     })(),
     departureAirport: typeof searchParams.departureAirport === 'string' ? searchParams.departureAirport : undefined,
-    stars: typeof searchParams.stars === 'string' ? Number(searchParams.stars) : undefined,
+    stars: (() => {
+      if (typeof searchParams.stars !== 'string') {
+        return undefined;
+      }
+      const parsed = parseStarsParam(searchParams.stars);
+      return parsed.length > 0 ? parsed : undefined;
+    })(),
+    vacationTypes: (() => {
+      if (typeof searchParams.vacationTypes !== 'string') {
+        return undefined;
+      }
+      const parsed = parseVacationTypesParam(searchParams.vacationTypes);
+      return parsed.length > 0 ? parsed : undefined;
+    })(),
+    beachLocation: (() => {
+      if (typeof searchParams.beachLocation !== 'string') {
+        return undefined;
+      }
+      return parseBeachLocationParam(searchParams.beachLocation);
+    })(),
+    centerLocation: (() => {
+      if (typeof searchParams.centerLocation !== 'string') {
+        return undefined;
+      }
+      return parseCenterLocationParam(searchParams.centerLocation);
+    })(),
+    seaView:
+      typeof searchParams.seaView === 'string'
+        ? parseSeaViewParam(searchParams.seaView)
+        : undefined,
+    amenities: (() => {
+      if (typeof searchParams.amenities !== 'string') {
+        return undefined;
+      }
+      const parsed = parseAmenitiesParam(searchParams.amenities);
+      return parsed.length > 0 ? parsed : undefined;
+    })(),
     sort: typeof searchParams.sort === 'string' ? searchParams.sort : 'value',
     page: parseResultsPageParam(
       typeof searchParams.page === 'string' ? searchParams.page : undefined,
@@ -125,6 +207,8 @@ export default async function ResultsPage({
   const params = parseSearchParams(searchParams);
   const offers = await loadOffers();
   const filterOptions = loadFilterOptions();
+  const citiesByCountry = deriveCitiesByCountry(offers);
+  const accommodationTypes = deriveAccommodationTypes(offers);
   const countryCounts = Object.fromEntries(
     deriveDestinationCountryCounts(offers).map(({ name, count }) => [name, count]),
   );
@@ -146,6 +230,8 @@ export default async function ResultsPage({
         filters={
           <FilterSidebar
             {...filterOptions}
+            citiesByCountry={citiesByCountry}
+            accommodationTypes={accommodationTypes}
             countryCounts={countryCounts}
             totalOffersLabel={totalOffersLabel}
           />

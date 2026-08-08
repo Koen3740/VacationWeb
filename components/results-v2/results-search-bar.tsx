@@ -175,7 +175,21 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
     });
     const params = new URLSearchParams(href.split('?')[1] || '');
     // Preserve non-duration filter params from current URL (no new filter logic)
-    const preserve = ['budgetMin', 'budgetMax', 'region', 'boardTypes', 'stars', 'sort'];
+    const preserve = [
+      'budgetMin',
+      'budgetMax',
+      'region',
+      'city',
+      'boardTypes',
+      'accommodationTypes',
+      'stars',
+      'vacationTypes',
+      'beachLocation',
+      'centerLocation',
+      'seaView',
+      'amenities',
+      'sort',
+    ];
     for (const key of preserve) {
       const value = searchParams.get(key);
       if (value) params.set(key, value);

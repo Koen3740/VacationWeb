@@ -1,5 +1,9 @@
 import { TravelOffer } from '../feeds/canonical/travel-offer';
 import { FilterOptions } from '../../types/travel';
+import {
+  CANONICAL_BOARD_TYPES,
+  canonicalizeBoardType,
+} from './canonicalize-board-type';
 
 export function deriveFilterOptions(offers: TravelOffer[]): FilterOptions {
   const countrySet = new Set<string>();
@@ -19,8 +23,9 @@ export function deriveFilterOptions(offers: TravelOffer[]): FilterOptions {
       }
     }
 
-    if (offer.boardType) {
-      boardTypeSet.add(offer.boardType);
+    const boardType = canonicalizeBoardType(offer.boardType);
+    if (boardType) {
+      boardTypeSet.add(boardType);
     }
 
     if (offer.departureAirport) {
@@ -36,7 +41,7 @@ export function deriveFilterOptions(offers: TravelOffer[]): FilterOptions {
   return {
     countries: [...countrySet].sort(),
     regionsByCountry,
-    boardTypes: [...boardTypeSet].sort(),
+    boardTypes: CANONICAL_BOARD_TYPES.filter((type) => boardTypeSet.has(type)),
     departureAirports: [...airportSet].sort(),
   };
 }
