@@ -2,9 +2,32 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import { clearPrijsvrijTokenCache, getPrijsvrijServiceToken } from './auth';
-import { enrichPrijsvrijSearchPrices } from './enrich-search-prices';
+import {
+  enrichPrijsvrijSearchPrices,
+  type EnrichPrijsvrijRequestStats,
+} from './enrich-search-prices';
 import { extractPrijsvrijProductId } from './product-id';
 import { findFilterValueByName, searchPrijsvrij } from './search-client';
+
+function emptyRequestStats(): EnrichPrijsvrijRequestStats {
+  return {
+    offerCount: 0,
+    uniqueAtomicContexts: 0,
+    destinationSearchFlows: 0,
+    searchHttpRequests: 0,
+  };
+}
+
+function bootstrapFiltersResponse(): Response {
+  return jsonResponse({
+    List: [],
+    TotalFound: 10,
+    Filters: [
+      { UrlName: 'land', Items: [{ Name: 'Spanje', Value: '108' }] },
+      { UrlName: 'regio', Items: [{ Name: 'Mallorca', Value: '204' }] },
+    ],
+  });
+}
 
 function makeOffer(overrides: Partial<TravelOffer> & Pick<TravelOffer, 'id' | 'provider'>): TravelOffer {
   return {
@@ -252,7 +275,12 @@ test('enrichPrijsvrijSearchPrices falls back on token/API error', async () => {
 
 test('enrichPrijsvrijSearchPrices falls back on timeout', async () => {
   clearPrijsvrijTokenCache();
-  const fetchImpl: typeof fetch = async () => {
+  const token = makeJwt(3600);
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('/token/service')) {
+      return jsonResponse({ token });
+    }
     const error = new Error('Aborted');
     error.name = 'TimeoutError';
     throw error;
@@ -264,8 +292,222 @@ test('enrichPrijsvrijSearchPrices falls back on timeout', async () => {
       price: 472,
     }),
   ];
-  const enriched = await enrichPrijsvrijSearchPrices(offers, { fetchImpl });
+  const retryStats = {
+    groupTimeoutRetries: 0,
+    groupTimeoutRetrySuccesses: 0,
+    groupTimeoutRetryFailures: 0,
+  };
+  const enriched = await enrichPrijsvrijSearchPrices(offers, { fetchImpl, retryStats });
   assert.equal(enriched[0].price, 472);
+  assert.equal(retryStats.groupTimeoutRetries, 1);
+  assert.equal(retryStats.groupTimeoutRetryFailures, 1);
+  assert.equal(retryStats.groupTimeoutRetrySuccesses, 0);
+});
+
+test('enrichPrijsvrijSearchPrices retries once on TimeoutError and applies Search price', async () => {
+  clearPrijsvrijTokenCache();
+  const token = makeJwt(3600);
+  let destinationCalls = 0;
+  const fetchImpl: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.includes('/token/service')) {
+      return jsonResponse({ token });
+    }
+
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      filters?: Array<{ UrlName: string; Value: string }>;
+    };
+    const hasLand = body.filters?.some((f) => f.UrlName === 'land' && f.Value === '108');
+    const hasRegio = body.filters?.some((f) => f.UrlName === 'regio' && f.Value === '204');
+
+    if (hasLand && hasRegio) {
+      destinationCalls += 1;
+      if (destinationCalls === 1) {
+        const error = new Error('Aborted');
+        error.name = 'TimeoutError';
+        throw error;
+      }
+      return jsonResponse({
+        List: [{ Id: '446251', Price: 381 }],
+        TotalFound: 1,
+        Filters: [],
+      });
+    }
+
+    return jsonResponse({
+      List: [],
+      TotalFound: 10,
+      Filters: [
+        { UrlName: 'land', Items: [{ Name: 'Spanje', Value: '108' }] },
+        { UrlName: 'regio', Items: [{ Name: 'Mallorca', Value: '204' }] },
+      ],
+    });
+  };
+
+  const retryStats = {
+    groupTimeoutRetries: 0,
+    groupTimeoutRetrySuccesses: 0,
+    groupTimeoutRetryFailures: 0,
+  };
+  const enriched = await enrichPrijsvrijSearchPrices(
+    [
+      makeOffer({
+        id: 'prijsvrij-446251-2026-09-30-8-472-HP',
+        provider: 'Prijsvrij',
+        price: 472,
+      }),
+    ],
+    { fetchImpl, retryStats },
+  );
+
+  assert.equal(enriched[0].price, 381);
+  assert.equal(destinationCalls, 2);
+  assert.equal(retryStats.groupTimeoutRetries, 1);
+  assert.equal(retryStats.groupTimeoutRetrySuccesses, 1);
+  assert.equal(retryStats.groupTimeoutRetryFailures, 0);
+});
+
+test('enrichPrijsvrijSearchPrices isolates timeout to one Search-group', async () => {
+  clearPrijsvrijTokenCache();
+  const token = makeJwt(3600);
+  let mallorcaCalls = 0;
+  const fetchImpl: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.includes('/token/service')) {
+      return jsonResponse({ token });
+    }
+
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      filters?: Array<{ UrlName: string; Value: string }>;
+    };
+    const filters = body.filters ?? [];
+    const land = filters.find((f) => f.UrlName === 'land')?.Value;
+    const regio = filters.find((f) => f.UrlName === 'regio')?.Value;
+    const date = filters.find((f) => f.UrlName === 'vertrekdatum')?.Value;
+
+    // Istanbul group times out once destination-scoped search runs.
+    if (date === '2026-08-29' && land === '120' && regio === '999') {
+      const error = new Error('Aborted');
+      error.name = 'TimeoutError';
+      throw error;
+    }
+
+    if (land === '108' && regio === '204') {
+      mallorcaCalls += 1;
+      return jsonResponse({
+        List: [{ Id: '446251', Price: 381 }],
+        TotalFound: 1,
+        Filters: [],
+      });
+    }
+
+    return jsonResponse({
+      List: [],
+      TotalFound: 10,
+      Filters: [
+        { UrlName: 'land', Items: [
+          { Name: 'Spanje', Value: '108' },
+          { Name: 'Turkije', Value: '120' },
+        ] },
+        { UrlName: 'regio', Items: [
+          { Name: 'Mallorca', Value: '204' },
+          { Name: 'Istanbul', Value: '999' },
+        ] },
+      ],
+    });
+  };
+
+  const offers = [
+    makeOffer({
+      id: 'prijsvrij-446251-2026-09-30-8-472-HP',
+      provider: 'Prijsvrij',
+      price: 472,
+      departureDate: '2026-09-30',
+      destinationCountry: 'Spanje',
+      destinationRegion: 'Mallorca',
+    }),
+    makeOffer({
+      id: 'prijsvrij-221-2026-08-29-8-662-LO',
+      provider: 'Prijsvrij',
+      price: 662,
+      departureDate: '2026-08-29',
+      destinationCountry: 'Turkije',
+      destinationRegion: 'Istanbul',
+      deepLink:
+        'https://www.prijsvrij.be/vakantie/?r=https%3A%2F%2Fwww.prijsvrij.be%2Fvakanties%2Fturkije%2Fistanbul%2Fx%3Fvertrekdatum%3D2026-08-29%26reisduurdagen%3D8%26transport%3Dvl',
+    }),
+  ];
+
+  const enriched = await enrichPrijsvrijSearchPrices(offers, { fetchImpl });
+  assert.equal(enriched[0].price, 381);
+  assert.equal(enriched[1].price, 662);
+  assert.ok(mallorcaCalls >= 1);
+});
+
+test('enrichPrijsvrijSearchPrices paginates until TotalFound is covered', async () => {
+  clearPrijsvrijTokenCache();
+  const token = makeJwt(3600);
+  const pagesSeen: number[] = [];
+  const fetchImpl: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.includes('/token/service')) {
+      return jsonResponse({ token });
+    }
+
+    const pageMatch = /\/search\/100\/(\d+)$/.exec(url);
+    if (pageMatch) {
+      const page = Number(pageMatch[1]);
+      pagesSeen.push(page);
+      const body = JSON.parse(String(init?.body ?? '{}')) as {
+        filters?: Array<{ UrlName: string; Value: string }>;
+      };
+      const scoped = body.filters?.some((f) => f.UrlName === 'regio' && f.Value === '204');
+      if (scoped) {
+        if (page < 3) {
+          return jsonResponse({
+            List: Array.from({ length: 100 }, (_, i) => ({
+              Id: String(1000 + (page - 1) * 100 + i),
+              Price: 100,
+            })),
+            TotalFound: 250,
+            Filters: [],
+          });
+        }
+        return jsonResponse({
+          List: [
+            ...Array.from({ length: 49 }, (_, i) => ({
+              Id: String(1200 + i),
+              Price: 100,
+            })),
+            { Id: '446251', Price: 381 },
+          ],
+          TotalFound: 250,
+          Filters: [],
+        });
+      }
+    }
+
+    return jsonResponse({
+      List: [],
+      TotalFound: 10,
+      Filters: [
+        { UrlName: 'land', Items: [{ Name: 'Spanje', Value: '108' }] },
+        { UrlName: 'regio', Items: [{ Name: 'Mallorca', Value: '204' }] },
+      ],
+    });
+  };
+
+  const offers = [
+    makeOffer({
+      id: 'prijsvrij-446251-2026-09-30-8-472-HP',
+      provider: 'Prijsvrij',
+      price: 472,
+    }),
+  ];
+
+  const enriched = await enrichPrijsvrijSearchPrices(offers, { fetchImpl });
+  assert.equal(enriched[0].price, 381);
+  assert.deepEqual(pagesSeen, [1, 2, 3]);
 });
 
 test('non-Prijsvrij providers remain unchanged when enrichment runs', async () => {
@@ -293,4 +535,168 @@ test('non-Prijsvrij providers remain unchanged when enrichment runs', async () =
   assert.equal(fetchCalled, false);
   assert.equal(enriched[0].price, 600);
   assert.equal(enriched[1].price, 700);
+});
+
+test('Strategy D: 10 offers with identical atomic context use one destination Search-flow', async () => {
+  clearPrijsvrijTokenCache();
+  const token = makeJwt(3600);
+  let destinationFlows = 0;
+  let destinationPages = 0;
+
+  const list = Array.from({ length: 10 }, (_, i) => ({
+    Id: String(446250 + i),
+    Price: 300 + i,
+  }));
+
+  const fetchImpl: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.includes('/token/service')) {
+      return jsonResponse({ token });
+    }
+
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      filters?: Array<{ UrlName: string; Value: string }>;
+    };
+    const hasLand = body.filters?.some((f) => f.UrlName === 'land' && f.Value === '108');
+    const hasRegio = body.filters?.some((f) => f.UrlName === 'regio' && f.Value === '204');
+
+    if (hasLand && hasRegio) {
+      destinationFlows += 1;
+      if (/\/search\/100\//.test(url)) {
+        destinationPages += 1;
+      }
+      return jsonResponse({
+        List: list,
+        TotalFound: list.length,
+        Filters: [],
+      });
+    }
+
+    return bootstrapFiltersResponse();
+  };
+
+  const offers = Array.from({ length: 10 }, (_, i) =>
+    makeOffer({
+      id: `prijsvrij-${446250 + i}-2026-09-30-8-${400 + i}-HP`,
+      provider: 'Prijsvrij',
+      price: 400 + i,
+    }),
+  );
+
+  const requestStats = emptyRequestStats();
+  const enriched = await enrichPrijsvrijSearchPrices(offers, { fetchImpl, requestStats });
+
+  assert.equal(destinationFlows, 1);
+  assert.equal(destinationPages, 1);
+  assert.equal(requestStats.offerCount, 10);
+  assert.equal(requestStats.uniqueAtomicContexts, 1);
+  assert.equal(requestStats.destinationSearchFlows, 1);
+  for (let i = 0; i < 10; i += 1) {
+    assert.equal(enriched[i].price, 300 + i);
+  }
+});
+
+test('Strategy D: 10 offers with different atomic contexts use at most 10 destination Search-flows', async () => {
+  clearPrijsvrijTokenCache();
+  const token = makeJwt(3600);
+  let destinationFlows = 0;
+
+  const fetchImpl: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.includes('/token/service')) {
+      return jsonResponse({ token });
+    }
+
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      filters?: Array<{ UrlName: string; Value: string }>;
+    };
+    const hasLand = body.filters?.some((f) => f.UrlName === 'land' && f.Value === '108');
+    const hasRegio = body.filters?.some((f) => f.UrlName === 'regio' && f.Value === '204');
+    const date = body.filters?.find((f) => f.UrlName === 'vertrekdatum')?.Value;
+
+    if (hasLand && hasRegio && date) {
+      destinationFlows += 1;
+      const day = date.slice(-2);
+      const id = `4462${day}`;
+      return jsonResponse({
+        List: [{ Id: id, Price: 350 + Number(day) }],
+        TotalFound: 1,
+        Filters: [],
+      });
+    }
+
+    return bootstrapFiltersResponse();
+  };
+
+  const offers = Array.from({ length: 10 }, (_, i) => {
+    const day = String(i + 1).padStart(2, '0');
+    const departureDate = `2026-10-${day}`;
+    return makeOffer({
+      id: `prijsvrij-4462${day}-${departureDate}-8-400-HP`,
+      provider: 'Prijsvrij',
+      price: 400,
+      departureDate,
+      deepLink:
+        `https://www.prijsvrij.be/vakantie/?r=https%3A%2F%2Fwww.prijsvrij.be%2Fvakanties%2Fspanje%2Fmallorca%2Fx%3Fvertrekdatum%3D${departureDate}%26reisduurdagen%3D8%26transport%3Dvl`,
+    });
+  });
+
+  const requestStats = emptyRequestStats();
+  const enriched = await enrichPrijsvrijSearchPrices(offers, { fetchImpl, requestStats });
+
+  assert.equal(destinationFlows, 10);
+  assert.ok(destinationFlows <= 10);
+  assert.equal(requestStats.offerCount, 10);
+  assert.equal(requestStats.uniqueAtomicContexts, 10);
+  assert.equal(requestStats.destinationSearchFlows, 10);
+  for (let i = 0; i < 10; i += 1) {
+    const day = i + 1;
+    assert.equal(enriched[i].price, 350 + day);
+  }
+});
+
+test('Strategy D: Id→Price map is reused for multiple offers in one atomic context', async () => {
+  clearPrijsvrijTokenCache();
+  const token = makeJwt(3600);
+  let destinationListBuilds = 0;
+
+  const fetchImpl: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.includes('/token/service')) {
+      return jsonResponse({ token });
+    }
+
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      filters?: Array<{ UrlName: string; Value: string }>;
+    };
+    const hasLand = body.filters?.some((f) => f.UrlName === 'land' && f.Value === '108');
+    const hasRegio = body.filters?.some((f) => f.UrlName === 'regio' && f.Value === '204');
+
+    if (hasLand && hasRegio) {
+      destinationListBuilds += 1;
+      return jsonResponse({
+        List: [
+          { Id: '111', Price: 501 },
+          { Id: '222', Price: 502 },
+          { Id: '333', Price: 503 },
+        ],
+        TotalFound: 3,
+        Filters: [],
+      });
+    }
+
+    return bootstrapFiltersResponse();
+  };
+
+  const offers = [
+    makeOffer({ id: 'prijsvrij-111-2026-09-30-8-900-HP', provider: 'Prijsvrij', price: 900 }),
+    makeOffer({ id: 'prijsvrij-222-2026-09-30-8-900-HP', provider: 'Prijsvrij', price: 900 }),
+    makeOffer({ id: 'prijsvrij-333-2026-09-30-8-900-HP', provider: 'Prijsvrij', price: 900 }),
+  ];
+
+  const enriched = await enrichPrijsvrijSearchPrices(offers, { fetchImpl });
+  assert.equal(destinationListBuilds, 1);
+  assert.equal(enriched[0].price, 501);
+  assert.equal(enriched[1].price, 502);
+  assert.equal(enriched[2].price, 503);
 });

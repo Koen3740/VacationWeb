@@ -15,5 +15,7 @@ export const PRIJSVRIJ_FILTER_TYPE = {
 } as const;
 
 export const PRIJSVRIJ_DEFAULT_PAGE_SIZE = 100;
+/** Hard cap on Search pages; effective limit is min(this, ceil(TotalFound/pageSize)). */
+export const PRIJSVRIJ_MAX_SEARCH_PAGES = 50;
 export const PRIJSVRIJ_REQUEST_TIMEOUT_MS = 8_000;
 export const PRIJSVRIJ_TOKEN_REFRESH_SKEW_MS = 60_000;
