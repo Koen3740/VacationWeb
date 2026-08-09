@@ -136,16 +136,12 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
     query.set('vacationTypes', params.vacationTypes.join(','));
   }
 
-  if (params.beachLocation) {
-    query.set('beachLocation', params.beachLocation);
+  if (params.beachLocation?.length) {
+    query.set('beachLocation', params.beachLocation.join(','));
   }
 
-  if (params.centerLocation) {
-    query.set('centerLocation', params.centerLocation);
-  }
-
-  if (params.seaView) {
-    query.set('seaView', '1');
+  if (params.centerLocation?.length) {
+    query.set('centerLocation', params.centerLocation.join(','));
   }
 
   if (params.amenities?.length) {

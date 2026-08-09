@@ -9,11 +9,10 @@ import {
   parseAmenitiesParam,
 } from '@/lib/search/amenity-filters';
 import {
-  offerHasSeaView,
-  offerMatchesBeachLocation,
-  offerMatchesCenterLocation,
-  parseBeachLocationParam,
-  parseCenterLocationParam,
+  offerMatchesAnyBeachLocation,
+  offerMatchesAnyCenterLocation,
+  parseBeachLocationsParam,
+  parseCenterLocationsParam,
 } from '@/lib/search/location-filters';
 import {
   offerMatchesAnyVacationType,
@@ -156,22 +155,18 @@ export function filterOffers(
       }
     }
 
-    if (params.beachLocation) {
-      const beach = parseBeachLocationParam(params.beachLocation);
-      if (beach && !offerMatchesBeachLocation(offer, beach)) {
+    if (params.beachLocation?.length) {
+      const selected = parseBeachLocationsParam(params.beachLocation.join(','));
+      if (selected.length > 0 && !offerMatchesAnyBeachLocation(offer, selected)) {
         return false;
       }
     }
 
-    if (params.centerLocation) {
-      const center = parseCenterLocationParam(params.centerLocation);
-      if (center && !offerMatchesCenterLocation(offer, center)) {
+    if (params.centerLocation?.length) {
+      const selected = parseCenterLocationsParam(params.centerLocation.join(','));
+      if (selected.length > 0 && !offerMatchesAnyCenterLocation(offer, selected)) {
         return false;
       }
-    }
-
-    if (params.seaView && !offerHasSeaView(offer)) {
-      return false;
     }
 
     if (params.amenities?.length) {
@@ -254,7 +249,6 @@ export function sortOffers(
         if (!dateB) return -1;
         return dateA.localeCompare(dateB);
       });
-
     case 'duration':
       return [...ranked].sort(
         (a, b) => a.nights - b.nights

@@ -20,9 +20,8 @@ import { paginateResults, parseResultsPageParam, parseResultsPageSizeParam } fro
 import { parseAccommodationTypesParam } from '@/lib/search/accommodation-type-filter';
 import { parseAmenitiesParam } from '@/lib/search/amenity-filters';
 import {
-  parseBeachLocationParam,
-  parseCenterLocationParam,
-  parseSeaViewParam,
+  parseBeachLocationsParam,
+  parseCenterLocationsParam,
 } from '@/lib/search/location-filters';
 import { parseStarsParam } from '@/lib/search/stars-param';
 import { parseVacationTypesParam } from '@/lib/search/vacation-type';
@@ -130,18 +129,16 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
       if (typeof searchParams.beachLocation !== 'string') {
         return undefined;
       }
-      return parseBeachLocationParam(searchParams.beachLocation);
+      const parsed = parseBeachLocationsParam(searchParams.beachLocation);
+      return parsed.length > 0 ? parsed : undefined;
     })(),
     centerLocation: (() => {
       if (typeof searchParams.centerLocation !== 'string') {
         return undefined;
       }
-      return parseCenterLocationParam(searchParams.centerLocation);
+      const parsed = parseCenterLocationsParam(searchParams.centerLocation);
+      return parsed.length > 0 ? parsed : undefined;
     })(),
-    seaView:
-      typeof searchParams.seaView === 'string'
-        ? parseSeaViewParam(searchParams.seaView)
-        : undefined,
     amenities: (() => {
       if (typeof searchParams.amenities !== 'string') {
         return undefined;

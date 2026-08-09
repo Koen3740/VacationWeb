@@ -34,9 +34,10 @@ import {
   BEACH_LOCATION_VALUES,
   CENTER_LOCATION_LABELS,
   CENTER_LOCATION_VALUES,
-  parseBeachLocationParam,
-  parseCenterLocationParam,
-  parseSeaViewParam,
+  parseBeachLocationsParam,
+  parseCenterLocationsParam,
+  serializeBeachLocationsParam,
+  serializeCenterLocationsParam,
   type BeachLocation,
   type CenterLocation,
 } from '@/lib/search/location-filters';
@@ -80,9 +81,8 @@ function parseFilters(searchParams: URLSearchParams) {
     ),
     accommodationTypes: parseAccommodationTypesParam(searchParams.get('accommodationTypes')),
     vacationTypes: parseVacationTypesParam(searchParams.get('vacationTypes')),
-    beachLocation: parseBeachLocationParam(searchParams.get('beachLocation')) || '',
-    centerLocation: parseCenterLocationParam(searchParams.get('centerLocation')) || '',
-    seaView: parseSeaViewParam(searchParams.get('seaView')),
+    beachLocations: parseBeachLocationsParam(searchParams.get('beachLocation')),
+    centerLocations: parseCenterLocationsParam(searchParams.get('centerLocation')),
     amenities: parseAmenitiesParam(searchParams.get('amenities')),
   };
 }
@@ -104,14 +104,6 @@ function Chevron({ open }: { open: boolean }) {
     >
       <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
-  );
-}
-
-function SectionEyebrow({ children }: { children: ReactNode }) {
-  return (
-    <p className="pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[#8A93A3] first:pt-2">
-      {children}
-    </p>
   );
 }
 
@@ -164,14 +156,18 @@ function NestedDisclosure({
     <div className="rounded-[10px] border border-[#E6EAF1] bg-white">
       <button
         type="button"
-        onClick={onToggle}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onToggle();
+        }}
         className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
         aria-expanded={open}
       >
         <span className="text-[13.5px] font-semibold text-[#0A2D62]">{title}</span>
         <Chevron open={open} />
       </button>
-      {open && children ? <div className="space-y-2 border-t border-[#EDE8E0] px-3 py-2.5">{children}</div> : null}
+      {open ? <div className="space-y-2 border-t border-[#EDE8E0] px-3 py-2.5">{children}</div> : null}
     </div>
   );
 }
@@ -242,6 +238,10 @@ export function FilterSidebar({
     wellness: false,
     sport: false,
     services: false,
+  });
+  const [openLocationGroups, setOpenLocationGroups] = useState<Record<string, boolean>>({
+    beach: true,
+    center: true,
   });
 
   useEffect(() => {
@@ -340,23 +340,22 @@ export function FilterSidebar({
       params.delete('vacationTypes');
     }
 
-    if (next.beachLocation) {
-      params.set('beachLocation', next.beachLocation);
+    const beachParam = serializeBeachLocationsParam(next.beachLocations);
+    if (beachParam) {
+      params.set('beachLocation', beachParam);
     } else {
       params.delete('beachLocation');
     }
 
-    if (next.centerLocation) {
-      params.set('centerLocation', next.centerLocation);
+    const centerParam = serializeCenterLocationsParam(next.centerLocations);
+    if (centerParam) {
+      params.set('centerLocation', centerParam);
     } else {
       params.delete('centerLocation');
     }
 
-    if (next.seaView) {
-      params.set('seaView', '1');
-    } else {
-      params.delete('seaView');
-    }
+    // Obsolete Results location filter — strip if present in the current URL.
+    params.delete('seaView');
 
     const amenitiesParam = serializeAmenitiesParam(next.amenities);
     if (amenitiesParam) {
@@ -414,12 +413,34 @@ export function FilterSidebar({
     });
   };
 
+  const toggleBeachLocation = (value: BeachLocation) => {
+    updateFilters({
+      ...filters,
+      beachLocations: filters.beachLocations.includes(value)
+        ? filters.beachLocations.filter((item) => item !== value)
+        : [...filters.beachLocations, value],
+    });
+  };
+
+  const toggleCenterLocation = (value: CenterLocation) => {
+    updateFilters({
+      ...filters,
+      centerLocations: filters.centerLocations.includes(value)
+        ? filters.centerLocations.filter((item) => item !== value)
+        : [...filters.centerLocations, value],
+    });
+  };
+
   const toggleSection = (id: string) => {
     setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const toggleAmenityGroup = (id: string) => {
     setOpenAmenityGroups((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleLocationGroup = (id: string) => {
+    setOpenLocationGroups((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const clearAllFilters = () => {
@@ -474,9 +495,8 @@ export function FilterSidebar({
           boxShadow: RESULTS_PANEL_SHADOW,
         }}
       >
-        <SectionEyebrow>Waar wil ik naartoe?</SectionEyebrow>
         <Accordion
-          title="Bestemming"
+          title="Waar wil ik naartoe?"
           open={!!openSections.destination}
           onToggle={() => toggleSection('destination')}
         >
@@ -525,8 +545,11 @@ export function FilterSidebar({
           </div>
         </Accordion>
 
-        <SectionEyebrow>Wat mag het kosten?</SectionEyebrow>
-        <Accordion title="Budget" open={!!openSections.budget} onToggle={() => toggleSection('budget')}>
+        <Accordion
+          title="Wat mag het kosten?"
+          open={!!openSections.budget}
+          onToggle={() => toggleSection('budget')}
+        >
           <div className="space-y-4 pt-1">
             <FieldLabel>Prijs per persoon</FieldLabel>
             <div className="relative h-8">
@@ -586,8 +609,11 @@ export function FilterSidebar({
           </div>
         </Accordion>
 
-        <SectionEyebrow>Hoe wil ik verblijven?</SectionEyebrow>
-        <Accordion title="Verblijf" open={!!openSections.stay} onToggle={() => toggleSection('stay')}>
+        <Accordion
+          title="Hoe wil ik verblijven?"
+          open={!!openSections.stay}
+          onToggle={() => toggleSection('stay')}
+        >
           <div className="space-y-4">
             <div>
               <FieldLabel>Accommodatietype</FieldLabel>
@@ -660,12 +686,7 @@ export function FilterSidebar({
           </div>
         </Accordion>
 
-        <SectionEyebrow>Wat zoek ik?</SectionEyebrow>
-        <Accordion
-          title="Vakantietype"
-          open={!!openSections.vacation}
-          onToggle={() => toggleSection('vacation')}
-        >
+        <Accordion title="Wat zoek ik?" open={!!openSections.vacation} onToggle={() => toggleSection('vacation')}>
           <div className="space-y-2">
             {VACATION_TYPE_VALUES.map((type) => {
               const active = filters.vacationTypes.includes(type);
@@ -684,70 +705,88 @@ export function FilterSidebar({
           </div>
         </Accordion>
 
-        <SectionEyebrow>Waar moet het liggen?</SectionEyebrow>
-        <Accordion title="Ligging" open={!!openSections.location} onToggle={() => toggleSection('location')}>
-          <div className="space-y-3">
-            <div>
-              <FieldLabel>Strand</FieldLabel>
-              <select
-                value={filters.beachLocation}
-                onChange={(event) =>
-                  updateFilters({
-                    ...filters,
-                    beachLocation: (event.target.value || '') as BeachLocation | '',
-                  })
-                }
-                className={selectClassName}
-              >
-                <option value="">Maak een keuze</option>
-                {BEACH_LOCATION_VALUES.map((value) => (
-                  <option key={value} value={value}>
-                    {BEACH_LOCATION_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <FieldLabel>Centrum</FieldLabel>
-              <select
-                value={filters.centerLocation}
-                onChange={(event) =>
-                  updateFilters({
-                    ...filters,
-                    centerLocation: (event.target.value || '') as CenterLocation | '',
-                  })
-                }
-                className={selectClassName}
-              >
-                <option value="">Maak een keuze</option>
-                {CENTER_LOCATION_VALUES.map((value) => (
-                  <option key={value} value={value}>
-                    {CENTER_LOCATION_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <FieldLabel>Zeezicht</FieldLabel>
-              <select
-                value={filters.seaView ? '1' : ''}
-                onChange={(event) =>
-                  updateFilters({
-                    ...filters,
-                    seaView: event.target.value === '1',
-                  })
-                }
-                className={selectClassName}
-              >
-                <option value="">Maak een keuze</option>
-                <option value="1">Zeezicht</option>
-              </select>
-            </div>
+        <Accordion
+          title="Waar moet het liggen?"
+          open={!!openSections.location}
+          onToggle={() => toggleSection('location')}
+        >
+          <div className="space-y-2">
+            <NestedDisclosure
+              title="Strand"
+              open={!!openLocationGroups.beach}
+              onToggle={() => toggleLocationGroup('beach')}
+            >
+              <div className="space-y-2">
+                {BEACH_LOCATION_VALUES.map((value) => {
+                  const active = filters.beachLocations.includes(value);
+                  return (
+                    <label
+                      key={value}
+                      className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={active}
+                        onChange={() => toggleBeachLocation(value)}
+                        className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                      />
+                      {BEACH_LOCATION_LABELS[value]}
+                    </label>
+                  );
+                })}
+                {filters.beachLocations.length > 0 ? (
+                  <button
+                    type="button"
+                    className="pt-1 text-left text-[13px] font-medium text-[#0A2D62] underline-offset-2 hover:underline"
+                    onClick={() => updateFilters({ ...filters, beachLocations: [] })}
+                  >
+                    Wis keuze
+                  </button>
+                ) : null}
+              </div>
+            </NestedDisclosure>
+            <NestedDisclosure
+              title="Centrum"
+              open={!!openLocationGroups.center}
+              onToggle={() => toggleLocationGroup('center')}
+            >
+              <div className="space-y-2">
+                {CENTER_LOCATION_VALUES.map((value) => {
+                  const active = filters.centerLocations.includes(value);
+                  return (
+                    <label
+                      key={value}
+                      className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={active}
+                        onChange={() => toggleCenterLocation(value)}
+                        className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                      />
+                      {CENTER_LOCATION_LABELS[value]}
+                    </label>
+                  );
+                })}
+                {filters.centerLocations.length > 0 ? (
+                  <button
+                    type="button"
+                    className="pt-1 text-left text-[13px] font-medium text-[#0A2D62] underline-offset-2 hover:underline"
+                    onClick={() => updateFilters({ ...filters, centerLocations: [] })}
+                  >
+                    Wis keuze
+                  </button>
+                ) : null}
+              </div>
+            </NestedDisclosure>
           </div>
         </Accordion>
 
-        <SectionEyebrow>Welke extra&apos;s wil ik?</SectionEyebrow>
-        <Accordion title="Extra&apos;s" open={!!openSections.extras} onToggle={() => toggleSection('extras')}>
+        <Accordion
+          title="Welke extra's wil ik?"
+          open={!!openSections.extras}
+          onToggle={() => toggleSection('extras')}
+        >
           <div className="space-y-2">
             {AMENITY_GROUPS.map((group) => (
               <NestedDisclosure

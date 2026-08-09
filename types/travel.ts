@@ -33,12 +33,10 @@ export interface SearchParams {
   stars?: number[];
   /** Vacation themes (Adults Only, Familie, …). OR-matched when multiple. */
   vacationTypes?: string[];
-  /** Qualitative beach location: direct | walk */
-  beachLocation?: string;
-  /** Qualitative center location: in | near */
-  centerLocation?: string;
-  /** When true, require sea-view signal in offer text */
-  seaView?: boolean;
+  /** Beach location buckets (direct, lt100, …). OR-matched when multiple. */
+  beachLocation?: string[];
+  /** Center location buckets (in, lt100, …). OR-matched when multiple. */
+  centerLocation?: string[];
   /** Amenity keys (pool_indoor, sauna, …). OR-matched when multiple. */
   amenities?: string[];
   sort?: string;

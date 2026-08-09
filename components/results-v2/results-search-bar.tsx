@@ -186,7 +186,6 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
       'vacationTypes',
       'beachLocation',
       'centerLocation',
-      'seaView',
       'amenities',
       'sort',
     ];
