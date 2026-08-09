@@ -14,6 +14,7 @@ import { deriveDestinationCountryCounts } from '@/lib/offers/derive-destination-
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 import { loadOffers } from '@/lib/offers/load-offers';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
+import { enrichPrijsvrijSearchPrices } from '@/lib/providers/prijsvrij';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
 import { paginateResults, parseResultsPageParam, parseResultsPageSizeParam } from '@/lib/search/pagination';
 import { parseAccommodationTypesParam } from '@/lib/search/accommodation-type-filter';
@@ -219,6 +220,8 @@ export default async function ResultsPage({
     params.page ?? 1,
     params.pageSize ?? 24,
   );
+  // TD-014: page-scoped Prijsvrij Search List[].Price enrichment (feed price as fallback).
+  const enrichedVisibleOffers = await enrichPrijsvrijSearchPrices(visibleOffers);
 
   return (
     <Suspense fallback={<main className="min-h-screen bg-[#F3F5F8]" />}>
@@ -237,9 +240,9 @@ export default async function ResultsPage({
           />
         }
         results={
-          visibleOffers.length > 0 ? (
+          enrichedVisibleOffers.length > 0 ? (
             <div className="space-y-3.5">
-              {visibleOffers.map((offer) => (
+              {enrichedVisibleOffers.map((offer) => (
                 <TravelCard key={offer.id} offer={offer} />
               ))}
             </div>
