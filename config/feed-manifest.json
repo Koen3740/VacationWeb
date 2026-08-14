@@ -1,6 +1,6 @@
 {
   "manifestVersion": 1,
-  "description": "Declarative inventory of TradeTracker feeds for VacationWeb. Not consumed by the current import pipeline (WP8B-007).",
+  "description": "Declarative inventory of TradeTracker feeds for VacationWeb. Consumed by lib/feeds/feed-registry.ts and scripts/import-all-feeds.ts (TD-015 refresh: npm run refresh:offers).",
   "fieldDocs": {
     "id": "Stable unique feed identifier used by future discovery/queue logic.",
     "provider": "Display/provider name matching runtime StoredOffer.provider (e.g. Corendon, Prijsvrij, Sunweb).",

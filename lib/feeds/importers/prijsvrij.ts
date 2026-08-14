@@ -80,18 +80,20 @@ function parseBoardType(product: PrijsvrijXmlProduct): string | undefined {
 
 function parseImages(product: PrijsvrijXmlProduct): string[] | undefined {
   const values: string[] = [];
-  const primaryImage = product.images?.image;
 
-  if (typeof primaryImage === 'string' && primaryImage.length > 0) {
-    values.push(primaryImage);
-  }
-
+  // Prefer imageURL2…10 as gallery order. The TradeTracker <images><image> tag is often
+  // a non-hero asset (e.g. Playas Del Rey: feed primary absent from live Prijsvrij gallery).
   for (const propertyName of IMAGE_PROPERTY_NAMES) {
     const imageUrl = getProperty(product, propertyName);
 
     if (imageUrl && !values.includes(imageUrl)) {
       values.push(imageUrl);
     }
+  }
+
+  const taggedImage = product.images?.image;
+  if (typeof taggedImage === 'string' && taggedImage.length > 0 && !values.includes(taggedImage)) {
+    values.push(taggedImage);
   }
 
   return values.length > 0 ? values : undefined;

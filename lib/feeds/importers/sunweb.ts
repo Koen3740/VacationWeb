@@ -49,6 +49,21 @@ function toNumber(value: string): number | null {
   return Number.isNaN(number) ? null : number;
 }
 
+/** Reject bare room codes / occupancy digits that are not card blurbs. */
+function isUsefulCardText(value: string | undefined): value is string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return false;
+  }
+  if (/^\d{1,3}$/.test(trimmed)) {
+    return false;
+  }
+  if (/^\d+[-\s]?persoons?/i.test(trimmed) && trimmed.length < 8) {
+    return false;
+  }
+  return trimmed.length >= 3;
+}
+
 function parsePrice(product: SunwebXmlProduct): { price: number; currency: string } {
   const rawPrice = product.price;
 
@@ -264,11 +279,18 @@ function mapSunwebProduct(product: SunwebXmlProduct): StoredOffer {
     getProperty(product, 'DepartureAirport');
   const { boardType, accommodationType } = parseBoardAndAccommodationType(product);
   const { stars, rating } = parseStarsAndRating(product);
-  const roomDescription =
-    getProperty(product, 'descriptionShort') ||
-    getProperty(product, 'room_Room_Name') ||
-    getPropertyList(product, 'usp')[0] ||
-    undefined;
+  const feedDescriptionShort = getProperty(product, 'descriptionShort');
+  const roomName = getProperty(product, 'room_Room_Name');
+  const firstUsp = getPropertyList(product, 'usp')[0];
+  // Card blurb: prefer real description/USP text. Never treat bare room codes ("2") as blurb.
+  const cardBlurb = [feedDescriptionShort, firstUsp].find((value) => isUsefulCardText(value));
+  // Room label only when it adds distinct info (not the same string as the blurb).
+  const roomLabel =
+    roomName &&
+    isUsefulCardText(roomName) &&
+    roomName.trim().toLowerCase() !== cardBlurb?.trim().toLowerCase()
+      ? roomName
+      : undefined;
   const accommodationNotes = getPropertyList(product, 'accommodation');
   const subcategories = parseSubcategories(product);
 
@@ -288,9 +310,9 @@ function mapSunwebProduct(product: SunwebXmlProduct): StoredOffer {
     stars,
     rating,
 
-    descriptionShort: roomDescription,
+    descriptionShort: cardBlurb,
     feedDescription: parseFeedDescription(product),
-    extraInfo: roomDescription,
+    extraInfo: roomLabel,
 
     price,
     currency,

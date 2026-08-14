@@ -9,6 +9,7 @@ import {
   RESULTS_STAR_GOLD,
 } from '@/components/results-v2/results-design-tokens';
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
+import { isValidOfferImageUrl } from '@/lib/offers/is-valid-offer-image-url';
 import { TravelOffer } from '@/types/travel';
 import Link from 'next/link';
 
@@ -31,7 +32,7 @@ function collectImages(offer: TravelOffer): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const url of [offer.imageUrl, offer.imageLarge, ...(offer.images ?? [])]) {
-    if (!url || seen.has(url)) continue;
+    if (!url || seen.has(url) || !isValidOfferImageUrl(url)) continue;
     seen.add(url);
     out.push(url);
   }
@@ -100,20 +101,55 @@ function HeartButton() {
   );
 }
 
+/** Prefer island/province over broad archipelago region labels (e.g. Balearen → Mallorca). */
+function formatCardLocation(offer: TravelOffer): string {
+  const region = offer.destinationRegion?.trim() || '';
+  const province = offer.destinationProvince?.trim() || '';
+  const city = offer.destinationCity?.trim() || '';
+  const country = offer.destinationCountry?.trim() || '';
+
+  const ARCHIPELAGO_REGIONS = new Set([
+    'balearen',
+    'canarische eilanden',
+    'canaries',
+    'canary islands',
+  ]);
+
+  const regionIsArchipelago = ARCHIPELAGO_REGIONS.has(region.toLowerCase());
+  const primary =
+    regionIsArchipelago && province
+      ? province
+      : region || city;
+
+  return [primary, country].filter(Boolean).join(', ');
+}
+
+function isCardBlurbUseful(value: string | undefined): boolean {
+  const trimmed = value?.trim();
+  if (!trimmed) return false;
+  // Bare occupancy / room codes must not appear as description lines.
+  if (/^\d{1,3}$/.test(trimmed)) return false;
+  return trimmed.length >= 3;
+}
+
 export function TravelCard({ offer }: { offer: TravelOffer }) {
-  const location = [offer.destinationRegion || offer.destinationCity, offer.destinationCountry]
-    .filter(Boolean)
-    .join(', ');
+  const location = formatCardLocation(offer);
   const stars = offer.stars && offer.stars > 0 ? offer.stars : 0;
   const isLastMinute = offer.lastMinute === 'true' || offer.lastMinute === '1' || offer.lastMinute === 'yes';
   const ratingText = ratingLabel(offer.rating);
   const airport = offer.departureAirport || offer.departureAirportCode || offer.airport;
   const images = collectImages(offer);
-  const shortDescription = plainTextSnippet(offer.descriptionShort);
+  const shortDescriptionRaw = plainTextSnippet(offer.descriptionShort);
+  const extraInfoRaw = plainTextSnippet(offer.extraInfo);
+  const shortDescription = isCardBlurbUseful(shortDescriptionRaw) ? shortDescriptionRaw : undefined;
+  const extraInfo =
+    isCardBlurbUseful(extraInfoRaw) &&
+    extraInfoRaw?.trim().toLowerCase() !== shortDescription?.trim().toLowerCase()
+      ? extraInfoRaw
+      : undefined;
   const accommodationType = offer.accommodationType?.trim() || undefined;
   const flightLabel = flightIncludedLabel(offer.flightIncluded);
   const themes = subcategoryLabels(offer.subcategories);
-  const extraInfo = plainTextSnippet(offer.extraInfo);
 
   const metaLine = [
     accommodationType,

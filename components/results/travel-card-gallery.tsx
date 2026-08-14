@@ -1,6 +1,10 @@
 'use client';
 
 import { RESULTS_LAST_MINUTE } from '@/components/results-v2/results-design-tokens';
+import {
+  isValidOfferImageUrl,
+  OFFER_IMAGE_PLACEHOLDER,
+} from '@/lib/offers/is-valid-offer-image-url';
 import Image from 'next/image';
 import { useState } from 'react';
 
@@ -51,14 +55,12 @@ export function TravelCardGallery({
   isLastMinute,
   previewPhotoCount,
 }: TravelCardGalleryProps) {
-  const urls = images.filter(Boolean);
+  const urls = images.filter(isValidOfferImageUrl);
   const displayCount = previewPhotoCount && previewPhotoCount > 1 ? previewPhotoCount : urls.length;
   const showControls = displayCount > 1;
   const [index, setIndex] = useState(0);
   const safeIndex = urls.length > 0 ? index % urls.length : 0;
-  const src = urls[safeIndex] || urls[0];
-
-  if (!src) return null;
+  const src = urls[safeIndex] || OFFER_IMAGE_PLACEHOLDER;
 
   return (
     <div className="relative aspect-[16/11] h-full min-h-[170px] w-full md:aspect-auto md:min-h-[190px]">

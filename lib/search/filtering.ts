@@ -240,15 +240,24 @@ export function sortOffers(
         (a, b) => (b.stars ?? 0) - (a.stars ?? 0)
       );
 
-    case 'departure':
+    case 'departure': {
+      // Without a user departure filter: earliest *available* (today+) first; past dates last.
+      const today = new Date().toISOString().slice(0, 10);
       return [...ranked].sort((a, b) => {
         const dateA = a.departureDate?.trim() || '';
         const dateB = b.departureDate?.trim() || '';
         if (!dateA && !dateB) return 0;
         if (!dateA) return 1;
         if (!dateB) return -1;
+        const aPast = dateA < today;
+        const bPast = dateB < today;
+        if (aPast !== bPast) {
+          return aPast ? 1 : -1;
+        }
         return dateA.localeCompare(dateB);
       });
+    }
+
     case 'duration':
       return [...ranked].sort(
         (a, b) => a.nights - b.nights

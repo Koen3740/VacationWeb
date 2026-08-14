@@ -217,7 +217,8 @@ export default async function ResultsPage({
     params.page ?? 1,
     params.pageSize ?? 24,
   );
-  // TD-014: page-scoped Prijsvrij Search List[].Price enrichment (feed price as fallback).
+  // TD-014 Strategy D: user filters → sort → page; enrich only visibleOffers.
+  // One destination Search-flow per unique atomic Prijsvrij context on this page.
   const enrichedVisibleOffers = await enrichPrijsvrijSearchPrices(visibleOffers);
 
   return (
