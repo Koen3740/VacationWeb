@@ -1,7 +1,8 @@
 import type { SearchParams } from '@/types/travel';
 
 export const RESULTS_PAGE_DEFAULT = 1;
-export const RESULTS_PAGE_SIZE_DEFAULT = 24;
+/** Product page size (Master Plan §8.1a: page 1 = 10). Former technical default 24 is not product. */
+export const RESULTS_PAGE_SIZE_DEFAULT = 10;
 export const RESULTS_PAGE_SIZE_MIN = 1;
 export const RESULTS_PAGE_SIZE_MAX = 100;
 

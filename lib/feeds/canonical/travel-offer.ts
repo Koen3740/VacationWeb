@@ -31,6 +31,12 @@ export interface TravelOffer {
   price: number;
   pricePerDay: number;
   currency?: string;
+  /**
+   * Live-price provenance for Results (Fase 4 Package 1).
+   * Prijsvrij: only `proven` + `receipt` may be shown as current user price.
+   */
+  livePriceStatus?: 'proven' | 'unavailable' | 'catalog';
+  livePriceSource?: 'receipt' | 'feed' | 'search';
 
   // Hotelkwaliteit
   stars?: number | null;

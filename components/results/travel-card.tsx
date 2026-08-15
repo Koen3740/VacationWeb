@@ -28,6 +28,14 @@ function formatPrice(value: number): string {
   }).format(value);
 }
 
+/** Prijsvrij: only Receipt-proven live price may be shown as current user price. */
+function shouldShowOfferPrice(offer: TravelOffer): boolean {
+  if (offer.provider === 'Prijsvrij') {
+    return offer.livePriceStatus === 'proven' && offer.livePriceSource === 'receipt';
+  }
+  return Number.isFinite(offer.price) && offer.price > 0;
+}
+
 function collectImages(offer: TravelOffer): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -139,6 +147,7 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
   const ratingText = ratingLabel(offer.rating);
   const airport = offer.departureAirport || offer.departureAirportCode || offer.airport;
   const images = collectImages(offer);
+  const showPrice = shouldShowOfferPrice(offer);
   const shortDescriptionRaw = plainTextSnippet(offer.descriptionShort);
   const extraInfoRaw = plainTextSnippet(offer.extraInfo);
   const shortDescription = isCardBlurbUseful(shortDescriptionRaw) ? shortDescriptionRaw : undefined;
@@ -243,13 +252,19 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
               <HeartButton />
             </div>
             <div className="mt-1 flex w-full flex-1 flex-col items-end justify-center text-right">
-              <p className="text-[28px] font-bold leading-none tracking-tight" style={{ color: RESULTS_NAVY }}>
-                €&nbsp;{formatPrice(offer.price)}
-              </p>
-              <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
-              <p className="mt-2 text-[11px] font-normal text-[#A39A8C]">
-                € {formatPrice(offer.pricePerDay)} p.p. / dag
-              </p>
+              {showPrice ? (
+                <>
+                  <p className="text-[28px] font-bold leading-none tracking-tight" style={{ color: RESULTS_NAVY }}>
+                    €&nbsp;{formatPrice(offer.price)}
+                  </p>
+                  <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
+                  <p className="mt-2 text-[11px] font-normal text-[#A39A8C]">
+                    € {formatPrice(offer.pricePerDay)} p.p. / dag
+                  </p>
+                </>
+              ) : (
+                <p className="text-[13px] font-medium text-[#94A3B8]">Prijs op aanvraag</p>
+              )}
             </div>
             <div className="mt-3 w-full">
               <Link

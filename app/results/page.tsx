@@ -14,9 +14,14 @@ import { deriveDestinationCountryCounts } from '@/lib/offers/derive-destination-
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 import { loadOffers } from '@/lib/offers/load-offers';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
-import { enrichPrijsvrijSearchPrices } from '@/lib/providers/prijsvrij';
+import {
+  markPrijsvrijLivePriceUnavailable,
+  pricePage1WithPrijsvrijReceipts,
+  RESULTS_PRODUCT_PAGE_SIZE,
+  splitPage1AndRemaining,
+} from '@/lib/providers/prijsvrij';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
-import { paginateResults, parseResultsPageParam, parseResultsPageSizeParam } from '@/lib/search/pagination';
+import { paginateResults, parseResultsPageParam } from '@/lib/search/pagination';
 import { parseAccommodationTypesParam } from '@/lib/search/accommodation-type-filter';
 import { parseAmenitiesParam } from '@/lib/search/amenity-filters';
 import {
@@ -150,9 +155,7 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
     page: parseResultsPageParam(
       typeof searchParams.page === 'string' ? searchParams.page : undefined,
     ),
-    pageSize: parseResultsPageSizeParam(
-      typeof searchParams.pageSize === 'string' ? searchParams.pageSize : undefined,
-    ),
+    pageSize: RESULTS_PRODUCT_PAGE_SIZE,
   };
 }
 
@@ -212,14 +215,22 @@ export default async function ResultsPage({
   );
   const totalOffersLabel = formatTotalOffersLabel(offers.length);
   const filtered = sortOffers(filterOffers(offers, params), params.sort);
-  const visibleOffers = paginateResults(
-    filtered,
-    params.page ?? 1,
-    params.pageSize ?? 24,
-  );
-  // TD-014 Strategy D: user filters → sort → page; enrich only visibleOffers.
-  // One destination Search-flow per unique atomic Prijsvrij context on this page.
-  const enrichedVisibleOffers = await enrichPrijsvrijSearchPrices(visibleOffers);
+  const page = params.page ?? 1;
+  const pageSize = RESULTS_PRODUCT_PAGE_SIZE;
+
+  // Page 1: diversity selection (max 3 Prijsvrij) → Receipt for selected PV only.
+  // Remaining = filtered/sorted minus page-1 selected; page 2+ paginate remaining only.
+  const { remaining } = splitPage1AndRemaining(filtered, pageSize);
+
+  let visibleOffers: TravelOffer[];
+  if (page === 1) {
+    visibleOffers = await pricePage1WithPrijsvrijReceipts(filtered, params, { pageSize });
+  } else {
+    // Site page 2 → remaining page index 1 → slice(0, 10); no max-3 on page 2+.
+    visibleOffers = markPrijsvrijLivePriceUnavailable(
+      paginateResults(remaining, page - 1, pageSize),
+    );
+  }
 
   return (
     <Suspense fallback={<main className="min-h-screen bg-[#F3F5F8]" />}>
@@ -238,9 +249,9 @@ export default async function ResultsPage({
           />
         }
         results={
-          enrichedVisibleOffers.length > 0 ? (
+          visibleOffers.length > 0 ? (
             <div className="space-y-3.5">
-              {enrichedVisibleOffers.map((offer) => (
+              {visibleOffers.map((offer) => (
                 <TravelCard key={offer.id} offer={offer} />
               ))}
             </div>
@@ -248,7 +259,7 @@ export default async function ResultsPage({
             <NoResults />
           )
         }
-        pagination={<ResultsPagination params={params} totalResults={filtered.length} />}
+        pagination={<ResultsPagination params={{ ...params, pageSize }} totalResults={filtered.length} />}
       />
     </Suspense>
   );
