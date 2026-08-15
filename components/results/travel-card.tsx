@@ -28,10 +28,13 @@ function formatPrice(value: number): string {
   }).format(value);
 }
 
-/** Prijsvrij: only Receipt-proven live price may be shown as current user price. */
+/** Proven live price only — never catalog as a stand-in for a missing live quote. */
 function shouldShowOfferPrice(offer: TravelOffer): boolean {
   if (offer.provider === 'Prijsvrij') {
     return offer.livePriceStatus === 'proven' && offer.livePriceSource === 'receipt';
+  }
+  if (offer.provider === 'Corendon') {
+    return offer.livePriceStatus === 'proven' && offer.livePriceSource === 'lowestpricesacco';
   }
   return Number.isFinite(offer.price) && offer.price > 0;
 }

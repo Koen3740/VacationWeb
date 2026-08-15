@@ -4,6 +4,7 @@ import { ResultsPagination } from '@/components/results/results-pagination';
 import { SortSelector } from '@/components/results/sort-selector';
 import { TravelCard } from '@/components/results/travel-card';
 import { ResultsPageClient } from '@/components/results-v2/results-page-client';
+import { SearchProgressFeedback } from '@/components/search/search-progress-feedback';
 import { getDepartureDisplay } from '@/components/search/departure-display';
 import {
   expandDurationRange,
@@ -15,13 +16,20 @@ import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 import { loadOffers } from '@/lib/offers/load-offers';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 import {
-  markPrijsvrijLivePriceUnavailable,
-  pricePage1WithPrijsvrijReceipts,
+  Page1PaginationStream,
+  Page1ResultsStream,
+} from '@/components/results/page1-receipt-stream';
+import {
+  resolveResultsPageSlice,
   RESULTS_PRODUCT_PAGE_SIZE,
-  splitPage1AndRemaining,
+  startPage1ReceiptStream,
 } from '@/lib/providers/prijsvrij';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
-import { paginateResults, parseResultsPageParam } from '@/lib/search/pagination';
+import {
+  buildResultsPageHref,
+  parsePage1IdsParam,
+  parseResultsPageParam,
+} from '@/lib/search/pagination';
 import { parseAccommodationTypesParam } from '@/lib/search/accommodation-type-filter';
 import { parseAmenitiesParam } from '@/lib/search/amenity-filters';
 import {
@@ -31,6 +39,7 @@ import {
 import { parseStarsParam } from '@/lib/search/stars-param';
 import { parseVacationTypesParam } from '@/lib/search/vacation-type';
 import { SearchParams, type TravelOffer } from '@/types/travel';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 function deriveCitiesByCountry(offers: TravelOffer[]): Record<string, string[]> {
@@ -156,6 +165,9 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
       typeof searchParams.page === 'string' ? searchParams.page : undefined,
     ),
     pageSize: RESULTS_PRODUCT_PAGE_SIZE,
+    page1Ids: parsePage1IdsParam(
+      typeof searchParams.page1Ids === 'string' ? searchParams.page1Ids : undefined,
+    ),
   };
 }
 
@@ -215,39 +227,85 @@ export default async function ResultsPage({
   );
   const totalOffersLabel = formatTotalOffersLabel(offers.length);
   const filtered = sortOffers(filterOffers(offers, params), params.sort);
-  const page = params.page ?? 1;
   const pageSize = RESULTS_PRODUCT_PAGE_SIZE;
+  const page = params.page ?? 1;
+  const isPage1 = !Number.isFinite(page) || Math.floor(page) <= 1;
 
-  // Page 1: diversity selection (max 3 Prijsvrij) → Receipt for selected PV only.
-  // Remaining = filtered/sorted minus page-1 selected; page 2+ paginate remaining only.
-  const { remaining } = splitPage1AndRemaining(filtered, pageSize);
+  const pageShell = {
+    departureAirports: filterOptions.departureAirports,
+    resultCount: filtered.length,
+    summaryLine: buildSummaryLine(params),
+    sortControl: <SortSelector currentSort={params.sort || 'value'} />,
+    filters: (
+      <FilterSidebar
+        {...filterOptions}
+        citiesByCountry={citiesByCountry}
+        accommodationTypes={accommodationTypes}
+        countryCounts={countryCounts}
+        totalOffersLabel={totalOffersLabel}
+      />
+    ),
+  };
 
-  let visibleOffers: TravelOffer[];
-  if (page === 1) {
-    visibleOffers = await pricePage1WithPrijsvrijReceipts(filtered, params, { pageSize });
-  } else {
-    // Site page 2 → remaining page index 1 → slice(0, 10); no max-3 on page 2+.
-    visibleOffers = markPrijsvrijLivePriceUnavailable(
-      paginateResults(remaining, page - 1, pageSize),
+  // Page 1: stream non-Receipt cards immediately; PV slots resolve independently.
+  // page1Ids / remaining still wait for the full existing Receipt pipeline.
+  if (isPage1) {
+    if (filtered.length === 0) {
+      return (
+        <ResultsPageClient
+          {...pageShell}
+          results={<NoResults />}
+          pagination={
+            <ResultsPagination
+              params={{ ...params, pageSize }}
+              totalResults={0}
+            />
+          }
+        />
+      );
+    }
+
+    const stream = startPage1ReceiptStream(filtered, params, { pageSize });
+    return (
+      <ResultsPageClient
+        {...pageShell}
+        results={<Page1ResultsStream stream={stream} />}
+        pagination={
+          <Page1PaginationStream
+            stream={stream}
+            params={{ ...params, pageSize }}
+            totalResults={filtered.length}
+          />
+        }
+      />
     );
   }
 
+  // Page 2+: remaining from page1Ids; cold page 2 runs page-1 pipeline once.
+  const { visibleOffers, page1Ids, needsPage1IdsRedirect } = await resolveResultsPageSlice(
+    filtered,
+    params,
+    { pageSize },
+  );
+
+  if (needsPage1IdsRedirect && page1Ids?.length) {
+    redirect(
+      buildResultsPageHref(
+        { ...params, pageSize, page1Ids },
+        params.page ?? 2,
+      ),
+    );
+  }
   return (
-    <Suspense fallback={<main className="min-h-screen bg-[#F3F5F8]" />}>
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#F3F5F8]">
+          <SearchProgressFeedback />
+        </main>
+      }
+    >
       <ResultsPageClient
-        departureAirports={filterOptions.departureAirports}
-        resultCount={filtered.length}
-        summaryLine={buildSummaryLine(params)}
-        sortControl={<SortSelector currentSort={params.sort || 'value'} />}
-        filters={
-          <FilterSidebar
-            {...filterOptions}
-            citiesByCountry={citiesByCountry}
-            accommodationTypes={accommodationTypes}
-            countryCounts={countryCounts}
-            totalOffersLabel={totalOffersLabel}
-          />
-        }
+        {...pageShell}
         results={
           visibleOffers.length > 0 ? (
             <div className="space-y-3.5">
@@ -259,7 +317,12 @@ export default async function ResultsPage({
             <NoResults />
           )
         }
-        pagination={<ResultsPagination params={{ ...params, pageSize }} totalResults={filtered.length} />}
+        pagination={
+          <ResultsPagination
+            params={{ ...params, pageSize, page1Ids }}
+            totalResults={filtered.length}
+          />
+        }
       />
     </Suspense>
   );

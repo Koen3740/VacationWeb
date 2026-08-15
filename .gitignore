@@ -34,3 +34,9 @@ _preview-check.png
 
 # generated runtime data
 data/offers.json
+# TradeTracker research secrets / local credentials
+docs/research/tradetracker-webservices/.env
+docs/research/tradetracker-webservices/.env.local
+docs/research/tradetracker-webservices/**/*credential*
+docs/research/tradetracker-webservices/raw/**
+**/Webservice_ID_Toegengssleutel.txt

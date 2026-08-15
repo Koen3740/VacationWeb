@@ -26,7 +26,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "data/productfeed.xml"
+        "path": "../Productfeeds/Corendon/Corendon BENL.xml"
       },
       "campaignId": "38103",
       "preferredFormat": "xml",
@@ -35,6 +35,24 @@
       "lastSuccess": "",
       "version": "",
       "priority": 10
+    },
+    {
+      "id": "corendon-nl",
+      "provider": "Corendon",
+      "profile": "corendon",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "../Productfeeds/Corendon/Corendon.nl.xml"
+      },
+      "campaignId": "38108",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 11
     },
     {
       "id": "prijsvrij-primary",

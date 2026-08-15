@@ -5,6 +5,7 @@ import { getEnabledFeeds, type FeedManifestEntry } from '../lib/feeds/feed-regis
 import { FEED_PATHS } from '../lib/feeds/feed-paths';
 import { importXmlByProfile, isKnownImporterProfile } from '../lib/feeds/importer-router';
 import { deriveFilterOptions } from '../lib/offers/derive-filter-options';
+import { mergeCorendonOffers } from '../lib/feeds/importers/corendon-merge';
 import { StoredOffer } from '../lib/feeds/types/stored-offer';
 
 type FeedImportResult = {
@@ -151,7 +152,10 @@ function main(): void {
     console.log(`✔ ${result.feed.id} (${result.feed.provider}/${result.feed.profile}): ${result.offers.length}`);
   }
 
-  const { offers, dropped } = dedupeByExternalId(collected);
+  const corendon = collected.filter((offer) => offer.provider === 'Corendon');
+  const others = collected.filter((offer) => offer.provider !== 'Corendon');
+  const corendonMerged = mergeCorendonOffers(corendon);
+  const { offers, dropped } = dedupeByExternalId([...corendonMerged.offers, ...others]);
 
   if (offers.length === 0) {
     console.error('✖ Import produced zero offers — refusing to overwrite local offers.json');
@@ -185,6 +189,12 @@ function main(): void {
   console.log(`  - feeds enabled: ${enabledFeeds.length}`);
   console.log(`  - feeds imported: ${results.length}`);
   console.log(`  - feeds failed: 0`);
+  console.log(`  - Corendon input: ${corendonMerged.stats.input}`);
+  console.log(`  - Corendon bookable duplicates dropped: ${corendonMerged.stats.duplicatesDropped}`);
+  console.log(`  - Corendon unique: ${corendonMerged.stats.unique}`);
+  console.log(`  - Corendon without fragment (kept): ${corendonMerged.stats.keptWithoutBookableKey}`);
+  console.log(`  - Corendon BE campaign kept: ${corendonMerged.stats.beCampaignKept}`);
+  console.log(`  - Corendon NL campaign kept: ${corendonMerged.stats.nlCampaignKept}`);
   console.log(`  - dedupe dropped: ${dropped}`);
   for (const [provider, count] of Object.entries(providerCounts).sort(([a], [b]) => a.localeCompare(b))) {
     console.log(`  - ${provider}: ${count}`);

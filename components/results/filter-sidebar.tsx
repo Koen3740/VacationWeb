@@ -52,8 +52,14 @@ import {
   serializeVacationTypesParam,
   type VacationType,
 } from '@/lib/search/vacation-type';
+import { writeBudgetParams } from '@/lib/search/budget-params';
+import {
+  SEARCH_PROGRESS_DELAY_MS,
+  SearchProgressOverlay,
+  useDelayedBusyOverlay,
+} from '@/components/search/search-progress-feedback';
 import { FilterOptions } from '@/types/travel';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 const BUDGET_MIN_BOUND = 0;
@@ -223,8 +229,11 @@ export function FilterSidebar({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const [filters, setFilters] = useState(() => parseFilters(new URLSearchParams(searchParams.toString())));
   const [destinationPopupOpen, setDestinationPopupOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const navigationLockRef = useRef(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     destination: true,
     budget: true,
@@ -244,8 +253,13 @@ export function FilterSidebar({
     center: true,
   });
 
+  const filterBusy = isNavigating || isPending;
+  const showProgressOverlay = useDelayedBusyOverlay(filterBusy, SEARCH_PROGRESS_DELAY_MS);
+
   useEffect(() => {
     setFilters(parseFilters(new URLSearchParams(searchParams.toString())));
+    navigationLockRef.current = false;
+    setIsNavigating(false);
   }, [searchParams]);
 
   const selectedCountries = useMemo(
@@ -278,11 +292,19 @@ export function FilterSidebar({
     return ACCOMMODATION_TYPE_FILTER_VALUES.filter((type) => available.has(type.toLowerCase()));
   }, [accommodationTypes]);
 
-  const updateFilters = (next: typeof filters) => {
+  const updateFilters = (
+    next: typeof filters,
+    options?: { allowWhileNavigating?: boolean },
+  ) => {
+    if (navigationLockRef.current && !options?.allowWhileNavigating) {
+      return;
+    }
+
     setFilters(next);
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
+    params.delete('page1Ids');
 
     if (next.country) {
       params.set('country', next.country);
@@ -302,8 +324,13 @@ export function FilterSidebar({
       params.delete('city');
     }
 
-    params.set('budgetMin', String(next.budgetMin));
-    params.set('budgetMax', String(next.budgetMax));
+    writeBudgetParams(
+      params,
+      next.budgetMin,
+      next.budgetMax,
+      BUDGET_FILTER_MIN,
+      BUDGET_FILTER_MAX,
+    );
     params.delete('nightsMin');
     params.delete('nightsMax');
 
@@ -365,7 +392,11 @@ export function FilterSidebar({
     }
 
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    navigationLockRef.current = true;
+    setIsNavigating(true);
+    startTransition(() => {
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    });
   };
 
   const toggleBoardType = (value: CanonicalBoardType) => {
@@ -444,6 +475,10 @@ export function FilterSidebar({
   };
 
   const clearAllFilters = () => {
+    if (navigationLockRef.current || filterBusy) {
+      return;
+    }
+
     const params = new URLSearchParams(searchParams.toString());
     for (const key of [
       'country',
@@ -463,11 +498,16 @@ export function FilterSidebar({
       'amenities',
       'departureAirport',
       'page',
+      'page1Ids',
     ]) {
       params.delete(key);
     }
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    navigationLockRef.current = true;
+    setIsNavigating(true);
+    startTransition(() => {
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    });
   };
 
   const budgetMinPct = ((filters.budgetMin - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
@@ -487,6 +527,7 @@ export function FilterSidebar({
 
   return (
     <aside>
+      {showProgressOverlay ? <SearchProgressOverlay /> : null}
       <div
         className="rounded-[16px] border px-4"
         style={{
@@ -570,11 +611,14 @@ export function FilterSidebar({
                 aria-label="Minimumprijs per persoon"
                 onChange={(event) => {
                   const nextBudgetMin = Number(event.target.value);
-                  updateFilters({
-                    ...filters,
-                    budgetMin: nextBudgetMin,
-                    budgetMax: Math.max(filters.budgetMax, nextBudgetMin),
-                  });
+                  updateFilters(
+                    {
+                      ...filters,
+                      budgetMin: nextBudgetMin,
+                      budgetMax: Math.max(filters.budgetMax, nextBudgetMin),
+                    },
+                    { allowWhileNavigating: true },
+                  );
                 }}
                 className="vw-budget-range z-[2]"
               />
@@ -586,11 +630,14 @@ export function FilterSidebar({
                 aria-label="Maximumprijs per persoon"
                 onChange={(event) => {
                   const nextBudgetMax = Number(event.target.value);
-                  updateFilters({
-                    ...filters,
-                    budgetMax: nextBudgetMax,
-                    budgetMin: Math.min(filters.budgetMin, nextBudgetMax),
-                  });
+                  updateFilters(
+                    {
+                      ...filters,
+                      budgetMax: nextBudgetMax,
+                      budgetMin: Math.min(filters.budgetMin, nextBudgetMax),
+                    },
+                    { allowWhileNavigating: true },
+                  );
                 }}
                 className="vw-budget-range z-[3]"
               />

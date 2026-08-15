@@ -62,10 +62,12 @@ function DurationPopupPanel({
   selectedDurations,
   onClose,
   onToggle,
+  onSave,
 }: {
   selectedDurations: number[];
   onClose: () => void;
   onToggle: (days: number) => void;
+  onSave: () => void;
 }) {
   const options = useMemo(() => buildDurationOptions(), []);
   const selectedSet = useMemo(() => new Set(selectedDurations), [selectedDurations]);
@@ -101,6 +103,16 @@ function DurationPopupPanel({
           />
         ))}
       </div>
+
+      <div className="mt-5 flex shrink-0 justify-end">
+        <button
+          type="button"
+          onClick={onSave}
+          className="h-11 w-40 rounded-md bg-[#2E7D32] text-sm font-semibold text-white"
+        >
+          OPSLAAN
+        </button>
+      </div>
     </div>
   );
 }
@@ -112,6 +124,7 @@ export function DurationPopup({
   onChange,
 }: DurationPopupProps) {
   const [mounted, setMounted] = useState(false);
+  const [draftDurations, setDraftDurations] = useState<number[]>(selectedDurations);
   const overlayReadyRef = useRef(false);
 
   useEffect(() => {
@@ -124,6 +137,7 @@ export function DurationPopup({
       return undefined;
     }
 
+    setDraftDurations(selectedDurations);
     overlayReadyRef.current = false;
     const overlayTimer = window.setTimeout(() => {
       overlayReadyRef.current = true;
@@ -145,10 +159,17 @@ export function DurationPopup({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', onKeyDown);
     };
+    // Seed draft only when the popup opens; multi-select edits stay local until OPSLAAN.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedDurations read on open
   }, [onClose, open]);
 
   const handleToggle = (days: number) => {
-    onChange(toggleDuration(selectedDurations, days));
+    setDraftDurations((current) => toggleDuration(current, days));
+  };
+
+  const handleSave = () => {
+    onChange(draftDurations);
+    onClose();
   };
 
   if (!open) {
@@ -173,9 +194,10 @@ export function DurationPopup({
       />
       <div className="relative z-10" onClick={(event) => event.stopPropagation()}>
         <DurationPopupPanel
-          selectedDurations={selectedDurations}
+          selectedDurations={draftDurations}
           onClose={onClose}
           onToggle={handleToggle}
+          onSave={handleSave}
         />
       </div>
     </div>,

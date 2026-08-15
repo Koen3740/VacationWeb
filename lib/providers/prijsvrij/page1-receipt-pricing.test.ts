@@ -6,15 +6,20 @@ import {
   PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP,
 } from './constants';
 import {
+  buildRemainingFromPresentedPage1,
   getResultsPageOffers,
   mapWithConcurrency,
   markPrijsvrijLivePriceUnavailable,
   PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY,
+  pricePage1AndBuildRemaining,
   pricePage1WithPrijsvrijReceipts,
+  resolveResultsPageSlice,
   selectPage1Candidates,
   splitPage1AndRemaining,
+  isUsablePage1IdsParam,
   type Page1ReceiptPricingStats,
 } from './page1-receipt-pricing';
+import { paginateResults, buildResultsPageHref } from '../../search/pagination';
 import { clearPrijsvrijReceiptTokenCache } from './receipt-auth';
 import { buildPrijsvrijReceiptFilters, fetchPrijsvrijReceiptPrice } from './receipt-client';
 import {
@@ -442,7 +447,8 @@ test('markPrijsvrijLivePriceUnavailable: no proven PV price', () => {
     makeOffer({ id: 'corendon-1', provider: 'Corendon', price: 300 }),
   ]);
   assert.equal(marked[0].livePriceStatus, 'unavailable');
-  assert.equal(marked[1].livePriceSource, 'feed');
+  assert.equal(marked[1].livePriceStatus, 'unavailable');
+  assert.equal(marked[1].livePriceSource, undefined);
 });
 
 test('mapWithConcurrency: never exceeds concurrency ceiling', async () => {
@@ -664,4 +670,362 @@ test('page1 selection + remaining pagination intact with concurrency helpers', (
     remaining.slice(0, 10).map((o) => o.id),
   );
   assert.ok(!getResultsPageOffers(offers, 2).some((o) => page1.some((p) => p.id === o.id)));
+});
+
+test('REGRESSION: Receipt reserve on page1 must not remain on page2 (pre-fix split remaining)', async () => {
+  clearPrijsvrijReceiptTokenCache();
+  // Mirrors production failure mode: primary PV fails Receipt, reserve TARGET fills page 1,
+  // but pre-Receipt splitPage1AndRemaining still keeps TARGET in remaining → page1∩page2 ≠ ∅.
+  const TARGET = 'prijsvrij-359815-2027-03-12-8-269-LO';
+  const fetchImpl = makeTokenAndReceiptFetch({
+    failHotelIds: new Set(['801']),
+  });
+
+  const offers = [
+    makeOffer({ id: 'prijsvrij-801-x', provider: PRIJSVRIJ_PROVIDER_NAME, price: 100 }),
+    ...Array.from({ length: 9 }, (_, i) =>
+      makeOffer({ id: `corendon-${i}`, provider: 'Corendon', price: 200 + i }),
+    ),
+    makeOffer({
+      id: TARGET,
+      provider: PRIJSVRIJ_PROVIDER_NAME,
+      price: 269,
+      departureDate: '2027-03-12',
+      nights: 8,
+    }),
+    makeOffer({ id: 'prijsvrij-late-1', provider: PRIJSVRIJ_PROVIDER_NAME, price: 400 }),
+  ];
+
+  const { selected, prijsvrijReserves } = selectPage1Candidates(offers);
+  assert.ok(selected.some((o) => o.id === 'prijsvrij-801-x'));
+  assert.ok(!selected.some((o) => o.id === TARGET));
+  assert.ok(prijsvrijReserves.some((o) => o.id === TARGET));
+
+  const { remaining: preReceiptRemaining } = splitPage1AndRemaining(offers);
+  assert.ok(
+    preReceiptRemaining.some((o) => o.id === TARGET),
+    'pre-Receipt remaining still contains reserve TARGET (bug precondition)',
+  );
+
+  const { page1, remaining } = await pricePage1AndBuildRemaining(offers, { adults: 2 }, { fetchImpl });
+  assert.ok(page1.some((o) => o.id === TARGET), 'TARGET presented on page 1 via reserve');
+  assert.ok(!page1.some((o) => o.id === 'prijsvrij-801-x'), 'failed primary not presented');
+  assert.ok(!remaining.some((o) => o.id === TARGET), 'TARGET excluded from post-Receipt remaining');
+  assert.ok(
+    remaining.some((o) => o.id === 'prijsvrij-801-x'),
+    'failed primary returns to remaining for page 2+',
+  );
+
+  const page2 = paginateResults(remaining, 1, 10);
+  assert.equal(page1.filter((o) => page2.some((p) => p.id === o.id)).length, 0);
+
+  // Demonstrate old page.tsx bug pattern would duplicate TARGET:
+  const buggyPage2 = paginateResults(preReceiptRemaining, 1, 10);
+  assert.ok(
+    page1.some((o) => o.id === TARGET) && buggyPage2.some((o) => o.id === TARGET),
+    'legacy split-remaining would duplicate TARGET on page 2',
+  );
+});
+
+test('buildRemainingFromPresentedPage1: partition integrity after Receipt success', async () => {
+  clearPrijsvrijReceiptTokenCache();
+  const fetchImpl = makeTokenAndReceiptFetch({});
+  const offers = [
+    makeOffer({ id: 'prijsvrij-100-x', provider: PRIJSVRIJ_PROVIDER_NAME }),
+    makeOffer({ id: 'prijsvrij-200-x', provider: PRIJSVRIJ_PROVIDER_NAME }),
+    ...Array.from({ length: 12 }, (_, i) =>
+      makeOffer({ id: `corendon-${i}`, provider: 'Corendon' }),
+    ),
+    makeOffer({ id: 'prijsvrij-300-x', provider: PRIJSVRIJ_PROVIDER_NAME }),
+  ];
+
+  const { page1, remaining } = await pricePage1AndBuildRemaining(offers, { adults: 2 }, { fetchImpl });
+  const presentedIds = new Set(page1.map((o) => o.id));
+  const remainingIds = new Set(remaining.map((o) => o.id));
+
+  assert.equal(page1.length, 10);
+  assert.equal(page1.length + remaining.length, offers.length);
+  for (const id of presentedIds) {
+    assert.ok(!remainingIds.has(id));
+  }
+  for (const offer of offers) {
+    assert.ok(presentedIds.has(offer.id) || remainingIds.has(offer.id));
+  }
+
+  // Skipped PV (over soft max) stays available on page 2+
+  assert.ok(remainingIds.has('prijsvrij-300-x'));
+  const page2 = paginateResults(remaining, 1, 10);
+  assert.ok(page2.some((o) => o.id === 'prijsvrij-300-x') || remaining.some((o) => o.id === 'prijsvrij-300-x'));
+
+  assert.deepEqual(
+    buildRemainingFromPresentedPage1(offers, page1).map((o) => o.id),
+    remaining.map((o) => o.id),
+  );
+});
+
+test('>3 Prijsvrij: soft max 3 on presented page1; extras remain for page2+', async () => {
+  clearPrijsvrijReceiptTokenCache();
+  const fetchImpl = makeTokenAndReceiptFetch({});
+  const offers = [
+    ...Array.from({ length: 6 }, (_, i) =>
+      makeOffer({ id: `prijsvrij-${1000 + i}-x`, provider: PRIJSVRIJ_PROVIDER_NAME, price: 100 + i }),
+    ),
+    ...Array.from({ length: 10 }, (_, i) =>
+      makeOffer({ id: `corendon-${i}`, provider: 'Corendon', price: 300 + i }),
+    ),
+  ];
+
+  const { page1, remaining } = await pricePage1AndBuildRemaining(offers, { adults: 2 }, { fetchImpl });
+  assert.equal(page1.filter((o) => o.provider === PRIJSVRIJ_PROVIDER_NAME).length, 3);
+  assert.ok(remaining.filter((o) => o.provider === PRIJSVRIJ_PROVIDER_NAME).length >= 3);
+  assert.equal(page1.filter((o) => remaining.some((r) => r.id === o.id)).length, 0);
+});
+
+test('resolveResultsPageSlice page1: normal + max 3 PV + Receipt success', async () => {
+  clearPrijsvrijReceiptTokenCache();
+  const stats: Page1ReceiptPricingStats = {
+    receiptCalls: 0,
+    receiptSuccesses: 0,
+    receiptFailures: 0,
+    prijsvrijSlotsFilled: 0,
+    stoppedEarlyBecauseEnoughPv: false,
+  };
+  const fetchImpl = makeTokenAndReceiptFetch({});
+  const offers = [
+    ...Array.from({ length: 4 }, (_, i) =>
+      makeOffer({ id: `prijsvrij-${i}`, provider: PRIJSVRIJ_PROVIDER_NAME, price: 100 + i }),
+    ),
+    ...Array.from({ length: 20 }, (_, i) =>
+      makeOffer({ id: `corendon-${i}`, provider: 'Corendon', price: 200 + i }),
+    ),
+  ];
+
+  const slice = await resolveResultsPageSlice(offers, { adults: 2, page: 1 }, { fetchImpl, stats });
+  assert.equal(slice.visibleOffers.length, 10);
+  assert.equal(slice.visibleOffers.filter((o) => o.provider === PRIJSVRIJ_PROVIDER_NAME).length, 3);
+  assert.equal(stats.receiptCalls, 3);
+  assert.equal(stats.receiptSuccesses, 3);
+  assert.ok(slice.page1Ids?.length === 10);
+  assert.equal(slice.visibleOffers.length + slice.remaining.length, offers.length);
+  assert.equal(
+    slice.visibleOffers.filter((o) => slice.remaining.some((r) => r.id === o.id)).length,
+    0,
+  );
+  assert.ok(slice.remaining.some((o) => o.id === 'prijsvrij-3'), 'skipped PV stays for page 2+');
+});
+
+test('resolveResultsPageSlice: Receipt failure + reserve on page1, not on page2', async () => {
+  clearPrijsvrijReceiptTokenCache();
+  const TARGET = 'prijsvrij-359815-2027-03-12-8-269-LO';
+  const fetchImpl = makeTokenAndReceiptFetch({ failHotelIds: new Set(['801']) });
+  const offers = [
+    makeOffer({ id: 'prijsvrij-801-x', provider: PRIJSVRIJ_PROVIDER_NAME, price: 100 }),
+    ...Array.from({ length: 9 }, (_, i) =>
+      makeOffer({ id: `corendon-${i}`, provider: 'Corendon', price: 200 + i }),
+    ),
+    makeOffer({
+      id: TARGET,
+      provider: PRIJSVRIJ_PROVIDER_NAME,
+      price: 269,
+      departureDate: '2027-03-12',
+      nights: 8,
+    }),
+    makeOffer({ id: 'prijsvrij-late-1', provider: PRIJSVRIJ_PROVIDER_NAME, price: 400 }),
+  ];
+
+  const page1Slice = await resolveResultsPageSlice(
+    offers,
+    { adults: 2, page: 1 },
+    { fetchImpl },
+  );
+  assert.ok(page1Slice.visibleOffers.some((o) => o.id === TARGET));
+  assert.ok(!page1Slice.remaining.some((o) => o.id === TARGET));
+
+  let receiptCallsOnPage2 = 0;
+  const guardedFetch: typeof fetch = async (input, init) => {
+    receiptCallsOnPage2 += 1;
+    return fetchImpl(input, init);
+  };
+
+  const page2Slice = await resolveResultsPageSlice(
+    offers,
+    { adults: 2, page: 2, page1Ids: page1Slice.page1Ids },
+    { fetchImpl: guardedFetch },
+  );
+  assert.equal(receiptCallsOnPage2, 0, 'page 2 must not execute Receipt');
+  assert.ok(!page2Slice.visibleOffers.some((o) => o.id === TARGET));
+  assert.equal(
+    page1Slice.visibleOffers.filter((o) => page2Slice.visibleOffers.some((p) => p.id === o.id))
+      .length,
+    0,
+  );
+  assert.ok(
+    page2Slice.remaining.some((o) => o.id === 'prijsvrij-801-x') ||
+      page2Slice.visibleOffers.some((o) => o.id === 'prijsvrij-801-x'),
+    'failed primary available on page 2+',
+  );
+});
+
+test('resolveResultsPageSlice: page 2/3/4 with valid page1Ids → 0 Receipt; ids preserved', async () => {
+  clearPrijsvrijReceiptTokenCache();
+  const stats: Page1ReceiptPricingStats = {
+    receiptCalls: 0,
+    receiptSuccesses: 0,
+    receiptFailures: 0,
+    prijsvrijSlotsFilled: 0,
+    stoppedEarlyBecauseEnoughPv: false,
+  };
+  let receiptHttp = 0;
+  const fetchImpl = makeTokenAndReceiptFetch({
+    onReceiptStart: () => {
+      receiptHttp += 1;
+    },
+  });
+  const offers = [
+    ...Array.from({ length: 5 }, (_, i) =>
+      makeOffer({ id: `prijsvrij-${i}`, provider: PRIJSVRIJ_PROVIDER_NAME, price: 90 + i }),
+    ),
+    ...Array.from({ length: 40 }, (_, i) =>
+      makeOffer({ id: `corendon-${i}`, provider: 'Corendon', price: 150 + i }),
+    ),
+  ];
+
+  const page1 = await resolveResultsPageSlice(
+    offers,
+    { adults: 2, page: 1 },
+    { fetchImpl, stats },
+  );
+  assert.ok(stats.receiptCalls > 0);
+  assert.equal(receiptHttp, stats.receiptCalls);
+  const presented = new Set(page1.page1Ids);
+  assert.ok(isUsablePage1IdsParam(page1.page1Ids, offers));
+
+  for (const page of [2, 3, 4]) {
+    const before = receiptHttp;
+    const slice = await resolveResultsPageSlice(
+      offers,
+      { adults: 2, page, page1Ids: page1.page1Ids },
+      {
+        fetchImpl: async (input, init) => {
+          receiptHttp += 1;
+          return fetchImpl(input, init);
+        },
+      },
+    );
+    assert.equal(receiptHttp, before, `page ${page} must not call Receipt HTTP`);
+    assert.equal(slice.needsPage1IdsRedirect, undefined);
+    assert.deepEqual(slice.page1Ids, page1.page1Ids, `page1Ids preserved on page ${page}`);
+    assert.equal(slice.visibleOffers.length, 10);
+    assert.ok(slice.visibleOffers.every((o) => !presented.has(o.id)));
+    assert.deepEqual(
+      slice.visibleOffers.map((o) => o.id),
+      page1.remaining.slice((page - 2) * 10, (page - 1) * 10).map((o) => o.id),
+    );
+
+    const href = buildResultsPageHref(
+      { adults: 2, pageSize: 10, page1Ids: slice.page1Ids },
+      page,
+    );
+    assert.ok(href.includes(`page=${page}`));
+    assert.ok(href.includes('page1Ids='));
+    for (const id of page1.page1Ids ?? []) {
+      assert.ok(href.includes(id) || href.includes(encodeURIComponent(id)));
+    }
+  }
+
+  assert.equal(page1.visibleOffers.length + page1.remaining.length, offers.length);
+});
+
+test('cold page 2 without page1Ids: page-1 pipeline once + redirect signal with definitive ids', async () => {
+  clearPrijsvrijReceiptTokenCache();
+  const TARGET = 'prijsvrij-359815-2027-03-12-8-269-LO';
+  const stats: Page1ReceiptPricingStats = {
+    receiptCalls: 0,
+    receiptSuccesses: 0,
+    receiptFailures: 0,
+    prijsvrijSlotsFilled: 0,
+    stoppedEarlyBecauseEnoughPv: false,
+  };
+  const fetchImpl = makeTokenAndReceiptFetch({ failHotelIds: new Set(['801']) });
+  const offers = [
+    makeOffer({ id: 'prijsvrij-801-x', provider: PRIJSVRIJ_PROVIDER_NAME, price: 100 }),
+    ...Array.from({ length: 9 }, (_, i) =>
+      makeOffer({ id: `corendon-${i}`, provider: 'Corendon', price: 200 + i }),
+    ),
+    makeOffer({
+      id: TARGET,
+      provider: PRIJSVRIJ_PROVIDER_NAME,
+      price: 269,
+      departureDate: '2027-03-12',
+      nights: 8,
+    }),
+    ...Array.from({ length: 15 }, (_, i) =>
+      makeOffer({ id: `corendon-extra-${i}`, provider: 'Corendon', price: 300 + i }),
+    ),
+    makeOffer({ id: 'prijsvrij-skipped', provider: PRIJSVRIJ_PROVIDER_NAME, price: 400 }),
+  ];
+
+  const cold = await resolveResultsPageSlice(
+    offers,
+    { adults: 2, page: 2, country: 'Turkije', sort: 'price' },
+    { fetchImpl, stats },
+  );
+
+  assert.ok(stats.receiptCalls >= 1, 'cold page 2 runs page-1 Receipt pipeline once');
+  assert.equal(cold.needsPage1IdsRedirect, true);
+  assert.ok(cold.page1Ids?.includes(TARGET), 'definitive page1Ids include reserve');
+  assert.ok(!cold.page1Ids?.includes('prijsvrij-801-x'));
+  assert.ok(!cold.visibleOffers.some((o) => o.id === TARGET), 'reserve not on page 2');
+  assert.ok(
+    cold.remaining.some((o) => o.id === 'prijsvrij-skipped') ||
+      cold.visibleOffers.some((o) => o.id === 'prijsvrij-skipped'),
+    'skipped PV stays available on page 2+',
+  );
+  assert.equal(
+    cold.page1Ids!.filter((id) => cold.visibleOffers.some((o) => o.id === id)).length,
+    0,
+    'no page1/page2 duplicates after cold resolve',
+  );
+  assert.equal(cold.page1Ids!.length + cold.remaining.length, offers.length);
+
+  const redirectHref = buildResultsPageHref(
+    {
+      adults: 2,
+      country: 'Turkije',
+      sort: 'price',
+      pageSize: 10,
+      page1Ids: cold.page1Ids,
+    },
+    2,
+  );
+  assert.ok(redirectHref.includes('page=2'), 'redirect keeps requested page');
+  assert.ok(redirectHref.includes('page1Ids='));
+  assert.ok(redirectHref.includes(TARGET) || redirectHref.includes(encodeURIComponent(TARGET)));
+
+  // Follow-up request with redirected page1Ids: zero Receipt.
+  let followUpFetch = 0;
+  const followUp = await resolveResultsPageSlice(
+    offers,
+    { adults: 2, page: 2, page1Ids: cold.page1Ids },
+    {
+      fetchImpl: async (input, init) => {
+        followUpFetch += 1;
+        return fetchImpl(input, init);
+      },
+    },
+  );
+  assert.equal(followUpFetch, 0);
+  assert.equal(followUp.needsPage1IdsRedirect, undefined);
+  assert.ok(!followUp.visibleOffers.some((o) => o.id === TARGET));
+});
+
+test('isUsablePage1IdsParam: empty / no overlap → unusable', () => {
+  const offers = [
+    makeOffer({ id: 'a', provider: 'Corendon' }),
+    makeOffer({ id: 'b', provider: 'Corendon' }),
+  ];
+  assert.equal(isUsablePage1IdsParam(undefined, offers), false);
+  assert.equal(isUsablePage1IdsParam([], offers), false);
+  assert.equal(isUsablePage1IdsParam(['missing'], offers), false);
+  assert.equal(isUsablePage1IdsParam(['a'], offers), true);
 });

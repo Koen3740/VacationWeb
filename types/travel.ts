@@ -42,4 +42,9 @@ export interface SearchParams {
   sort?: string;
   page?: number;
   pageSize?: number;
+  /**
+   * Definitive page-1 offer IDs after Receipt (incl. reserve/backfill).
+   * Carried in pagination links so page 2+ can build remaining without re-running Receipt.
+   */
+  page1Ids?: string[];
 }

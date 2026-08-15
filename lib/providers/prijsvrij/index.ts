@@ -22,15 +22,25 @@ export {
   resolvePrijsvrijReceiptOccupancy,
 } from './receipt-context';
 export {
+  buildRemainingFromPresentedPage1,
+  buildRemainingFromPresentedPage1Ids,
   getResultsPageOffers,
+  isUsablePage1IdsParam,
   mapWithConcurrency,
   markPrijsvrijLivePriceUnavailable,
   PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY,
+  pricePage1AndBuildRemaining,
   pricePage1WithPrijsvrijReceipts,
+  resolveResultsPageSlice,
   RESULTS_PRODUCT_PAGE_SIZE,
   selectPage1Candidates,
   splitPage1AndRemaining,
+  startPage1ReceiptStream,
+  type Page1PresentedSlice,
   type Page1ReceiptPricingStats,
+  type Page1ReceiptStream,
+  type Page1StreamSlot,
+  type ResolveResultsPageSliceOptions,
 } from './page1-receipt-pricing';
 export {
   PRIJSVRIJ_PAGE1_MAX_SLOTS,

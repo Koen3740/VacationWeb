@@ -126,7 +126,10 @@ function mapCorendonProduct(product: CorendonXmlProduct): StoredOffer {
     provider: PROVIDERS.corendon.name,
 
     hotelName: product.name,
-    accommodation: getProperty(product, 'accommodation') || undefined,
+    accommodation:
+      getProperty(product, 'accommodation') ||
+      getProperty(product, 'accommodationcode') ||
+      undefined,
     accommodationType: getProperty(product, 'accommodationType') || undefined,
     stars: toNumber(getProperty(product, 'stars')),
     rating: toNumber(getProperty(product, 'rating')),

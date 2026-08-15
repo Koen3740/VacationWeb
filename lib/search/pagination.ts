@@ -153,8 +153,26 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
     query.set('sort', params.sort);
   }
 
+  if (params.page1Ids?.length) {
+    query.set('page1Ids', params.page1Ids.join(','));
+  }
+
   query.set('page', String(page));
   query.set('pageSize', String(params.pageSize ?? RESULTS_PAGE_SIZE_DEFAULT));
 
   return `/results?${query.toString()}`;
+}
+
+/** Parse definitive page-1 offer IDs carried for page 2+ remaining (no Receipt). */
+export function parsePage1IdsParam(raw: string | undefined): string[] | undefined {
+  if (typeof raw !== 'string' || raw.trim() === '') {
+    return undefined;
+  }
+
+  const ids = raw
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
+
+  return ids.length > 0 ? ids : undefined;
 }

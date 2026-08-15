@@ -15,6 +15,11 @@ import {
   buildResultsHref,
   saveSharedSearchState,
 } from '@/components/search/shared-search-state';
+import {
+  SEARCH_PROGRESS_DELAY_MS,
+  SearchProgressOverlay,
+  useDelayedBusyOverlay,
+} from '@/components/search/search-progress-feedback';
 import { TravelersPopup } from '@/components/search/travelers-popup/travelers-popup';
 import {
   createDefaultTravelersState,
@@ -24,7 +29,7 @@ import {
 import { RESULTS_CTA, RESULTS_CTA_HOVER } from '@/components/results-v2/results-design-tokens';
 import { getDepartureDisplay } from '@/components/search/departure-display';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 
 function PlaneIcon() {
   return (
@@ -43,18 +48,21 @@ function FieldButton({
   hint,
   icon,
   onClick,
+  disabled = false,
 }: {
   label: string;
   value: string;
   hint: string;
   icon: ReactNode;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[60px] min-w-0 flex-1 items-center gap-2.5 px-3.5 py-2 text-left transition hover:bg-[#F8FAFC]"
+      disabled={disabled}
+      className="flex min-h-[60px] min-w-0 flex-1 items-center gap-2.5 px-3.5 py-2 text-left transition hover:bg-[#F8FAFC] disabled:cursor-wait disabled:opacity-80"
     >
       {icon}
       <span className="min-w-0 flex-1">
@@ -119,16 +127,24 @@ type ResultsSearchBarProps = {
 export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const [state, setState] = useState(() => stateFromUrl(new URLSearchParams(searchParams.toString())));
   const [departureOpen, setDepartureOpen] = useState(false);
   const [durationOpen, setDurationOpen] = useState(false);
   const [travelersOpen, setTravelersOpen] = useState(false);
   const [airportOpen, setAirportOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const airportRef = useRef<HTMLDivElement>(null);
   const suppressDepartureOpenRef = useRef(false);
+  const searchStartedRef = useRef(false);
+
+  const searchBusy = isSearching || isPending;
+  const showProgressOverlay = useDelayedBusyOverlay(searchBusy, SEARCH_PROGRESS_DELAY_MS);
 
   useEffect(() => {
     setState(stateFromUrl(new URLSearchParams(searchParams.toString())));
+    searchStartedRef.current = false;
+    setIsSearching(false);
   }, [searchParams]);
 
   useEffect(() => {
@@ -204,11 +220,21 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
     } else {
       params.delete('departureAirport');
     }
+    // New search recomputes page 1 — drop pagination / page1Ids from prior resultset.
+    params.delete('page');
+    params.delete('page1Ids');
     return `/results?${params.toString()}`;
   }, [searchParams, state]);
 
   function runSearch() {
-    router.push(searchHref);
+    if (searchStartedRef.current || searchBusy) {
+      return;
+    }
+    searchStartedRef.current = true;
+    setIsSearching(true);
+    startTransition(() => {
+      router.push(searchHref);
+    });
   }
 
   return (
@@ -221,6 +247,7 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
               value={wanneerValue}
               hint={wanneerHint}
               icon={<CalendarIcon />}
+              disabled={searchBusy}
               onClick={() => {
                 if (!suppressDepartureOpenRef.current) setDepartureOpen(true);
               }}
@@ -231,6 +258,7 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
               value={durationValue}
               hint="Flexibel"
               icon={<DurationIcon />}
+              disabled={searchBusy}
               onClick={() => setDurationOpen(true)}
             />
             <Divider />
@@ -239,6 +267,7 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
               value={formatTravelersLabel(state.travelers.rooms)}
               hint={`${state.travelers.rooms.length} kamer${state.travelers.rooms.length === 1 ? '' : 's'}`}
               icon={<TravelersIcon />}
+              disabled={searchBusy}
               onClick={() => setTravelersOpen(true)}
             />
             <Divider />
@@ -248,6 +277,7 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
                 value={state.departureAirport || 'Alle luchthavens'}
                 hint="Flexibel"
                 icon={<PlaneIcon />}
+                disabled={searchBusy}
                 onClick={() => setAirportOpen((open) => !open)}
               />
               {airportOpen ? (
@@ -283,19 +313,24 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
           <button
             type="button"
             onClick={runSearch}
-            className="mt-1 inline-flex h-11 shrink-0 items-center justify-center rounded-[12px] px-6 text-[14px] font-semibold text-white transition lg:mt-0 lg:h-auto lg:min-w-[104px] lg:self-stretch lg:rounded-[12px]"
+            disabled={searchBusy}
+            aria-busy={searchBusy}
+            className="mt-1 inline-flex h-11 shrink-0 items-center justify-center rounded-[12px] px-6 text-[14px] font-semibold text-white transition disabled:cursor-wait disabled:opacity-80 lg:mt-0 lg:h-auto lg:min-w-[104px] lg:self-stretch lg:rounded-[12px]"
             style={{ backgroundColor: RESULTS_CTA }}
             onMouseEnter={(e) => {
+              if (searchBusy) return;
               e.currentTarget.style.backgroundColor = RESULTS_CTA_HOVER;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = RESULTS_CTA;
             }}
           >
-            Zoeken
+            {searchBusy ? 'Zoeken…' : 'Zoeken'}
           </button>
         </div>
       </div>
+
+      {showProgressOverlay ? <SearchProgressOverlay /> : null}
 
       <DeparturePeriodPopup
         open={departureOpen}
