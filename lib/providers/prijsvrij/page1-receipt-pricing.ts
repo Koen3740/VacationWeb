@@ -2,6 +2,11 @@ import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import type { SearchParams } from '../../../types/travel';
 import { paginateResults } from '../../search/pagination';
 import {
+  applyResultsLivePriceOverlay,
+  getResultsLivePriceOverlay,
+  setResultsLivePriceOverlay,
+} from '../../search/results-live-price-cache';
+import {
   PRIJSVRIJ_PAGE1_MAX_SLOTS,
   PRIJSVRIJ_PROVIDER_NAME,
   PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP,
@@ -102,6 +107,58 @@ function withCorendonLivePrice(offer: TravelOffer, pricePerPerson: number): Trav
     livePriceStatus: 'proven',
     livePriceSource: 'lowestpricesacco',
   };
+}
+
+function cacheLiveOverlay(offer: TravelOffer, params: SearchParams): void {
+  setResultsLivePriceOverlay(offer.id, params, {
+    price: offer.price,
+    pricePerDay: offer.pricePerDay,
+    livePriceStatus: offer.livePriceStatus,
+    livePriceSource: offer.livePriceSource,
+  });
+}
+
+function cacheUnavailableLivePrice(offer: TravelOffer, params: SearchParams): TravelOffer {
+  const hidden = withCatalogPriceHidden(offer);
+  cacheLiveOverlay(hidden, params);
+  return hidden;
+}
+
+function isReusableProvenLivePrice(offer: TravelOffer): boolean {
+  if (offer.livePriceStatus !== 'proven') {
+    return false;
+  }
+  if (typeof offer.price !== 'number' || !Number.isFinite(offer.price) || offer.price <= 0) {
+    return false;
+  }
+  if (isPrijsvrij(offer)) {
+    return offer.livePriceSource === 'receipt';
+  }
+  if (isCorendon(offer)) {
+    return offer.livePriceSource === 'lowestpricesacco';
+  }
+  return true;
+}
+
+/**
+ * Cache lookup before any live HTTP.
+ * - TravelOffer: reusable proven live price
+ * - null: cached unavailable / fail-closed — do not HTTP
+ * - undefined: miss
+ */
+function cachedLivePriceResult(
+  offer: TravelOffer,
+  params: SearchParams,
+): TravelOffer | null | undefined {
+  const overlay = getResultsLivePriceOverlay(offer.id, params);
+  if (!overlay) {
+    return undefined;
+  }
+  const merged = applyResultsLivePriceOverlay(offer, params);
+  if (isReusableProvenLivePrice(merged)) {
+    return merged;
+  }
+  return null;
 }
 
 /**
@@ -301,9 +358,20 @@ export function startPage1ReceiptStream(
 
   const slotResults: Array<TravelOffer | null> = selected.map((offer) => {
     if (isPrijsvrij(offer)) {
+      const cached = cachedLivePriceResult(offer, params);
+      if (cached) {
+        return cached;
+      }
       return null;
     }
     if (isCorendon(offer)) {
+      const cached = cachedLivePriceResult(offer, params);
+      if (cached) {
+        return cached;
+      }
+      if (cached === null) {
+        return withCatalogPriceHidden(offer);
+      }
       // Missing hash/id/occupancy: no live call — hide catalog, do not Suspense.
       if (!buildCorendonLiveContext(offer, params)) {
         return withCatalogPriceHidden(offer);
@@ -323,7 +391,7 @@ export function startPage1ReceiptStream(
   const slotDeferreds = new Map<number, ReturnType<typeof createDeferred<TravelOffer | null>>>();
   for (let i = 0; i < selected.length; i += 1) {
     const offer = selected[i];
-    if (isPrijsvrij(offer)) {
+    if (isPrijsvrij(offer) && slotResults[i] === null) {
       pvSlots.push({ selectedIndex: i, primary: offer });
       slotDeferreds.set(i, createDeferred<TravelOffer | null>());
     } else if (isCorendon(offer) && slotResults[i] === null) {
@@ -333,7 +401,10 @@ export function startPage1ReceiptStream(
   }
 
   const slots: Page1StreamSlot[] = selected.map((offer, selectedIndex) => {
-    if (isPrijsvrij(offer) || (isCorendon(offer) && slotResults[selectedIndex] === null)) {
+    if (
+      (isPrijsvrij(offer) && slotResults[selectedIndex] === null) ||
+      (isCorendon(offer) && slotResults[selectedIndex] === null)
+    ) {
       return {
         kind: 'pending',
         selectedIndex,
@@ -363,6 +434,15 @@ export function startPage1ReceiptStream(
     }
 
     async function tryReceipt(candidate: TravelOffer): Promise<TravelOffer | null> {
+      const cached = cachedLivePriceResult(candidate, params);
+      if (cached) {
+        prijsvrijSlotsFilled += 1;
+        return cached;
+      }
+      if (cached === null) {
+        return null;
+      }
+
       if (receiptCalls >= safetyCap) {
         return null;
       }
@@ -370,6 +450,7 @@ export function startPage1ReceiptStream(
       const ctx = buildPrijsvrijReceiptContext(candidate, params);
       if (!ctx) {
         // Missing reproducible context — not a Receipt HTTP call.
+        cacheUnavailableLivePrice(candidate, params);
         return null;
       }
 
@@ -386,9 +467,12 @@ export function startPage1ReceiptStream(
         if (result.ok) {
           receiptSuccesses += 1;
           prijsvrijSlotsFilled += 1;
-          return withReceiptPrice(candidate, result.price.pricePerPerson);
+          const priced = withReceiptPrice(candidate, result.price.pricePerPerson);
+          cacheLiveOverlay(priced, params);
+          return priced;
         }
         receiptFailures += 1;
+        cacheUnavailableLivePrice(candidate, params);
         return null;
       } finally {
         inFlight -= 1;
@@ -396,15 +480,24 @@ export function startPage1ReceiptStream(
     }
 
     async function priceCorendonSlot(offer: TravelOffer): Promise<TravelOffer> {
+      const cached = cachedLivePriceResult(offer, params);
+      if (cached) {
+        return cached;
+      }
+      if (cached === null) {
+        return withCatalogPriceHidden(offer);
+      }
       const ctx = buildCorendonLiveContext(offer, params);
       if (!ctx) {
-        return withCatalogPriceHidden(offer);
+        return cacheUnavailableLivePrice(offer, params);
       }
       const result = await fetchCorendonLowestpricesaccoPrice(ctx, { fetchImpl });
       if (result.ok) {
-        return withCorendonLivePrice(offer, result.pricePerPerson);
+        const priced = withCorendonLivePrice(offer, result.pricePerPerson);
+        cacheLiveOverlay(priced, params);
+        return priced;
       }
-      return withCatalogPriceHidden(offer);
+      return cacheUnavailableLivePrice(offer, params);
     }
 
     // Phase 1: PV Receipts (C=5) and Corendon lowestpricesacco in parallel.

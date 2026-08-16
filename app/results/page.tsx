@@ -24,7 +24,7 @@ import {
   RESULTS_PRODUCT_PAGE_SIZE,
   startPage1ReceiptStream,
 } from '@/lib/providers/prijsvrij';
-import { filterOffers, sortOffers } from '@/lib/search/filtering';
+import { rankResultsOffers } from '@/lib/search/rank-results-offers';
 import {
   buildResultsPageHref,
   parsePage1IdsParam,
@@ -226,7 +226,7 @@ export default async function ResultsPage({
     deriveDestinationCountryCounts(offers).map(({ name, count }) => [name, count]),
   );
   const totalOffersLabel = formatTotalOffersLabel(offers.length);
-  const filtered = sortOffers(filterOffers(offers, params), params.sort);
+  const filtered = rankResultsOffers(offers, params);
   const pageSize = RESULTS_PRODUCT_PAGE_SIZE;
   const page = params.page ?? 1;
   const isPage1 = !Number.isFinite(page) || Math.floor(page) <= 1;

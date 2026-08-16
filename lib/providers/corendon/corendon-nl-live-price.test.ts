@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { beforeEach, test } from 'node:test';
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import { CORENDON_DEFAULT_2A_PARTY, CORENDON_FE_HOST_NL, CORENDON_FE_VERSION } from './constants';
 import {
@@ -16,6 +16,11 @@ import {
   pricePage1WithPrijsvrijReceipts,
   startPage1ReceiptStream,
 } from '../prijsvrij/page1-receipt-pricing';
+import { clearResultsLivePriceCache } from '../../search/results-live-price-cache';
+
+beforeEach(() => {
+  clearResultsLivePriceCache();
+});
 
 /** First product in Productfeeds/Corendon/Corendon.nl.xml (campaign 38108). */
 const NL_FRAGMENT = '5007.MLELC.EINPMI.041027.3.DZI-U..';
@@ -194,6 +199,7 @@ test('NL stream: valid offer is pending live slot; keeps card on failure', async
   assert.equal(priced.livePriceStatus, 'proven');
   assert.equal(priced.livePriceSource, 'lowestpricesacco');
 
+  clearResultsLivePriceCache();
   const failedStream = startPage1ReceiptStream(
     [makeNlOffer({ price: 405 })],
     { adults: 2 },
