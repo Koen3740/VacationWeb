@@ -6,34 +6,53 @@ import {
 } from './canonicalize-board-type';
 import { canonicalizeCountryName } from './canonical-country';
 
-export function loadFilterOptions(): FilterOptions {
-  const countries = [
-    ...new Set(filterOptions.countries.map(canonicalizeCountryName)),
-  ].sort((left, right) => left.localeCompare(right, 'nl'));
+function canonicalizeKeyedLists(
+  source: Record<string, string[]> | undefined,
+): Record<string, string[]> {
+  const result: Record<string, string[]> = {};
+  if (!source) {
+    return result;
+  }
 
-  const regionsByCountry: Record<string, string[]> = {};
-
-  for (const [country, regions] of Object.entries(filterOptions.regionsByCountry)) {
+  for (const [country, values] of Object.entries(source)) {
     const canonicalCountry = canonicalizeCountryName(country);
-    const mergedRegions = new Set([
-      ...(regionsByCountry[canonicalCountry] ?? []),
-      ...regions,
-    ]);
-    regionsByCountry[canonicalCountry] = [...mergedRegions].sort((left, right) =>
+    const merged = new Set([...(result[canonicalCountry] ?? []), ...values]);
+    result[canonicalCountry] = [...merged].sort((left, right) =>
       left.localeCompare(right, 'nl'),
     );
   }
 
+  return result;
+}
+
+export function loadFilterOptions(): FilterOptions {
+  const stored = filterOptions as FilterOptions;
+  const countries = [
+    ...new Set(stored.countries.map(canonicalizeCountryName)),
+  ].sort((left, right) => left.localeCompare(right, 'nl'));
+
   const boardTypeSet = new Set(
-    filterOptions.boardTypes
+    stored.boardTypes
       .map((value) => canonicalizeBoardType(value))
       .filter((value): value is NonNullable<typeof value> => Boolean(value)),
   );
 
+  const countryCounts: Record<string, number> = {};
+  for (const [country, count] of Object.entries(stored.countryCounts ?? {})) {
+    const canonical = canonicalizeCountryName(country);
+    countryCounts[canonical] = (countryCounts[canonical] ?? 0) + count;
+  }
+
   return {
     countries,
-    regionsByCountry,
+    regionsByCountry: canonicalizeKeyedLists(stored.regionsByCountry),
+    citiesByCountry: canonicalizeKeyedLists(stored.citiesByCountry),
     boardTypes: CANONICAL_BOARD_TYPES.filter((type) => boardTypeSet.has(type)),
-    departureAirports: filterOptions.departureAirports,
+    accommodationTypes: stored.accommodationTypes ?? [],
+    departureAirports: stored.departureAirports,
+    countryCounts,
+    totalOffers: stored.totalOffers,
+    popularDestinations: stored.popularDestinations ?? [],
+    homeThemes: stored.homeThemes ?? [],
   };
 }

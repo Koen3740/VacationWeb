@@ -1,5 +1,18 @@
 export type { TravelOffer } from '../lib/feeds/canonical/travel-offer';
 
+export type FilterCountryCount = {
+  name: string;
+  count: number;
+};
+
+export type FilterHomeTheme = {
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+  count: number;
+};
+
 export interface FilterOptions {
   countries: string[];
   regionsByCountry: Record<string, string[]>;
@@ -7,6 +20,11 @@ export interface FilterOptions {
   boardTypes: string[];
   accommodationTypes?: string[];
   departureAirports: string[];
+  /** Import-time catalog counts by canonical country name. */
+  countryCounts?: Record<string, number>;
+  totalOffers?: number;
+  popularDestinations?: FilterCountryCount[];
+  homeThemes?: FilterHomeTheme[];
 }
 
 export interface SearchParams {

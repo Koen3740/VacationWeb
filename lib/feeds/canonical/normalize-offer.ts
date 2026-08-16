@@ -65,6 +65,7 @@ export function normalizeOffer(offer: StoredOffer): TravelOffer {
     descriptionLong: offer.descriptionLong,
     extraInfo: offer.extraInfo,
     feedDescription: offer.feedDescription,
+    searchText: offer.searchText,
 
     latitude: offer.latitude,
     longitude: offer.longitude,

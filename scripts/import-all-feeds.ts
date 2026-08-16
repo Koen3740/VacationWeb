@@ -1,12 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { normalizeOffer } from '../lib/feeds/canonical/normalize-offer';
 import { getEnabledFeeds, type FeedManifestEntry } from '../lib/feeds/feed-registry';
 import { FEED_PATHS } from '../lib/feeds/feed-paths';
 import { importXmlByProfile, isKnownImporterProfile } from '../lib/feeds/importer-router';
-import { deriveFilterOptions } from '../lib/offers/derive-filter-options';
 import { mergeCorendonOffers } from '../lib/feeds/importers/corendon-merge';
 import { StoredOffer } from '../lib/feeds/types/stored-offer';
+import { publishLocalRuntimeCatalog } from '../lib/offers/write-runtime-catalog';
 
 type FeedImportResult = {
   feed: FeedManifestEntry;
@@ -110,18 +109,6 @@ function countByProvider(offers: StoredOffer[]): Record<string, number> {
   return counts;
 }
 
-/** Write JSON atomically so a crashed import cannot leave a truncated offers.json. */
-function writeJsonAtomic(filePath: string, value: unknown): void {
-  const dir = path.dirname(filePath);
-  fs.mkdirSync(dir, { recursive: true });
-  const tempPath = path.join(
-    dir,
-    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`,
-  );
-  fs.writeFileSync(tempPath, JSON.stringify(value, null, 2));
-  fs.renameSync(tempPath, filePath);
-}
-
 function main(): void {
   const enabledFeeds = getEnabledFeeds().sort((a, b) => (a.priority ?? 1000) - (b.priority ?? 1000));
 
@@ -177,14 +164,13 @@ function main(): void {
     return;
   }
 
-  writeJsonAtomic(FEED_PATHS.offers, offers);
-
-  const filterOptions = deriveFilterOptions(offers.map(normalizeOffer));
-  writeJsonAtomic(FEED_PATHS.filterOptions, filterOptions);
+  const published = publishLocalRuntimeCatalog(offers);
 
   const providerCounts = countByProvider(offers);
 
-  console.log(`✔ ${offers.length} aanbiedingen geïmporteerd naar ${FEED_PATHS.offers}`);
+  console.log(`✔ ${published.offerCount} aanbiedingen geïmporteerd naar ${FEED_PATHS.offers}`);
+  console.log(`✔ compact runtime: ${(published.runtimeBytes / 1_000_000).toFixed(1)} MB`);
+  console.log(`✔ offer-detail sidecar: ${FEED_PATHS.offerDetails} (${(published.detailBytes / 1_000_000).toFixed(1)} MB, ${published.detailCount} records)`);
   console.log(`✔ filter-opties geschreven naar ${FEED_PATHS.filterOptions}`);
   console.log(`  - feeds enabled: ${enabledFeeds.length}`);
   console.log(`  - feeds imported: ${results.length}`);

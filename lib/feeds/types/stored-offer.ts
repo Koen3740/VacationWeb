@@ -37,6 +37,8 @@ export interface StoredOffer {
   descriptionLong?: string;
   extraInfo?: string;
   feedDescription?: string;
+  /** Compact-runtime search corpus. See TravelOffer.searchText. */
+  searchText?: string;
 
   latitude?: number | null;
   longitude?: number | null;

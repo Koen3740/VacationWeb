@@ -33,11 +33,14 @@ export interface TravelOffer {
   currency?: string;
   /**
    * Live-price provenance for Results (Fase 4).
-   * Prijsvrij: only `proven` + `receipt` may be shown as current user price.
-   * Corendon: only `proven` + `lowestpricesacco` may be shown as current user price.
+   * Prijsvrij: only `proven` + `receipt` may be presented.
+   * Corendon: only `proven` + `lowestpricesacco` may be presented.
+   * Eliza was here: only `proven` + `getPromotedPrice` may be presented.
+   * Sunweb: `proven` + `getPromotedPrice`, or catalog numeric when live was not attempted.
+   * Offers without a valid allowed price are not presented.
    */
   livePriceStatus?: 'proven' | 'unavailable' | 'catalog';
-  livePriceSource?: 'receipt' | 'lowestpricesacco' | 'feed' | 'search';
+  livePriceSource?: 'receipt' | 'lowestpricesacco' | 'getPromotedPrice' | 'feed' | 'search';
 
   // Hotelkwaliteit
   stars?: number | null;
@@ -54,6 +57,12 @@ export interface TravelOffer {
   descriptionLong?: string;
   extraInfo?: string;
   feedDescription?: string;
+  /**
+   * Compact-runtime search corpus (long/feed/accommodation text).
+   * When present, amenity/theme/location filters use this instead of
+   * descriptionLong/feedDescription, which are omitted from the Results catalog.
+   */
+  searchText?: string;
 
   // Locatie
   latitude?: number | null;

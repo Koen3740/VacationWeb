@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { OfferImageGallery } from '@/components/offers/offer-image-gallery';
-import { loadOffers } from '@/lib/offers/load-offers';
+import { loadOfferById } from '@/lib/offers/load-offer-by-id';
 import type { TravelOffer } from '@/types/travel';
 
 export const dynamic = 'force-dynamic';
@@ -141,7 +141,7 @@ export default async function OfferDetailPage({
   params: { id: string };
 }) {
   const offerId = decodeURIComponent(params.id);
-  const offer = (await loadOffers()).find((item) => item.id === offerId);
+  const offer = await loadOfferById(offerId);
 
   if (!offer) {
     notFound();

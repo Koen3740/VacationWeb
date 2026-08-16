@@ -1,7 +1,5 @@
 import { SearchForm } from '@/components/search/search-form';
-import { deriveDestinationCountryCounts } from '@/lib/offers/derive-destination-countries';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
-import { loadOffers } from '@/lib/offers/load-offers';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 
 export const dynamic = 'force-dynamic';
@@ -12,11 +10,8 @@ export default async function SearchPage({
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
   const filterOptions = loadFilterOptions();
-  const offers = await loadOffers();
-  const countryCounts = Object.fromEntries(
-    deriveDestinationCountryCounts(offers).map(({ name, count }) => [name, count]),
-  );
-  const totalOffersLabel = formatTotalOffersLabel(offers.length);
+  const countryCounts = filterOptions.countryCounts ?? {};
+  const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? 0);
 
   return (
     <main className="min-h-screen bg-slate-50">

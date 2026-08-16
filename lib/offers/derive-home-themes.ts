@@ -1,4 +1,4 @@
-import { TravelOffer } from '@/types/travel';
+import { TravelOffer } from '../../types/travel';
 
 export type HomeTheme = {
   id: string;

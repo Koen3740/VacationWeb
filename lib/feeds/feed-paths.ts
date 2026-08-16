@@ -8,5 +8,7 @@ export const FEED_PATHS = {
   sunwebDir: path.join(DATA_DIR, 'sunweb'),
   offers: path.join(DATA_DIR, 'offers.json'),
   offersObjectKey: 'offers.json',
+  offerDetails: path.join(DATA_DIR, 'offers.detail.json'),
+  offerDetailsObjectKey: 'offers.detail.json',
   filterOptions: path.join(DATA_DIR, 'filter-options.json'),
 } as const;

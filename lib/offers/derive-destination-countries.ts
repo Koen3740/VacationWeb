@@ -1,4 +1,4 @@
-import { TravelOffer } from '@/types/travel';
+import { TravelOffer } from '../../types/travel';
 
 export type DestinationCountryCount = {
   name: string;
