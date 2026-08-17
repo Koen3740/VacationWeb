@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { beforeEach, test } from 'node:test';
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import {
   PRIJSVRIJ_PROVIDER_NAME,
@@ -11,16 +11,20 @@ import {
   mapWithConcurrency,
   markPrijsvrijLivePriceUnavailable,
   PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY,
+  priceLiveRequiredMatchset,
   pricePage1AndBuildRemaining,
   pricePage1WithPrijsvrijReceipts,
   resolveResultsPageSlice,
   selectPage1Candidates,
   splitPage1AndRemaining,
   isUsablePage1IdsParam,
+  clearLivePriceInflightForTests,
   type Page1ReceiptPricingStats,
 } from './page1-receipt-pricing';
 import { paginateResults, buildResultsPageHref } from '../../search/pagination';
+import { filterToPresentableOffers } from '../../search/presentable-price';
 import { clearPrijsvrijReceiptTokenCache } from './receipt-auth';
+import { clearResultsLivePriceCache } from '../../search/results-live-price-cache';
 import { buildPrijsvrijReceiptFilters, fetchPrijsvrijReceiptPrice } from './receipt-client';
 import {
   buildPrijsvrijReceiptContext,
@@ -31,6 +35,12 @@ import { computePrijsvrijReceiptPricePerPerson } from './receipt-price';
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+beforeEach(() => {
+  clearPrijsvrijReceiptTokenCache();
+  clearResultsLivePriceCache();
+  clearLivePriceInflightForTests();
+});
 
 function okReceiptBody(total = 800): string {
   return JSON.stringify({
@@ -320,7 +330,6 @@ test('page1 pricing: receipt success sets proven price; no feed/search fallback 
     assert.notEqual(offer.price, 888);
   }
   assert.ok(stats.receiptCalls <= PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP);
-  assert.ok(receiptPosts <= PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP);
 });
 
 test('page1 pricing: safety cap never exceeded; stops after enough PV', async () => {
@@ -371,12 +380,18 @@ test('page1 pricing: safety cap never exceeded; stops after enough PV', async ()
     { fetchImpl, pageSize: 10, stats },
   );
 
-  assert.equal(page.length, 10);
+  assert.ok(page.length <= 10);
   assert.equal(page.filter((o) => o.provider === PRIJSVRIJ_PROVIDER_NAME).length, 3);
+  assert.ok(page.every((o) => o.livePriceStatus === 'proven' && o.livePriceSource === 'receipt'));
   assert.equal(stats.receiptCalls, 3);
+  assert.equal(stats.matchsetReceiptCalls ?? 0, 0);
   assert.equal(receiptPosts, 3);
   assert.ok(stats.receiptCalls <= 10);
   assert.equal(stats.stoppedEarlyBecauseEnoughPv, true);
+
+  await priceLiveRequiredMatchset(offers, { adults: 2 }, { fetchImpl, stats });
+  assert.equal(stats.matchsetReceiptCalls, 17);
+  assert.equal(receiptPosts, 20);
 });
 
 test('page1 pricing: failure → reserve candidate', async () => {
@@ -597,8 +612,13 @@ test('page1 concurrency: safety cap ≤10 still enforced under C=5', async () =>
   await pricePage1WithPrijsvrijReceipts(offers, { adults: 2 }, { fetchImpl, stats });
 
   assert.equal(stats.receiptCalls, PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP);
-  assert.equal(receiptPosts, PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP);
+  assert.equal(stats.matchsetReceiptCalls ?? 0, 0);
+  assert.equal(receiptPosts, 10);
   assert.ok((stats.maxInFlightReceiptCalls ?? 0) <= PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY);
+
+  await priceLiveRequiredMatchset(offers, { adults: 2 }, { fetchImpl, stats });
+  assert.equal(stats.matchsetReceiptCalls, 10);
+  assert.equal(receiptPosts, 20);
 });
 
 test('page1 concurrency: failure → reserve still works within C=5/cap', async () => {
@@ -743,7 +763,8 @@ test('buildRemainingFromPresentedPage1: partition integrity after Receipt succes
   const presentedIds = new Set(page1.map((o) => o.id));
   const remainingIds = new Set(remaining.map((o) => o.id));
 
-  assert.equal(page1.length, 10);
+  assert.ok(page1.length <= 10);
+  assert.ok(page1.every((o) => o.provider !== 'Corendon' || o.livePriceSource === 'lowestpricesacco'));
   assert.equal(page1.length + remaining.length, offers.length);
   for (const id of presentedIds) {
     assert.ok(!remainingIds.has(id));
@@ -801,17 +822,60 @@ test('resolveResultsPageSlice page1: normal + max 3 PV + Receipt success', async
   ];
 
   const slice = await resolveResultsPageSlice(offers, { adults: 2, page: 1 }, { fetchImpl, stats });
-  assert.equal(slice.visibleOffers.length, 10);
+  assert.ok(slice.visibleOffers.length <= 10);
   assert.equal(slice.visibleOffers.filter((o) => o.provider === PRIJSVRIJ_PROVIDER_NAME).length, 3);
+  assert.ok(slice.visibleOffers.every((o) => o.livePriceStatus === 'proven' && o.livePriceSource === 'receipt' || o.provider !== PRIJSVRIJ_PROVIDER_NAME));
+  assert.ok(!slice.visibleOffers.some((o) => o.provider === 'Corendon'));
   assert.equal(stats.receiptCalls, 3);
   assert.equal(stats.receiptSuccesses, 3);
-  assert.ok(slice.page1Ids?.length === 10);
+  assert.ok((slice.page1Ids?.length ?? 0) === slice.visibleOffers.length);
   assert.equal(slice.visibleOffers.length + slice.remaining.length, offers.length);
   assert.equal(
     slice.visibleOffers.filter((o) => slice.remaining.some((r) => r.id === o.id)).length,
     0,
   );
   assert.ok(slice.remaining.some((o) => o.id === 'prijsvrij-3'), 'skipped PV stays for page 2+');
+});
+
+test('page 1 with existing page1Ids skips Receipt when the catalog is already presentable', async () => {
+  clearPrijsvrijReceiptTokenCache();
+  const stats: Page1ReceiptPricingStats = {
+    receiptCalls: 0,
+    receiptSuccesses: 0,
+    receiptFailures: 0,
+    prijsvrijSlotsFilled: 0,
+    stoppedEarlyBecauseEnoughPv: false,
+  };
+  let httpCalls = 0;
+  const fetchImpl: typeof fetch = async () => {
+    httpCalls += 1;
+    throw new Error('live pricing must not run on catalog refine');
+  };
+  const offers = [
+    ...Array.from({ length: 8 }, (_, i) =>
+      makeOffer({
+        id: `sunweb-${i}`,
+        provider: 'Sunweb',
+        price: 200 + i,
+        livePriceStatus: 'catalog',
+        livePriceSource: 'feed',
+      }),
+    ),
+  ];
+  const budgeted = offers.filter((offer) => offer.price <= 208);
+
+  const slice = await resolveResultsPageSlice(
+    budgeted,
+    { adults: 2, page: 1, page1Ids: ['sunweb-0'], budgetMax: 208 },
+    { fetchImpl, stats },
+  );
+
+  assert.equal(httpCalls, 0);
+  assert.equal(stats.receiptCalls, 0);
+  assert.ok(slice.visibleOffers.every((offer) => offer.price <= 208));
+  assert.ok(slice.visibleOffers.every((offer) => offer.provider === 'Sunweb'));
+  assert.ok(!slice.visibleOffers.some((offer) => offer.livePriceStatus === 'unavailable'));
+  assert.ok(slice.page1Ids?.length === slice.visibleOffers.length);
 });
 
 test('resolveResultsPageSlice: Receipt failure + reserve on page1, not on page2', async () => {
@@ -886,7 +950,16 @@ test('resolveResultsPageSlice: page 2/3/4 with valid page1Ids → 0 Receipt; ids
       makeOffer({ id: `prijsvrij-${i}`, provider: PRIJSVRIJ_PROVIDER_NAME, price: 90 + i }),
     ),
     ...Array.from({ length: 40 }, (_, i) =>
-      makeOffer({ id: `corendon-${i}`, provider: 'Corendon', price: 150 + i }),
+      makeOffer({
+        id: `sunweb-${i}`,
+        provider: 'Sunweb',
+        price: 150 + i,
+        livePriceStatus: 'catalog',
+        livePriceSource: 'feed',
+      }),
+    ),
+    ...Array.from({ length: 10 }, (_, i) =>
+      makeOffer({ id: `corendon-${i}`, provider: 'Corendon', price: 250 + i }),
     ),
   ];
 
@@ -896,7 +969,7 @@ test('resolveResultsPageSlice: page 2/3/4 with valid page1Ids → 0 Receipt; ids
     { fetchImpl, stats },
   );
   assert.ok(stats.receiptCalls > 0);
-  assert.equal(receiptHttp, stats.receiptCalls);
+  assert.equal(receiptHttp, stats.receiptCalls + (stats.matchsetReceiptCalls ?? 0));
   const presented = new Set(page1.page1Ids);
   assert.ok(isUsablePage1IdsParam(page1.page1Ids, offers));
 
@@ -915,11 +988,13 @@ test('resolveResultsPageSlice: page 2/3/4 with valid page1Ids → 0 Receipt; ids
     assert.equal(receiptHttp, before, `page ${page} must not call Receipt HTTP`);
     assert.equal(slice.needsPage1IdsRedirect, undefined);
     assert.deepEqual(slice.page1Ids, page1.page1Ids, `page1Ids preserved on page ${page}`);
+    const presentableRemaining = filterToPresentableOffers(page1.remaining);
     assert.equal(slice.visibleOffers.length, 10);
     assert.ok(slice.visibleOffers.every((o) => !presented.has(o.id)));
+    assert.ok(slice.visibleOffers.every((o) => o.livePriceStatus !== 'unavailable'));
     assert.deepEqual(
       slice.visibleOffers.map((o) => o.id),
-      page1.remaining.slice((page - 2) * 10, (page - 1) * 10).map((o) => o.id),
+      presentableRemaining.slice((page - 2) * 10, (page - 1) * 10).map((o) => o.id),
     );
 
     const href = buildResultsPageHref(

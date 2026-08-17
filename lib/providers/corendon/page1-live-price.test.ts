@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { beforeEach, test } from 'node:test';
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import { PRIJSVRIJ_PROVIDER_NAME } from '../prijsvrij/constants';
 import {
   markPrijsvrijLivePriceUnavailable,
+  priceLiveRequiredMatchset,
   pricePage1WithPrijsvrijReceipts,
   resolveResultsPageSlice,
   startPage1ReceiptStream,
+  clearLivePriceInflightForTests,
   type Page1ReceiptPricingStats,
 } from '../prijsvrij/page1-receipt-pricing';
 import { clearPrijsvrijReceiptTokenCache } from '../prijsvrij/receipt-auth';
+import { clearResultsLivePriceCache } from '../../search/results-live-price-cache';
 
 const FRAGMENT = '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U';
 const DIRECT_URL = `https://www.corendon.be/vakantie#${FRAGMENT}`;
@@ -80,6 +83,12 @@ function makeLiveFetch(options: {
   };
 }
 
+beforeEach(() => {
+  clearPrijsvrijReceiptTokenCache();
+  clearResultsLivePriceCache();
+  clearLivePriceInflightForTests();
+});
+
 test('page1: Corendon success is proven lowestpricesacco, not feed price', async () => {
   let lowestCalls = 0;
   const page = await pricePage1WithPrijsvrijReceipts(
@@ -108,18 +117,15 @@ test('page1: Corendon success is proven lowestpricesacco, not feed price', async
   assert.equal(cor.id, 'corendon-9514');
 });
 
-test('page1: Corendon 204 keeps card and does not use feed as live', async () => {
+test('page1: Corendon 204 does not present the offer and does not use feed as live', async () => {
   const page = await pricePage1WithPrijsvrijReceipts(
     [makeOffer({ id: 'corendon-9514', provider: 'Corendon', price: 458 })],
     { adults: 2 },
     { fetchImpl: makeLiveFetch({ lowestStatus: 204 }) },
   );
 
-  assert.equal(page.length, 1);
-  assert.equal(page[0].id, 'corendon-9514');
-  assert.equal(page[0].livePriceStatus, 'unavailable');
-  assert.equal(page[0].livePriceSource, undefined);
-  assert.equal(page[0].price, 458);
+  assert.equal(page.length, 0);
+  assert.ok(!page.some((offer) => offer.id === 'corendon-9514'));
 });
 
 test('page1: invalid occupancy does not call lowestpricesacco', async () => {
@@ -137,8 +143,7 @@ test('page1: invalid occupancy does not call lowestpricesacco', async () => {
   );
 
   assert.equal(lowestCalls, 0);
-  assert.equal(page[0].livePriceStatus, 'unavailable');
-  assert.notEqual(page[0].livePriceSource, 'lowestpricesacco');
+  assert.equal(page.length, 0);
 });
 
 test('page1: missing fragment does not invent a live price', async () => {
@@ -163,8 +168,7 @@ test('page1: missing fragment does not invent a live price', async () => {
   );
 
   assert.equal(lowestCalls, 0);
-  assert.equal(page[0].livePriceStatus, 'unavailable');
-  assert.equal(page[0].price, 458);
+  assert.equal(page.length, 0);
 });
 
 test('stream: valid Corendon is pending; invalid Corendon is immediate unavailable', async () => {
@@ -203,7 +207,7 @@ test('stream: valid Corendon is pending; invalid Corendon is immediate unavailab
   assert.equal(priced.livePriceSource, 'lowestpricesacco');
 });
 
-test('stream: Corendon failure does not compact the slot or use Search/feed as live', async () => {
+test('stream: Corendon failure does not present the card or use Search/feed as live', async () => {
   const stream = startPage1ReceiptStream(
     [
       makeOffer({ id: 'corendon-9514', provider: 'Corendon', price: 458 }),
@@ -216,19 +220,17 @@ test('stream: Corendon failure does not compact the slot or use Search/feed as l
   const corSlot = stream.slots.find((slot) => slot.kind === 'pending' && slot.selectedIndex === 0);
   assert.ok(corSlot && corSlot.kind === 'pending');
   const priced = await corSlot.offer;
-  assert.ok(priced);
-  assert.equal(priced.id, 'corendon-9514');
-  assert.equal(priced.livePriceStatus, 'unavailable');
-  assert.notEqual(priced.livePriceSource, 'lowestpricesacco');
-  assert.notEqual(priced.livePriceSource, 'search');
-  assert.notEqual(priced.livePriceSource, 'receipt');
+  assert.equal(priced, null);
 
   const presented = await stream.presented;
-  assert.ok(presented.page1.some((offer) => offer.id === 'corendon-9514'));
+  assert.ok(!presented.page1.some((offer) => offer.id === 'corendon-9514'));
+  assert.ok(presented.page1.every((offer) => offer.livePriceSource !== 'search'));
+  assert.ok(presented.page1.every((offer) => offer.livePriceSource !== 'feed' || offer.provider !== 'Corendon'));
 });
 
-test('page2+: Corendon is unavailable and does 0 lowestpricesacco calls', async () => {
+test('page2+: remaining Corendon is live-priced on the matchset, then cached', async () => {
   clearPrijsvrijReceiptTokenCache();
+  clearResultsLivePriceCache();
   const offers = [
     ...Array.from({ length: 10 }, (_, i) =>
       makeOffer({
@@ -255,6 +257,9 @@ test('page2+: Corendon is unavailable and does 0 lowestpricesacco calls', async 
   assert.equal(lowestCalls, 0);
   assert.ok(page1.page1Ids);
 
+  await priceLiveRequiredMatchset(offers, { adults: 2 }, { fetchImpl });
+  assert.equal(lowestCalls, 1);
+
   lowestCalls = 0;
   const page2 = await resolveResultsPageSlice(
     offers,
@@ -264,8 +269,8 @@ test('page2+: Corendon is unavailable and does 0 lowestpricesacco calls', async 
   assert.equal(lowestCalls, 0);
   const cor = page2.visibleOffers.find((offer) => offer.provider === 'Corendon');
   assert.ok(cor);
-  assert.equal(cor.livePriceStatus, 'unavailable');
-  assert.notEqual(cor.livePriceSource, 'lowestpricesacco');
+  assert.equal(cor.livePriceSource, 'lowestpricesacco');
+  assert.equal(cor.livePriceStatus, 'proven');
 });
 
 test('Package-1 invariants still hold with a live Corendon slot', async () => {
@@ -312,7 +317,7 @@ test('Package-1 invariants still hold with a live Corendon slot', async () => {
   assert.equal(page.length, 10);
   assert.ok(page.filter((offer) => offer.provider === PRIJSVRIJ_PROVIDER_NAME).length <= 3);
   assert.ok(stats.receiptCalls <= 10);
-  assert.equal(stats.receiptCalls, receiptCalls);
+  assert.equal(stats.receiptCalls + (stats.matchsetReceiptCalls ?? 0), receiptCalls);
   const cor = page.find((offer) => offer.provider === 'Corendon');
   assert.ok(cor);
   assert.equal(cor.livePriceSource, 'lowestpricesacco');

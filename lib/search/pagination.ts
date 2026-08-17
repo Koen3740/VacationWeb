@@ -5,6 +5,22 @@ export const RESULTS_PAGE_DEFAULT = 1;
 export const RESULTS_PAGE_SIZE_DEFAULT = 10;
 export const RESULTS_PAGE_SIZE_MIN = 1;
 export const RESULTS_PAGE_SIZE_MAX = 100;
+/**
+ * User-pagination pool after filter+sort. Not a cap on matches, ranking, or live pricing.
+ * At pageSize 10 this is at most 15 pages.
+ */
+export const RESULTS_USER_PAGINATION_CAP = 150;
+
+/** First `cap` offers of an already-ranked matchset. Never apply before sortOffers(). */
+export function limitRankedResultsForPagination<T>(
+  rankedOffers: readonly T[],
+  cap: number = RESULTS_USER_PAGINATION_CAP,
+): T[] {
+  if (cap <= 0) {
+    return [];
+  }
+  return rankedOffers.slice(0, cap);
+}
 
 function parsePositiveInteger(
   raw: string | undefined,

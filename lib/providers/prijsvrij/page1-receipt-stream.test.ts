@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { beforeEach, test } from 'node:test';
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import {
   PRIJSVRIJ_PROVIDER_NAME,
@@ -11,15 +11,23 @@ import {
   resolveResultsPageSlice,
   selectPage1Candidates,
   startPage1ReceiptStream,
+  clearLivePriceInflightForTests,
   type Page1ReceiptPricingStats,
   type Page1StreamSlot,
 } from './page1-receipt-pricing';
 import { paginateResults, buildResultsPageHref } from '../../search/pagination';
 import { clearPrijsvrijReceiptTokenCache } from './receipt-auth';
+import { clearResultsLivePriceCache } from '../../search/results-live-price-cache';
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+beforeEach(() => {
+  clearPrijsvrijReceiptTokenCache();
+  clearResultsLivePriceCache();
+  clearLivePriceInflightForTests();
+});
 
 function okReceiptBody(total = 800): string {
   return JSON.stringify({
@@ -199,9 +207,10 @@ test('stream: ranking/position stays in selected candidate order', async () => {
     }
   }
   const presented = await stream.presented;
+  assert.ok(presented.page1.every((offer) => offer.livePriceStatus !== 'unavailable'));
   assert.deepEqual(
-    presented.page1.filter((offer) => offer.provider !== PRIJSVRIJ_PROVIDER_NAME).map((offer) => offer.id),
-    selected.filter((offer) => offer.provider !== PRIJSVRIJ_PROVIDER_NAME).map((offer) => offer.id),
+    presented.page1.filter((offer) => offer.provider === 'Sunweb').map((offer) => offer.id),
+    selected.filter((offer) => offer.provider === 'Sunweb').map((offer) => offer.id),
   );
 });
 
@@ -309,7 +318,8 @@ test('stream: page 2+ with page1Ids does 0 Receipt calls; later pages keep ids',
     { fetchImpl: makeStaggeredFetch({}), stats: stats1, pageSize: 10 },
   );
   assert.ok(stats1.receiptCalls > 0);
-  assert.equal(page1.page1Ids?.length, 10);
+  assert.ok((page1.page1Ids?.length ?? 0) === page1.visibleOffers.length);
+  assert.ok(page1.visibleOffers.every((offer) => offer.livePriceStatus !== 'unavailable'));
 
   const stats2: Page1ReceiptPricingStats = {
     receiptCalls: 0,
@@ -385,7 +395,8 @@ test('stream: max 3 Prijsvrij, cap ≤10, C=5 still hold', async () => {
     pageSize: 10,
   }).presented;
 
-  assert.equal(presented.page1.length, 10);
+  assert.ok(presented.page1.length <= 10);
+  assert.ok(presented.page1.every((o) => o.livePriceStatus !== 'unavailable'));
   assert.ok(presented.page1.filter((o) => o.provider === PRIJSVRIJ_PROVIDER_NAME).length <= 3);
   assert.ok(stats.receiptCalls <= PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP);
   assert.ok(maxInFlight <= PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY);
@@ -409,5 +420,6 @@ test('stream: time-to-first-usable-results is before total Receipt wall time', a
   const wall = Date.now() - t0;
   assert.ok(wall >= 150, `expected Receipt wall time, got ${wall}ms`);
   assert.ok(ttfur < wall);
-  assert.equal(presented.page1.length, 10);
+  assert.ok(presented.page1.length <= 10);
+  assert.ok(presented.page1.every((offer) => offer.livePriceStatus !== 'unavailable'));
 });

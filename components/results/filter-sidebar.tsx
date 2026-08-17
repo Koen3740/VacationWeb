@@ -53,6 +53,7 @@ import {
   type VacationType,
 } from '@/lib/search/vacation-type';
 import { writeBudgetParams } from '@/lib/search/budget-params';
+import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
 import {
   SEARCH_PROGRESS_DELAY_MS,
   SearchProgressOverlay,
@@ -294,7 +295,7 @@ export function FilterSidebar({
 
   const updateFilters = (
     next: typeof filters,
-    options?: { allowWhileNavigating?: boolean },
+    options?: { allowWhileNavigating?: boolean; preservePage1Ids?: boolean },
   ) => {
     if (navigationLockRef.current && !options?.allowWhileNavigating) {
       return;
@@ -303,8 +304,10 @@ export function FilterSidebar({
     setFilters(next);
 
     const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    params.delete('page1Ids');
+    applyFilterNavigationPaging(params, {
+      preservePage1Ids: options?.preservePage1Ids !== false,
+      liveQuery: typeof window === 'undefined' ? undefined : window.location.search,
+    });
 
     if (next.country) {
       params.set('country', next.country);
@@ -497,11 +500,13 @@ export function FilterSidebar({
       'seaView',
       'amenities',
       'departureAirport',
-      'page',
-      'page1Ids',
     ]) {
       params.delete(key);
     }
+    applyFilterNavigationPaging(params, {
+      preservePage1Ids: true,
+      liveQuery: typeof window === 'undefined' ? undefined : window.location.search,
+    });
     const query = params.toString();
     navigationLockRef.current = true;
     setIsNavigating(true);
@@ -510,17 +515,40 @@ export function FilterSidebar({
     });
   };
 
-  const budgetMinPct = ((filters.budgetMin - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
-  const budgetMaxPct = ((filters.budgetMax - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
+  const [draftBudget, setDraftBudget] = useState({
+    min: filters.budgetMin,
+    max: filters.budgetMax,
+  });
+  const draftBudgetRef = useRef(draftBudget);
+
+  useEffect(() => {
+    const next = { min: filters.budgetMin, max: filters.budgetMax };
+    draftBudgetRef.current = next;
+    setDraftBudget(next);
+  }, [filters.budgetMin, filters.budgetMax]);
+
+  const commitBudget = () => {
+    const next = draftBudgetRef.current;
+    if (next.min === filters.budgetMin && next.max === filters.budgetMax) {
+      return;
+    }
+    updateFilters(
+      { ...filters, budgetMin: next.min, budgetMax: next.max },
+      { preservePage1Ids: true },
+    );
+  };
+
+  const budgetMinPct = ((draftBudget.min - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
+  const budgetMaxPct = ((draftBudget.max - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
 
   const budgetMinLabel =
-    filters.budgetMin === BUDGET_FILTER_MIN
+    draftBudget.min === BUDGET_FILTER_MIN
       ? '€ 0'
-      : `€ ${filters.budgetMin.toLocaleString('nl-NL')}`;
+      : `€ ${draftBudget.min.toLocaleString('nl-NL')}`;
   const budgetMaxLabel =
-    filters.budgetMax >= BUDGET_FILTER_MAX
+    draftBudget.max >= BUDGET_FILTER_MAX
       ? '€ 2.000+'
-      : `€ ${filters.budgetMax.toLocaleString('nl-NL')}`;
+      : `€ ${draftBudget.max.toLocaleString('nl-NL')}`;
 
   const selectClassName =
     'h-11 w-full rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-[14px] text-[#0A2D62] outline-none';
@@ -607,38 +635,42 @@ export function FilterSidebar({
                 type="range"
                 min={BUDGET_FILTER_MIN}
                 max={BUDGET_FILTER_MAX}
-                value={filters.budgetMin}
+                value={draftBudget.min}
                 aria-label="Minimumprijs per persoon"
                 onChange={(event) => {
                   const nextBudgetMin = Number(event.target.value);
-                  updateFilters(
-                    {
-                      ...filters,
-                      budgetMin: nextBudgetMin,
-                      budgetMax: Math.max(filters.budgetMax, nextBudgetMin),
-                    },
-                    { allowWhileNavigating: true },
-                  );
+                  setDraftBudget((current) => {
+                    const next = {
+                      min: nextBudgetMin,
+                      max: Math.max(current.max, nextBudgetMin),
+                    };
+                    draftBudgetRef.current = next;
+                    return next;
+                  });
                 }}
+                onPointerUp={commitBudget}
+                onKeyUp={commitBudget}
                 className="vw-budget-range z-[2]"
               />
               <input
                 type="range"
                 min={BUDGET_FILTER_MIN}
                 max={BUDGET_FILTER_MAX}
-                value={filters.budgetMax}
+                value={draftBudget.max}
                 aria-label="Maximumprijs per persoon"
                 onChange={(event) => {
                   const nextBudgetMax = Number(event.target.value);
-                  updateFilters(
-                    {
-                      ...filters,
-                      budgetMax: nextBudgetMax,
-                      budgetMin: Math.min(filters.budgetMin, nextBudgetMax),
-                    },
-                    { allowWhileNavigating: true },
-                  );
+                  setDraftBudget((current) => {
+                    const next = {
+                      max: nextBudgetMax,
+                      min: Math.min(current.min, nextBudgetMax),
+                    };
+                    draftBudgetRef.current = next;
+                    return next;
+                  });
                 }}
+                onPointerUp={commitBudget}
+                onKeyUp={commitBudget}
                 className="vw-budget-range z-[3]"
               />
             </div>

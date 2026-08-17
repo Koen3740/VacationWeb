@@ -9,6 +9,7 @@ export {
   type EnrichPrijsvrijRetryStats,
 } from './enrich-search-prices';
 export { extractPrijsvrijProductId } from './product-id';
+export { clearResultsLivePriceCache } from '../../search/results-live-price-cache';
 export { searchPrijsvrij } from './search-client';
 export {
   computePrijsvrijReceiptPricePerPerson,
@@ -22,13 +23,17 @@ export {
   resolvePrijsvrijReceiptOccupancy,
 } from './receipt-context';
 export {
+  clearLivePriceInflightForTests,
   buildRemainingFromPresentedPage1,
   buildRemainingFromPresentedPage1Ids,
   getResultsPageOffers,
   isUsablePage1IdsParam,
   mapWithConcurrency,
   markPrijsvrijLivePriceUnavailable,
+  PRIJSVRIJ_RECEIPT_MATCHSET_CONCURRENCY,
   PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY,
+  presentCatalogPage1WithoutLivePricing,
+  priceLiveRequiredMatchset,
   pricePage1AndBuildRemaining,
   pricePage1WithPrijsvrijReceipts,
   resolveResultsPageSlice,

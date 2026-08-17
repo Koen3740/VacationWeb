@@ -10,6 +10,7 @@ import {
 } from '@/components/results-v2/results-design-tokens';
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
 import { isValidOfferImageUrl } from '@/lib/offers/is-valid-offer-image-url';
+import { hasValidPresentablePrice } from '@/lib/search/presentable-price';
 import { TravelOffer } from '@/types/travel';
 import Link from 'next/link';
 
@@ -26,17 +27,6 @@ function formatPrice(value: number): string {
     style: 'decimal',
     maximumFractionDigits: 0,
   }).format(value);
-}
-
-/** Proven live price only — never catalog as a stand-in for a missing live quote. */
-function shouldShowOfferPrice(offer: TravelOffer): boolean {
-  if (offer.provider === 'Prijsvrij') {
-    return offer.livePriceStatus === 'proven' && offer.livePriceSource === 'receipt';
-  }
-  if (offer.provider === 'Corendon') {
-    return offer.livePriceStatus === 'proven' && offer.livePriceSource === 'lowestpricesacco';
-  }
-  return Number.isFinite(offer.price) && offer.price > 0;
 }
 
 function collectImages(offer: TravelOffer): string[] {
@@ -144,13 +134,16 @@ function isCardBlurbUseful(value: string | undefined): boolean {
 }
 
 export function TravelCard({ offer }: { offer: TravelOffer }) {
+  if (!hasValidPresentablePrice(offer)) {
+    return null;
+  }
+
   const location = formatCardLocation(offer);
   const stars = offer.stars && offer.stars > 0 ? offer.stars : 0;
   const isLastMinute = offer.lastMinute === 'true' || offer.lastMinute === '1' || offer.lastMinute === 'yes';
   const ratingText = ratingLabel(offer.rating);
   const airport = offer.departureAirport || offer.departureAirportCode || offer.airport;
   const images = collectImages(offer);
-  const showPrice = shouldShowOfferPrice(offer);
   const shortDescriptionRaw = plainTextSnippet(offer.descriptionShort);
   const extraInfoRaw = plainTextSnippet(offer.extraInfo);
   const shortDescription = isCardBlurbUseful(shortDescriptionRaw) ? shortDescriptionRaw : undefined;
@@ -255,19 +248,13 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
               <HeartButton />
             </div>
             <div className="mt-1 flex w-full flex-1 flex-col items-end justify-center text-right">
-              {showPrice ? (
-                <>
-                  <p className="text-[28px] font-bold leading-none tracking-tight" style={{ color: RESULTS_NAVY }}>
-                    €&nbsp;{formatPrice(offer.price)}
-                  </p>
-                  <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
-                  <p className="mt-2 text-[11px] font-normal text-[#A39A8C]">
-                    € {formatPrice(offer.pricePerDay)} p.p. / dag
-                  </p>
-                </>
-              ) : (
-                <p className="text-[13px] font-medium text-[#94A3B8]">Prijs op aanvraag</p>
-              )}
+              <p className="text-[28px] font-bold leading-none tracking-tight" style={{ color: RESULTS_NAVY }}>
+                €&nbsp;{formatPrice(offer.price)}
+              </p>
+              <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
+              <p className="mt-2 text-[11px] font-normal text-[#A39A8C]">
+                € {formatPrice(offer.pricePerDay)} p.p. / dag
+              </p>
             </div>
             <div className="mt-3 w-full">
               <Link

@@ -1,8 +1,10 @@
 import { ResultsPagination } from '@/components/results/results-pagination';
+import { SyncPage1IdsToUrl } from '@/components/results/sync-page1-ids-to-url';
 import { TravelCard } from '@/components/results/travel-card';
 import { TravelCardReceiptFallback } from '@/components/results/travel-card-receipt-fallback';
 import type { Page1PresentedSlice, Page1ReceiptStream } from '@/lib/providers/prijsvrij';
 import { RESULTS_PRODUCT_PAGE_SIZE } from '@/lib/providers/prijsvrij';
+import { hasValidPresentablePrice } from '@/lib/search/presentable-price';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 import { Suspense } from 'react';
 
@@ -39,18 +41,19 @@ async function Page1TrailingCards({
 async function Page1PaginationFromPresented({
   presented,
   params,
-  totalResults,
 }: {
   presented: Promise<Page1PresentedSlice>;
   params: SearchParams;
-  totalResults: number;
 }) {
-  const { page1Ids } = await presented;
+  const { page1Ids, paginationTotal } = await presented;
   return (
-    <ResultsPagination
-      params={{ ...params, pageSize: RESULTS_PRODUCT_PAGE_SIZE, page1Ids }}
-      totalResults={totalResults}
-    />
+    <>
+      <SyncPage1IdsToUrl page1Ids={page1Ids} />
+      <ResultsPagination
+        params={{ ...params, pageSize: RESULTS_PRODUCT_PAGE_SIZE, page1Ids }}
+        totalResults={paginationTotal}
+      />
+    </>
   );
 }
 
@@ -58,9 +61,9 @@ export function Page1ResultsStream({ stream }: { stream: Page1ReceiptStream }) {
   return (
     <div className="space-y-3.5">
       {stream.slots.map((slot) =>
-        slot.kind === 'immediate' ? (
+        slot.kind === 'immediate' && hasValidPresentablePrice(slot.offer) ? (
           <TravelCard key={slot.offer.id} offer={slot.offer} />
-        ) : (
+        ) : slot.kind === 'immediate' ? null : (
           <Suspense
             key={`pv-slot-${slot.selectedIndex}`}
             fallback={<TravelCardReceiptFallback />}
@@ -79,18 +82,15 @@ export function Page1ResultsStream({ stream }: { stream: Page1ReceiptStream }) {
 export function Page1PaginationStream({
   stream,
   params,
-  totalResults,
 }: {
   stream: Page1ReceiptStream;
   params: SearchParams;
-  totalResults: number;
 }) {
   return (
     <Suspense fallback={null}>
       <Page1PaginationFromPresented
         presented={stream.presented}
         params={params}
-        totalResults={totalResults}
       />
     </Suspense>
   );

@@ -11,7 +11,6 @@ import {
   formatSelectedDurationsLabel,
 } from '@/components/search/duration-popup/duration-popup-utils';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
-import { deriveDestinationCountryCounts } from '@/lib/offers/derive-destination-countries';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 import { loadOffers } from '@/lib/offers/load-offers';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
@@ -24,9 +23,10 @@ import {
   RESULTS_PRODUCT_PAGE_SIZE,
   startPage1ReceiptStream,
 } from '@/lib/providers/prijsvrij';
-import { rankResultsOffers } from '@/lib/search/rank-results-offers';
+import { prepareResultsOffers } from '@/lib/search/prepare-results-offers';
 import {
   buildResultsPageHref,
+  limitRankedResultsForPagination,
   parsePage1IdsParam,
   parseResultsPageParam,
 } from '@/lib/search/pagination';
@@ -38,38 +38,9 @@ import {
 } from '@/lib/search/location-filters';
 import { parseStarsParam } from '@/lib/search/stars-param';
 import { parseVacationTypesParam } from '@/lib/search/vacation-type';
-import { SearchParams, type TravelOffer } from '@/types/travel';
+import { SearchParams } from '@/types/travel';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
-
-function deriveCitiesByCountry(offers: TravelOffer[]): Record<string, string[]> {
-  const map = new Map<string, Set<string>>();
-  for (const offer of offers) {
-    const country = canonicalizeCountryName(offer.destinationCountry);
-    const city = offer.destinationCity?.trim();
-    if (!country || !city) continue;
-    const set = map.get(country) ?? new Set<string>();
-    set.add(city);
-    map.set(country, set);
-  }
-  const result: Record<string, string[]> = {};
-  for (const [country, cities] of map) {
-    result[country] = [...cities].sort((a, b) => a.localeCompare(b, 'nl'));
-  }
-  return result;
-}
-
-function deriveAccommodationTypes(offers: TravelOffer[]): string[] {
-  const counts = new Map<string, number>();
-  for (const offer of offers) {
-    const type = offer.accommodationType?.trim();
-    if (!type) continue;
-    counts.set(type, (counts.get(type) || 0) + 1);
-  }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'nl'))
-    .map(([type]) => type);
-}
 
 export const dynamic = 'force-dynamic';
 
@@ -220,20 +191,20 @@ export default async function ResultsPage({
   const params = parseSearchParams(searchParams);
   const offers = await loadOffers();
   const filterOptions = loadFilterOptions();
-  const citiesByCountry = deriveCitiesByCountry(offers);
-  const accommodationTypes = deriveAccommodationTypes(offers);
-  const countryCounts = Object.fromEntries(
-    deriveDestinationCountryCounts(offers).map(({ name, count }) => [name, count]),
-  );
-  const totalOffersLabel = formatTotalOffersLabel(offers.length);
-  const filtered = rankResultsOffers(offers, params);
+  const citiesByCountry = filterOptions.citiesByCountry ?? {};
+  const accommodationTypes = filterOptions.accommodationTypes ?? [];
+  const countryCounts = filterOptions.countryCounts ?? {};
+  const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? offers.length);
+  const filtered = await prepareResultsOffers(offers, params);
+  const matchCount = filtered.length;
+  const userPool = limitRankedResultsForPagination(filtered);
   const pageSize = RESULTS_PRODUCT_PAGE_SIZE;
   const page = params.page ?? 1;
   const isPage1 = !Number.isFinite(page) || Math.floor(page) <= 1;
 
   const pageShell = {
     departureAirports: filterOptions.departureAirports,
-    resultCount: filtered.length,
+    resultCount: matchCount,
     summaryLine: buildSummaryLine(params),
     sortControl: <SortSelector currentSort={params.sort || 'value'} />,
     filters: (
@@ -248,7 +219,7 @@ export default async function ResultsPage({
   };
 
   // Page 1: stream non-Receipt cards immediately; PV slots resolve independently.
-  // page1Ids / remaining still wait for the full existing Receipt pipeline.
+  // Full-matchset live pricing is scheduled above and is not awaited here.
   if (isPage1) {
     if (filtered.length === 0) {
       return (
@@ -265,7 +236,35 @@ export default async function ResultsPage({
       );
     }
 
-    const stream = startPage1ReceiptStream(filtered, params, { pageSize });
+    if (params.page1Ids?.length) {
+      const catalogPage1 = await resolveResultsPageSlice(filtered, params, {
+        pageSize,
+        paginationPool: userPool,
+      });
+      return (
+        <ResultsPageClient
+          {...pageShell}
+          results={
+            <div className="space-y-3.5">
+              {catalogPage1.visibleOffers.map((offer) => (
+                <TravelCard key={offer.id} offer={offer} />
+              ))}
+            </div>
+          }
+          pagination={
+            <ResultsPagination
+              params={{ ...params, pageSize, page1Ids: catalogPage1.page1Ids }}
+              totalResults={catalogPage1.paginationTotal}
+            />
+          }
+        />
+      );
+    }
+
+    const stream = startPage1ReceiptStream(filtered, params, {
+      pageSize,
+      paginationPool: userPool,
+    });
     return (
       <ResultsPageClient
         {...pageShell}
@@ -274,7 +273,6 @@ export default async function ResultsPage({
           <Page1PaginationStream
             stream={stream}
             params={{ ...params, pageSize }}
-            totalResults={filtered.length}
           />
         }
       />
@@ -282,10 +280,10 @@ export default async function ResultsPage({
   }
 
   // Page 2+: remaining from page1Ids; cold page 2 runs page-1 pipeline once.
-  const { visibleOffers, page1Ids, needsPage1IdsRedirect } = await resolveResultsPageSlice(
+  const { visibleOffers, page1Ids, needsPage1IdsRedirect, paginationTotal } = await resolveResultsPageSlice(
     filtered,
     params,
-    { pageSize },
+    { pageSize, paginationPool: userPool },
   );
 
   if (needsPage1IdsRedirect && page1Ids?.length) {
@@ -318,10 +316,10 @@ export default async function ResultsPage({
           )
         }
         pagination={
-          <ResultsPagination
-            params={{ ...params, pageSize, page1Ids }}
-            totalResults={filtered.length}
-          />
+            <ResultsPagination
+              params={{ ...params, pageSize, page1Ids }}
+              totalResults={paginationTotal}
+            />
         }
       />
     </Suspense>

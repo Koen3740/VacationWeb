@@ -1,11 +1,22 @@
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import type { SearchParams } from '../../../types/travel';
-import { paginateResults } from '../../search/pagination';
+import {
+  limitRankedResultsForPagination,
+  paginateResults,
+  RESULTS_USER_PAGINATION_CAP,
+} from '../../search/pagination';
 import {
   applyResultsLivePriceOverlay,
+  applyResultsLivePriceOverlays,
   getResultsLivePriceOverlay,
+  hasResultsLivePriceOverlay,
+  livePriceCacheKey,
   setResultsLivePriceOverlay,
 } from '../../search/results-live-price-cache';
+import {
+  filterToPresentableOffers,
+  hasValidPresentablePrice,
+} from '../../search/presentable-price';
 import {
   PRIJSVRIJ_PAGE1_MAX_SLOTS,
   PRIJSVRIJ_PROVIDER_NAME,
@@ -20,6 +31,12 @@ import {
   fetchCorendonLowestpricesaccoPrice,
   isCorendon,
 } from '../corendon';
+import {
+  ELIZA_LIVE_PAGE1_CONCURRENCY,
+  buildElizaLiveContext,
+  fetchElizaPromotedPrice,
+  isEliza,
+} from '../eliza';
 
 /** Product page size for Results (Master Plan §8.1a). */
 export const RESULTS_PRODUCT_PAGE_SIZE = 10;
@@ -30,6 +47,14 @@ export const RESULTS_PRODUCT_PAGE_SIZE = 10;
  */
 export const PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY = 5;
 
+/**
+ * In-flight throttle for full-matchset live pricing. Not the page-1 safety cap.
+ * Same width as page-1 C=5; separate binding so matchset never uses cap ≤10.
+ */
+export const PRIJSVRIJ_RECEIPT_MATCHSET_CONCURRENCY = 5;
+const CORENDON_LIVE_MATCHSET_CONCURRENCY = 5;
+const ELIZA_LIVE_MATCHSET_CONCURRENCY = 5;
+
 export type Page1ReceiptPricingStats = {
   receiptCalls: number;
   receiptSuccesses: number;
@@ -38,6 +63,13 @@ export type Page1ReceiptPricingStats = {
   stoppedEarlyBecauseEnoughPv: boolean;
   /** Peak in-flight Receipt HTTP calls observed during this run (tests). */
   maxInFlightReceiptCalls?: number;
+  /**
+   * Receipt HTTP calls for the rest of the matchset after page-1 slot filling.
+   * Not counted toward the page-1 safety cap.
+   */
+  matchsetReceiptCalls?: number;
+  /** Peak in-flight matchset Receipt HTTP calls (tests). */
+  maxInFlightMatchsetReceiptCalls?: number;
 };
 
 export type Page1ReceiptPricingOptions = {
@@ -46,7 +78,15 @@ export type Page1ReceiptPricingOptions = {
   safetyCap?: number;
   maxPrijsvrijSlots?: number;
   concurrency?: number;
+  /** Full-matchset in-flight throttle. Defaults to PRIJSVRIJ_RECEIPT_MATCHSET_CONCURRENCY. */
+  matchsetConcurrency?: number;
   stats?: Page1ReceiptPricingStats;
+  /**
+   * Already-ranked user-pagination pool. Defaults to the first 150 of sortedOffers.
+   * Live pricing still runs over the full sortedOffers matchset.
+   */
+  paginationPool?: TravelOffer[];
+  userPaginationCap?: number;
 };
 
 /** Non-PV card can render immediately; PV card waits on its own Receipt/reserve promise. */
@@ -60,6 +100,8 @@ export type Page1PresentedSlice = {
   page1Ids: string[];
   /** Non-PV backfill appended after failed PV slots were compacted — not in the original slots. */
   trailingOffers: TravelOffer[];
+  /** Presentable offers in the user-pagination pool (≤150). Not the raw match count. */
+  paginationTotal: number;
 };
 
 export type Page1ReceiptStream = {
@@ -109,6 +151,148 @@ function withCorendonLivePrice(offer: TravelOffer, pricePerPerson: number): Trav
   };
 }
 
+function withElizaLivePrice(offer: TravelOffer, pricePerPerson: number): TravelOffer {
+  const nights = offer.nights > 0 ? offer.nights : 0;
+  return {
+    ...offer,
+    price: pricePerPerson,
+    pricePerDay: nights > 0 ? Math.round(pricePerPerson / nights) : pricePerPerson,
+    livePriceStatus: 'proven',
+    livePriceSource: 'getPromotedPrice',
+  };
+}
+
+function requiresPage1LivePrice(offer: TravelOffer): boolean {
+  return isPrijsvrij(offer) || isCorendon(offer) || isEliza(offer);
+}
+
+function resolvePaginationPool(
+  sortedOffers: TravelOffer[],
+  options: Pick<Page1ReceiptPricingOptions, 'paginationPool' | 'userPaginationCap'>,
+): TravelOffer[] {
+  if (options.paginationPool) {
+    return options.paginationPool;
+  }
+  return limitRankedResultsForPagination(
+    sortedOffers,
+    options.userPaginationCap ?? RESULTS_USER_PAGINATION_CAP,
+  );
+}
+
+const pvReceiptInflight = new Map<string, Promise<void>>();
+const corendonLiveInflight = new Map<string, Promise<void>>();
+const elizaLiveInflight = new Map<string, Promise<void>>();
+
+async function joinOrStartInflight(
+  map: Map<string, Promise<void>>,
+  key: string,
+  work: () => Promise<void>,
+): Promise<'joined' | 'started'> {
+  const existing = map.get(key);
+  if (existing) {
+    await existing;
+    return 'joined';
+  }
+  const started = work().finally(() => {
+    if (map.get(key) === started) {
+      map.delete(key);
+    }
+  });
+  map.set(key, started);
+  await started;
+  return 'started';
+}
+
+async function runPrijsvrijReceiptIntoCache(
+  offer: TravelOffer,
+  params: SearchParams,
+  fetchImpl: FetchLike,
+): Promise<'http' | 'joined' | 'cached' | 'unavailable'> {
+  if (hasResultsLivePriceOverlay(offer.id, params)) {
+    return 'cached';
+  }
+  const key = livePriceCacheKey(offer.id, params);
+  let didHttp = false;
+  const mode = await joinOrStartInflight(pvReceiptInflight, key, async () => {
+    if (hasResultsLivePriceOverlay(offer.id, params)) {
+      return;
+    }
+    const ctx = buildPrijsvrijReceiptContext(offer, params);
+    if (!ctx) {
+      cacheUnavailableLivePrice(offer, params);
+      return;
+    }
+    didHttp = true;
+    const result = await fetchPrijsvrijReceiptPrice(ctx, { fetchImpl });
+    if (result.ok) {
+      cacheLiveOverlay(withReceiptPrice(offer, result.price.pricePerPerson), params);
+    } else {
+      cacheUnavailableLivePrice(offer, params);
+    }
+  });
+  if (mode === 'joined') {
+    return 'joined';
+  }
+  if (didHttp) {
+    return 'http';
+  }
+  return hasResultsLivePriceOverlay(offer.id, params) ? 'cached' : 'unavailable';
+}
+
+async function runCorendonLiveIntoCache(
+  offer: TravelOffer,
+  params: SearchParams,
+  fetchImpl: FetchLike,
+): Promise<void> {
+  if (hasResultsLivePriceOverlay(offer.id, params)) {
+    return;
+  }
+  const key = livePriceCacheKey(offer.id, params);
+  await joinOrStartInflight(corendonLiveInflight, key, async () => {
+    if (hasResultsLivePriceOverlay(offer.id, params)) {
+      return;
+    }
+    const ctx = buildCorendonLiveContext(offer, params);
+    if (!ctx) {
+      cacheUnavailableLivePrice(offer, params);
+      return;
+    }
+    const result = await fetchCorendonLowestpricesaccoPrice(ctx, { fetchImpl });
+    if (result.ok) {
+      cacheLiveOverlay(withCorendonLivePrice(offer, result.pricePerPerson), params);
+    } else {
+      cacheUnavailableLivePrice(offer, params);
+    }
+  });
+}
+
+async function runElizaLiveIntoCache(
+  offer: TravelOffer,
+  params: SearchParams,
+  fetchImpl: FetchLike,
+): Promise<void> {
+  if (hasResultsLivePriceOverlay(offer.id, params)) {
+    return;
+  }
+  const key = livePriceCacheKey(offer.id, params);
+  await joinOrStartInflight(elizaLiveInflight, key, async () => {
+    if (hasResultsLivePriceOverlay(offer.id, params)) {
+      return;
+    }
+    const ctx = buildElizaLiveContext(offer, params);
+    if (!ctx) {
+      cacheUnavailableLivePrice(offer, params);
+      return;
+    }
+    const result = await fetchElizaPromotedPrice(ctx, { fetchImpl });
+    if (result.ok) {
+      cacheLiveOverlay(withElizaLivePrice(offer, result.pricePerPerson), params);
+    } else {
+      cacheUnavailableLivePrice(offer, params);
+    }
+  });
+}
+
 function cacheLiveOverlay(offer: TravelOffer, params: SearchParams): void {
   setResultsLivePriceOverlay(offer.id, params, {
     price: offer.price,
@@ -124,27 +308,11 @@ function cacheUnavailableLivePrice(offer: TravelOffer, params: SearchParams): Tr
   return hidden;
 }
 
-function isReusableProvenLivePrice(offer: TravelOffer): boolean {
-  if (offer.livePriceStatus !== 'proven') {
-    return false;
-  }
-  if (typeof offer.price !== 'number' || !Number.isFinite(offer.price) || offer.price <= 0) {
-    return false;
-  }
-  if (isPrijsvrij(offer)) {
-    return offer.livePriceSource === 'receipt';
-  }
-  if (isCorendon(offer)) {
-    return offer.livePriceSource === 'lowestpricesacco';
-  }
-  return true;
-}
-
 /**
  * Cache lookup before any live HTTP.
  * - TravelOffer: reusable proven live price
- * - null: cached unavailable / fail-closed — do not HTTP
- * - undefined: miss
+ * - null: cached unavailable / fail-closed — do not HTTP, do not present catalog price
+ * - undefined: miss (expired or never stored)
  */
 function cachedLivePriceResult(
   offer: TravelOffer,
@@ -155,7 +323,7 @@ function cachedLivePriceResult(
     return undefined;
   }
   const merged = applyResultsLivePriceOverlay(offer, params);
-  if (isReusableProvenLivePrice(merged)) {
+  if (hasValidPresentablePrice(merged)) {
     return merged;
   }
   return null;
@@ -165,6 +333,13 @@ function cachedLivePriceResult(
  * Run async work over items with a hard concurrency ceiling.
  * Does not start more than `concurrency` workers at once.
  */
+/** Test-only: drop in-flight coalescing so parallel files cannot share HTTP work. */
+export function clearLivePriceInflightForTests(): void {
+  pvReceiptInflight.clear();
+  corendonLiveInflight.clear();
+  elizaLiveInflight.clear();
+}
+
 export async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
@@ -191,6 +366,94 @@ export async function mapWithConcurrency<T, R>(
 
   await Promise.all(Array.from({ length: limit }, () => runWorker()));
   return results;
+}
+
+/**
+ * Live-price every Prijsvrij / Corendon / Eliza offer that does not yet have an
+ * occupancy overlay. Uses existing clients and matchset concurrency (not the
+ * page-1 safety cap). No product cap of 3 or 10.
+ */
+export async function priceLiveRequiredMatchset(
+  offers: TravelOffer[],
+  params: SearchParams,
+  options: Pick<
+    Page1ReceiptPricingOptions,
+    'fetchImpl' | 'concurrency' | 'matchsetConcurrency' | 'stats'
+  > = {},
+): Promise<TravelOffer[]> {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const concurrency =
+    options.matchsetConcurrency ??
+    options.concurrency ??
+    PRIJSVRIJ_RECEIPT_MATCHSET_CONCURRENCY;
+  const pv: TravelOffer[] = [];
+  const corendon: TravelOffer[] = [];
+  const eliza: TravelOffer[] = [];
+
+  for (const offer of offers) {
+    if (hasResultsLivePriceOverlay(offer.id, params)) {
+      continue;
+    }
+    if (isPrijsvrij(offer)) {
+      pv.push(offer);
+    } else if (isCorendon(offer)) {
+      corendon.push(offer);
+    } else if (isEliza(offer)) {
+      eliza.push(offer);
+    }
+  }
+
+  let matchsetReceiptCalls = 0;
+  let inFlight = 0;
+  let maxInFlight = 0;
+
+  await Promise.all([
+    mapWithConcurrency(pv, concurrency, async (offer) => {
+      if (hasResultsLivePriceOverlay(offer.id, params)) {
+        return;
+      }
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      try {
+        const outcome = await runPrijsvrijReceiptIntoCache(offer, params, fetchImpl);
+        if (outcome === 'http') {
+          matchsetReceiptCalls += 1;
+        }
+      } finally {
+        inFlight -= 1;
+      }
+    }),
+    mapWithConcurrency(corendon, CORENDON_LIVE_MATCHSET_CONCURRENCY, async (offer) => {
+      await runCorendonLiveIntoCache(offer, params, fetchImpl);
+    }),
+    mapWithConcurrency(eliza, ELIZA_LIVE_MATCHSET_CONCURRENCY, async (offer) => {
+      await runElizaLiveIntoCache(offer, params, fetchImpl);
+    }),
+  ]);
+
+  if (options.stats) {
+    options.stats.matchsetReceiptCalls =
+      (options.stats.matchsetReceiptCalls ?? 0) + matchsetReceiptCalls;
+    options.stats.maxInFlightMatchsetReceiptCalls = Math.max(
+      options.stats.maxInFlightMatchsetReceiptCalls ?? 0,
+      maxInFlight,
+    );
+  }
+
+  return applyResultsLivePriceOverlays(offers, params);
+}
+
+function overlaidPaginationSlice(
+  sortedOffers: TravelOffer[],
+  page1: TravelOffer[],
+  options: Pick<Page1ReceiptPricingOptions, 'paginationPool' | 'userPaginationCap'>,
+  params: SearchParams,
+): Pick<Page1PresentedSlice, 'remaining' | 'paginationTotal'> {
+  const pool = applyResultsLivePriceOverlays(resolvePaginationPool(sortedOffers, options), params);
+  return {
+    remaining: buildRemainingFromPresentedPage1(pool, page1),
+    paginationTotal: filterToPresentableOffers(pool).length,
+  };
 }
 
 /**
@@ -337,7 +600,8 @@ export function getResultsPageOffers(
  * later reserve). `presented` resolves only after success/failure/reserve/
  * backfill — page1Ids must be read from there, never earlier.
  *
- * Does not change C=5, cap ≤10, selection, ranking, or fallback rules.
+ * Page-1 display still uses max 3 Prijsvrij + slot-fill safety cap ≤10.
+ * Full-matchset live pricing is launched separately and is not awaited here.
  */
 export function startPage1ReceiptStream(
   sortedOffers: TravelOffer[],
@@ -349,9 +613,10 @@ export function startPage1ReceiptStream(
   const maxPrijsvrijSlots = options.maxPrijsvrijSlots ?? PRIJSVRIJ_PAGE1_MAX_SLOTS;
   const concurrency = options.concurrency ?? PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY;
   const fetchImpl = options.fetchImpl ?? fetch;
+  const paginationPool = resolvePaginationPool(sortedOffers, options);
 
   const { selected, prijsvrijReserves } = selectPage1Candidates(
-    sortedOffers,
+    paginationPool,
     pageSize,
     maxPrijsvrijSlots,
   );
@@ -372,8 +637,22 @@ export function startPage1ReceiptStream(
       if (cached === null) {
         return withCatalogPriceHidden(offer);
       }
-      // Missing hash/id/occupancy: no live call — hide catalog, do not Suspense.
+      // Missing hash/id/occupancy: no live call. Slot stays immediate but is
+      // not presented — TravelCard / page1 filter drop offers without a valid price.
       if (!buildCorendonLiveContext(offer, params)) {
+        return withCatalogPriceHidden(offer);
+      }
+      return null;
+    }
+    if (isEliza(offer)) {
+      const cached = cachedLivePriceResult(offer, params);
+      if (cached) {
+        return cached;
+      }
+      if (cached === null) {
+        return withCatalogPriceHidden(offer);
+      }
+      if (!buildElizaLiveContext(offer, params)) {
         return withCatalogPriceHidden(offer);
       }
       return null;
@@ -388,6 +667,7 @@ export function startPage1ReceiptStream(
   type PvSlot = { selectedIndex: number; primary: TravelOffer };
   const pvSlots: PvSlot[] = [];
   const corendonSlots: Array<{ selectedIndex: number; offer: TravelOffer }> = [];
+  const elizaSlots: Array<{ selectedIndex: number; offer: TravelOffer }> = [];
   const slotDeferreds = new Map<number, ReturnType<typeof createDeferred<TravelOffer | null>>>();
   for (let i = 0; i < selected.length; i += 1) {
     const offer = selected[i];
@@ -397,13 +677,17 @@ export function startPage1ReceiptStream(
     } else if (isCorendon(offer) && slotResults[i] === null) {
       corendonSlots.push({ selectedIndex: i, offer });
       slotDeferreds.set(i, createDeferred<TravelOffer | null>());
+    } else if (isEliza(offer) && slotResults[i] === null) {
+      elizaSlots.push({ selectedIndex: i, offer });
+      slotDeferreds.set(i, createDeferred<TravelOffer | null>());
     }
   }
 
   const slots: Page1StreamSlot[] = selected.map((offer, selectedIndex) => {
     if (
       (isPrijsvrij(offer) && slotResults[selectedIndex] === null) ||
-      (isCorendon(offer) && slotResults[selectedIndex] === null)
+      (isCorendon(offer) && slotResults[selectedIndex] === null) ||
+      (isEliza(offer) && slotResults[selectedIndex] === null)
     ) {
       return {
         kind: 'pending',
@@ -443,71 +727,87 @@ export function startPage1ReceiptStream(
         return null;
       }
 
-      if (receiptCalls >= safetyCap) {
-        return null;
-      }
-
-      const ctx = buildPrijsvrijReceiptContext(candidate, params);
-      if (!ctx) {
-        // Missing reproducible context — not a Receipt HTTP call.
-        cacheUnavailableLivePrice(candidate, params);
-        return null;
-      }
-
-      // Claim slot synchronously before await (safe under JS single-thread).
-      if (receiptCalls >= safetyCap) {
-        return null;
-      }
-      receiptCalls += 1;
-
-      inFlight += 1;
-      maxInFlight = Math.max(maxInFlight, inFlight);
-      try {
-        const result = await fetchPrijsvrijReceiptPrice(ctx, { fetchImpl });
-        if (result.ok) {
-          receiptSuccesses += 1;
-          prijsvrijSlotsFilled += 1;
-          const priced = withReceiptPrice(candidate, result.price.pricePerPerson);
-          cacheLiveOverlay(priced, params);
-          return priced;
+      const inflightKey = livePriceCacheKey(candidate.id, params);
+      const joining = pvReceiptInflight.has(inflightKey);
+      if (!joining) {
+        if (receiptCalls >= safetyCap) {
+          return null;
         }
-        receiptFailures += 1;
-        cacheUnavailableLivePrice(candidate, params);
+        const ctx = buildPrijsvrijReceiptContext(candidate, params);
+        if (!ctx) {
+          cacheUnavailableLivePrice(candidate, params);
+          return null;
+        }
+        if (receiptCalls >= safetyCap) {
+          return null;
+        }
+        receiptCalls += 1;
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+      }
+
+      try {
+        const outcome = await runPrijsvrijReceiptIntoCache(candidate, params, fetchImpl);
+        const after = cachedLivePriceResult(candidate, params);
+        if (after) {
+          if (!joining && outcome === 'http') {
+            receiptSuccesses += 1;
+          }
+          prijsvrijSlotsFilled += 1;
+          return after;
+        }
+        if (!joining && outcome === 'http') {
+          receiptFailures += 1;
+        }
         return null;
       } finally {
-        inFlight -= 1;
+        if (!joining) {
+          inFlight -= 1;
+        }
       }
     }
 
-    async function priceCorendonSlot(offer: TravelOffer): Promise<TravelOffer> {
+    async function priceCorendonSlot(offer: TravelOffer): Promise<TravelOffer | null> {
       const cached = cachedLivePriceResult(offer, params);
       if (cached) {
         return cached;
       }
       if (cached === null) {
-        return withCatalogPriceHidden(offer);
+        return null;
       }
-      const ctx = buildCorendonLiveContext(offer, params);
-      if (!ctx) {
-        return cacheUnavailableLivePrice(offer, params);
-      }
-      const result = await fetchCorendonLowestpricesaccoPrice(ctx, { fetchImpl });
-      if (result.ok) {
-        const priced = withCorendonLivePrice(offer, result.pricePerPerson);
-        cacheLiveOverlay(priced, params);
-        return priced;
-      }
-      return cacheUnavailableLivePrice(offer, params);
+      await runCorendonLiveIntoCache(offer, params, fetchImpl);
+      return cachedLivePriceResult(offer, params) ?? null;
     }
 
-    // Phase 1: PV Receipts (C=5) and Corendon lowestpricesacco in parallel.
+    async function priceElizaSlot(offer: TravelOffer): Promise<TravelOffer | null> {
+      const cached = cachedLivePriceResult(offer, params);
+      if (cached) {
+        return cached;
+      }
+      if (cached === null) {
+        return null;
+      }
+      await runElizaLiveIntoCache(offer, params, fetchImpl);
+      return cachedLivePriceResult(offer, params) ?? null;
+    }
+
+    // Phase 1: PV Receipts (C=5), Corendon lowestpricesacco, and Eliza PromotedPrice in parallel.
     // Settle each successful slot as soon as its own live call returns.
-    const [, primaryResults] = await Promise.all([
+    const [, , primaryResults] = await Promise.all([
       mapWithConcurrency(
         corendonSlots,
         CORENDON_LIVE_PAGE1_CONCURRENCY,
         async (slot) => {
           const priced = await priceCorendonSlot(slot.offer);
+          settleSlot(slot.selectedIndex, priced);
+          return priced;
+        },
+      ),
+      mapWithConcurrency(
+        elizaSlots,
+        ELIZA_LIVE_PAGE1_CONCURRENCY,
+        async (slot) => {
+          const priced = await priceElizaSlot(slot.offer);
           settleSlot(slot.selectedIndex, priced);
           return priced;
         },
@@ -580,31 +880,31 @@ export function startPage1ReceiptStream(
 
     const finalOffers: TravelOffer[] = [];
     for (const slot of slotResults) {
-      if (slot) {
+      if (slot && hasValidPresentablePrice(slot)) {
         finalOffers.push(slot);
       }
     }
 
     const filledIds = new Set(finalOffers.map((offer) => offer.id));
 
-    // If page under-filled after PV failures, add remaining non-PV from sorted list.
+    // If page under-filled after PV/Corendon failures, add remaining presentable non-PV.
     if (finalOffers.length < pageSize) {
-      for (const offer of sortedOffers) {
+      for (const offer of paginationPool) {
         if (finalOffers.length >= pageSize) {
           break;
         }
-        if (filledIds.has(offer.id) || isPrijsvrij(offer)) {
+        if (filledIds.has(offer.id) || requiresPage1LivePrice(offer)) {
           continue;
         }
-        finalOffers.push(
-          isCorendon(offer)
-            ? withCatalogPriceHidden(offer)
-            : {
-                ...offer,
-                livePriceStatus: 'catalog',
-                livePriceSource: 'feed',
-              },
-        );
+        const candidate = {
+          ...offer,
+          livePriceStatus: offer.livePriceStatus ?? ('catalog' as const),
+          livePriceSource: offer.livePriceSource ?? ('feed' as const),
+        };
+        if (!hasValidPresentablePrice(candidate)) {
+          continue;
+        }
+        finalOffers.push(candidate);
         filledIds.add(offer.id);
       }
     }
@@ -622,11 +922,19 @@ export function startPage1ReceiptStream(
       options.stats.maxInFlightReceiptCalls = maxInFlight;
     }
 
+    const { remaining, paginationTotal } = overlaidPaginationSlice(
+      sortedOffers,
+      page1,
+      options,
+      params,
+    );
+
     return {
       page1,
-      remaining: buildRemainingFromPresentedPage1(sortedOffers, page1),
+      remaining,
       page1Ids: page1.map((offer) => offer.id),
       trailingOffers,
+      paginationTotal,
     };
   })();
 
@@ -655,20 +963,16 @@ export async function pricePage1AndBuildRemaining(
   sortedOffers: TravelOffer[],
   params: SearchParams,
   options: Page1ReceiptPricingOptions = {},
-): Promise<{ page1: TravelOffer[]; remaining: TravelOffer[] }> {
-  const page1 = await pricePage1WithPrijsvrijReceipts(sortedOffers, params, options);
-  const remaining = buildRemainingFromPresentedPage1(sortedOffers, page1);
-  return { page1, remaining };
+): Promise<{ page1: TravelOffer[]; remaining: TravelOffer[]; paginationTotal: number }> {
+  const { page1, remaining, paginationTotal } = await startPage1ReceiptStream(
+    sortedOffers,
+    params,
+    options,
+  ).presented;
+  return { page1, remaining, paginationTotal };
 }
 
-export type ResolveResultsPageSliceOptions = {
-  fetchImpl?: FetchLike;
-  pageSize?: number;
-  safetyCap?: number;
-  maxPrijsvrijSlots?: number;
-  concurrency?: number;
-  stats?: Page1ReceiptPricingStats;
-};
+export type ResolveResultsPageSliceOptions = Page1ReceiptPricingOptions;
 
 /**
  * True when page1Ids can drive remaining without re-running Receipt.
@@ -686,12 +990,36 @@ export function isUsablePage1IdsParam(
 }
 
 /**
+ * Page-1 catalog refine after a completed search (page1Ids already known).
+ * Re-filters/sorts the existing resultset without Receipt or Corendon HTTP.
+ */
+export function presentCatalogPage1WithoutLivePricing(
+  sortedOffers: TravelOffer[],
+  pageSize: number = RESULTS_PRODUCT_PAGE_SIZE,
+): {
+  visibleOffers: TravelOffer[];
+  remaining: TravelOffer[];
+  page1Ids: string[];
+  paginationTotal: number;
+} {
+  const presentable = filterToPresentableOffers(sortedOffers);
+  const visibleOffers = paginateResults(presentable, 1, pageSize);
+  const page1Ids = visibleOffers.map((offer) => offer.id);
+  return {
+    visibleOffers,
+    remaining: buildRemainingFromPresentedPage1Ids(presentable, page1Ids),
+    page1Ids,
+    paginationTotal: presentable.length,
+  };
+}
+
+/**
  * FILTER→SORT input assumed. Single entry for Results pagination.
  *
- * - page 1: selection → Receipt (at most once) → definitive page1 + remaining
- * - page 2+ with usable page1Ids: NEVER runs Receipt; remaining from presented IDs
- * - page 2+ without usable page1Ids: run page-1 Receipt pipeline once, then caller
- *   redirects to the same page with definitive page1Ids (fast path on next request)
+ * - page 1 new search: diversity (max 3 PV) → Receipt slot fill (no matchset await)
+ * - page 1 with page1Ids: no max-3; overlay/cache then first 10 presentable
+ * - page 2+ with usable page1Ids: remaining from presented IDs; cache overlay only
+ * - page 2+ without usable page1Ids: run page-1 pipeline once, then caller redirects
  */
 export async function resolveResultsPageSlice(
   sortedOffers: TravelOffer[],
@@ -707,13 +1035,20 @@ export async function resolveResultsPageSlice(
    * Set only for cold page 2+ (missing/invalid page1Ids) after running Receipt once.
    */
   needsPage1IdsRedirect?: boolean;
+  paginationTotal: number;
 }> {
   const page = params.page ?? 1;
   const pageSize = options.pageSize ?? RESULTS_PRODUCT_PAGE_SIZE;
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  const pool = resolvePaginationPool(sortedOffers, options);
 
   if (safePage === 1) {
-    const { page1, remaining } = await pricePage1AndBuildRemaining(
+    if (params.page1Ids?.length) {
+      const overlaidPool = applyResultsLivePriceOverlays(pool, params);
+      return presentCatalogPage1WithoutLivePricing(overlaidPool, pageSize);
+    }
+
+    const { page1, remaining, paginationTotal } = await pricePage1AndBuildRemaining(
       sortedOffers,
       params,
       options,
@@ -722,40 +1057,41 @@ export async function resolveResultsPageSlice(
       visibleOffers: page1,
       remaining,
       page1Ids: page1.map((offer) => offer.id),
+      paginationTotal,
     };
   }
 
   if (isUsablePage1IdsParam(params.page1Ids, sortedOffers)) {
-    const remaining = buildRemainingFromPresentedPage1Ids(sortedOffers, params.page1Ids!);
+    const overlaidPool = applyResultsLivePriceOverlays(pool, params);
+    const remaining = buildRemainingFromPresentedPage1Ids(overlaidPool, params.page1Ids!);
+    const presentableRemaining = filterToPresentableOffers(remaining);
     return {
-      visibleOffers: markPrijsvrijLivePriceUnavailable(
-        paginateResults(remaining, safePage - 1, pageSize),
-      ),
+      visibleOffers: paginateResults(presentableRemaining, safePage - 1, pageSize),
       remaining,
       page1Ids: params.page1Ids,
+      paginationTotal: filterToPresentableOffers(overlaidPool).length,
     };
   }
 
   // Cold page 2+: establish definitive presented IDs via existing page-1 pipeline once.
-  const { page1, remaining } = await pricePage1AndBuildRemaining(
+  const { page1, remaining, paginationTotal } = await pricePage1AndBuildRemaining(
     sortedOffers,
     params,
     options,
   );
   return {
-    visibleOffers: markPrijsvrijLivePriceUnavailable(
-      paginateResults(remaining, safePage - 1, pageSize),
-    ),
+    visibleOffers: paginateResults(filterToPresentableOffers(remaining), safePage - 1, pageSize),
     remaining,
     page1Ids: page1.map((offer) => offer.id),
     needsPage1IdsRedirect: true,
+    paginationTotal,
   };
 }
 
 /** Mark page-2+ offers that require a page-1 live call as not proven. */
 export function markPrijsvrijLivePriceUnavailable(offers: TravelOffer[]): TravelOffer[] {
   return offers.map((offer) =>
-    isPrijsvrij(offer) || isCorendon(offer)
+    isPrijsvrij(offer) || isCorendon(offer) || isEliza(offer)
       ? withCatalogPriceHidden(offer)
       : {
           ...offer,

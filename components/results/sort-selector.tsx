@@ -5,6 +5,7 @@ import {
   SearchProgressOverlay,
   useDelayedBusyOverlay,
 } from '@/components/search/search-progress-feedback';
+import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
@@ -41,8 +42,10 @@ export function SortSelector({ currentSort }: { currentSort: string }) {
 
     const params = new URLSearchParams(searchParams.toString());
     params.set('sort', event.target.value);
-    params.delete('page');
-    params.delete('page1Ids');
+    applyFilterNavigationPaging(params, {
+      preservePage1Ids: true,
+      liveQuery: typeof window === 'undefined' ? undefined : window.location.search,
+    });
     navigationLockRef.current = true;
     setIsNavigating(true);
     startTransition(() => {

@@ -159,34 +159,30 @@ test('NL tripCode match required: date / airport / acco mismatch is not live', a
   if (!staleAcco.ok) assert.equal(staleAcco.reason, 'stale_context');
 });
 
-test('NL 204 / malformed / API failure: unavailable, no feed fallback', async () => {
+test('NL 204 / malformed / API failure: offer not presented, no feed fallback', async () => {
   const empty = await pricePage1WithPrijsvrijReceipts(
     [makeNlOffer({ price: 405 })],
     { adults: 2 },
     { fetchImpl: async () => new Response(null, { status: 204 }) },
   );
-  assert.equal(empty[0].livePriceStatus, 'unavailable');
-  assert.equal(empty[0].livePriceSource, undefined);
-  assert.equal(empty[0].price, 405);
+  assert.equal(empty.length, 0);
 
   const malformed = await pricePage1WithPrijsvrijReceipts(
     [makeNlOffer({ price: 405 })],
     { adults: 2 },
     { fetchImpl: async () => new Response(JSON.stringify({ package: {} }), { status: 200 }) },
   );
-  assert.equal(malformed[0].livePriceStatus, 'unavailable');
-  assert.notEqual(malformed[0].livePriceSource, 'lowestpricesacco');
+  assert.equal(malformed.length, 0);
 
   const failed = await pricePage1WithPrijsvrijReceipts(
     [makeNlOffer({ price: 405 })],
     { adults: 2 },
     { fetchImpl: async () => new Response('err', { status: 500 }) },
   );
-  assert.equal(failed[0].livePriceStatus, 'unavailable');
-  assert.equal(failed[0].id, 'corendon-5007');
+  assert.equal(failed.length, 0);
 });
 
-test('NL stream: valid offer is pending live slot; keeps card on failure', async () => {
+test('NL stream: valid offer is pending live slot; failure is not presented', async () => {
   const stream = startPage1ReceiptStream(
     [makeNlOffer(), { ...makeNlOffer(), id: 'sunweb-a', provider: 'Sunweb', deepLink: 'https://example.com' }],
     { adults: 2 },
@@ -206,7 +202,6 @@ test('NL stream: valid offer is pending live slot; keeps card on failure', async
     { fetchImpl: async () => new Response(null, { status: 204 }) },
   );
   const failed = await failedStream.slots[0].offer;
-  assert.ok(failed);
-  assert.equal(failed.livePriceStatus, 'unavailable');
-  assert.equal((await failedStream.presented).page1[0].id, 'corendon-5007');
+  assert.equal(failed, null);
+  assert.equal((await failedStream.presented).page1.length, 0);
 });
