@@ -23,7 +23,8 @@ import {
   RESULTS_PRODUCT_PAGE_SIZE,
   startPage1ReceiptStream,
 } from '@/lib/providers/prijsvrij';
-import { prepareResultsOffers } from '@/lib/search/prepare-results-offers';
+import { isPriceDependentSort, prepareResultsOffers } from '@/lib/search/prepare-results-offers';
+import { PriceSortResultsStream } from '@/components/results/price-sort-live-stream';
 import {
   buildResultsPageHref,
   limitRankedResultsForPagination,
@@ -195,7 +196,8 @@ export default async function ResultsPage({
   const accommodationTypes = filterOptions.accommodationTypes ?? [];
   const countryCounts = filterOptions.countryCounts ?? {};
   const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? offers.length);
-  const filtered = await prepareResultsOffers(offers, params);
+  const prepared = await prepareResultsOffers(offers, params);
+  const filtered = prepared.offers;
   const matchCount = filtered.length;
   const userPool = limitRankedResultsForPagination(filtered);
   const pageSize = RESULTS_PRODUCT_PAGE_SIZE;
@@ -217,6 +219,40 @@ export default async function ResultsPage({
       />
     ),
   };
+
+  if (isPriceDependentSort(params.sort)) {
+    if (filtered.length === 0) {
+      return (
+        <ResultsPageClient
+          {...pageShell}
+          results={<NoResults />}
+          pagination={
+            <ResultsPagination
+              params={{ ...params, pageSize }}
+              totalResults={0}
+            />
+          }
+        />
+      );
+    }
+
+    return (
+      <ResultsPageClient
+        {...pageShell}
+        results={
+          <PriceSortResultsStream
+            provisionalOffers={prepared.offers}
+            exactOffers={prepared.exactOffers}
+            priceSortPending={prepared.priceSortPending}
+            params={{ ...params, pageSize }}
+            page={page}
+            pageSize={pageSize}
+          />
+        }
+        pagination={null}
+      />
+    );
+  }
 
   // Page 1: stream non-Receipt cards immediately; PV slots resolve independently.
   // Full-matchset live pricing is scheduled above and is not awaited here.

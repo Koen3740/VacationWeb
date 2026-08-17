@@ -133,10 +133,18 @@ function isCardBlurbUseful(value: string | undefined): boolean {
   return trimmed.length >= 3;
 }
 
-export function TravelCard({ offer }: { offer: TravelOffer }) {
-  if (!hasValidPresentablePrice(offer)) {
+export function TravelCard({
+  offer,
+  provisional = false,
+}: {
+  offer: TravelOffer;
+  provisional?: boolean;
+}) {
+  const presentable = hasValidPresentablePrice(offer);
+  if (!presentable && !provisional) {
     return null;
   }
+  const pendingLivePrice = provisional && !presentable;
 
   const location = formatCardLocation(offer);
   const stars = offer.stars && offer.stars > 0 ? offer.stars : 0;
@@ -248,13 +256,21 @@ export function TravelCard({ offer }: { offer: TravelOffer }) {
               <HeartButton />
             </div>
             <div className="mt-1 flex w-full flex-1 flex-col items-end justify-center text-right">
-              <p className="text-[28px] font-bold leading-none tracking-tight" style={{ color: RESULTS_NAVY }}>
-                €&nbsp;{formatPrice(offer.price)}
-              </p>
-              <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
-              <p className="mt-2 text-[11px] font-normal text-[#A39A8C]">
-                € {formatPrice(offer.pricePerDay)} p.p. / dag
-              </p>
+              {pendingLivePrice ? (
+                <p className="text-[13px] font-medium leading-snug text-[#64748B]">
+                  Actuele prijs volgt
+                </p>
+              ) : (
+                <>
+                  <p className="text-[28px] font-bold leading-none tracking-tight" style={{ color: RESULTS_NAVY }}>
+                    €&nbsp;{formatPrice(offer.price)}
+                  </p>
+                  <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
+                  <p className="mt-2 text-[11px] font-normal text-[#A39A8C]">
+                    € {formatPrice(offer.pricePerDay)} p.p. / dag
+                  </p>
+                </>
+              )}
             </div>
             <div className="mt-3 w-full">
               <Link

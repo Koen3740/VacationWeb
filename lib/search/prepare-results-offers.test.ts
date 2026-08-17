@@ -29,9 +29,23 @@ import {
   isPriceDependentSort,
   prepareResultsOffers,
   rankCatalogOffers,
+  slicePriceSortPoolPage,
 } from './prepare-results-offers';
 
 const ROOT = join(__dirname, '../..');
+
+async function prepareRanked(
+  ...args: Parameters<typeof prepareResultsOffers>
+) {
+  return (await prepareResultsOffers(...args)).offers;
+}
+
+async function prepareExactRanked(
+  ...args: Parameters<typeof prepareResultsOffers>
+) {
+  const prepared = await prepareResultsOffers(...args);
+  return prepared.exactOffers;
+}
 
 afterEach(() => {
   clearResultsLivePriceCache();
@@ -209,6 +223,19 @@ function build921(): TravelOffer[] {
   return [...pv, ...sun, ...eliza];
 }
 
+function build927(): TravelOffer[] {
+  return [
+    ...build921(),
+    ...Array.from({ length: 6 }, (_, index) =>
+      makeSunweb({
+        id: `sunweb-927-${index}`,
+        boardType: 'Logies',
+        price: 280 + index,
+      }),
+    ),
+  ];
+}
+
 function uniqueReceiptHotelIds(urls: string[]): Set<string> {
   return new Set(urls.map(hotelIdFromUrl).filter(Boolean));
 }
@@ -275,7 +302,7 @@ test('A. Recommended page resolves while full matchset pricing remains pending',
   const gate = new Promise<void>((resolve) => {
     release = resolve;
   });
-  const ranked = await prepareResultsOffers(catalog, { adults: 2, sort: 'value' }, {
+  const ranked = await prepareRanked(catalog, { adults: 2, sort: 'value' }, {
     fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }, { gate }),
   });
   assert.ok(ranked.length > 0);
@@ -289,7 +316,7 @@ test('A. Recommended page resolves while full matchset pricing remains pending',
   });
 });
 
-test('B-D. price sorts wait for required live prices and do not mix catalog ranking', async () => {
+test('B-D. price sorts return catalog ranking immediately; exact ranking waits for live prices', async () => {
   const catalog = buildCatalog();
   const holder: { wait: () => Promise<void>; release: () => void } = {
     wait: async () => {},
@@ -313,38 +340,48 @@ test('B-D. price sorts wait for required live prices and do not mix catalog rank
       fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }, { gate: () => holder.wait() }),
     });
 
-    let done = false;
-    const pending = prepareResultsOffers(catalog, { adults: 2, sort }, {
+    let exactDone = false;
+    const prepared = await prepareResultsOffers(catalog, { adults: 2, sort }, {
       fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }, { gate: () => holder.wait() }),
-    }).then((ranked) => {
-      done = true;
+    });
+    assert.equal(prepared.priceSortPending, true, `${sort} must not block on gated Receipts`);
+    assert.ok(prepared.offers.length > 0);
+    const catalogPool = limitRankedResultsForPagination(
+      rankCatalogOffers(catalog, { adults: 2, sort }),
+    );
+    assert.equal(prepared.offers[0].id, catalogPool[0].id);
+    const exactPending = prepared.exactOffers.then((ranked) => {
+      exactDone = true;
       return ranked;
     });
     await delay(40);
-    assert.equal(done, false, `${sort} must wait while required live prices are gated`);
+    assert.equal(exactDone, false, `${sort} exact ranking must wait while Receipts are gated`);
 
     holder.release();
-    const ranked = await pending;
-    assert.equal(done, true);
+    const ranked = await exactPending;
+    assert.equal(exactDone, true);
 
     const pv = requiredPv(ranked);
     for (const offer of pv) {
       assert.ok(hasResultsLivePriceOverlay(offer.id, { adults: 2 }), offer.id);
     }
     if (sort === 'price') {
-      for (let i = 1; i < ranked.length; i += 1) {
-        assert.ok(ranked[i - 1].price <= ranked[i].price);
+      const presentable = ranked.filter(hasValidPresentablePrice);
+      for (let i = 1; i < presentable.length; i += 1) {
+        assert.ok(presentable[i - 1].price <= presentable[i].price);
       }
-      assert.ok(pv.every((offer) => offer.price < 4000), 'price sort must use live overlay, not catalog 4000+');
+      assert.ok(pv.filter(hasValidPresentablePrice).every((offer) => offer.price < 4000), 'price sort must use live overlay, not catalog 4000+');
     }
     if (sort === 'price-desc') {
-      for (let i = 1; i < ranked.length; i += 1) {
-        assert.ok(ranked[i - 1].price >= ranked[i].price);
+      const presentable = ranked.filter(hasValidPresentablePrice);
+      for (let i = 1; i < presentable.length; i += 1) {
+        assert.ok(presentable[i - 1].price >= presentable[i].price);
       }
     }
     if (sort === 'price-per-day') {
-      for (let i = 1; i < ranked.length; i += 1) {
-        assert.ok(ranked[i - 1].pricePerDay <= ranked[i].pricePerDay);
+      const presentable = ranked.filter(hasValidPresentablePrice);
+      for (let i = 1; i < presentable.length; i += 1) {
+        assert.ok(presentable[i - 1].pricePerDay <= presentable[i].pricePerDay);
       }
     }
   }
@@ -364,7 +401,7 @@ test('E. All Inclusive + Recommended does not wait for unrelated live prices', a
   });
 
   const started = Date.now();
-  const ranked = await prepareResultsOffers(
+  const ranked = await prepareRanked(
     catalog,
     { adults: 2, boardTypes: ['All Inclusive'], sort: 'value' },
     { fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }, { gate }) },
@@ -390,7 +427,7 @@ test('F/J. All Inclusive + price waits only for the 30-result coverage, not unre
   });
 
   const http = { posts: 0, urls: [] as string[] };
-  const ranked = await prepareResultsOffers(
+  const ranked = await prepareExactRanked(
     catalog,
     { adults: 2, boardTypes: ['All Inclusive'], sort: 'price' },
     { fetchImpl: makeReceiptFetch(http) },
@@ -422,9 +459,11 @@ test('G. required prices already cached: immediate and 0 Receipts', async () => 
     fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }),
   });
   const http = { posts: 0, urls: [] as string[] };
-  const ranked = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+  const prepared = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch(http),
   });
+  assert.equal(prepared.priceSortPending, false);
+  const ranked = await prepared.exactOffers;
   assert.equal(http.posts, 0);
   assert.equal(ranked.length, catalog.length);
   for (let i = 1; i < ranked.length; i += 1) {
@@ -449,7 +488,10 @@ test('H. in-flight required offers are joined with 0 duplicate Receipts', async 
   await delay(20);
   assert.ok(http.posts <= 1);
   release();
-  await Promise.all([background, priceSort]);
+  await Promise.all([
+    background.then((prepared) => prepared.exactOffers),
+    priceSort.then((prepared) => prepared.exactOffers),
+  ]);
   assert.equal(http.posts, 1);
 });
 
@@ -459,7 +501,7 @@ test('I. missing required offers are started by the matchset mechanism and await
     makeSunweb({ id: 'sun-1', boardType: 'Logies', price: 350 }),
   ];
   const http = { posts: 0, urls: [] as string[] };
-  const ranked = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+  const ranked = await prepareExactRanked(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch(http),
   });
   assert.ok(http.posts >= 1);
@@ -480,7 +522,7 @@ test('L. cached unavailable remains fail-closed and is not HTTP-retried', async 
     livePriceSource: undefined,
   });
   const http = { posts: 0, urls: [] as string[] };
-  await prepareResultsOffers(
+  await prepareExactRanked(
     [offer, makeSunweb({ id: 'sun-ok', price: 350, boardType: 'Logies' })],
     { adults: 2, sort: 'price' },
     { fetchImpl: makeReceiptFetch(http) },
@@ -497,7 +539,7 @@ test('M/N. page-1 Package-1 max-3 and cap ≤10 remain unchanged', async () => {
       makeSunweb({ id: `sunweb-c-${index}`, boardType: 'Logies' }),
     ),
   ];
-  const ranked = await prepareResultsOffers(offers, { adults: 2, sort: 'value' }, {
+  const ranked = await prepareRanked(offers, { adults: 2, sort: 'value' }, {
     fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }),
   });
   const stats = emptyStats();
@@ -515,16 +557,22 @@ test('O. initial page-1 path does not await the full matchset; source keeps that
   const page = readFileSync(join(ROOT, 'app/results/page.tsx'), 'utf8');
   const pricing = readFileSync(join(ROOT, 'lib/providers/prijsvrij/page1-receipt-pricing.ts'), 'utf8');
   const prepare = readFileSync(join(ROOT, 'lib/search/prepare-results-offers.ts'), 'utf8');
-  assert.ok(page.includes('prepareResultsOffers'));
+  assert.ok(page.includes('PriceSortResultsStream'));
+  assert.ok(page.includes('isPriceDependentSort'));
   assert.ok(!/await\s+priceLiveRequiredMatchset/.test(page));
   assert.ok(!/await\s+priceLiveRequiredMatchset/.test(pricing));
   assert.ok(prepare.includes('isPriceDependentSort'));
   assert.ok(prepare.includes('rankCatalogOffers'));
   assert.ok(prepare.includes('limitRankedResultsForPagination'));
-  assert.ok(prepare.includes('await priceLiveRequiredMatchset(pool'));
+  assert.ok(prepare.includes('priceLiveRequiredMatchset(pool'));
+  assert.ok(!prepare.includes('await priceLiveRequiredMatchset(pool'));
   assert.ok(prepare.includes('rankLivePricedCandidatePool'));
   assert.ok(!prepare.includes('await priceLiveRequiredMatchset(required'));
   assert.ok(!prepare.includes('await priceLiveRequiredMatchset(ranked'));
+  const stream = readFileSync(join(ROOT, 'components/results/price-sort-live-stream.tsx'), 'utf8');
+  assert.ok(stream.includes('Een momentje — we controleren de actuele prijzen.'));
+  assert.ok(stream.includes('De volgorde kan nog wijzigen.'));
+  assert.ok(stream.includes('Suspense'));
 });
 
 test('P. page-1 and matchset overlap still does not duplicate Receipt HTTP', async () => {
@@ -532,7 +580,7 @@ test('P. page-1 and matchset overlap still does not duplicate Receipt HTTP', asy
   const sun = makeSunweb({ id: 'sun-1', boardType: 'Logies' });
   const http = { posts: 0, urls: [] as string[] };
   const fetchImpl = makeReceiptFetch(http);
-  const ranked = await prepareResultsOffers([offer, sun], { adults: 2, sort: 'value' }, { fetchImpl });
+  const ranked = await prepareRanked([offer, sun], { adults: 2, sort: 'value' }, { fetchImpl });
   const stream = startPage1ReceiptStream(ranked, { adults: 2 }, { fetchImpl });
   await stream.presented;
   await delay(20);
@@ -547,9 +595,12 @@ test('A. 921 matches: price sort live-prices the 150 pool, not all 859 Prijsvrij
     rankCatalogOffers(catalog, { adults: 2, sort: 'price' }),
   );
   const http = { posts: 0, urls: [] as string[] };
-  const ranked = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+  const prepared = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch(http),
   });
+  assert.equal(prepared.priceSortPending, true);
+  assert.equal(prepared.offers.length, 921);
+  const ranked = await prepared.exactOffers;
   assert.equal(ranked.length, 921);
   assert.equal(catalogPool.length, RESULTS_USER_PAGINATION_CAP);
   const receiptHotels = uniqueReceiptHotelIds(http.urls);
@@ -577,9 +628,11 @@ test('B. 1486 matches: price-sort live-pricing input <= 150', async () => {
   ];
   assert.equal(catalog.length, 1486);
   const http = { posts: 0, urls: [] as string[] };
-  const ranked = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+  const prepared = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch(http),
   });
+  assert.equal(prepared.offers.length, 1486);
+  const ranked = await prepared.exactOffers;
   assert.equal(ranked.length, 1486);
   assert.ok(uniqueReceiptHotelIds(http.urls).size <= RESULTS_USER_PAGINATION_CAP);
 });
@@ -592,9 +645,11 @@ test('C/J. 3000 matches: live-pricing pool <= 150; full result architecture reta
     }),
   );
   const http = { posts: 0, urls: [] as string[] };
-  const ranked = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+  const prepared = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch(http),
   });
+  assert.equal(prepared.offers.length, 3000, '150 is not a total-results cap');
+  const ranked = await prepared.exactOffers;
   assert.equal(ranked.length, 3000, '150 is not a total-results cap');
   assert.equal(uniqueReceiptHotelIds(http.urls).size, RESULTS_USER_PAGINATION_CAP);
   assert.equal(limitRankedResultsForPagination(ranked).length, RESULTS_USER_PAGINATION_CAP);
@@ -608,9 +663,11 @@ test('D. 80 live-pricing candidates are not padded to 150', async () => {
     }),
   );
   const http = { posts: 0, urls: [] as string[] };
-  const ranked = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+  const prepared = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch(http),
   });
+  assert.equal(prepared.offers.length, 80);
+  const ranked = await prepared.exactOffers;
   assert.equal(ranked.length, 80);
   assert.equal(uniqueReceiptHotelIds(http.urls).size, 80);
 });
@@ -632,7 +689,7 @@ test('E. cached members of the 150 pool skip HTTP', async () => {
     });
   }
   const http = { posts: 0, urls: [] as string[] };
-  await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+  await prepareExactRanked(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch(http),
   });
   assert.equal(uniqueReceiptHotelIds(http.urls).size, 110);
@@ -645,7 +702,7 @@ test('F. price / price-desc / price-per-day re-rank the 150 pool with live overl
     clearLivePriceInflightForTests();
     clearPrijsvrijReceiptTokenCache();
     const http = { posts: 0, urls: [] as string[] };
-    const ranked = await prepareResultsOffers(catalog, { adults: 2, sort }, {
+    const ranked = await prepareExactRanked(catalog, { adults: 2, sort }, {
       fetchImpl: makeReceiptFetch(http),
     });
     const pool = ranked.slice(0, RESULTS_USER_PAGINATION_CAP);
@@ -676,7 +733,7 @@ test('G. Recommended does not await the 150 pool or the full matchset', async ()
     release = resolve;
   });
   const started = Date.now();
-  const ranked = await prepareResultsOffers(catalog, { adults: 2, sort: 'value' }, {
+  const ranked = await prepareRanked(catalog, { adults: 2, sort: 'value' }, {
     fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }, { gate }),
   });
   const elapsed = Date.now() - started;
@@ -696,12 +753,12 @@ test('B. All Inclusive after price sort rebuilds the 150 pool from the new catal
   assert.ok(expectedAiPool.every((offer) => offer.boardType === 'All Inclusive'));
   assert.ok(previousPool.some((offer) => offer.boardType !== 'All Inclusive'));
 
-  await prepareResultsOffers(catalog, priceParams, {
+  await prepareExactRanked(catalog, priceParams, {
     fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }),
   });
   const previousIds = new Set(previousPool.map((offer) => offer.id));
   const http = { posts: 0, urls: [] as string[] };
-  const ranked = await prepareResultsOffers(catalog, aiParams, {
+  const ranked = await prepareExactRanked(catalog, aiParams, {
     fetchImpl: makeReceiptFetch(http),
   });
   const aiPresentable = ranked.filter((offer) => offer.boardType === 'All Inclusive').slice(0, RESULTS_USER_PAGINATION_CAP);
@@ -723,7 +780,7 @@ test('C/D. cached overlap in the new 150 skips HTTP; new candidates are fetched'
   const catalog = build921PriceThenAllInclusive();
   const priceParams = { adults: 2, sort: 'price' as const };
   const aiParams = { adults: 2, sort: 'price' as const, boardTypes: ['All Inclusive'] };
-  await prepareResultsOffers(catalog, priceParams, {
+  await prepareExactRanked(catalog, priceParams, {
     fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }),
   });
   const previousPool = limitRankedResultsForPagination(rankCatalogOffers(catalog, priceParams));
@@ -732,7 +789,7 @@ test('C/D. cached overlap in the new 150 skips HTTP; new candidates are fetched'
   const overlapPv = expectedAiPool.filter((offer) => offer.provider === 'Prijsvrij' && previousIds.has(offer.id));
   const missingPv = expectedAiPool.filter((offer) => offer.provider === 'Prijsvrij' && !previousIds.has(offer.id));
   const http = { posts: 0, urls: [] as string[] };
-  await prepareResultsOffers(catalog, aiParams, { fetchImpl: makeReceiptFetch(http) });
+  await prepareExactRanked(catalog, aiParams, { fetchImpl: makeReceiptFetch(http) });
   const fetched = uniqueReceiptHotelIds(http.urls);
   assert.equal(fetched.size, missingPv.length);
   for (const offer of overlapPv) {
@@ -755,11 +812,11 @@ test('E. no overlap: All Inclusive pool is fully live-priced up to 150', async (
       }),
     ),
   ];
-  await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+  await prepareExactRanked(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }),
   });
   const http = { posts: 0, urls: [] as string[] };
-  await prepareResultsOffers(
+  await prepareExactRanked(
     catalog,
     { adults: 2, sort: 'price', boardTypes: ['All Inclusive'] },
     { fetchImpl: makeReceiptFetch(http) },
@@ -776,7 +833,7 @@ test('H. price-desc and price-per-day also use the CURRENT catalog pool', async 
     const params = { adults: 2, sort, boardTypes: ['All Inclusive'] };
     const expectedPool = limitRankedResultsForPagination(rankCatalogOffers(catalog, params));
     const http = { posts: 0, urls: [] as string[] };
-    await prepareResultsOffers(catalog, params, { fetchImpl: makeReceiptFetch(http) });
+    await prepareExactRanked(catalog, params, { fetchImpl: makeReceiptFetch(http) });
     assert.equal(
       uniqueReceiptHotelIds(http.urls).size,
       expectedPool.filter((offer) => offer.provider === 'Prijsvrij').length,
@@ -794,7 +851,7 @@ test('I/J. final price ranking uses live prices, not catalog fallback for unavai
     makeSunweb({ id: 'sun-ok', boardType: 'Logies', price: 400 }),
   ];
   const http = { posts: 0, urls: [] as string[] };
-  const ranked = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+  const ranked = await prepareExactRanked(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch(http, { failHotelIds: new Set(['100']) }),
   });
   const liveOffer = ranked.find((offer) => offer.id === liveId);
@@ -816,4 +873,72 @@ test('L. occupancy remains part of the cache key', () => {
     livePriceCacheKey('prijsvrij-1', { adults: 2 }),
     livePriceCacheKey('prijsvrij-1', { adults: 3 }),
   );
+});
+
+test('A. 927-result style search: full count stays 927; live pool <= 150', async () => {
+  const catalog = build927();
+  assert.equal(catalog.length, 927);
+  const http = { posts: 0, urls: [] as string[] };
+  const prepared = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+    fetchImpl: makeReceiptFetch(http),
+  });
+  assert.equal(prepared.offers.length, 927);
+  const ranked = await prepared.exactOffers;
+  assert.equal(ranked.length, 927);
+  assert.ok(uniqueReceiptHotelIds(http.urls).size <= RESULTS_USER_PAGINATION_CAP);
+});
+
+test('H. incomplete live pool is not the exact ranking', async () => {
+  const catalog = build927();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const prepared = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
+    fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }, { gate }),
+  });
+  assert.equal(prepared.priceSortPending, true);
+  const catalogPool = limitRankedResultsForPagination(
+    rankCatalogOffers(catalog, { adults: 2, sort: 'price' }),
+  );
+  assert.deepEqual(
+    prepared.offers.slice(0, 10).map((offer) => offer.id),
+    catalogPool.slice(0, 10).map((offer) => offer.id),
+  );
+  const page1 = slicePriceSortPoolPage(prepared.offers, 1, 10, { provisional: true });
+  assert.equal(page1.visibleOffers.length, 10);
+  assert.equal(page1.page1Ids.length, 10);
+  const page2 = slicePriceSortPoolPage(prepared.offers, 2, 10, { provisional: true });
+  assert.equal(page2.visibleOffers[0].id, catalogPool[10].id);
+  assert.notEqual(page2.visibleOffers[0].id, page1.visibleOffers[0].id);
+  release();
+  const exact = await prepared.exactOffers;
+  const exactPage1 = slicePriceSortPoolPage(exact, 1, 10, { provisional: false });
+  assert.ok(exactPage1.visibleOffers.every(hasValidPresentablePrice));
+});
+
+test('M. pagination after exact ranking uses live order and keeps remaining pages', async () => {
+  const catalog = Array.from({ length: 80 }, (_, index) =>
+    makePv({
+      id: `prijsvrij-${50000 + index}-2026-08-20-8-900-LG`,
+      price: 800 + index,
+    }),
+  );
+  const exact = await prepareExactRanked(catalog, { adults: 2, sort: 'price' }, {
+    fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }),
+  });
+  const page1 = slicePriceSortPoolPage(exact, 1, 10, { provisional: false });
+  const page8 = slicePriceSortPoolPage(exact, 8, 10, { provisional: false });
+  assert.equal(page1.visibleOffers.length, 10);
+  assert.equal(page8.visibleOffers.length, 10);
+  assert.equal(page1.paginationTotal, 80);
+  const page1Ids = new Set(page1.page1Ids);
+  assert.ok(page8.visibleOffers.every((offer) => !page1Ids.has(offer.id)));
+});
+
+test('O. Results page does not await exactOffers before returning the shell', () => {
+  const page = readFileSync(join(ROOT, 'app/results/page.tsx'), 'utf8');
+  assert.ok(!page.includes('await prepared.exactOffers'));
+  assert.ok(page.includes('PriceSortResultsStream'));
+  assert.ok(page.includes('priceSortPending={prepared.priceSortPending}'));
 });
