@@ -48,6 +48,7 @@ export function normalizeOffer(offer: StoredOffer): TravelOffer {
     durationType: offer.durationType,
     flightIncluded: toOptionalString(offer.flightIncluded),
     lastMinute: toOptionalString(offer.lastMinute),
+    hasCarRental: offer.hasCarRental === true ? true : undefined,
 
     price: offer.price,
     currency: offer.currency,

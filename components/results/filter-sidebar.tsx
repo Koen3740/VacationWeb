@@ -54,6 +54,7 @@ import {
 } from '@/lib/search/vacation-type';
 import { writeBudgetParams } from '@/lib/search/budget-params';
 import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
+import { parseHasCarRentalParam, serializeHasCarRentalParam } from '@/lib/offers/has-car-rental';
 import {
   SEARCH_PROGRESS_DELAY_MS,
   SearchProgressOverlay,
@@ -91,12 +92,14 @@ function parseFilters(searchParams: URLSearchParams) {
     beachLocations: parseBeachLocationsParam(searchParams.get('beachLocation')),
     centerLocations: parseCenterLocationsParam(searchParams.get('centerLocation')),
     amenities: parseAmenitiesParam(searchParams.get('amenities')),
+    hasCarRental: parseHasCarRentalParam(searchParams.get('hasCarRental')) === true,
   };
 }
 
 type FilterSidebarProps = FilterOptions & {
   countryCounts: Record<string, number>;
   totalOffersLabel: string;
+  carRentalCount: number;
 };
 
 function Chevron({ open }: { open: boolean }) {
@@ -226,6 +229,7 @@ export function FilterSidebar({
   departureAirports: _departureAirports,
   countryCounts,
   totalOffersLabel,
+  carRentalCount,
 }: FilterSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -394,6 +398,13 @@ export function FilterSidebar({
       params.delete('amenities');
     }
 
+    const hasCarRentalParam = serializeHasCarRentalParam(next.hasCarRental ? true : undefined);
+    if (hasCarRentalParam) {
+      params.set('hasCarRental', hasCarRentalParam);
+    } else {
+      params.delete('hasCarRental');
+    }
+
     const query = params.toString();
     navigationLockRef.current = true;
     setIsNavigating(true);
@@ -444,6 +455,13 @@ export function FilterSidebar({
       amenities: filters.amenities.includes(value)
         ? filters.amenities.filter((item) => item !== value)
         : [...filters.amenities, value],
+    });
+  };
+
+  const toggleCarRental = () => {
+    updateFilters({
+      ...filters,
+      hasCarRental: !filters.hasCarRental,
     });
   };
 
@@ -499,6 +517,7 @@ export function FilterSidebar({
       'centerLocation',
       'seaView',
       'amenities',
+      'hasCarRental',
       'departureAirport',
     ]) {
       params.delete(key);
@@ -867,6 +886,16 @@ export function FilterSidebar({
           onToggle={() => toggleSection('extras')}
         >
           <div className="space-y-2">
+            <label className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
+              <input
+                type="checkbox"
+                checked={filters.hasCarRental}
+                onChange={toggleCarRental}
+                className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+              />
+              <span>Autohuur inclusief</span>
+              <span className="text-[#8A93A3]">({carRentalCount})</span>
+            </label>
             {AMENITY_GROUPS.map((group) => (
               <NestedDisclosure
                 key={group.id}

@@ -204,6 +204,7 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
       'centerLocation',
       'amenities',
       'sort',
+      'hasCarRental',
     ];
     for (const key of preserve) {
       const value = searchParams.get(key);

@@ -110,6 +110,9 @@ export function compactStoredOffer(stored: StoredOffer): {
   assignIfPresent(runtime, 'boardType', stored.boardType);
   assignIfPresent(runtime, 'flightIncluded', stored.flightIncluded);
   assignIfPresent(runtime, 'lastMinute', stored.lastMinute);
+  if (stored.hasCarRental === true) {
+    runtime.hasCarRental = true;
+  }
   assignIfPresent(runtime, 'currency', stored.currency);
   assignIfPresent(runtime, 'stars', stored.stars ?? undefined);
   assignIfPresent(runtime, 'rating', stored.rating ?? undefined);

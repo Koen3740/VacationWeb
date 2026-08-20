@@ -6,6 +6,7 @@ import {
 } from '../types/sunweb-xml';
 import { StoredOffer } from '../types/stored-offer';
 import { buildExternalId, PROVIDERS } from '../providers';
+import { deriveSunwebHasCarRental } from '../../offers/has-car-rental';
 
 function getProperties(product: SunwebXmlProduct): SunwebXmlProperty[] {
   const properties = product.properties?.property;
@@ -327,6 +328,11 @@ function mapSunwebProduct(product: SunwebXmlProduct): StoredOffer {
     durationType: nights != null ? 'dagen' : undefined,
     departureDate,
     flightIncluded: parseFlightIncluded(getProperty(product, 'transportType')),
+    hasCarRental: deriveSunwebHasCarRental({
+      transportType: getProperty(product, 'transportType'),
+      hasCarRentalRaw:
+        getProperty(product, 'hasCarRental') || getProperty(product, 'HasCarRental'),
+    }),
 
     departureAirport: iataDeparture || undefined,
     departureAirportCode: getProperty(product, 'IsoCodeDeparture') || undefined,

@@ -165,6 +165,10 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
     query.set('amenities', params.amenities.join(','));
   }
 
+  if (params.hasCarRental === true) {
+    query.set('hasCarRental', '1');
+  }
+
   if (params.sort) {
     query.set('sort', params.sort);
   }

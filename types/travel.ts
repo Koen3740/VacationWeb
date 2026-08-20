@@ -57,6 +57,11 @@ export interface SearchParams {
   centerLocation?: string[];
   /** Amenity keys (pool_indoor, sauna, …). OR-matched when multiple. */
   amenities?: string[];
+  /**
+   * Optional Results filter: only proven hasCarRental offers.
+   * URL `hasCarRental=1` when selected; absent means no extra filter.
+   */
+  hasCarRental?: boolean;
   sort?: string;
   page?: number;
   pageSize?: number;

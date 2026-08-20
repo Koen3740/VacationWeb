@@ -21,6 +21,8 @@ export interface StoredOffer {
   durationType?: string;
   flightIncluded?: string | boolean;
   lastMinute?: string | boolean;
+  /** Proven structural car rental included. Only `true` is stored on compact runtime. */
+  hasCarRental?: boolean;
 
   price: number;
   currency?: string;

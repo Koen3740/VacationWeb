@@ -11,6 +11,7 @@ import {
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
 import { isValidOfferImageUrl } from '@/lib/offers/is-valid-offer-image-url';
 import { hasValidPresentablePrice } from '@/lib/search/presentable-price';
+import { carRentalIncludedLabel } from '@/lib/offers/has-car-rental';
 import { TravelOffer } from '@/types/travel';
 import Link from 'next/link';
 
@@ -162,6 +163,7 @@ export function TravelCard({
       : undefined;
   const accommodationType = offer.accommodationType?.trim() || undefined;
   const flightLabel = flightIncludedLabel(offer.flightIncluded);
+  const carRentalLabel = carRentalIncludedLabel(offer);
   const themes = subcategoryLabels(offer.subcategories);
 
   const metaLine = [
@@ -169,6 +171,7 @@ export function TravelCard({
     `${offer.nights} nachten`,
     offer.boardType,
     flightLabel,
+    carRentalLabel,
     airport,
   ]
     .filter(Boolean)

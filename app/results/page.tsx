@@ -33,6 +33,8 @@ import {
 } from '@/lib/search/pagination';
 import { parseAccommodationTypesParam } from '@/lib/search/accommodation-type-filter';
 import { parseAmenitiesParam } from '@/lib/search/amenity-filters';
+import { countCarRentalFacet } from '@/lib/search/filtering';
+import { parseHasCarRentalParam } from '@/lib/offers/has-car-rental';
 import {
   parseBeachLocationsParam,
   parseCenterLocationsParam,
@@ -132,6 +134,9 @@ function parseSearchParams(searchParams: Record<string, string | string[] | unde
       const parsed = parseAmenitiesParam(searchParams.amenities);
       return parsed.length > 0 ? parsed : undefined;
     })(),
+    hasCarRental: parseHasCarRentalParam(
+      typeof searchParams.hasCarRental === 'string' ? searchParams.hasCarRental : undefined,
+    ),
     sort: typeof searchParams.sort === 'string' ? searchParams.sort : 'value',
     page: parseResultsPageParam(
       typeof searchParams.page === 'string' ? searchParams.page : undefined,
@@ -199,6 +204,7 @@ export default async function ResultsPage({
   const prepared = await prepareResultsOffers(offers, params);
   const filtered = prepared.offers;
   const matchCount = filtered.length;
+  const carRentalCount = countCarRentalFacet(offers, params);
   const userPool = limitRankedResultsForPagination(filtered);
   const pageSize = RESULTS_PRODUCT_PAGE_SIZE;
   const page = params.page ?? 1;
@@ -216,6 +222,7 @@ export default async function ResultsPage({
         accommodationTypes={accommodationTypes}
         countryCounts={countryCounts}
         totalOffersLabel={totalOffersLabel}
+        carRentalCount={carRentalCount}
       />
     ),
   };

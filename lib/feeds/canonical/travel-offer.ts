@@ -26,6 +26,12 @@ export interface TravelOffer {
   durationType?: string;
   flightIncluded?: string;
   lastMinute?: string;
+  /**
+   * Proven structural "huurauto inbegrepen".
+   * Only `true` is meaningful. Missing/false = not proven.
+   * Never derived from hotel name, marketing copy, or vacationTypes.
+   */
+  hasCarRental?: boolean;
 
   // Prijs
   price: number;

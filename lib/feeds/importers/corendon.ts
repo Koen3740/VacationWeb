@@ -6,6 +6,7 @@ import {
 } from '../types/corendon-xml';
 import { StoredOffer } from '../types/stored-offer';
 import { buildExternalId, PROVIDERS } from '../providers';
+import { deriveCorendonHasCarRental } from '../../offers/has-car-rental';
 
 function getProperties(product: CorendonXmlProduct): CorendonXmlProperty[] {
   const properties = product.properties?.property;
@@ -153,6 +154,10 @@ function mapCorendonProduct(product: CorendonXmlProduct): StoredOffer {
     departureDate: getProperty(product, 'departureDate') || undefined,
     flightIncluded: getProperty(product, 'flightIncluded') || undefined,
     lastMinute: getProperty(product, 'lastminute') || undefined,
+    hasCarRental: deriveCorendonHasCarRental({
+      subcategories: getProperty(product, 'subcategories') || undefined,
+      flightIncluded: getProperty(product, 'flightIncluded'),
+    }),
 
     departureAirport: getProperty(product, 'iataDeparture') || undefined,
     departureAirportCode: getProperty(product, 'isoCodeDeparture') || undefined,

@@ -176,6 +176,10 @@ export function filterOffers(
       }
     }
 
+    if (params.hasCarRental === true && offer.hasCarRental !== true) {
+      return false;
+    }
+
     // Nieuwe Corendon-feed: filter op vertrekdatum
     if (
       effectiveDepartureStart &&
@@ -195,6 +199,12 @@ export function filterOffers(
 
     return true;
   });
+}
+
+/** Faceted count: current search/filters without the hasCarRental constraint. */
+export function countCarRentalFacet(offers: TravelOffer[], params: SearchParams): number {
+  const context = filterOffers(offers, { ...params, hasCarRental: undefined });
+  return context.filter((offer) => offer.hasCarRental === true).length;
 }
 
 export function sortOffers(
