@@ -11,6 +11,10 @@ import type { TravelOffer } from '@/types/travel';
 
 let cachedDetails: Record<string, OfferDetailRecord> | null = null;
 
+export function resetOfferDetailCacheForTests(): void {
+  cachedDetails = null;
+}
+
 function resolveLocalDetailsPath(): string {
   const override = process.env.VACATIONWEB_OFFER_DETAILS_FILE?.trim();
   if (!override) {
@@ -29,6 +33,11 @@ function parseDetailMap(raw: string): Record<string, OfferDetailRecord> {
   return parsed as Record<string, OfferDetailRecord>;
 }
 
+/**
+ * Compact catalog omits long copy / extra gallery (sidecar ~300MB).
+ * JSON.parse of that map after loadOffers exceeds Vercel's default 1024MB heap.
+ * Local disk sidecar is still used; Vercel must not fetch the remote object.
+ */
 export async function loadOfferDetailMap(): Promise<Record<string, OfferDetailRecord>> {
   if (cachedDetails !== null) {
     return cachedDetails;
@@ -37,6 +46,11 @@ export async function loadOfferDetailMap(): Promise<Record<string, OfferDetailRe
   const localPath = resolveLocalDetailsPath();
   if (fs.existsSync(localPath)) {
     cachedDetails = parseDetailMap(fs.readFileSync(localPath, 'utf8'));
+    return cachedDetails;
+  }
+
+  if (process.env.VERCEL) {
+    cachedDetails = {};
     return cachedDetails;
   }
 
