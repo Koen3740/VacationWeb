@@ -24,7 +24,9 @@ function makeOffer(overrides: Partial<TravelOffer> = {}): TravelOffer {
     price: 800,
     pricePerDay: 100,
     imageUrl: 'https://example.com/a.jpg',
-    deepLink: 'https://example.com',
+    flightIncluded: 'true',
+    departureAirport: 'BRU',
+    deepLink: 'https://www.corendon.be/vakantie#5007.MLELC.BRUPMI.200826.8.DZI-U',
     ...overrides,
   };
 }

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { normalizeOffer } from '@/lib/feeds/canonical/normalize-offer';
 import { StoredOffer } from '@/lib/feeds/types/stored-offer';
+import { isVacationWebFlightPackage } from '@/lib/offers/flight-package-eligibility';
 import { getOffersObject } from '@/lib/storage/object-storage-client';
 import { TravelOffer } from '@/types/travel';
 
@@ -90,7 +91,10 @@ export async function loadOffers(): Promise<TravelOffer[]> {
   }
 
   const storedOffers = parseStoredOffers(raw);
-  cachedOffers = storedOffers.map(normalizeOffer);
+  cachedOffers = storedOffers.map(normalizeOffer).filter(isVacationWebFlightPackage);
+  if (cachedOffers.length === 0) {
+    throw new Error('Object Storage offers dataset contains no VacationWeb flight packages');
+  }
 
   return cachedOffers;
 }

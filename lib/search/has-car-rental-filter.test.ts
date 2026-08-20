@@ -6,9 +6,14 @@ import { countCarRentalFacet, filterOffers, sortOffers } from './filtering';
 import { buildResultsPageHref } from './pagination';
 import type { TravelOffer } from '../../types/travel';
 
+function corendonDeepLink(): string {
+  return 'https://www.corendon.be/vakantie#5007.MLELC.BRUPMI.270826.8.DZI-U';
+}
+
 function makeOffer(
   overrides: Partial<TravelOffer> & Pick<TravelOffer, 'id' | 'provider'>,
 ): TravelOffer {
+  const provider = overrides.provider;
   return {
     hotelName: 'Test Hotel',
     destinationCountry: 'Spanje',
@@ -17,7 +22,9 @@ function makeOffer(
     pricePerDay: 100,
     imageUrl: 'https://example.com/a.jpg',
     flightIncluded: 'true',
-    deepLink: 'https://example.com/offer',
+    departureAirport: 'BRU',
+    deepLink:
+      provider === 'Corendon' ? corendonDeepLink() : 'https://example.com/offer',
     ...overrides,
   };
 }
@@ -95,7 +102,7 @@ test('hasCarRental is not a sort key', () => {
   );
 });
 
-test('SelfDrive without hasCarRental stays visible when the filter is off and is excluded when on', () => {
+test('SelfDrive stays out of Results even when hasCarRental is off or on', () => {
   const selfDrive = makeOffer({
     id: 'sunweb-selfdrive',
     provider: 'Sunweb',
@@ -109,7 +116,7 @@ test('SelfDrive without hasCarRental stays visible when the filter is off and is
   const offers = [selfDrive, flightCar];
   assert.deepEqual(
     filterOffers(offers, {}).map((offer) => offer.id),
-    ['sunweb-selfdrive', 'sunweb-car'],
+    ['sunweb-car'],
   );
   assert.deepEqual(
     filterOffers(offers, { hasCarRental: true }).map((offer) => offer.id),

@@ -1,5 +1,6 @@
 import { canonicalizeBoardType } from '@/lib/offers/canonicalize-board-type';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
+import { isVacationWebFlightPackage } from '@/lib/offers/flight-package-eligibility';
 import {
   offerMatchesAccommodationType,
   parseAccommodationTypesParam,
@@ -60,6 +61,10 @@ export function filterOffers(
     : params.departureEnd;
 
   return offers.filter((offer) => {
+    if (!isVacationWebFlightPackage(offer)) {
+      return false;
+    }
+
     if (countryFilters.length > 0) {
       const offerCountry = canonicalizeCountryName(offer.destinationCountry);
 
