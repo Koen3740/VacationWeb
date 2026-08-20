@@ -3,7 +3,8 @@ import path from 'node:path';
 import { getEnabledFeeds, type FeedManifestEntry } from '../lib/feeds/feed-registry';
 import { FEED_PATHS } from '../lib/feeds/feed-paths';
 import { importXmlByProfile, isKnownImporterProfile } from '../lib/feeds/importer-router';
-import { mergeCorendonOffers } from '../lib/feeds/importers/corendon-merge';
+import { mergeCorendonOffers, annotateCorendonSource } from '../lib/feeds/importers/corendon-merge';
+import { mergeSunwebOffers, annotateSunwebSource } from '../lib/feeds/importers/sunweb-merge';
 import { StoredOffer } from '../lib/feeds/types/stored-offer';
 import { publishLocalRuntimeCatalog } from '../lib/offers/write-runtime-catalog';
 
@@ -89,7 +90,13 @@ function importFeed(feed: FeedManifestEntry): FeedImportResult {
   try {
     const absolutePath = resolveFeedPath(feed.source.path);
     const xml = fs.readFileSync(absolutePath, 'utf8');
-    const offers = importXmlByProfile(feed.profile, xml);
+    const imported = importXmlByProfile(feed.profile, xml);
+    const offers =
+      feed.profile === 'corendon'
+        ? annotateCorendonSource(imported, feed.id)
+        : feed.profile === 'sunweb'
+          ? annotateSunwebSource(imported, feed.id)
+          : imported;
     return { feed, offers };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -140,9 +147,17 @@ function main(): void {
   }
 
   const corendon = collected.filter((offer) => offer.provider === 'Corendon');
-  const others = collected.filter((offer) => offer.provider !== 'Corendon');
+  const sunweb = collected.filter((offer) => offer.provider === 'Sunweb');
+  const others = collected.filter(
+    (offer) => offer.provider !== 'Corendon' && offer.provider !== 'Sunweb',
+  );
   const corendonMerged = mergeCorendonOffers(corendon);
-  const { offers, dropped } = dedupeByExternalId([...corendonMerged.offers, ...others]);
+  const sunwebMerged = mergeSunwebOffers(sunweb);
+  const { offers, dropped } = dedupeByExternalId([
+    ...corendonMerged.offers,
+    ...sunwebMerged.offers,
+    ...others,
+  ]);
 
   if (offers.length === 0) {
     console.error('✖ Import produced zero offers — refusing to overwrite local offers.json');
@@ -169,6 +184,9 @@ function main(): void {
   const providerCounts = countByProvider(offers);
 
   console.log(`✔ ${published.offerCount} aanbiedingen geïmporteerd naar ${FEED_PATHS.offers}`);
+  console.log(
+    `✔ flight-package eligibility: ${published.eligibility.input} → ${published.eligibility.kept} (excluded ${published.eligibility.excluded})`,
+  );
   console.log(`✔ compact runtime: ${(published.runtimeBytes / 1_000_000).toFixed(1)} MB`);
   console.log(`✔ offer-detail sidecar: ${FEED_PATHS.offerDetails} (${(published.detailBytes / 1_000_000).toFixed(1)} MB, ${published.detailCount} records)`);
   console.log(`✔ filter-opties geschreven naar ${FEED_PATHS.filterOptions}`);
@@ -176,11 +194,19 @@ function main(): void {
   console.log(`  - feeds imported: ${results.length}`);
   console.log(`  - feeds failed: 0`);
   console.log(`  - Corendon input: ${corendonMerged.stats.input}`);
-  console.log(`  - Corendon bookable duplicates dropped: ${corendonMerged.stats.duplicatesDropped}`);
-  console.log(`  - Corendon unique: ${corendonMerged.stats.unique}`);
+  console.log(`  - Corendon intra-listing duplicates dropped: ${corendonMerged.stats.duplicatesDropped}`);
+  console.log(`  - Corendon unique bookable offers: ${corendonMerged.stats.unique}`);
+  console.log(`  - Corendon listings retained: ${corendonMerged.stats.listingsRetained}`);
   console.log(`  - Corendon without fragment (kept): ${corendonMerged.stats.keptWithoutBookableKey}`);
-  console.log(`  - Corendon BE campaign kept: ${corendonMerged.stats.beCampaignKept}`);
-  console.log(`  - Corendon NL campaign kept: ${corendonMerged.stats.nlCampaignKept}`);
+  console.log(`  - Corendon BE-NL listings: ${corendonMerged.stats.beNlListings}`);
+  console.log(`  - Corendon BE-FR listings: ${corendonMerged.stats.beFrListings}`);
+  console.log(`  - Corendon NL listings: ${corendonMerged.stats.nlListings}`);
+  console.log(`  - Corendon hotels with content merge: ${corendonMerged.stats.hotelContentMerged}`);
+  console.log(`  - Sunweb input: ${sunwebMerged.stats.input}`);
+  console.log(`  - Sunweb unique bookable offers: ${sunwebMerged.stats.unique}`);
+  console.log(`  - Sunweb listings retained: ${sunwebMerged.stats.listingsRetained}`);
+  console.log(`  - Sunweb without bookable key (kept): ${sunwebMerged.stats.keptWithoutBookableKey}`);
+  console.log(`  - Sunweb intra-listing duplicates dropped: ${sunwebMerged.stats.duplicatesDropped}`);
   console.log(`  - dedupe dropped: ${dropped}`);
   for (const [provider, count] of Object.entries(providerCounts).sort(([a], [b]) => a.localeCompare(b))) {
     console.log(`  - ${provider}: ${count}`);

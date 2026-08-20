@@ -3,8 +3,6 @@ import { beforeEach, test } from 'node:test';
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import { PRIJSVRIJ_PROVIDER_NAME } from '../prijsvrij/constants';
 import {
-  markPrijsvrijLivePriceUnavailable,
-  priceLiveRequiredMatchset,
   pricePage1WithPrijsvrijReceipts,
   resolveResultsPageSlice,
   startPage1ReceiptStream,
@@ -151,6 +149,31 @@ test('page1: Eliza 204 does not present the offer and does not use feed as live'
   assert.ok(!page.some((offer) => offer.id === 'eliza-6270665'));
 });
 
+test('page1: occupancy outside live route does not call promoted price and stays visible unpriced', async () => {
+  let promotedCalls = 0;
+  const page = await pricePage1WithPrijsvrijReceipts(
+    [
+      makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 }),
+      makeOffer({ id: 'sunweb-a', provider: 'Sunweb', price: 350, deepLink: 'https://example.com' }),
+    ],
+    { adults: 2, children: 2, rooms: 2 },
+    {
+      fetchImpl: makeLiveFetch({
+        onPromoted: () => {
+          promotedCalls += 1;
+        },
+      }),
+    },
+  );
+
+  assert.equal(promotedCalls, 0);
+  const eliza = page.find((offer) => offer.provider === 'Eliza was here');
+  const sun = page.find((offer) => offer.provider === 'Sunweb');
+  assert.equal(eliza, undefined);
+  assert.equal(sun, undefined);
+  assert.equal(page.length, 0);
+});
+
 test('page1: Eliza API failure does not fall back to feed', async () => {
   const page = await pricePage1WithPrijsvrijReceipts(
     [makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 })],
@@ -173,7 +196,7 @@ test('page1: mismatch does not present Eliza', async () => {
   assert.equal(page.length, 0);
 });
 
-test('stream: valid Eliza is pending; invalid Eliza is immediate unavailable', async () => {
+test('stream: valid Eliza is pending; invalid Eliza is not a visible card', async () => {
   const stream = startPage1ReceiptStream(
     [
       makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here' }),
@@ -191,16 +214,11 @@ test('stream: valid Eliza is pending; invalid Eliza is immediate unavailable', a
   const pending = stream.slots.filter((slot) => slot.kind === 'pending');
   const immediate = stream.slots.filter((slot) => slot.kind === 'immediate');
   assert.equal(pending.length, 1);
-  assert.equal(immediate.length, 2);
+  assert.equal(immediate.length, 1);
   assert.equal(immediate[0].kind, 'immediate');
   if (immediate[0].kind === 'immediate') {
     assert.equal(immediate[0].offer.id, 'eliza-1');
     assert.equal(immediate[0].offer.livePriceStatus, 'unavailable');
-  }
-  assert.equal(immediate[1].kind, 'immediate');
-  if (immediate[1].kind === 'immediate') {
-    assert.equal(immediate[1].offer.provider, 'Sunweb');
-    assert.equal(immediate[1].offer.livePriceSource, 'feed');
   }
 
   const priced = await pending[0].offer;
@@ -222,12 +240,12 @@ test('Package-1: Eliza live failure is reserved/compacted; PV cap unchanged', as
   );
   assert.ok(!page.some((offer) => offer.id === 'eliza-6270665'));
   assert.ok(page.some((offer) => offer.id === 'prijsvrij-100-x' && offer.livePriceSource === 'receipt'));
-  assert.ok(page.some((offer) => offer.id === 'sunweb-a'));
+  assert.equal(page.some((offer) => offer.id === 'sunweb-a'), false);
   assert.ok(page.filter((offer) => offer.provider === PRIJSVRIJ_PROVIDER_NAME).length <= 3);
   assert.ok(page.every(hasValidPresentablePrice));
 });
 
-test('page2+: remaining Eliza is live-priced on the matchset, then cached', async () => {
+test('page1: live-capable Eliza is priced on page 1 when Sunweb 2A cannot fill slots', async () => {
   clearPrijsvrijReceiptTokenCache();
   clearResultsLivePriceCache();
   const offers = [
@@ -253,38 +271,11 @@ test('page2+: remaining Eliza is live-priced on the matchset, then cached', asyn
       }),
     },
   );
-  assert.equal(promotedCalls, 0);
-
-  await priceLiveRequiredMatchset(offers, { adults: 2 }, {
-    fetchImpl: makeLiveFetch({
-      onPromoted: () => {
-        promotedCalls += 1;
-      },
-    }),
-  });
   assert.ok(promotedCalls >= 1);
-
-  promotedCalls = 0;
-  const slice = await resolveResultsPageSlice(
-    offers,
-    { adults: 2, page: 2, page1Ids: page1.page1Ids },
-    {
-      fetchImpl: makeLiveFetch({
-        onPromoted: () => {
-          promotedCalls += 1;
-        },
-      }),
-    },
-  );
-  assert.equal(promotedCalls, 0);
-  const marked = markPrijsvrijLivePriceUnavailable([
-    makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 }),
-  ]);
-  assert.equal(marked[0].livePriceStatus, 'unavailable');
-  assert.equal(marked[0].livePriceSource, undefined);
-  const eliza = slice.visibleOffers.find((offer) => offer.provider === 'Eliza was here');
+  const eliza = page1.visibleOffers.find((offer) => offer.provider === 'Eliza was here');
   assert.ok(eliza);
   assert.equal(eliza.livePriceSource, 'getPromotedPrice');
+  assert.equal(page1.visibleOffers.some((offer) => offer.provider === 'Sunweb'), false);
 });
 
 test('landing URL used for bootstrap is the unwrapped productURL', async () => {
@@ -301,4 +292,95 @@ test('landing URL used for bootstrap is the unwrapped productURL', async () => {
     },
   );
   assert.equal(landingUrl, ELIZA_LANDING);
+});
+
+const FOUR_PAX_TWO_ROOMS = {
+  adults: 2,
+  children: 2,
+  rooms: 2,
+  party: [
+    { dateOfBirth: '1990-01-15', roomIndex: 0 },
+    { dateOfBirth: '1988-03-03', roomIndex: 0 },
+    { dateOfBirth: '2014-06-14', roomIndex: 1 },
+    { dateOfBirth: '2018-01-22', roomIndex: 1 },
+  ],
+};
+
+test('page1: Eliza 4p/2r uses proven GetPromotedPrice occupancy, not feed 2A', async () => {
+  let promotedUrl = '';
+  let landingUrl = '';
+  const page = await pricePage1WithPrijsvrijReceipts(
+    [
+      makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 }),
+      makeOffer({ id: 'sunweb-a', provider: 'Sunweb', price: 350, deepLink: 'https://example.com' }),
+    ],
+    FOUR_PAX_TWO_ROOMS,
+    {
+      fetchImpl: makeLiveFetch({
+        priceBody: okPromotedBody({ averagePrice: 890 }),
+        onPromoted: (url) => {
+          promotedUrl = url;
+        },
+        onLanding: (url) => {
+          landingUrl = url;
+        },
+      }),
+    },
+  );
+
+  const eliza = page.find((offer) => offer.provider === 'Eliza was here');
+  assert.ok(eliza);
+  assert.equal(eliza.livePriceStatus, 'proven');
+  assert.equal(eliza.livePriceSource, 'getPromotedPrice');
+  assert.equal(eliza.price, 890);
+  const landing = new URL(landingUrl);
+  assert.equal(landing.searchParams.get('Participants[0][0]'), '1990-01-15');
+  assert.equal(landing.searchParams.get('Participants[0][1]'), '1988-03-03');
+  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-06-14');
+  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.ok(!landingUrl.includes('1996-07-30'));
+  const promoted = new URL(promotedUrl);
+  assert.equal(promoted.searchParams.get('Participants[0][0]'), '1990-01-15');
+  assert.equal(promoted.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(promoted.searchParams.get('Participants[0][2]'), null);
+});
+
+test('page1: Eliza 2A does not rewrite Participants when 4p/2r is not requested', async () => {
+  let landingUrl = '';
+  const page = await pricePage1WithPrijsvrijReceipts(
+    [makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 })],
+    { adults: 2, rooms: 1 },
+    {
+      fetchImpl: makeLiveFetch({
+        onLanding: (url) => {
+          landingUrl = url;
+        },
+      }),
+    },
+  );
+  const eliza = page.find((offer) => offer.provider === 'Eliza was here');
+  assert.ok(eliza);
+  assert.equal(eliza.price, 652);
+  assert.equal(landingUrl, ELIZA_LANDING);
+  assert.ok(landingUrl.includes('1996-07-30'));
+});
+
+test('page1: Eliza 4p/2r without party DOBs is not shown', async () => {
+  let promotedCalls = 0;
+  const page = await pricePage1WithPrijsvrijReceipts(
+    [
+      makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 }),
+      makeOffer({ id: 'sunweb-a', provider: 'Sunweb', price: 350, deepLink: 'https://example.com' }),
+    ],
+    { adults: 2, children: 2, rooms: 2 },
+    {
+      fetchImpl: makeLiveFetch({
+        onPromoted: () => {
+          promotedCalls += 1;
+        },
+      }),
+    },
+  );
+  assert.equal(promotedCalls, 0);
+  assert.equal(page.length, 0);
 });

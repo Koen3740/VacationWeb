@@ -91,11 +91,13 @@ test('NL mapping: referral unwrap, host, fragment, acco, date, airportRoute', ()
   );
 });
 
-test('NL occupancy: default 2A only', () => {
+test('NL occupancy: 2A 1-room or proven 2-room nested party', () => {
   assert.ok(buildCorendonLiveContext(makeNlOffer(), { adults: 2 }));
   assert.equal(buildCorendonLiveContext(makeNlOffer(), { adults: 2, children: 1 }), null);
   assert.equal(buildCorendonLiveContext(makeNlOffer(), { adults: 2, babies: 1 }), null);
-  assert.equal(buildCorendonLiveContext(makeNlOffer(), { adults: 2, rooms: 2 }), null);
+  const twoRooms = buildCorendonLiveContext(makeNlOffer(), { adults: 2, rooms: 2 });
+  assert.ok(twoRooms);
+  assert.deepEqual(twoRooms.partyComposition, [['1-1-19860'], ['1-1-19861']]);
 });
 
 test('NL hash request uses www.corendon.nl host and same lowestpricesacco contract', () => {

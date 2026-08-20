@@ -26,7 +26,7 @@ const proven = {
   livePriceSource: 'receipt' as const,
 };
 
-test('cache key is occupancy + offerId; departure/nights live in offerId', () => {
+test('cache key includes listing and party without breaking occupancy-only keys', () => {
   assert.equal(livePriceCacheKey('prijsvrij-1-2026-08-20-8-400-AI', occupancy), '2|0|0|1|prijsvrij-1-2026-08-20-8-400-AI');
   assert.notEqual(
     livePriceCacheKey('prijsvrij-1-2026-08-20-8-400-AI', occupancy),
@@ -39,6 +39,17 @@ test('cache key is occupancy + offerId; departure/nights live in offerId', () =>
   assert.notEqual(
     livePriceCacheKey('a', occupancy),
     livePriceCacheKey('a', { ...occupancy, rooms: 2 }),
+  );
+  assert.notEqual(
+    livePriceCacheKey('corendon-1', { ...occupancy, listingKey: 'www.corendon.be|corendon-benl' }),
+    livePriceCacheKey('corendon-1', { ...occupancy, listingKey: 'www.corendon.nl|corendon-nl' }),
+  );
+  assert.notEqual(
+    livePriceCacheKey('corendon-1', occupancy),
+    livePriceCacheKey('corendon-1', {
+      ...occupancy,
+      party: [{ dateOfBirth: '1975-03-12', roomIndex: 0 }, { dateOfBirth: '1978-06-04', roomIndex: 0 }],
+    }),
   );
 });
 
@@ -77,4 +88,37 @@ test('overlay application uses cached live price for ranking inputs', () => {
   const [overlaid] = applyResultsLivePriceOverlays([offer], occupancy);
   assert.equal(overlaid.price, 410);
   assert.equal(overlaid.livePriceStatus, 'proven');
+});
+
+test('Corendon occupancy-unpriced overlay applies from the base cache key', () => {
+  const offer = {
+    id: 'corendon-1',
+    provider: 'Corendon',
+    hotelName: 'H',
+    destinationCountry: 'Spanje',
+    nights: 8,
+    price: 458,
+    pricePerDay: 57,
+    imageUrl: 'https://example.com/a.jpg',
+    deepLink: 'https://www.corendon.be/vakantie#9514.COSPY.BRUCFU.270826.3-4-3.SZ-U',
+  } as TravelOffer;
+  const fourPax = {
+    adults: 2,
+    children: 2,
+    rooms: 2,
+    party: [
+      { dateOfBirth: '1990-01-15', roomIndex: 0 },
+      { dateOfBirth: '1988-03-03', roomIndex: 0 },
+      { dateOfBirth: '2014-06-14', roomIndex: 1 },
+      { dateOfBirth: '2018-01-22', roomIndex: 1 },
+    ],
+  };
+  setResultsLivePriceOverlay(offer.id, fourPax, {
+    price: 458,
+    pricePerDay: 57,
+    livePriceStatus: 'unpriced',
+  });
+  const [overlaid] = applyResultsLivePriceOverlays([offer], fourPax);
+  assert.equal(overlaid.livePriceStatus, 'unpriced');
+  assert.equal(overlaid.livePriceSource, undefined);
 });

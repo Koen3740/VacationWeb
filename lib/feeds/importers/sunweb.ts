@@ -6,7 +6,9 @@ import {
 } from '../types/sunweb-xml';
 import { StoredOffer } from '../types/stored-offer';
 import { buildExternalId, PROVIDERS } from '../providers';
+import { unwrapSunwebProductUrl } from '../../providers/sunweb/offer-context';
 import { deriveSunwebHasCarRental } from '../../offers/has-car-rental';
+import { canonicalizeDepartureAirportCode } from '../../search/departure-airports';
 
 function getProperties(product: SunwebXmlProduct): SunwebXmlProperty[] {
   const properties = product.properties?.property;
@@ -168,6 +170,20 @@ function parseSunwebDepartureDate(raw: string): string | undefined {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+function iataFromProductUrl(productUrl: string | undefined): string | undefined {
+  if (!productUrl) {
+    return undefined;
+  }
+  try {
+    const url = new URL(unwrapSunwebProductUrl(productUrl));
+    const raw =
+      url.searchParams.get('DepartureAirport[0]') || url.searchParams.get('DepartureAirport') || '';
+    return canonicalizeDepartureAirportCode(raw);
+  } catch {
+    return undefined;
+  }
+}
+
 function parseFlightIncluded(transportType: string): string | undefined {
   if (!transportType) {
     return undefined;
@@ -275,9 +291,11 @@ function mapSunwebProduct(product: SunwebXmlProduct): StoredOffer {
   const durationRaw = getProperty(product, 'numberOfDays') || getProperty(product, 'duration');
   const nights = toNumber(durationRaw);
   const iataDeparture =
-    getProperty(product, 'iataDeparture') ||
-    getProperty(product, 'IsoCodeDeparture') ||
-    getProperty(product, 'DepartureAirport');
+    canonicalizeDepartureAirportCode(
+      getProperty(product, 'iataDeparture') ||
+        getProperty(product, 'IsoCodeDeparture') ||
+        getProperty(product, 'DepartureAirport'),
+    ) || iataFromProductUrl(product.URL);
   const { boardType, accommodationType } = parseBoardAndAccommodationType(product);
   const { stars, rating } = parseStarsAndRating(product);
   const feedDescriptionShort = getProperty(product, 'descriptionShort');
@@ -299,7 +317,7 @@ function mapSunwebProduct(product: SunwebXmlProduct): StoredOffer {
     externalId: buildExternalId('sunweb', product.ID, [
       departureDate ?? departureDateRaw,
       durationRaw,
-      iataDeparture,
+      iataDeparture ?? '',
       boardType ?? '',
       String(price),
     ]),
@@ -335,7 +353,8 @@ function mapSunwebProduct(product: SunwebXmlProduct): StoredOffer {
     }),
 
     departureAirport: iataDeparture || undefined,
-    departureAirportCode: getProperty(product, 'IsoCodeDeparture') || undefined,
+    departureAirportCode:
+      canonicalizeDepartureAirportCode(getProperty(product, 'IsoCodeDeparture')) || undefined,
     airport: getProperty(product, 'airport') || undefined,
 
     boardType,

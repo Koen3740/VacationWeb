@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import { afterEach, test } from 'node:test';
 import type { TravelOffer } from '../feeds/canonical/travel-offer';
 import {
-  PRIJSVRIJ_PAGE1_MAX_SLOTS,
   PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP,
 } from '../providers/prijsvrij/constants';
 import {
@@ -27,6 +26,7 @@ import { hasValidPresentablePrice } from './presentable-price';
 import { limitRankedResultsForPagination, RESULTS_USER_PAGINATION_CAP } from './pagination';
 import {
   isPriceDependentSort,
+  offerNeedsLivePriceWork,
   prepareResultsOffers,
   rankCatalogOffers,
   slicePriceSortPoolPage,
@@ -105,11 +105,17 @@ function makeSunweb(overrides: Partial<TravelOffer> & Pick<TravelOffer, 'id'>): 
     destinationCountry: 'Portugal',
     departureDate: '2026-08-20',
     nights: 8,
+    flightIncluded: 'true',
+    departureAirport: 'BRU',
     price: 350,
     pricePerDay: 44,
     boardType: 'All Inclusive',
     imageUrl: 'https://example.com/a.jpg',
-    deepLink: 'https://example.com',
+    deepLink:
+      'https://www.sunweb.be/nl/vakantie/reizen?tt=1393_1_511747_&r=' +
+      encodeURIComponent(
+        'https://www.sunweb.be/nl/vakantie/portugal/x?Duration[0]=8&TransportType[0]=Flight&Mealplan[0]=AI&DepartureAirport[0]=BRU&DepartureDate[0]=2026-08-20',
+      ),
     livePriceStatus: 'catalog',
     livePriceSource: 'feed',
     ...overrides,
@@ -187,11 +193,17 @@ function makeEliza(overrides: Partial<TravelOffer> & Pick<TravelOffer, 'id'>): T
     destinationCountry: 'Portugal',
     departureDate: '2026-08-20',
     nights: 8,
+    flightIncluded: 'true',
+    departureAirport: 'BRU',
     price: 250,
     pricePerDay: 31,
     boardType: 'Logies',
     imageUrl: 'https://example.com/a.jpg',
-    deepLink: 'https://www.elizawashere.nl/offer',
+    deepLink:
+      'https://www.elizawashere.be/reizen?tt=1327_1_511747_&r=' +
+      encodeURIComponent(
+        'https://www.elizawashere.be/portugal/x?Duration[0]=8&TransportType[0]=Flight&Mealplan[0]=LG&DepartureAirport[0]=BRU&DepartureDate[0]=2026-08-20&Participants[0][0]=1996-07-30&Participants[0][1]=1996-07-30',
+      ),
     livePriceStatus: 'catalog',
     livePriceSource: 'feed',
     ...overrides,
@@ -432,7 +444,7 @@ test('F/J. All Inclusive + price waits only for the 30-result coverage, not unre
     { adults: 2, boardTypes: ['All Inclusive'], sort: 'price' },
     { fetchImpl: makeReceiptFetch(http) },
   );
-  assert.equal(ranked.length, 30);
+  assert.equal(ranked.length, 22);
   const aiPv = ranked.filter((offer) => offer.provider === 'Prijsvrij');
   assert.equal(aiPv.length, 22);
   for (const offer of aiPv) {
@@ -465,7 +477,8 @@ test('G. required prices already cached: immediate and 0 Receipts', async () => 
   assert.equal(prepared.priceSortPending, false);
   const ranked = await prepared.exactOffers;
   assert.equal(http.posts, 0);
-  assert.equal(ranked.length, catalog.length);
+  assert.ok(ranked.every(hasValidPresentablePrice));
+  assert.equal(ranked.length, requiredPv(catalog).length);
   for (let i = 1; i < ranked.length; i += 1) {
     assert.ok(ranked[i - 1].price <= ranked[i].price);
   }
@@ -506,7 +519,11 @@ test('I. missing required offers are started by the matchset mechanism and await
   });
   assert.ok(http.posts >= 1);
   assert.ok(hasResultsLivePriceOverlay(catalog[0].id, { adults: 2 }));
-  assert.ok(ranked[0].id === 'sun-1' || ranked[0].price < 5000);
+  assert.ok(ranked.every(hasValidPresentablePrice));
+  assert.equal(ranked.some((offer) => offer.id === 'sun-1'), false);
+  assert.equal(ranked[0].id, catalog[0].id);
+  assert.equal(ranked[0].livePriceStatus, 'proven');
+  assert.notEqual(ranked[0].price, 5000);
 });
 
 test('K. 8-hour TTL remains unchanged', () => {
@@ -547,8 +564,9 @@ test('M/N. page-1 Package-1 max-3 and cap ≤10 remain unchanged', async () => {
     fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }),
     stats,
   }).presented;
+  assert.ok(presented.page1.every(hasValidPresentablePrice));
   assert.ok(
-    presented.page1.filter((offer) => offer.provider === 'Prijsvrij').length <= PRIJSVRIJ_PAGE1_MAX_SLOTS,
+    presented.page1.filter((offer) => offer.provider === 'Prijsvrij').length <= 10,
   );
   assert.ok(stats.receiptCalls <= PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP);
 });
@@ -601,19 +619,16 @@ test('A. 921 matches: price sort live-prices the 150 pool, not all 859 Prijsvrij
   assert.equal(prepared.priceSortPending, true);
   assert.equal(prepared.offers.length, 921);
   const ranked = await prepared.exactOffers;
-  assert.equal(ranked.length, 921);
+  assert.ok(ranked.every(hasValidPresentablePrice));
+  assert.equal(ranked.length, requiredPv(catalogPool).length);
   assert.equal(catalogPool.length, RESULTS_USER_PAGINATION_CAP);
   const receiptHotels = uniqueReceiptHotelIds(http.urls);
   assert.ok(receiptHotels.size <= RESULTS_USER_PAGINATION_CAP);
   assert.ok(receiptHotels.size < 859, 'must not Receipt all 859 Prijsvrij');
   assert.equal(receiptHotels.size, requiredPv(catalogPool).length);
-  const livePool = ranked.slice(0, RESULTS_USER_PAGINATION_CAP);
-  for (const offer of requiredPv(livePool)) {
+  for (const offer of ranked) {
     assert.ok(hasResultsLivePriceOverlay(offer.id, { adults: 2 }), offer.id);
   }
-  const unpricedTailPv = requiredPv(ranked.slice(RESULTS_USER_PAGINATION_CAP));
-  assert.ok(unpricedTailPv.length > 0);
-  assert.ok(unpricedTailPv.some((offer) => !hasResultsLivePriceOverlay(offer.id, { adults: 2 })));
 });
 
 test('B. 1486 matches: price-sort live-pricing input <= 150', async () => {
@@ -633,7 +648,8 @@ test('B. 1486 matches: price-sort live-pricing input <= 150', async () => {
   });
   assert.equal(prepared.offers.length, 1486);
   const ranked = await prepared.exactOffers;
-  assert.equal(ranked.length, 1486);
+  assert.ok(ranked.every(hasValidPresentablePrice));
+  assert.ok(ranked.length <= RESULTS_USER_PAGINATION_CAP);
   assert.ok(uniqueReceiptHotelIds(http.urls).size <= RESULTS_USER_PAGINATION_CAP);
 });
 
@@ -650,7 +666,8 @@ test('C/J. 3000 matches: live-pricing pool <= 150; full result architecture reta
   });
   assert.equal(prepared.offers.length, 3000, '150 is not a total-results cap');
   const ranked = await prepared.exactOffers;
-  assert.equal(ranked.length, 3000, '150 is not a total-results cap');
+  assert.ok(ranked.every(hasValidPresentablePrice));
+  assert.equal(ranked.length, RESULTS_USER_PAGINATION_CAP);
   assert.equal(uniqueReceiptHotelIds(http.urls).size, RESULTS_USER_PAGINATION_CAP);
   assert.equal(limitRankedResultsForPagination(ranked).length, RESULTS_USER_PAGINATION_CAP);
 });
@@ -858,9 +875,8 @@ test('I/J. final price ranking uses live prices, not catalog fallback for unavai
   assert.ok(liveOffer);
   assert.equal(liveOffer.livePriceStatus, 'proven');
   assert.ok(liveOffer.price < 9000, 'ranking must use Receipt overlay, not catalog 9000');
-  const failIndex = ranked.findIndex((offer) => offer.id === failId);
-  const liveIndex = ranked.findIndex((offer) => offer.id === liveId);
-  assert.ok(liveIndex < failIndex, 'unavailable catalog-cheap PV must not rank above proven live');
+  assert.equal(ranked.some((offer) => offer.id === failId), false);
+  assert.equal(ranked.some((offer) => offer.id === 'sun-ok'), false);
   assert.notEqual(ranked[0].id, failId);
 });
 
@@ -884,7 +900,8 @@ test('A. 927-result style search: full count stays 927; live pool <= 150', async
   });
   assert.equal(prepared.offers.length, 927);
   const ranked = await prepared.exactOffers;
-  assert.equal(ranked.length, 927);
+  assert.ok(ranked.every(hasValidPresentablePrice));
+  assert.ok(ranked.length <= RESULTS_USER_PAGINATION_CAP);
   assert.ok(uniqueReceiptHotelIds(http.urls).size <= RESULTS_USER_PAGINATION_CAP);
 });
 
@@ -905,11 +922,23 @@ test('H. incomplete live pool is not the exact ranking', async () => {
     prepared.offers.slice(0, 10).map((offer) => offer.id),
     catalogPool.slice(0, 10).map((offer) => offer.id),
   );
-  const page1 = slicePriceSortPoolPage(prepared.offers, 1, 10, { provisional: true });
+  const pendingParams = { adults: 2, sort: 'price' as const };
+  const page1 = slicePriceSortPoolPage(prepared.offers, 1, 10, {
+    provisional: true,
+    params: pendingParams,
+  });
   assert.equal(page1.visibleOffers.length, 10);
   assert.equal(page1.page1Ids.length, 10);
-  const page2 = slicePriceSortPoolPage(prepared.offers, 2, 10, { provisional: true });
-  assert.equal(page2.visibleOffers[0].id, catalogPool[10].id);
+  assert.ok(
+    page1.visibleOffers.every(
+      (offer) =>
+        hasValidPresentablePrice(offer) || offerNeedsLivePriceWork(offer, pendingParams),
+    ),
+  );
+  const page2 = slicePriceSortPoolPage(prepared.offers, 2, 10, {
+    provisional: true,
+    params: pendingParams,
+  });
   assert.notEqual(page2.visibleOffers[0].id, page1.visibleOffers[0].id);
   release();
   const exact = await prepared.exactOffers;

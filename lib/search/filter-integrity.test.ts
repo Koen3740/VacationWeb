@@ -86,6 +86,13 @@ test('vacationTypes and amenities URL round-trip', () => {
   ]);
 });
 
+test('hasCarRental URL round-trip uses only =1', () => {
+  const params = new URLSearchParams('country=Spanje&hasCarRental=1');
+  assert.equal(params.get('hasCarRental'), '1');
+  params.delete('hasCarRental');
+  assert.equal(params.get('hasCarRental'), null);
+});
+
 test('filterOffers does not apply phantom default budget', () => {
   const offers = [
     makeOffer({ id: 'cheap', price: 200, hotelName: 'Budget Adults Only' }),

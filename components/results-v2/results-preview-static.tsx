@@ -315,14 +315,6 @@ function StaticFilters() {
           />
         ))}
 
-        <div className="py-4">
-          <button
-            type="button"
-            className="w-full rounded-[10px] border border-[#D9E0EA] bg-white px-3 py-2.5 text-[14px] font-medium text-[#0A2D62]"
-          >
-            Wis alle filters
-          </button>
-        </div>
       </div>
       <ResultsWhyCard />
     </aside>

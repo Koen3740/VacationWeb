@@ -19,6 +19,11 @@ import {
   offerMatchesAnyVacationType,
   parseVacationTypesParam,
 } from '@/lib/search/vacation-type';
+import {
+  offerMatchesDepartureAirports,
+  parseDepartureAirportsParam,
+} from '@/lib/search/departure-airports';
+import { normalizeDepartureDateToIso } from '@/lib/search/departure-date';
 import { SearchParams, TravelOffer } from '@/types/travel';
 
 function shiftIsoDate(isoDate: string, days: number): string {
@@ -131,11 +136,8 @@ export function filterOffers(
       }
     }
 
-    if (
-      params.departureAirport &&
-      offer.departureAirport &&
-      offer.departureAirport !== params.departureAirport
-    ) {
+    const selectedAirports = parseDepartureAirportsParam(params.departureAirport);
+    if (selectedAirports.length > 0 && !offerMatchesDepartureAirports(offer, selectedAirports)) {
       return false;
     }
 
@@ -185,21 +187,19 @@ export function filterOffers(
       return false;
     }
 
-    // Nieuwe Corendon-feed: filter op vertrekdatum
-    if (
-      effectiveDepartureStart &&
-      offer.departureDate &&
-      offer.departureDate < effectiveDepartureStart
-    ) {
-      return false;
-    }
-
-    if (
-      effectiveDepartureEnd &&
-      offer.departureDate &&
-      offer.departureDate > effectiveDepartureEnd
-    ) {
-      return false;
+    if (effectiveDepartureStart || effectiveDepartureEnd) {
+      if (offer.departureDate) {
+        const departureIso = normalizeDepartureDateToIso(offer.departureDate);
+        if (!departureIso) {
+          return false;
+        }
+        if (effectiveDepartureStart && departureIso < effectiveDepartureStart) {
+          return false;
+        }
+        if (effectiveDepartureEnd && departureIso > effectiveDepartureEnd) {
+          return false;
+        }
+      }
     }
 
     return true;
@@ -259,8 +259,8 @@ export function sortOffers(
       // Without a user departure filter: earliest *available* (today+) first; past dates last.
       const today = new Date().toISOString().slice(0, 10);
       return [...ranked].sort((a, b) => {
-        const dateA = a.departureDate?.trim() || '';
-        const dateB = b.departureDate?.trim() || '';
+        const dateA = normalizeDepartureDateToIso(a.departureDate) ?? '';
+        const dateB = normalizeDepartureDateToIso(b.departureDate) ?? '';
         if (!dateA && !dateB) return 0;
         if (!dateA) return 1;
         if (!dateB) return -1;
@@ -280,8 +280,8 @@ export function sortOffers(
 
     case 'value':
     default:
-      return [...ranked].sort(
-        (a, b) => (b.valueScore ?? 0) - (a.valueScore ?? 0)
-      );
+      // WP8: "Aanbevolen" is not a user sort. Preserve filtered catalog order.
+      // Do not rank by valueScore. Legacy ?sort=value uses this same path.
+      return ranked;
   }
 }

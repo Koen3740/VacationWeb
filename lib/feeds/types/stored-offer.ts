@@ -1,3 +1,13 @@
+/** Provider environment in which a concrete bookable offer is available. */
+export type ProviderListing = {
+  provider: string;
+  feedId: string;
+  campaignId?: string;
+  host: string;
+  deepLink: string;
+  locale?: string;
+};
+
 export interface StoredOffer {
   externalId: string;
   provider: string;
@@ -52,4 +62,15 @@ export interface StoredOffer {
 
   deepLink?: string;
   affiliateCampaignId?: string;
+
+  /** IATA arrival when present on the feed (e.g. Corendon NL `iataArrival`). */
+  arrivalAirport?: string;
+  /** Inventory source id (Corendon: corendon-benl | corendon-befr | corendon-nl). */
+  feedSourceId?: string;
+  /** Click-out / live-price host for the primary listing. */
+  listingHost?: string;
+  /** All retained provider listings for this bookable offer. */
+  providerListings?: ProviderListing[];
+  /** Hotel copy per source locale; does not replace descriptionLong. */
+  localizedDescriptions?: Record<string, string>;
 }

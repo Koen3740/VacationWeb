@@ -1,13 +1,16 @@
 import type { FetchLike } from '../providers/prijsvrij/auth';
-import { priceLiveRequiredMatchset } from '../providers/prijsvrij/page1-receipt-pricing';
+import { priceLiveRequiredMatchset, stampUnpricedWhenLiveOccupancyUnsupported } from '../providers/prijsvrij/page1-receipt-pricing';
 import type { SearchParams, TravelOffer } from '../../types/travel';
 import { filterOffers, sortOffers } from './filtering';
 import { limitRankedResultsForPagination, paginateResults } from './pagination';
+import { isSunwebFourTravellerTwoRoomSearch } from '../providers/sunweb';
 import {
   CORENDON_PROVIDER_NAME,
   ELIZA_PROVIDER_NAME,
   hasValidPresentablePrice,
+  isResultsVisibleOffer,
   PRIJSVRIJ_PROVIDER_NAME,
+  SUNWEB_PROVIDER_NAME,
 } from './presentable-price';
 import { rankResultsOffers } from './rank-results-offers';
 import {
@@ -41,27 +44,25 @@ export function rankCatalogOffers(
 
 /**
  * Live-price ranking of an already-selected candidate pool.
- * Proven/presentable live prices sort first; catalog price is not used as a
- * stand-in for a missing or unavailable live-required price.
+ * Only proven live p.p. prices may participate in price sorting.
  */
 export function rankLivePricedCandidatePool(
   pool: readonly TravelOffer[],
   params: SearchParams,
 ): TravelOffer[] {
   const overlaid = applyResultsLivePriceOverlays(pool, params);
-  const presentable = sortOffers(overlaid.filter(hasValidPresentablePrice), params.sort);
-  const notPresentable = overlaid.filter((offer) => !hasValidPresentablePrice(offer));
-  return [...presentable, ...notPresentable];
+  return sortOffers(overlaid.filter(hasValidPresentablePrice), params.sort);
 }
 
-function offerNeedsLivePriceWork(offer: TravelOffer, params: SearchParams): boolean {
+export function offerNeedsLivePriceWork(offer: TravelOffer, params: SearchParams): boolean {
   if (hasResultsLivePriceOverlay(offer.id, params)) {
     return false;
   }
   return (
     offer.provider === PRIJSVRIJ_PROVIDER_NAME ||
     offer.provider === CORENDON_PROVIDER_NAME ||
-    offer.provider === ELIZA_PROVIDER_NAME
+    offer.provider === ELIZA_PROVIDER_NAME ||
+    (offer.provider === SUNWEB_PROVIDER_NAME && isSunwebFourTravellerTwoRoomSearch(params))
   );
 }
 
@@ -70,7 +71,7 @@ function assemblePriceSortRanking(
   tail: TravelOffer[],
   params: SearchParams,
 ): TravelOffer[] {
-  return [...rankLivePricedCandidatePool(pool, params), ...tail];
+  return rankLivePricedCandidatePool([...pool, ...tail], params);
 }
 
 /** Visible page of the max-150 price-sort pool. Not Package-1 diversity selection. */
@@ -78,14 +79,20 @@ export function slicePriceSortPoolPage(
   ranked: readonly TravelOffer[],
   page: number,
   pageSize: number,
-  options: { provisional: boolean },
+  options: { provisional: boolean; params?: SearchParams },
 ): {
   visibleOffers: TravelOffer[];
   page1Ids: string[];
   paginationTotal: number;
 } {
   const pool = limitRankedResultsForPagination(ranked as TravelOffer[]);
-  const list = options.provisional ? pool : pool.filter(hasValidPresentablePrice);
+  const list = options.provisional
+    ? pool.filter(
+        (offer) =>
+          isResultsVisibleOffer(offer) ||
+          (options.params != null && offerNeedsLivePriceWork(offer, options.params)),
+      )
+    : pool.filter(isResultsVisibleOffer);
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
   return {
     visibleOffers: paginateResults(list, safePage, pageSize),
@@ -111,6 +118,8 @@ export async function prepareResultsOffers(
   params: SearchParams,
   options: { fetchImpl?: FetchLike } = {},
 ): Promise<PreparedResultsOffers> {
+  stampUnpricedWhenLiveOccupancyUnsupported(offers as TravelOffer[], params);
+
   if (isPriceDependentSort(params.sort)) {
     const catalogRanked = rankCatalogOffers(offers, params);
     const pool = limitRankedResultsForPagination(catalogRanked);

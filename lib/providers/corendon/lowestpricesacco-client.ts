@@ -7,11 +7,24 @@ import {
 } from './constants';
 import type { CorendonLiveContext } from './offer-context';
 
+export type CorendonLivePriceSource = 'lowestpricesacco' | 'upsales';
+
+export type CorendonLowestHop = {
+  pricePerPerson: number;
+  tripCode: string;
+  tripUrlHash: string;
+  priceTableDate: string;
+  durationInDays: number;
+  nights: number;
+};
+
 export type CorendonLivePriceResult =
   | {
       ok: true;
       pricePerPerson: number;
       tripCode: string;
+      source: CorendonLivePriceSource;
+      hop?: CorendonLowestHop;
     }
   | {
       ok: false;
@@ -41,7 +54,7 @@ function fragmentToPriceTableHash(fragment: string): string {
 }
 
 export function buildCorendonLowestpricesaccoUrl(ctx: CorendonLiveContext): string {
-  const party = encodeURIComponent(JSON.stringify(CORENDON_DEFAULT_2A_PARTY));
+  const party = encodeURIComponent(JSON.stringify(ctx.partyComposition ?? CORENDON_DEFAULT_2A_PARTY));
   const hash = encodeURIComponent(fragmentToPriceTableHash(ctx.fragment.raw));
   const host = encodeURIComponent(ctx.feHost);
   return (
@@ -61,13 +74,22 @@ function readTrip(json: unknown): {
   price: unknown;
   tripCode: unknown;
   departureDate: unknown;
+  tripUrlHash: unknown;
+  priceTableDate: unknown;
+  durationInDays: unknown;
 } | null {
   if (!json || typeof json !== 'object') {
     return null;
   }
   const pkg = (json as { package?: { lowestPriceTrip?: Record<string, unknown> } }).package;
   const lowest = pkg?.lowestPriceTrip;
-  const trip = lowest?.trip as { price?: unknown; tripCode?: unknown } | undefined;
+  const trip = lowest?.trip as {
+    price?: unknown;
+    tripCode?: unknown;
+    tripUrlHash?: unknown;
+    priceTableDate?: unknown;
+    durationInDays?: unknown;
+  } | undefined;
   if (!trip) {
     return null;
   }
@@ -75,10 +97,17 @@ function readTrip(json: unknown): {
     price: trip.price,
     tripCode: trip.tripCode,
     departureDate: lowest?.tripDepartureDate,
+    tripUrlHash: trip.tripUrlHash,
+    priceTableDate: trip.priceTableDate,
+    durationInDays: trip.durationInDays,
   };
 }
 
-function contextMatches(ctx: CorendonLiveContext, tripCode: string, liveDate: string): boolean {
+export function corendonLiveContextMatchesTrip(
+  ctx: CorendonLiveContext,
+  tripCode: string,
+  liveDate: string,
+): boolean {
   const sameAcco =
     tripCode.startsWith(`${ctx.accommodationId}.`) ||
     tripCode.includes(`.${ctx.fragment.accommodationCode}.`);
@@ -87,10 +116,46 @@ function contextMatches(ctx: CorendonLiveContext, tripCode: string, liveDate: st
   return Boolean(sameAcco && sameDate && sameAirport);
 }
 
+function nightsFromDuration(durationInDays: number): number | null {
+  if (!Number.isFinite(durationInDays) || durationInDays < 2) {
+    return null;
+  }
+  return durationInDays - 1;
+}
+
+function hopFromTrip(trip: {
+  price: number;
+  tripCode: string;
+  tripUrlHash: unknown;
+  priceTableDate: unknown;
+  durationInDays: unknown;
+}): CorendonLowestHop | undefined {
+  if (typeof trip.tripUrlHash !== 'string' || !trip.tripUrlHash.trim()) {
+    return undefined;
+  }
+  const durationInDays =
+    typeof trip.durationInDays === 'number' ? trip.durationInDays : Number(trip.durationInDays);
+  const nights = nightsFromDuration(durationInDays);
+  const priceTableDate =
+    typeof trip.priceTableDate === 'string' && /^\d{8}$/.test(trip.priceTableDate)
+      ? trip.priceTableDate
+      : undefined;
+  if (!nights || !priceTableDate) {
+    return undefined;
+  }
+  return {
+    pricePerPerson: trip.price,
+    tripCode: trip.tripCode,
+    tripUrlHash: trip.tripUrlHash,
+    priceTableDate,
+    durationInDays,
+    nights,
+  };
+}
+
 /**
  * Proven Corendon Feed→Live hop: productURL fragment → Base64 hash → lowestpricesacco.
- * Does not call upsales (that path invents birth dates). Coverage audit accepts
- * lowestpricesacco SUCCESS on acco+date+airportRoute match.
+ * Occupancy-specific 4-pax quotes use upsales after this hop (`fetchCorendonLivePrice`).
  */
 export async function fetchCorendonLowestpricesaccoPrice(
   ctx: CorendonLiveContext,
@@ -139,11 +204,25 @@ export async function fetchCorendonLowestpricesaccoPrice(
 
     const liveDate =
       typeof trip.departureDate === 'string' ? trip.departureDate.slice(0, 10) : '';
-    if (!contextMatches(ctx, trip.tripCode, liveDate)) {
+    if (!corendonLiveContextMatchesTrip(ctx, trip.tripCode, liveDate)) {
       return { ok: false, reason: 'stale_context', httpStatus: 200 };
     }
 
-    return { ok: true, pricePerPerson: price, tripCode: trip.tripCode };
+    const hop = hopFromTrip({
+      price,
+      tripCode: trip.tripCode,
+      tripUrlHash: trip.tripUrlHash,
+      priceTableDate: trip.priceTableDate,
+      durationInDays: trip.durationInDays,
+    });
+
+    return {
+      ok: true,
+      pricePerPerson: price,
+      tripCode: trip.tripCode,
+      source: 'lowestpricesacco',
+      ...(hop ? { hop } : {}),
+    };
   } catch (error) {
     if (isTimeoutError(error)) {
       return { ok: false, reason: 'timeout' };

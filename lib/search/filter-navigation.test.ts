@@ -34,7 +34,7 @@ test('occupancy new-search navigation still clears page1Ids', () => {
 });
 
 test('stars / board / vacation / amenity refine keep page1Ids', () => {
-  for (const extra of ['stars=4', 'boardTypes=All+Inclusive', 'vacationTypes=Adults+Only', 'amenities=pool_outdoor']) {
+  for (const extra of ['stars=4', 'boardTypes=All+Inclusive', 'vacationTypes=Adults+Only', 'amenities=pool_outdoor', 'hasCarRental=1']) {
     const params = new URLSearchParams(`adults=2&page1Ids=keep-me&${extra}`);
     applyFilterNavigationPaging(params, { preservePage1Ids: true });
     assert.equal(params.get('page1Ids'), 'keep-me', extra);

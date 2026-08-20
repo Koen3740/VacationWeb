@@ -16,13 +16,13 @@ const VACATION_TYPES = [
     id: 'strandvakantie',
     title: 'Strandvakantie',
     image: '/images/vacation-types/strandvakantie.png',
-    href: '/results?sort=value',
+    href: '/results',
   },
   {
     id: 'familievakantie',
     title: 'Familievakantie',
     image: '/images/vacation-types/familievakantie.png',
-    href: '/results?sort=value',
+    href: '/results?vacationTypes=Familie',
   },
   {
     id: 'last-minute',
@@ -34,7 +34,7 @@ const VACATION_TYPES = [
     id: 'adults-only',
     title: 'Adults Only',
     image: '/images/vacation-types/adults-only.png',
-    href: '/results?sort=value',
+    href: '/results?vacationTypes=Adults%20Only',
   },
 ] as const;
 

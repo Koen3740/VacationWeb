@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import {
+  CORENDON_TWO_ROOM_2A_PARTY,
+} from './constants';
+import {
   buildCorendonLiveContext,
   corendonFragmentDateToIso,
   extractCorendonAccommodationId,
@@ -59,13 +62,81 @@ test('parseCorendonUrlFragment: hotel, airport, DDMMYY date, duration', () => {
   assert.equal(corendonFragmentDateToIso(parsed.dateYymmdd), '2026-08-27');
 });
 
-test('occupancy: default 2A only; children/babies/rooms invalid', () => {
+test('parseCorendonUrlFragment: empty airport route is not a live-price fragment', () => {
+  const parsed = parseCorendonUrlFragment(
+    'https://www.corendon.be/nederland/noord-holland/amsterdam/hotel#9953.NLVIL..011226.1.DZ2-F..',
+  );
+  assert.equal(parsed, null);
+});
+
+test('occupancy: 2A 1-room or proven 2-room; children/extra pax invalid', () => {
   assert.equal(resolveCorendonLiveOccupancy({}).ok, true);
   assert.equal(resolveCorendonLiveOccupancy({ adults: 2 }).ok, true);
+  assert.equal(resolveCorendonLiveOccupancy({ adults: 2, rooms: 2 }).ok, true);
+  assert.equal(
+    resolveCorendonLiveOccupancy({
+      party: [
+        { dateOfBirth: '1975-03-12', roomIndex: 0 },
+        { dateOfBirth: '1978-06-04', roomIndex: 1 },
+      ],
+    }).ok,
+    true,
+  );
   assert.equal(resolveCorendonLiveOccupancy({ adults: 2, children: 1 }).ok, false);
   assert.equal(resolveCorendonLiveOccupancy({ adults: 2, babies: 1 }).ok, false);
-  assert.equal(resolveCorendonLiveOccupancy({ adults: 2, rooms: 2 }).ok, false);
   assert.equal(resolveCorendonLiveOccupancy({ adults: 3 }).ok, false);
+  assert.equal(resolveCorendonLiveOccupancy({ adults: 4, rooms: 2 }).ok, false);
+  assert.equal(
+    resolveCorendonLiveOccupancy({
+      party: [
+        { dateOfBirth: '1975-03-12', roomIndex: 0 },
+        { dateOfBirth: '1978-06-04', roomIndex: 0 },
+        { dateOfBirth: '2010-01-01', roomIndex: 0 },
+      ],
+    }).ok,
+    false,
+  );
+});
+
+test('occupancy: 4 travellers / 2 rooms with party DOBs uses upsales route', () => {
+  const occupancy = resolveCorendonLiveOccupancy({
+    adults: 4,
+    rooms: 2,
+    party: [
+      { dateOfBirth: '1990-01-15', roomIndex: 0 },
+      { dateOfBirth: '1988-03-03', roomIndex: 0 },
+      { dateOfBirth: '2014-06-14', roomIndex: 1 },
+      { dateOfBirth: '2018-01-22', roomIndex: 1 },
+    ],
+  });
+  assert.equal(occupancy.ok, true);
+  if (!occupancy.ok) {
+    return;
+  }
+  assert.equal(occupancy.pricingRoute, 'upsales');
+  assert.equal(occupancy.roomCount, 2);
+  if (occupancy.pricingRoute !== 'upsales') {
+    return;
+  }
+  assert.deepEqual(occupancy.pax, [
+    { birthDate: '1990-01-15', roomNr: 1 },
+    { birthDate: '1988-03-03', roomNr: 1 },
+    { birthDate: '2014-06-14', roomNr: 2 },
+    { birthDate: '2018-01-22', roomNr: 2 },
+  ]);
+  assert.equal(
+    resolveCorendonLiveOccupancy({
+      adults: 4,
+      rooms: 2,
+      party: [
+        { dateOfBirth: '1990-01-15', roomIndex: 0 },
+        { dateOfBirth: '1988-03-03', roomIndex: 0 },
+        { dateOfBirth: '2014-06-14', roomIndex: 0 },
+        { dateOfBirth: '2018-01-22', roomIndex: 0 },
+      ],
+    }).ok,
+    false,
+  );
 });
 
 test('buildCorendonLiveContext: mapping + date + occupancy', () => {
@@ -76,6 +147,36 @@ test('buildCorendonLiveContext: mapping + date + occupancy', () => {
   assert.equal(ok.fragment.airportRoute, 'BRUCFU');
   assert.equal(ok.fragment.durationNights, '3-4-3');
   assert.equal(ok.feHost, 'www.corendon.be');
+  assert.equal(ok.pricingRoute, 'lowest');
+
+  const fourPax = buildCorendonLiveContext(makeOffer(), {
+    adults: 4,
+    rooms: 2,
+    party: [
+      { dateOfBirth: '1990-01-15', roomIndex: 0 },
+      { dateOfBirth: '1988-03-03', roomIndex: 0 },
+      { dateOfBirth: '2014-06-14', roomIndex: 1 },
+      { dateOfBirth: '2018-01-22', roomIndex: 1 },
+    ],
+  });
+  assert.ok(fourPax);
+  assert.equal(fourPax.pricingRoute, 'upsales');
+  assert.deepEqual(fourPax.partyComposition, CORENDON_TWO_ROOM_2A_PARTY);
+  assert.deepEqual(fourPax.upsalesPax, [
+    { birthDate: '1990-01-15', roomNr: 1 },
+    { birthDate: '1988-03-03', roomNr: 1 },
+    { birthDate: '2014-06-14', roomNr: 2 },
+    { birthDate: '2018-01-22', roomNr: 2 },
+  ]);
+
+  const fr = buildCorendonLiveContext(
+    makeOffer({
+      deepLink: 'https://fr.corendon.be/vakantie#9514.COSPY.BRUCFU.270826.3-4-3.SZ-U',
+    }),
+    { adults: 2 },
+  );
+  assert.ok(fr);
+  assert.equal(fr.feHost, 'fr.corendon.be');
 
   assert.equal(buildCorendonLiveContext(makeOffer(), { adults: 2, children: 1 }), null);
   assert.equal(

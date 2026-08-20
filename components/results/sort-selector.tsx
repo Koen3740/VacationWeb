@@ -10,7 +10,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 const SORT_OPTIONS = [
-  { value: 'value', label: 'Aanbevolen' },
   { value: 'price', label: 'Prijs (laag → hoog)' },
   { value: 'price-desc', label: 'Prijs (hoog → laag)' },
   { value: 'price-per-day', label: 'Prijs per vakantiedag' },
@@ -41,7 +40,12 @@ export function SortSelector({ currentSort }: { currentSort: string }) {
     }
 
     const params = new URLSearchParams(searchParams.toString());
-    params.set('sort', event.target.value);
+    const nextSort = event.target.value;
+    if (!nextSort) {
+      params.delete('sort');
+    } else {
+      params.set('sort', nextSort);
+    }
     applyFilterNavigationPaging(params, {
       preservePage1Ids: true,
       liveQuery: typeof window === 'undefined' ? undefined : window.location.search,
@@ -56,7 +60,7 @@ export function SortSelector({ currentSort }: { currentSort: string }) {
   const knownValues = SORT_OPTIONS.map((option) => option.value);
   const selectValue = knownValues.includes(currentSort as (typeof SORT_OPTIONS)[number]['value'])
     ? currentSort
-    : 'value';
+    : '';
 
   return (
     <>
@@ -70,6 +74,7 @@ export function SortSelector({ currentSort }: { currentSort: string }) {
           aria-busy={sortBusy}
           className="h-10 max-w-full rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-[13px] font-semibold text-[#0A2D62] outline-none disabled:cursor-wait disabled:opacity-80"
         >
+          <option value="">Standaard volgorde</option>
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}

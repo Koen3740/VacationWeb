@@ -8,15 +8,20 @@ export {
   type ElizaFeHost,
 } from './constants';
 export {
+  applyElizaOccupancyToLandingUrl,
   buildElizaLiveContext,
+  buildElizaOccupancyClickOutHref,
   extractElizaAccommodationId,
   isEliza,
+  isElizaFourTravellerTwoRoomSearch,
   parseElizaLandingQuery,
   resolveElizaFeHost,
   resolveElizaLiveOccupancy,
   unwrapElizaProductUrl,
   type ElizaLandingQuery,
   type ElizaLiveContext,
+  type ElizaLiveOccupancy,
+  type ElizaParticipant,
 } from './offer-context';
 export {
   buildElizaPromotedPriceUrl,

@@ -6,6 +6,8 @@ import {
   type ElizaFeHost,
 } from './constants';
 
+export type ElizaParticipant = { key: string; value: string };
+
 export type ElizaLandingQuery = {
   accoId: string;
   departureDate: string;
@@ -14,7 +16,7 @@ export type ElizaLandingQuery = {
   mealplan: string;
   transportType: string;
   month: string;
-  participants: Array<{ key: string; value: string }>;
+  participants: ElizaParticipant[];
 };
 
 export type ElizaLiveContext = {
@@ -23,6 +25,11 @@ export type ElizaLiveContext = {
   feHost: ElizaFeHost;
   query: ElizaLandingQuery;
 };
+
+export type ElizaLiveOccupancy =
+  | { ok: false; reason: 'invalid_occupancy' }
+  | { ok: true; mode: 'feed-two-adults' }
+  | { ok: true; mode: 'four-travellers-two-rooms'; participants: ElizaParticipant[] };
 
 const PARTICIPANT_KEY = /^Participants\[(\d+)\]\[(\d+)\]$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -62,14 +69,86 @@ export function resolveElizaFeHost(productUrl: string): ElizaFeHost | null {
   }
 }
 
+function isIsoDob(value: string | null | undefined): value is string {
+  return typeof value === 'string' && ISO_DATE.test(value);
+}
+
 /**
- * Default 2A / 0C / 0B / 1 room only — same occupancy gate as Package 1.
- * Child/baby/multi-room encodings are proven on Eliza, but VW search params
- * do not carry ages; inventing birthdates is not allowed.
+ * Search shape for this gap: 4 travellers / 2 rooms.
+ * 2A/1R keeps the proven feed-Participants live route.
+ */
+export function isElizaFourTravellerTwoRoomSearch(
+  params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
+): boolean {
+  if (params.party && params.party.length === 4) {
+    return true;
+  }
+  const adults = params.adults ?? 2;
+  const children = params.children ?? 0;
+  const babies = params.babies ?? 0;
+  const rooms = params.rooms ?? 1;
+  if (
+    !Number.isFinite(adults) ||
+    !Number.isFinite(children) ||
+    !Number.isFinite(babies) ||
+    !Number.isFinite(rooms)
+  ) {
+    return false;
+  }
+  return rooms === 2 && adults + children + babies === 4;
+}
+
+function resolveElizaFourTravellerTwoRoomOccupancy(
+  params: Pick<SearchParams, 'party'>,
+): ElizaLiveOccupancy {
+  const party = params.party;
+  if (!party || party.length !== 4) {
+    return { ok: false, reason: 'invalid_occupancy' };
+  }
+  if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
+    return { ok: false, reason: 'invalid_occupancy' };
+  }
+
+  const rooms: string[][] = [[], []];
+  for (const traveller of party) {
+    if (traveller.roomIndex !== 0 && traveller.roomIndex !== 1) {
+      return { ok: false, reason: 'invalid_occupancy' };
+    }
+    rooms[traveller.roomIndex].push(traveller.dateOfBirth as string);
+  }
+  if (rooms[0].length < 1 || rooms[1].length < 1) {
+    return { ok: false, reason: 'invalid_occupancy' };
+  }
+
+  const participants: ElizaParticipant[] = [];
+  rooms.forEach((birthdates, roomIndex) => {
+    birthdates.forEach((birthDate, personIndex) => {
+      participants.push({
+        key: `Participants[${roomIndex}][${personIndex}]`,
+        value: birthDate,
+      });
+    });
+  });
+
+  return { ok: true, mode: 'four-travellers-two-rooms', participants };
+}
+
+/**
+ * Proven live occupancies for Eliza:
+ * - Package 1: 2A / 0C / 0B / 1 room uses feed Participants (no invented DOBs)
+ * - This gap: 4 travellers / 2 rooms with party ISO DOBs encoded as
+ *   `Participants[roomIndex][personIndex]=YYYY-MM-DD`
+ *   (Bijbel §5–6; 22_closure_multiroom.json 2A1C_2rooms + 2A_2rooms_split)
+ *
+ * Real ISO DOBs are never replaced with feed or placeholder birthdates.
  */
 export function resolveElizaLiveOccupancy(
-  params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms'>,
-): { ok: true } | { ok: false; reason: 'invalid_occupancy' } {
+  params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
+): ElizaLiveOccupancy {
+  if (isElizaFourTravellerTwoRoomSearch(params)) {
+    return resolveElizaFourTravellerTwoRoomOccupancy(params);
+  }
+
   const adults = params.adults ?? 2;
   const children = params.children ?? 0;
   const babies = params.babies ?? 0;
@@ -88,14 +167,14 @@ export function resolveElizaLiveOccupancy(
     return { ok: false, reason: 'invalid_occupancy' };
   }
 
-  return { ok: true };
+  return { ok: true, mode: 'feed-two-adults' };
 }
 
 function readParam(url: URL, indexed: string, plain: string): string {
   return (url.searchParams.get(indexed) || url.searchParams.get(plain) || '').trim();
 }
 
-function parseParticipants(url: URL): Array<{ key: string; value: string }> {
+function parseParticipants(url: URL): ElizaParticipant[] {
   const found: Array<{ room: number; person: number; key: string; value: string }> = [];
   for (const [key, value] of url.searchParams.entries()) {
     const match = PARTICIPANT_KEY.exec(key);
@@ -113,14 +192,18 @@ function parseParticipants(url: URL): Array<{ key: string; value: string }> {
   return found.map(({ key, value }) => ({ key, value }));
 }
 
-/**
- * Canonical live context is the productURL / landing query (Bijbel §3 / §5).
- * Feed property airport is not used.
- */
-export function parseElizaLandingQuery(
+function isFeedTwoAdultParticipants(participants: readonly ElizaParticipant[]): boolean {
+  return (
+    participants.length === 2 &&
+    participants[0].key === 'Participants[0][0]' &&
+    participants[1].key === 'Participants[0][1]'
+  );
+}
+
+function parseElizaTripQuery(
   productUrl: string,
   accoId: string,
-): ElizaLandingQuery | null {
+): Omit<ElizaLandingQuery, 'participants'> | null {
   if (!accoId || !/^\d+$/.test(accoId)) {
     return null;
   }
@@ -137,7 +220,6 @@ export function parseElizaLandingQuery(
   const duration = readParam(url, 'Duration[0]', 'Duration');
   const mealplan = readParam(url, 'Mealplan[0]', 'Mealplan');
   const transportType = readParam(url, 'TransportType[0]', 'TransportType');
-  const participants = parseParticipants(url);
 
   if (!ISO_DATE.test(departureDate) || !IATA.test(departureAirport)) {
     return null;
@@ -146,14 +228,6 @@ export function parseElizaLandingQuery(
     return null;
   }
   if (!mealplan || transportType !== 'Flight') {
-    return null;
-  }
-  // Package-1 default occupancy on the URL: 2 adults in room 0.
-  if (
-    participants.length !== 2 ||
-    participants[0].key !== 'Participants[0][0]' ||
-    participants[1].key !== 'Participants[0][1]'
-  ) {
     return null;
   }
 
@@ -165,8 +239,58 @@ export function parseElizaLandingQuery(
     mealplan,
     transportType,
     month: departureDate.slice(0, 7),
-    participants,
   };
+}
+
+/**
+ * Canonical live context is the productURL / landing query (Bijbel §3 / §5).
+ * Feed property airport is not used.
+ * Package-1 parse still requires feed 2A Participants on the URL.
+ */
+export function parseElizaLandingQuery(
+  productUrl: string,
+  accoId: string,
+): ElizaLandingQuery | null {
+  const trip = parseElizaTripQuery(productUrl, accoId);
+  if (!trip) {
+    return null;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(unwrapElizaProductUrl(productUrl));
+  } catch {
+    return null;
+  }
+
+  const participants = parseParticipants(url);
+  if (!isFeedTwoAdultParticipants(participants)) {
+    return null;
+  }
+
+  return { ...trip, participants };
+}
+
+/** Landing URL with occupancy Participants (closure `22` landing rewrite). */
+export function applyElizaOccupancyToLandingUrl(
+  landingUrl: string,
+  participants: readonly ElizaParticipant[],
+): string | null {
+  let url: URL;
+  try {
+    url = new URL(landingUrl);
+  } catch {
+    return null;
+  }
+  for (const key of [...url.searchParams.keys()]) {
+    if (key.startsWith('Participants[')) {
+      url.searchParams.delete(key);
+    }
+  }
+  for (const participant of participants) {
+    url.searchParams.set(participant.key, participant.value);
+  }
+  return url.toString();
 }
 
 export function buildElizaLiveContext(
@@ -176,7 +300,8 @@ export function buildElizaLiveContext(
   if (!isEliza(offer)) {
     return null;
   }
-  if (!resolveElizaLiveOccupancy(params).ok) {
+  const occupancy = resolveElizaLiveOccupancy(params);
+  if (!occupancy.ok) {
     return null;
   }
 
@@ -184,6 +309,29 @@ export function buildElizaLiveContext(
   const feHost = offer.deepLink ? resolveElizaFeHost(offer.deepLink) : null;
   if (!accoId || !feHost || !offer.deepLink) {
     return null;
+  }
+
+  if (occupancy.mode === 'four-travellers-two-rooms') {
+    const trip = parseElizaTripQuery(offer.deepLink, accoId);
+    if (!trip) {
+      return null;
+    }
+    const landingUrl = applyElizaOccupancyToLandingUrl(
+      unwrapElizaProductUrl(offer.deepLink),
+      occupancy.participants,
+    );
+    if (!landingUrl) {
+      return null;
+    }
+    return {
+      accoId,
+      landingUrl,
+      feHost,
+      query: {
+        ...trip,
+        participants: occupancy.participants,
+      },
+    };
   }
 
   const query = parseElizaLandingQuery(offer.deepLink, accoId);
@@ -197,4 +345,104 @@ export function buildElizaLiveContext(
     feHost,
     query,
   };
+}
+
+/**
+ * URL.toString() percent-encodes `[]`. Proven TradeTracker `r=` uses
+ * encodeURIComponent of the IBE source form with literal brackets
+ * (Bijbel §2 productURL `tt=` + `r=` landing).
+ */
+function elizaLandingHrefForTtWrap(landingUrl: string): string {
+  const url = new URL(landingUrl);
+  const pairs: string[] = [];
+  url.searchParams.forEach((value, key) => {
+    pairs.push(`${key}=${value}`);
+  });
+  const query = pairs.join('&');
+  const href = query ? `${url.origin}${url.pathname}?${query}` : `${url.origin}${url.pathname}`;
+  return `${href}${url.hash}`;
+}
+
+function wrapElizaOccupancyLanding(
+  productUrl: string,
+  occupancyLandingUrl: string,
+): string | null {
+  try {
+    const outer = new URL(productUrl);
+    const wrapKey = outer.searchParams.has('r') ? 'r' : outer.searchParams.has('u') ? 'u' : null;
+    if (!wrapKey) {
+      return occupancyLandingUrl;
+    }
+
+    const landingForWrap = elizaLandingHrefForTtWrap(occupancyLandingUrl);
+    outer.searchParams.delete('r');
+    outer.searchParams.delete('u');
+    const kept = outer.searchParams.toString();
+    const encodedLanding = encodeURIComponent(landingForWrap);
+    const originPath = `${outer.origin}${outer.pathname}`;
+    if (kept) {
+      return `${originPath}?${kept}&${wrapKey}=${encodedLanding}`;
+    }
+    return `${originPath}?${wrapKey}=${encodedLanding}`;
+  } catch {
+    return null;
+  }
+}
+
+function clickOutLandingHasOccupancy(
+  clickOutHref: string,
+  occupancyLandingUrl: string,
+  participants: readonly ElizaParticipant[],
+): boolean {
+  let expected: URL;
+  let actual: URL;
+  try {
+    expected = new URL(occupancyLandingUrl);
+    actual = new URL(unwrapElizaProductUrl(clickOutHref));
+  } catch {
+    return false;
+  }
+  if (actual.hostname.toLowerCase() !== expected.hostname.toLowerCase()) {
+    return false;
+  }
+  if (actual.pathname !== expected.pathname) {
+    return false;
+  }
+  for (const participant of participants) {
+    if (actual.searchParams.get(participant.key) !== participant.value) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * 4 travellers / 2 rooms click-out: occupancy-rewritten landing inside the
+ * original TT wrap. Fail-closed (null) when trip fields, host, or occupancy
+ * are not the proven contract — never send feed 2A Participants as 4p/2r.
+ */
+export function buildElizaOccupancyClickOutHref(
+  offer: TravelOffer,
+  params: SearchParams,
+): string | null {
+  const occupancy = resolveElizaLiveOccupancy(params);
+  if (!occupancy.ok || occupancy.mode !== 'four-travellers-two-rooms') {
+    return null;
+  }
+  const ctx = buildElizaLiveContext(offer, params);
+  if (!ctx || !offer.deepLink) {
+    return null;
+  }
+
+  const clickOut = wrapElizaOccupancyLanding(offer.deepLink, ctx.landingUrl);
+  if (!clickOut) {
+    return null;
+  }
+  if (resolveElizaFeHost(clickOut) !== ctx.feHost) {
+    return null;
+  }
+  if (!clickOutLandingHasOccupancy(clickOut, ctx.landingUrl, occupancy.participants)) {
+    return null;
+  }
+  return clickOut;
 }

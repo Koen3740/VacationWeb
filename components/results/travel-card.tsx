@@ -9,10 +9,17 @@ import {
   RESULTS_STAR_GOLD,
 } from '@/components/results-v2/results-design-tokens';
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
-import { isValidOfferImageUrl } from '@/lib/offers/is-valid-offer-image-url';
-import { hasValidPresentablePrice } from '@/lib/search/presentable-price';
+import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { carRentalIncludedLabel } from '@/lib/offers/has-car-rental';
-import { TravelOffer } from '@/types/travel';
+import { buildOfferDetailHref } from '@/lib/search/pagination';
+import { formatOfferDepartureAirportLabel } from '@/lib/search/departure-airports';
+import { formatDeparturePresentation } from '@/lib/search/departure-presentation';
+import {
+  RESULTS_PRICE_COPY,
+  isResultsVisibleOffer,
+  resultsPricePresentation,
+} from '@/lib/search/presentable-price';
+import type { SearchParams, TravelOffer } from '@/types/travel';
 import Link from 'next/link';
 
 function ratingLabel(rating: number | null | undefined): string {
@@ -31,14 +38,7 @@ function formatPrice(value: number): string {
 }
 
 function collectImages(offer: TravelOffer): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const url of [offer.imageUrl, offer.imageLarge, ...(offer.images ?? [])]) {
-    if (!url || seen.has(url) || !isValidOfferImageUrl(url)) continue;
-    seen.add(url);
-    out.push(url);
-  }
-  return out;
+  return collectOrderedOfferImages(offer);
 }
 
 /** Plain-text snippet from feed text fields (no descriptionLong). */
@@ -137,22 +137,30 @@ function isCardBlurbUseful(value: string | undefined): boolean {
 export function TravelCard({
   offer,
   provisional = false,
+  searchParams,
 }: {
   offer: TravelOffer;
   provisional?: boolean;
+  searchParams?: SearchParams;
 }) {
-  const presentable = hasValidPresentablePrice(offer);
-  if (!presentable && !provisional) {
-    return null;
+  const priceKind = resultsPricePresentation(offer, { provisional });
+  if (!isResultsVisibleOffer(offer)) {
+    const pendingLiveCall =
+      provisional &&
+      offer.livePriceStatus !== 'unpriced' &&
+      offer.livePriceStatus !== 'unavailable';
+    if (!pendingLiveCall) {
+      return null;
+    }
   }
-  const pendingLivePrice = provisional && !presentable;
 
   const location = formatCardLocation(offer);
   const stars = offer.stars && offer.stars > 0 ? offer.stars : 0;
   const isLastMinute = offer.lastMinute === 'true' || offer.lastMinute === '1' || offer.lastMinute === 'yes';
   const ratingText = ratingLabel(offer.rating);
-  const airport = offer.departureAirport || offer.departureAirportCode || offer.airport;
+  const airport = formatOfferDepartureAirportLabel(offer);
   const images = collectImages(offer);
+  const departurePhrase = formatDeparturePresentation(searchParams, offer.departureDate).phrase;
   const shortDescriptionRaw = plainTextSnippet(offer.descriptionShort);
   const extraInfoRaw = plainTextSnippet(offer.extraInfo);
   const shortDescription = isCardBlurbUseful(shortDescriptionRaw) ? shortDescriptionRaw : undefined;
@@ -165,6 +173,9 @@ export function TravelCard({
   const flightLabel = flightIncludedLabel(offer.flightIncluded);
   const carRentalLabel = carRentalIncludedLabel(offer);
   const themes = subcategoryLabels(offer.subcategories);
+  const detailHref = searchParams
+    ? buildOfferDetailHref(offer.id, searchParams)
+    : `/offers/${encodeURIComponent(offer.id)}`;
 
   const metaLine = [
     accommodationType,
@@ -247,10 +258,8 @@ export function TravelCard({
               <p className="mt-1 text-[12.5px] leading-snug text-[#64748B]">{themes.join(' • ')}</p>
             ) : null}
 
-            {offer.departureDate ? (
-              <p className="mt-1 text-[12.5px] text-[#64748B]">
-                Vertrek tussen {offer.departureDate}
-              </p>
+            {departurePhrase ? (
+              <p className="mt-1 text-[12.5px] text-[#64748B]">{departurePhrase}</p>
             ) : null}
           </div>
 
@@ -259,9 +268,17 @@ export function TravelCard({
               <HeartButton />
             </div>
             <div className="mt-1 flex w-full flex-1 flex-col items-end justify-center text-right">
-              {pendingLivePrice ? (
+              {priceKind === 'pending' ? (
                 <p className="text-[13px] font-medium leading-snug text-[#64748B]">
-                  Actuele prijs volgt
+                  {RESULTS_PRICE_COPY.pending}
+                </p>
+              ) : priceKind === 'unpriced' ? (
+                <p className="text-[13px] font-medium leading-snug text-[#64748B]">
+                  {RESULTS_PRICE_COPY.unpriced}
+                </p>
+              ) : priceKind !== 'amount' ? (
+                <p className="text-[13px] font-medium leading-snug text-[#64748B]">
+                  {RESULTS_PRICE_COPY.unavailable}
                 </p>
               ) : (
                 <>
@@ -277,7 +294,7 @@ export function TravelCard({
             </div>
             <div className="mt-3 w-full">
               <Link
-                href={`/offers/${offer.id}`}
+                href={detailHref}
                 className="inline-flex h-10 w-full items-center justify-center rounded-[11px] text-[13px] font-semibold text-white transition"
                 style={{ backgroundColor: RESULTS_CTA }}
               >

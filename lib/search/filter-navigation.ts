@@ -1,6 +1,8 @@
 /**
- * Results URL paging. Catalog-only refinements keep page1Ids so page 1 can
- * re-filter the full loaded catalog without restarting live pricing.
+ * Results URL paging. Catalog-only refinements keep page1Ids as a skip-HTTP
+ * hint so page 1 can re-filter the full loaded catalog when cards are already
+ * presentable. Stale IDs are not a whitelist; the page-1 resolver falls back
+ * to live pricing when they would empty a live-priceable matchset.
  */
 export function applyFilterNavigationPaging(
   params: URLSearchParams,

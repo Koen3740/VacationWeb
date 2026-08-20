@@ -7,6 +7,11 @@ import {
 } from '@/components/home/home-search-icons';
 import { DeparturePeriodPopup, type FlexibilityDays } from '@/components/search/departure-period-popup/departure-period-popup';
 import { DurationPopup } from '@/components/search/duration-popup/duration-popup';
+import { DepartureAirportPopup } from '@/components/search/departure-airport-popup/departure-airport-popup';
+import {
+  formatSelectedDepartureAirportsLabel,
+  parseDepartureAirportsParam,
+} from '@/components/search/departure-airport-popup/departure-airport-popup-utils';
 import {
   formatSelectedDurationsLabel,
   parseDurationsFromSearchParams,
@@ -15,6 +20,8 @@ import {
   buildResultsHref,
   saveSharedSearchState,
 } from '@/components/search/shared-search-state';
+import { occupancySearchParamsChanged } from '@/lib/search/filter-classification';
+import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
 import {
   SEARCH_PROGRESS_DELAY_MS,
   SearchProgressOverlay,
@@ -23,7 +30,9 @@ import {
 import { TravelersPopup } from '@/components/search/travelers-popup/travelers-popup';
 import {
   createDefaultTravelersState,
+  formatRoomsLabel,
   formatTravelersLabel,
+  parseTravelersFromQuery,
   type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
 import { RESULTS_CTA, RESULTS_CTA_HOVER } from '@/components/results-v2/results-design-tokens';
@@ -86,28 +95,21 @@ function stateFromUrl(searchParams: URLSearchParams) {
   const departureStart = searchParams.get('departureStart');
   const departureEnd = searchParams.get('departureEnd');
   const flexibilityRaw = Number(searchParams.get('flexibilityDays') || 0);
-  const adults = Number(searchParams.get('adults') || 0);
-  const children = Number(searchParams.get('children') || 0);
-  const babies = Number(searchParams.get('babies') || 0);
-  const rooms = Number(searchParams.get('rooms') || 0);
-
   const selectedCountries = country
     ? country.split(',').map((c) => c.trim()).filter(Boolean)
     : [];
 
   const selectedDurations = parseDurationsFromSearchParams(searchParams);
 
-  let travelers: TravelersState = createDefaultTravelersState();
-  if (adults > 0 || rooms > 0) {
-    const roomCount = Math.max(1, rooms || 1);
-    travelers = {
-      rooms: Array.from({ length: roomCount }, (_, index) => ({
-        adults: index === 0 ? adults || 2 : 2,
-        children: index === 0 ? children || 0 : 0,
-        babies: index === 0 ? babies || 0 : 0,
-      })),
-    };
-  }
+  const travelers: TravelersState =
+    parseTravelersFromQuery({
+      dob: searchParams.get('dob') ?? undefined,
+      partyRooms: searchParams.get('partyRooms') ?? undefined,
+      adults: searchParams.get('adults') ?? undefined,
+      children: searchParams.get('children') ?? undefined,
+      babies: searchParams.get('babies') ?? undefined,
+      rooms: searchParams.get('rooms') ?? undefined,
+    }) ?? createDefaultTravelersState();
 
   return {
     selectedCountries,
@@ -115,8 +117,8 @@ function stateFromUrl(searchParams: URLSearchParams) {
     departureEnd: departureEnd || null,
     flexibilityDays: (flexibilityRaw === 1 || flexibilityRaw === 2 ? flexibilityRaw : 0) as FlexibilityDays,
     selectedDurations,
+    selectedDepartureAirports: parseDepartureAirportsParam(searchParams.get('departureAirport')),
     travelers,
-    departureAirport: searchParams.get('departureAirport') || '',
   };
 }
 
@@ -134,7 +136,6 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
   const [travelersOpen, setTravelersOpen] = useState(false);
   const [airportOpen, setAirportOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const airportRef = useRef<HTMLDivElement>(null);
   const suppressDepartureOpenRef = useRef(false);
   const searchStartedRef = useRef(false);
 
@@ -154,20 +155,10 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
       departureEnd: state.departureEnd,
       flexibilityDays: state.flexibilityDays,
       selectedDurations: state.selectedDurations,
+      selectedDepartureAirports: state.selectedDepartureAirports,
       travelers: state.travelers,
     });
   }, [state]);
-
-  useEffect(() => {
-    if (!airportOpen) return;
-    function onDocClick(event: MouseEvent) {
-      if (!airportRef.current?.contains(event.target as Node)) {
-        setAirportOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [airportOpen]);
 
   const departureDisplay = getDepartureDisplay({
     departureStart: state.departureStart,
@@ -187,6 +178,7 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
       departureEnd: state.departureEnd,
       flexibilityDays: state.flexibilityDays,
       selectedDurations: state.selectedDurations,
+      selectedDepartureAirports: state.selectedDepartureAirports,
       travelers: state.travelers,
     });
     const params = new URLSearchParams(href.split('?')[1] || '');
@@ -216,14 +208,20 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
     if (state.selectedDurations.length === 0) {
       params.delete('nights');
     }
-    if (state.departureAirport) {
-      params.set('departureAirport', state.departureAirport);
+    if (state.selectedDepartureAirports.length > 0) {
+      params.set('departureAirport', state.selectedDepartureAirports.join(','));
     } else {
       params.delete('departureAirport');
     }
-    // New search recomputes page 1 — drop pagination / page1Ids from prior resultset.
     params.delete('page');
-    params.delete('page1Ids');
+    if (occupancySearchParamsChanged(searchParams, params)) {
+      params.delete('page1Ids');
+    } else {
+      applyFilterNavigationPaging(params, {
+        preservePage1Ids: true,
+        liveQuery: typeof window === 'undefined' ? undefined : window.location.search,
+      });
+    }
     return `/results?${params.toString()}`;
   }, [searchParams, state]);
 
@@ -265,50 +263,21 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
             <Divider />
             <FieldButton
               label="Reizigers"
-              value={formatTravelersLabel(state.travelers.rooms)}
-              hint={`${state.travelers.rooms.length} kamer${state.travelers.rooms.length === 1 ? '' : 's'}`}
+              value={formatTravelersLabel(state.travelers)}
+              hint={formatRoomsLabel(state.travelers)}
               icon={<TravelersIcon />}
               disabled={searchBusy}
               onClick={() => setTravelersOpen(true)}
             />
             <Divider />
-            <div className="relative min-w-0 flex-1" ref={airportRef}>
-              <FieldButton
-                label="Luchthaven"
-                value={state.departureAirport || 'Alle luchthavens'}
-                hint="Flexibel"
-                icon={<PlaneIcon />}
-                disabled={searchBusy}
-                onClick={() => setAirportOpen((open) => !open)}
-              />
-              {airportOpen ? (
-                <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-64 overflow-auto rounded-xl border border-[#E5E9F0] bg-white p-2 shadow-xl">
-                  <button
-                    type="button"
-                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-[#0A2D62] hover:bg-[#F8FAFC]"
-                    onClick={() => {
-                      setState((prev) => ({ ...prev, departureAirport: '' }));
-                      setAirportOpen(false);
-                    }}
-                  >
-                    Alle luchthavens
-                  </button>
-                  {departureAirports.map((airport) => (
-                    <button
-                      key={airport}
-                      type="button"
-                      className="block w-full rounded-lg px-3 py-2 text-left text-sm text-[#0A2D62] hover:bg-[#F8FAFC]"
-                      onClick={() => {
-                        setState((prev) => ({ ...prev, departureAirport: airport }));
-                        setAirportOpen(false);
-                      }}
-                    >
-                      {airport}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            <FieldButton
+              label="Luchthaven"
+              value={formatSelectedDepartureAirportsLabel(state.selectedDepartureAirports)}
+              hint="Flexibel"
+              icon={<PlaneIcon />}
+              disabled={searchBusy}
+              onClick={() => setAirportOpen(true)}
+            />
           </div>
 
           <button
@@ -370,6 +339,16 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
         onClose={() => setTravelersOpen(false)}
         onChange={(next) => {
           setState((prev) => ({ ...prev, travelers: next }));
+        }}
+      />
+
+      <DepartureAirportPopup
+        open={airportOpen}
+        airports={departureAirports}
+        selectedAirports={state.selectedDepartureAirports}
+        onClose={() => setAirportOpen(false)}
+        onChange={(next) => {
+          setState((prev) => ({ ...prev, selectedDepartureAirports: next }));
         }}
       />
     </>

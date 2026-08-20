@@ -46,3 +46,23 @@ test('deriveFilterOptions stores cities, accommodation types, counts and themes 
   assert.ok((options.homeThemes?.length ?? 0) > 0);
   assert.ok(options.departureAirports.includes('AMS'));
 });
+
+test('filter airports keep IATA identity and ignore country ISO / provider names', () => {
+  const options = deriveFilterOptions([
+    makeOffer({
+      id: 'bru',
+      departureAirport: 'BRU',
+      departureAirportCode: 'BE',
+      airport: 'Brussel Zaventem',
+    }),
+    makeOffer({
+      id: 'country-only',
+      departureAirport: undefined,
+      departureAirportCode: 'BE',
+      airport: 'Brussel Zaventem',
+    }),
+  ]);
+  assert.deepEqual(options.departureAirports, ['BRU']);
+  assert.ok(!options.departureAirports.includes('BE'));
+  assert.ok(!options.departureAirports.includes('Brussel Zaventem'));
+});

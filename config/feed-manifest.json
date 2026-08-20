@@ -4,7 +4,7 @@
   "fieldDocs": {
     "id": "Stable unique feed identifier used by future discovery/queue logic.",
     "provider": "Display/provider name matching runtime StoredOffer.provider (e.g. Corendon, Prijsvrij, Sunweb).",
-    "profile": "Importer profile key that maps XML fields to StoredOffer (corendon | prijsvrij | sunweb).",
+    "profile": "Importer profile key that maps XML fields to StoredOffer (corendon | prijsvrij | sunweb | eliza).",
     "format": "Feed payload format (currently tradetracker-xml for all active feeds).",
     "enabled": "Whether this feed is intended for import when a registry-driven pipeline exists. Does not affect today's scripts.",
     "source.type": "How the feed is located today: file = single local path; future: url | glob.",
@@ -53,6 +53,24 @@
       "lastSuccess": "",
       "version": "",
       "priority": 11
+    },
+    {
+      "id": "corendon-befr",
+      "provider": "Corendon",
+      "profile": "corendon",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "../Productfeeds/Corendon/Corendon.be - Général BEFR.xml"
+      },
+      "campaignId": "38103",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 12
     },
     {
       "id": "prijsvrij-primary",
@@ -215,6 +233,24 @@
       "lastSuccess": "",
       "version": "",
       "priority": 100
+    },
+    {
+      "id": "eliza-was-here",
+      "provider": "Eliza was here",
+      "profile": "eliza",
+      "format": "tradetracker-xml",
+      "enabled": true,
+      "source": {
+        "type": "file",
+        "path": "../Productfeeds/Elizawashere/productfeed Elizawashere.xml"
+      },
+      "campaignId": "1327",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 110
     }
   ]
 }

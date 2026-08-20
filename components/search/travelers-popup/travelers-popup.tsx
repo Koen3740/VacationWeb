@@ -1,22 +1,27 @@
 'use client';
 
 import '@/components/search/travelers-popup/travelers-popup.css';
+import { destinationPopupPoppins } from '@/components/search/destination-popup/destination-popup-font';
 import {
   MAX_TOTAL_TRAVELERS,
-  addRoom,
-  canDecreaseField,
-  canIncreaseField,
-  canShowAddRoomButton,
-  createDefaultRoom,
-  decreaseRoomField,
+  addTraveller,
+  assignTravellerRoom,
+  calendarDateFromParts,
+  canDecreaseRooms,
+  canDecreaseTravelers,
+  canIncreaseRooms,
+  canIncreaseTravelers,
+  derivedAgeYears,
   getTotalTravelers,
-  increaseRoomField,
-  removeRoom,
-  type RoomTravelers,
+  isValidIsoDateOfBirth,
+  normalizeTravelersState,
+  removeTraveller,
+  setRoomCount,
+  setTravellerCount,
+  setTravellerDateOfBirth,
   type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
-import { destinationPopupPoppins } from '@/components/search/destination-popup/destination-popup-font';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export type TravelersPopupProps = {
@@ -25,6 +30,21 @@ export type TravelersPopupProps = {
   onClose: () => void;
   onChange: (travelers: TravelersState) => void;
 };
+
+const MONTHS = [
+  'januari',
+  'februari',
+  'maart',
+  'april',
+  'mei',
+  'juni',
+  'juli',
+  'augustus',
+  'september',
+  'oktober',
+  'november',
+  'december',
+];
 
 function CloseIcon() {
   return (
@@ -50,30 +70,8 @@ function PlusIcon() {
   );
 }
 
-function BedIcon() {
-  return (
-    <svg
-      className="travelers-popup__room-tab-icon"
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M2 4v16M2 8h20v12M6 8V6a2 2 0 012-2h8a2 2 0 012 2v2M6 12h4M14 12h4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CounterRow({
+function Stepper({
   label,
-  subtext,
   value,
   canDecrease,
   canIncrease,
@@ -81,7 +79,6 @@ function CounterRow({
   onIncrease,
 }: {
   label: string;
-  subtext: string;
   value: number;
   canDecrease: boolean;
   canIncrease: boolean;
@@ -90,10 +87,7 @@ function CounterRow({
 }) {
   return (
     <div className="travelers-popup__row">
-      <div>
-        <div className="travelers-popup__row-label">{label}</div>
-        <div className="travelers-popup__row-subtext">{subtext}</div>
-      </div>
+      <div className="travelers-popup__row-label">{label}</div>
       <div className="travelers-popup__stepper">
         <button
           type="button"
@@ -125,64 +119,157 @@ function CounterRow({
   );
 }
 
+function parseDobParts(iso: string | null): { day: string; month: string; year: string } {
+  if (!iso || !isValidIsoDateOfBirth(iso)) {
+    return { day: '', month: '', year: '' };
+  }
+  const [year, month, day] = iso.split('-');
+  return { day, month, year };
+}
+
+function BirthDateFields({
+  travellerIndex,
+  dateOfBirth,
+  onChange,
+}: {
+  travellerIndex: number;
+  dateOfBirth: string | null;
+  onChange: (iso: string | null) => void;
+}) {
+  const initial = parseDobParts(dateOfBirth);
+  const [day, setDay] = useState(initial.day);
+  const [month, setMonth] = useState(initial.month);
+  const [year, setYear] = useState(initial.year);
+
+  useEffect(() => {
+    if (!dateOfBirth) {
+      return;
+    }
+    const next = parseDobParts(dateOfBirth);
+    setDay(next.day);
+    setMonth(next.month);
+    setYear(next.year);
+  }, [dateOfBirth]);
+
+  const currentYear = new Date().getFullYear();
+  const years = useMemo(
+    () => Array.from({ length: currentYear - 1899 }, (_, index) => String(currentYear - index)),
+    [currentYear],
+  );
+
+  const applyParts = (nextDay: string, nextMonth: string, nextYear: string) => {
+    if (!nextDay || !nextMonth || !nextYear) {
+      onChange(null);
+      return;
+    }
+
+    const iso = calendarDateFromParts(Number(nextYear), Number(nextMonth), Number(nextDay));
+    onChange(iso);
+  };
+
+  const derivedAge = dateOfBirth ? derivedAgeYears(dateOfBirth) : null;
+  const incomplete = Boolean(day || month || year) && !(day && month && year);
+  const invalidCombo = Boolean(day && month && year) && !dateOfBirth;
+
+  return (
+    <div>
+      <div className="travelers-popup__dob" role="group" aria-label={`Geboortedatum reiziger ${travellerIndex + 1}`}>
+        <label className="travelers-popup__dob-field">
+          <span className="travelers-popup__dob-caption">Dag</span>
+          <select
+            value={day}
+            onChange={(event) => {
+              const value = event.target.value;
+              setDay(value);
+              applyParts(value, month, year);
+            }}
+            className="travelers-popup__select"
+          >
+            <option value="">Dag</option>
+            {Array.from({ length: 31 }, (_, index) => {
+              const value = String(index + 1).padStart(2, '0');
+              return (
+                <option key={value} value={value}>
+                  {index + 1}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+        <label className="travelers-popup__dob-field">
+          <span className="travelers-popup__dob-caption">Maand</span>
+          <select
+            value={month}
+            onChange={(event) => {
+              const value = event.target.value;
+              setMonth(value);
+              applyParts(day, value, year);
+            }}
+            className="travelers-popup__select"
+          >
+            <option value="">Maand</option>
+            {MONTHS.map((name, index) => {
+              const value = String(index + 1).padStart(2, '0');
+              return (
+                <option key={value} value={value}>
+                  {name}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+        <label className="travelers-popup__dob-field">
+          <span className="travelers-popup__dob-caption">Jaar</span>
+          <select
+            value={year}
+            onChange={(event) => {
+              const value = event.target.value;
+              setYear(value);
+              applyParts(day, month, value);
+            }}
+            className="travelers-popup__select"
+          >
+            <option value="">Jaar</option>
+            {years.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {derivedAge !== null ? (
+        <p className="travelers-popup__dob-hint">{derivedAge} jaar — afgeleid van de geboortedatum</p>
+      ) : null}
+      {incomplete ? (
+        <p className="travelers-popup__dob-error">Vul een volledige geboortedatum in.</p>
+      ) : null}
+      {invalidCombo ? (
+        <p className="travelers-popup__dob-error">Deze datum is ongeldig of ligt in de toekomst.</p>
+      ) : null}
+    </div>
+  );
+}
+
 function TravelersPopupPanel({
   travelers,
-  activeRoomIndex,
-  onActiveRoomIndexChange,
   onClose,
   onChange,
 }: {
   travelers: TravelersState;
-  activeRoomIndex: number;
-  onActiveRoomIndexChange: (index: number) => void;
   onClose: () => void;
   onChange: (travelers: TravelersState) => void;
 }) {
-  const [showLimitNotice, setShowLimitNotice] = useState(false);
-  const activeRoom = travelers.rooms[activeRoomIndex] ?? createDefaultRoom();
-  const totalTravelers = getTotalTravelers(travelers.rooms);
+  const state = normalizeTravelersState(travelers);
+  const totalTravelers = getTotalTravelers(state);
   const isTotalFull = totalTravelers >= MAX_TOTAL_TRAVELERS;
-  const canAddAnotherRoom = canShowAddRoomButton(travelers);
-
-  const handleAddRoom = () => {
-    const nextState = addRoom(travelers);
-    if (nextState.rooms.length === travelers.rooms.length) {
-      setShowLimitNotice(true);
-      return;
-    }
-
-    setShowLimitNotice(false);
-    onChange(nextState);
-    onActiveRoomIndexChange(nextState.rooms.length - 1);
-  };
-
-  const handleRemoveRoom = () => {
-    if (travelers.rooms.length <= 1) {
-      return;
-    }
-
-    const nextState = removeRoom(travelers, activeRoomIndex);
-    onChange(nextState);
-    setShowLimitNotice(false);
-    onActiveRoomIndexChange(Math.min(activeRoomIndex, nextState.rooms.length - 1));
-  };
-
-  const handleIncrease = (field: keyof RoomTravelers) => {
-    setShowLimitNotice(false);
-    onChange(increaseRoomField(travelers, activeRoomIndex, field));
-  };
-
-  const handleDecrease = (field: keyof RoomTravelers) => {
-    setShowLimitNotice(false);
-    onChange(decreaseRoomField(travelers, activeRoomIndex, field));
-  };
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="travelers-popup-title"
-      className={`w-[400px] overflow-hidden rounded-xl bg-white p-5 shadow-[0_8px_24px_rgba(0,0,0,0.15)] ${destinationPopupPoppins.className}`}
+      className={`travelers-popup__dialog ${destinationPopupPoppins.className}`}
     >
       <div className="mb-4 flex items-center justify-between">
         <h2 id="travelers-popup-title" className="text-base font-semibold text-[#1E40AF]">
@@ -198,88 +285,107 @@ function TravelersPopupPanel({
         </button>
       </div>
 
-      <div className="travelers-popup__top-bar">
-        <div className="travelers-popup__tabs" role="tablist" aria-label="Kamers">
-          {travelers.rooms.map((_, index) => (
-            <button
-              key={`room-tab-${index}`}
-              type="button"
-              role="tab"
-              aria-selected={activeRoomIndex === index}
-              aria-label={`Kamer ${index + 1}`}
-              onClick={() => onActiveRoomIndexChange(index)}
-              className={`travelers-popup__room-tab ${
-                activeRoomIndex === index ? 'travelers-popup__room-tab--active' : ''
-              }`}
-            >
-              <BedIcon />
-              <span className="travelers-popup__room-tab-number">{index + 1}</span>
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleAddRoom();
-            }}
-            disabled={!canAddAnotherRoom}
-            className="travelers-popup__add-room"
-            aria-label="Kamer toevoegen"
-          >
-            <PlusIcon />
-          </button>
-        </div>
+      <Stepper
+        label="Aantal reizigers"
+        value={totalTravelers}
+        canDecrease={canDecreaseTravelers(state)}
+        canIncrease={canIncreaseTravelers(state)}
+        onDecrease={() => onChange(setTravellerCount(state, totalTravelers - 1))}
+        onIncrease={() => onChange(setTravellerCount(state, totalTravelers + 1))}
+      />
+
+      <div className="travelers-popup__travellers">
+        {state.travellers.map((traveller, index) => (
+          <section key={traveller.id} className="travelers-popup__traveller">
+            <div className="travelers-popup__traveller-header">
+              <h3 className="travelers-popup__section-title">Reiziger {index + 1}</h3>
+              {state.travellers.length > 1 ? (
+                <button
+                  type="button"
+                  className="travelers-popup__remove-traveller"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onChange(removeTraveller(state, index));
+                  }}
+                >
+                  Verwijderen
+                </button>
+              ) : null}
+            </div>
+            <BirthDateFields
+              travellerIndex={index}
+              dateOfBirth={traveller.dateOfBirth}
+              onChange={(iso) => onChange(setTravellerDateOfBirth(state, index, iso))}
+            />
+            {state.roomCount > 1 ? (
+              <label className="travelers-popup__room-assign">
+                <span>Kamer</span>
+                <select
+                  className="travelers-popup__select"
+                  value={String((state.roomAssignments[index] ?? 0) + 1)}
+                  onChange={(event) => {
+                    onChange(assignTravellerRoom(state, index, Number(event.target.value) - 1));
+                  }}
+                >
+                  {Array.from({ length: state.roomCount }, (_, roomIndex) => (
+                    <option key={roomIndex} value={String(roomIndex + 1)}>
+                      Kamer {roomIndex + 1}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </section>
+        ))}
       </div>
-
-      <h3 className="travelers-popup__section-title">Op deze kamer</h3>
-
-      <div className="travelers-popup__rows">
-        <CounterRow
-          label="Volwassenen"
-          subtext="Vanaf 12 jaar"
-          value={activeRoom.adults}
-          canDecrease={canDecreaseField(activeRoom, 'adults')}
-          canIncrease={canIncreaseField(travelers, activeRoomIndex, 'adults')}
-          onDecrease={() => handleDecrease('adults')}
-          onIncrease={() => handleIncrease('adults')}
-        />
-        <CounterRow
-          label="Kinderen"
-          subtext="2 t/m 11 jaar"
-          value={activeRoom.children}
-          canDecrease={canDecreaseField(activeRoom, 'children')}
-          canIncrease={canIncreaseField(travelers, activeRoomIndex, 'children')}
-          onDecrease={() => handleDecrease('children')}
-          onIncrease={() => handleIncrease('children')}
-        />
-        <CounterRow
-          label="Baby's"
-          subtext="Jonger dan 2 jaar"
-          value={activeRoom.babies}
-          canDecrease={canDecreaseField(activeRoom, 'babies')}
-          canIncrease={canIncreaseField(travelers, activeRoomIndex, 'babies')}
-          onDecrease={() => handleDecrease('babies')}
-          onIncrease={() => handleIncrease('babies')}
-        />
-      </div>
-
-      {isTotalFull || showLimitNotice ? (
-        <p className="travelers-popup__max-notice" role="status">
-          Maximum {MAX_TOTAL_TRAVELERS} reizigers bereikt.
-        </p>
-      ) : null}
 
       <button
         type="button"
         onClick={(event) => {
           event.stopPropagation();
-          handleRemoveRoom();
+          onChange(addTraveller(state));
         }}
-        disabled={travelers.rooms.length <= 1}
-        className="travelers-popup__remove-room"
+        disabled={!canIncreaseTravelers(state)}
+        className="travelers-popup__add-traveller"
       >
-        Kamer verwijderen
+        + Reiziger toevoegen
       </button>
+
+      <div className="travelers-popup__rooms-block">
+        <Stepper
+          label="Aantal kamers"
+          value={state.roomCount}
+          canDecrease={canDecreaseRooms(state)}
+          canIncrease={canIncreaseRooms(state)}
+          onDecrease={() => onChange(setRoomCount(state, state.roomCount - 1))}
+          onIncrease={() => onChange(setRoomCount(state, state.roomCount + 1))}
+        />
+        {state.roomCount === 1 ? (
+          <p className="travelers-popup__dob-hint">Alle reizigers zitten in kamer 1.</p>
+        ) : (
+          <div className="travelers-popup__room-summary" aria-label="Kamerindeling">
+            {Array.from({ length: state.roomCount }, (_, roomIndex) => {
+              const names = state.travellers
+                .map((traveller, index) =>
+                  state.roomAssignments[index] === roomIndex ? `Reiziger ${index + 1}` : null,
+                )
+                .filter((value): value is string => Boolean(value));
+              return (
+                <p key={roomIndex} className="travelers-popup__room-summary-row">
+                  <strong>Kamer {roomIndex + 1}:</strong>{' '}
+                  {names.length > 0 ? names.join(', ') : 'nog niemand'}
+                </p>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {isTotalFull ? (
+        <p className="travelers-popup__max-notice" role="status">
+          Maximum {MAX_TOTAL_TRAVELERS} reizigers bereikt.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -291,18 +397,11 @@ export function TravelersPopup({
   onChange,
 }: TravelersPopupProps) {
   const [mounted, setMounted] = useState(false);
-  const [activeRoomIndex, setActiveRoomIndex] = useState(0);
   const overlayReadyRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (open) {
-      setActiveRoomIndex((current) => Math.min(current, travelers.rooms.length - 1));
-    }
-  }, [open, travelers.rooms.length]);
 
   useEffect(() => {
     if (!open) {
@@ -333,11 +432,7 @@ export function TravelersPopup({
     };
   }, [onClose, open]);
 
-  if (!open) {
-    return null;
-  }
-
-  if (!mounted) {
+  if (!open || !mounted) {
     return null;
   }
 
@@ -354,13 +449,7 @@ export function TravelersPopup({
         }}
       />
       <div className="relative z-10" onClick={(event) => event.stopPropagation()}>
-        <TravelersPopupPanel
-          travelers={travelers}
-          activeRoomIndex={activeRoomIndex}
-          onActiveRoomIndexChange={setActiveRoomIndex}
-          onClose={onClose}
-          onChange={onChange}
-        />
+        <TravelersPopupPanel travelers={travelers} onClose={onClose} onChange={onChange} />
       </div>
     </div>,
     document.body,

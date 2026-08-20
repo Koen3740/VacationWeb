@@ -43,6 +43,14 @@ export interface SearchParams {
   children?: number;
   babies?: number;
   rooms?: number;
+  /**
+   * Canonical party from homepage V2. dateOfBirth is ISO YYYY-MM-DD or null.
+   * roomIndex is 0-based. No provider age category is stored here.
+   */
+  party?: Array<{
+    dateOfBirth: string | null;
+    roomIndex: number;
+  }>;
   departureStart?: string;
   departureEnd?: string;
   flexibilityDays?: number;
@@ -70,4 +78,14 @@ export interface SearchParams {
    * Carried in pagination links so page 2+ can build remaining without re-running Receipt.
    */
   page1Ids?: string[];
+  /**
+   * vacationmap.be vs vacationmap.nl. Presentation/listing preference only.
+   * Does not lock Corendon inventory.
+   */
+  siteMarket?: 'be' | 'nl';
+  /**
+   * Catalog room id selected on Offer Detail (`?room=`).
+   * Not an occupancy/live-price parameter unless that room is the feed-included room.
+   */
+  selectedRoom?: string;
 }

@@ -4,6 +4,7 @@ import {
   CAR_RENTAL_INCLUDED_LABEL,
   carRentalIncludedLabel,
   deriveCorendonHasCarRental,
+  deriveElizaHasCarRental,
   deriveSunwebHasCarRental,
   offerHasCarRental,
   parseHasCarRentalParam,
@@ -70,6 +71,46 @@ test('Corendon: exact Fly-Drive token + flightIncluded true only', () => {
     }),
     undefined,
   );
+});
+
+test('H. Sunweb hasCarRental is unchanged by the Eliza provider rule', () => {
+  assert.equal(
+    deriveSunwebHasCarRental({ transportType: 'Flight', hasCarRentalRaw: 'true' }),
+    true,
+  );
+  assert.equal(
+    deriveSunwebHasCarRental({ transportType: 'Flight', hasCarRentalRaw: undefined }),
+    undefined,
+  );
+  assert.equal(
+    deriveSunwebHasCarRental({ transportType: 'SelfDrive', hasCarRentalRaw: 'true' }),
+    undefined,
+  );
+});
+
+test('I. Corendon hasCarRental is unchanged by the Eliza provider rule', () => {
+  assert.equal(
+    deriveCorendonHasCarRental({
+      subcategories: 'Fly-Drive vakantie,Zonvakantie',
+      flightIncluded: 'true',
+    }),
+    true,
+  );
+  assert.equal(
+    deriveCorendonHasCarRental({
+      subcategories: 'Zonvakantie',
+      flightIncluded: 'true',
+    }),
+    undefined,
+  );
+});
+
+test('Eliza: Flight sets hasCarRental; SelfDrive does not', () => {
+  assert.equal(deriveElizaHasCarRental({ transportType: 'Flight' }), true);
+  assert.equal(deriveElizaHasCarRental({ transportType: ' flight ' }), true);
+  assert.equal(deriveElizaHasCarRental({ transportType: 'SelfDrive' }), undefined);
+  assert.equal(deriveElizaHasCarRental({ transportType: '' }), undefined);
+  assert.equal(deriveElizaHasCarRental({ transportType: undefined }), undefined);
 });
 
 test('unionHasCarRental: true wins over missing/false', () => {

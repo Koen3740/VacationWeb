@@ -2,6 +2,8 @@ import type { FlexibilityDays } from '@/components/search/departure-period-popup
 import {
   createDefaultTravelersState,
   getTravelersTotals,
+  normalizeTravelersState,
+  serializeTravelersToQuery,
   type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
 
@@ -11,6 +13,7 @@ export type SharedSearchState = {
   departureEnd: string | null;
   flexibilityDays: FlexibilityDays;
   selectedDurations: number[];
+  selectedDepartureAirports: string[];
   travelers: TravelersState;
 };
 
@@ -23,6 +26,7 @@ export function createDefaultSharedSearchState(): SharedSearchState {
     departureEnd: null,
     flexibilityDays: 0,
     selectedDurations: [],
+    selectedDepartureAirports: [],
     travelers: createDefaultTravelersState(),
   };
 }
@@ -39,7 +43,7 @@ export function loadSharedSearchState(): SharedSearchState | null {
     }
 
     const parsed = JSON.parse(raw) as SharedSearchState;
-    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.travelers?.rooms)) {
+    if (!parsed || typeof parsed !== 'object') {
       return null;
     }
 
@@ -51,7 +55,10 @@ export function loadSharedSearchState(): SharedSearchState | null {
       selectedDurations: Array.isArray(parsed.selectedDurations)
         ? parsed.selectedDurations.filter((value): value is number => typeof value === 'number')
         : [],
-      travelers: parsed.travelers,
+      selectedDepartureAirports: Array.isArray(parsed.selectedDepartureAirports)
+        ? parsed.selectedDepartureAirports.filter((value): value is string => typeof value === 'string')
+        : [],
+      travelers: normalizeTravelersState(parsed.travelers),
     };
   } catch {
     return null;
@@ -63,25 +70,29 @@ export function saveSharedSearchState(state: SharedSearchState): void {
     return;
   }
 
-  window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  window.sessionStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      ...state,
+      travelers: normalizeTravelersState(state.travelers),
+    }),
+  );
 }
 
 export function buildResultsHref(state: SharedSearchState): string {
-  const travelerTotals = getTravelersTotals(state.travelers.rooms);
+  const travelers = normalizeTravelersState(state.travelers);
+  const party = serializeTravelersToQuery(travelers);
   const params = new URLSearchParams({
-    adults: travelerTotals.adults.toString(),
+    adults: party.adults,
+    dob: party.dob,
   });
 
-  if (travelerTotals.children > 0) {
-    params.set('children', travelerTotals.children.toString());
+  if (party.rooms) {
+    params.set('rooms', party.rooms);
   }
 
-  if (travelerTotals.babies > 0) {
-    params.set('babies', travelerTotals.babies.toString());
-  }
-
-  if (state.travelers.rooms.length > 1) {
-    params.set('rooms', state.travelers.rooms.length.toString());
+  if (party.partyRooms) {
+    params.set('partyRooms', party.partyRooms);
   }
 
   if (state.selectedCountries.length > 0) {
@@ -101,6 +112,10 @@ export function buildResultsHref(state: SharedSearchState): string {
     params.set('nights', [...state.selectedDurations].sort((a, b) => a - b).join(','));
   }
 
+  if (state.selectedDepartureAirports.length > 0) {
+    params.set('departureAirport', state.selectedDepartureAirports.join(','));
+  }
+
   return `/results?${params.toString()}`;
 }
 
@@ -118,16 +133,11 @@ export function sharedStateFromSearchForm(form: {
     ? [form.nightsMin]
     : [form.nightsMin, form.nightsMax];
 
-  const rooms = Array.from({ length: Math.max(1, form.rooms) }, (_, index) => ({
-    adults: index === 0 ? form.adults : 2,
-    children: index === 0 ? form.children : 0,
-    babies: 0,
+  const travellerCount = Math.max(1, Math.floor(form.adults) + Math.floor(form.children));
+  const travellers = Array.from({ length: Math.min(9, travellerCount) }, (_, index) => ({
+    id: `t-${index + 1}`,
+    dateOfBirth: null,
   }));
-
-  if (rooms[0]) {
-    rooms[0].adults = form.adults;
-    rooms[0].children = form.children;
-  }
 
   return {
     selectedCountries: form.countries,
@@ -135,7 +145,12 @@ export function sharedStateFromSearchForm(form: {
     departureEnd: form.departureEnd || null,
     flexibilityDays: 0,
     selectedDurations,
-    travelers: { rooms },
+    selectedDepartureAirports: [],
+    travelers: normalizeTravelersState({
+      travellers,
+      roomCount: form.rooms,
+      roomAssignments: [],
+    }),
   };
 }
 
@@ -151,7 +166,8 @@ export function mergeSharedStateIntoSearchForm<T extends {
   rooms: number;
 }>(form: T, shared: SharedSearchState): T {
   const countries = shared.selectedCountries.length > 0 ? shared.selectedCountries : form.countries;
-  const totals = getTravelersTotals(shared.travelers.rooms);
+  const travelers = normalizeTravelersState(shared.travelers);
+  const totals = getTravelersTotals(travelers);
 
   return {
     ...form,
@@ -163,6 +179,6 @@ export function mergeSharedStateIntoSearchForm<T extends {
     nightsMax: shared.selectedDurations.length > 0 ? Math.max(...shared.selectedDurations) : form.nightsMax,
     adults: totals.adults,
     children: totals.children,
-    rooms: shared.travelers.rooms.length,
+    rooms: travelers.roomCount,
   };
 }

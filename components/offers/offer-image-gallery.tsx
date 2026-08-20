@@ -14,8 +14,8 @@ export function OfferImageGallery({ images, alt }: OfferImageGalleryProps) {
   const showThumbnails = images.length > 1;
 
   return (
-    <div className="mt-8">
-      <section className="relative h-[320px] overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-200 shadow-sm sm:h-[420px]">
+    <div className="mt-8 min-w-0 max-w-full">
+      <section className="relative h-[320px] w-full overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-200 shadow-sm sm:h-[420px]">
         {activeImage ? (
           <Image
             src={activeImage}
@@ -28,7 +28,7 @@ export function OfferImageGallery({ images, alt }: OfferImageGalleryProps) {
       </section>
 
       {showThumbnails ? (
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        <div className="mt-3 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-1">
           {images.map((imageUrl, index) => {
             const isActive = index === activeIndex;
 

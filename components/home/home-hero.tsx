@@ -55,7 +55,10 @@ export function HomeHero({ countryCounts, totalOffersLabel }: HomeHeroProps) {
           </div>
 
           <div className="mx-auto mt-11 w-full max-w-[1200px] px-4 sm:px-5 lg:mt-14 lg:px-6">
-            <HomeSearch countryCounts={countryCounts} totalOffersLabel={totalOffersLabel} />
+            <HomeSearch
+              countryCounts={countryCounts}
+              totalOffersLabel={totalOffersLabel}
+            />
           </div>
         </div>
       </div>

@@ -72,21 +72,54 @@ function makePv(overrides: Partial<TravelOffer> & Pick<TravelOffer, 'id'>): Trav
   };
 }
 
+function sunwebFlightLanding(mealplan: string): string {
+  return (
+    'https://www.sunweb.be/nl/vakantie/portugal/algarve/albufeira/hotel-sun' +
+    `?Duration[0]=8&TransportType[0]=Flight&Mealplan[0]=${mealplan}` +
+    '&DepartureAirport[0]=BRU&DepartureDate[0]=2026-08-20'
+  );
+}
+
 function makeSunweb(overrides: Partial<TravelOffer> & Pick<TravelOffer, 'id'>): TravelOffer {
+  const mealplan = overrides.boardType === 'Logies' ? 'LG' : 'AI';
   return {
     provider: 'Sunweb',
     hotelName: 'Sun Hotel',
     destinationCountry: 'Portugal',
     departureDate: '2026-08-20',
+    departureAirport: 'BRU',
     nights: 8,
+    flightIncluded: 'true',
     price: 350,
     pricePerDay: 44,
     boardType: 'All Inclusive',
     imageUrl: 'https://example.com/a.jpg',
-    deepLink: 'https://example.com',
+    deepLink: sunwebFlightLanding(mealplan),
     livePriceStatus: 'catalog',
     livePriceSource: 'feed',
     ...overrides,
+  };
+}
+
+function makeEliza(id: string): TravelOffer {
+  const landing =
+    'https://www.elizawashere.be/spanje/andalusie/ronda/casita-paradise-island' +
+    '?Duration[0]=8&TransportType[0]=Flight&Mealplan[0]=LG' +
+    '&DepartureAirport[0]=BRU&DepartureDate[0]=2026-11-19' +
+    '&Participants[0][0]=1996-07-30&Participants[0][1]=1996-07-30';
+  return {
+    provider: 'Eliza was here',
+    hotelName: 'Casita Paradise Island',
+    destinationCountry: 'Spanje',
+    departureDate: '2026-11-19',
+    nights: 7,
+    flightIncluded: 'true',
+    price: 599,
+    pricePerDay: 86,
+    boardType: 'Logies',
+    imageUrl: 'https://example.com/a.jpg',
+    deepLink: `https://www.elizawashere.be/reizen?tt=1327_2084000_511747_&r=${encodeURIComponent(landing)}`,
+    id,
   };
 }
 
@@ -95,6 +128,9 @@ function makeReceiptFetch(counter: { posts: number; urls: string[] }): typeof fe
     const url = String(input);
     if (url.includes('/token') && !url.includes('receipt')) {
       return new Response(JSON.stringify({ token: 'r'.repeat(40) }), { status: 200 });
+    }
+    if (!url.includes('/receipt/')) {
+      return new Response('not-receipt', { status: 404 });
     }
     counter.posts += 1;
     counter.urls.push(url);
@@ -127,12 +163,7 @@ function build921(): TravelOffer[] {
       }),
     );
   }
-  const eliza: TravelOffer[] = Array.from({ length: 4 }, (_, index) => ({
-    ...makeSunweb({ id: `eliza-${index}` }),
-    provider: 'Eliza was here',
-    boardType: 'Logies',
-    price: 400,
-  }));
+  const eliza: TravelOffer[] = Array.from({ length: 4 }, (_, index) => makeEliza(`eliza-${index}`));
   return [...pv, ...sunweb, ...eliza];
 }
 
@@ -173,28 +204,6 @@ function makeCorendon(id: string): TravelOffer {
     boardType: 'Logies',
     imageUrl: 'https://example.com/a.jpg',
     deepLink: 'https://www.corendon.be/vakantie#9514.COSPY.BRUCFU.270826.3-4-3.SZ-U',
-    id,
-  };
-}
-
-function makeEliza(id: string): TravelOffer {
-  const landing =
-    'https://www.elizawashere.be/spanje/andalusie/ronda/casita-paradise-island' +
-    '?Duration[0]=8&TransportType[0]=Flight&Mealplan[0]=LG' +
-    '&DepartureAirport[0]=BRU&DepartureDate[0]=2026-11-19' +
-    '&Participants[0][0]=1996-07-30&Participants[0][1]=1996-07-30';
-  return {
-    provider: 'Eliza was here',
-    hotelName: 'Casita Paradise Island',
-    destinationCountry: 'Spanje',
-    departureDate: '2026-11-19',
-    nights: 7,
-    flightIncluded: 'true',
-    price: 599,
-    pricePerDay: 86,
-    boardType: 'Logies',
-    imageUrl: 'https://example.com/a.jpg',
-    deepLink: `https://www.elizawashere.be/reizen?tt=1327_2084000_511747_&r=${encodeURIComponent(landing)}`,
     id,
   };
 }
@@ -270,9 +279,8 @@ test('A/L. 921-match page-1 resolves while full matchset is still pending', asyn
 
   const presented = await stream.presented;
   assert.ok(presented.page1.length > 0);
-  assert.ok(
-    presented.page1.filter((offer) => offer.provider === 'Prijsvrij').length <= PRIJSVRIJ_PAGE1_MAX_SLOTS,
-  );
+  // 2A Sunweb is not live-presentable. Page-1 fill may therefore add extra
+  // Prijsvrij beyond the 3-slot soft cap (selectPage1Candidates fill).
   assert.ok(stats.receiptCalls <= PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP);
   assert.ok((stats.maxInFlightReceiptCalls ?? 0) <= PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY);
   assert.equal(stats.matchsetReceiptCalls ?? 0, 0);
@@ -475,7 +483,7 @@ test('12. cached unavailable stays fail-closed and does not HTTP again', async (
   assert.ok(presented.page1.every((item) => item.livePriceStatus !== 'unavailable' || item.provider !== 'Prijsvrij'));
 });
 
-test('13-14. page-1 max-3 and Receipt safety cap still apply on a cold cache', async () => {
+test('13-14. page-1 Receipt safety cap still applies on a cold cache', async () => {
   const offers = [
     ...Array.from({ length: 20 }, (_, index) =>
       makePv({ id: `prijsvrij-${2000 + index}-2026-08-20-8-900-LG`, price: 800 }),
@@ -488,9 +496,8 @@ test('13-14. page-1 max-3 and Receipt safety cap still apply on a cold cache', a
     fetchImpl: makeReceiptFetch(http),
     stats,
   }).presented;
-  assert.ok(
-    presented.page1.filter((offer) => offer.provider === 'Prijsvrij').length <= PRIJSVRIJ_PAGE1_MAX_SLOTS,
-  );
+  assert.ok(presented.page1.every((offer) => offer.livePriceStatus === 'proven'));
+  assert.ok(!presented.page1.some((offer) => offer.provider === 'Sunweb'));
   assert.ok(stats.receiptCalls <= PRIJSVRIJ_RECEIPT_PAGE1_SAFETY_CAP);
   assert.ok(http.posts >= stats.receiptCalls);
 });

@@ -1,5 +1,7 @@
 import { normalizeOffer } from '../feeds/canonical/normalize-offer';
 import type { StoredOffer } from '../feeds/types/stored-offer';
+import { ELIZA_PROVIDER_NAME } from '../providers/eliza/constants';
+import { collectFeedGalleryImages, collectOrderedOfferImages } from './offer-images';
 import { buildCompactSearchText } from '../search/offer-text';
 import type { TravelOffer } from '../../types/travel';
 
@@ -7,6 +9,7 @@ import type { TravelOffer } from '../../types/travel';
 export type OfferDetailRecord = {
   descriptionLong?: string;
   feedDescription?: string;
+  localizedDescriptions?: Record<string, string>;
   accommodation?: string;
   images?: string[];
   imageLarge?: string;
@@ -22,24 +25,7 @@ function hasText(value: string | undefined | null): value is string {
 }
 
 function uniqueImageUrls(stored: StoredOffer): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-
-  for (const candidate of [
-    stored.imageUrl,
-    stored.imageLarge,
-    stored.imageSmall,
-    ...(stored.images ?? []),
-  ]) {
-    const url = candidate?.trim();
-    if (!url || seen.has(url)) {
-      continue;
-    }
-    seen.add(url);
-    out.push(url);
-  }
-
-  return out;
+  return collectOrderedOfferImages(stored);
 }
 
 function assignIfPresent<T extends object>(
@@ -91,7 +77,7 @@ export function compactStoredOffer(stored: StoredOffer): {
   const runtime: StoredOffer = {
     externalId: stored.externalId,
     provider: stored.provider,
-    hotelName: stored.hotelName,
+    hotelName: normalized.hotelName,
     country: stored.country,
     nights: stored.nights,
     price: stored.price,
@@ -121,14 +107,25 @@ export function compactStoredOffer(stored: StoredOffer): {
   assignIfPresent(runtime, 'subcategories', stored.subcategories);
   assignIfPresent(runtime, 'categories', stored.categories);
   assignIfPresent(runtime, 'affiliateCampaignId', stored.affiliateCampaignId);
+  assignIfPresent(runtime, 'arrivalAirport', stored.arrivalAirport);
+  assignIfPresent(runtime, 'feedSourceId', stored.feedSourceId);
+  assignIfPresent(runtime, 'listingHost', stored.listingHost);
+  assignIfPresent(runtime, 'providerListings', stored.providerListings);
   assignIfPresent(runtime, 'searchText', searchText);
 
   const detail: OfferDetailRecord = {};
   assignIfPresent(detail, 'descriptionLong', stored.descriptionLong);
   assignIfPresent(detail, 'feedDescription', stored.feedDescription);
+  assignIfPresent(detail, 'localizedDescriptions', stored.localizedDescriptions);
   assignIfPresent(detail, 'accommodation', stored.accommodation);
   if (gallery.length > 1) {
-    detail.images = gallery;
+    // Eliza sidecar keeps XML/feed order so Detail can apply the hero rule
+    // once. Display order is [images[3], ...rest] via collectOrderedOfferImages.
+    const elizaFeedGallery =
+      stored.provider === ELIZA_PROVIDER_NAME
+        ? collectFeedGalleryImages(stored.images)
+        : [];
+    detail.images = elizaFeedGallery.length > 1 ? elizaFeedGallery : gallery;
   }
   if (hasText(stored.imageLarge) && stored.imageLarge.trim() !== runtime.imageUrl) {
     detail.imageLarge = stored.imageLarge.trim();
@@ -181,6 +178,7 @@ export function mergeOfferDetail(
     ...offer,
     descriptionLong: detail.descriptionLong ?? offer.descriptionLong,
     feedDescription: detail.feedDescription ?? offer.feedDescription,
+    localizedDescriptions: detail.localizedDescriptions ?? offer.localizedDescriptions,
     accommodation: detail.accommodation ?? offer.accommodation,
     images: detail.images ?? offer.images,
     imageLarge: detail.imageLarge ?? offer.imageLarge,

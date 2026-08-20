@@ -1,17 +1,20 @@
+import { parseCorendonMergeFragment } from '../feeds/importers/corendon-merge';
 import { CORENDON_PROVIDER_NAME } from '../providers/corendon/constants';
+import { departureIataFromAirportRoute } from '../providers/corendon/listing-selection';
 import { parseCorendonUrlFragment } from '../providers/corendon/offer-context';
 import { ELIZA_PROVIDER_NAME } from '../providers/eliza/constants';
+import { unwrapElizaProductUrl } from '../providers/eliza/offer-context';
 import { PRIJSVRIJ_PROVIDER_NAME } from '../providers/prijsvrij/constants';
 import { derivePrijsvrijTransport } from '../providers/prijsvrij/offer-context';
+import { SUNWEB_PROVIDER_NAME } from '../providers/sunweb/constants';
+import { unwrapSunwebProductUrl } from '../providers/sunweb/offer-context';
+import { canonicalizeDepartureAirportCode } from '../search/departure-airports';
 import type { TravelOffer } from '../feeds/canonical/travel-offer';
 
 /**
- * VacationWeb eligibility: only proven accommodation+flight packages.
- * SelfDrive, hotel-only, and Flight records without a usable IATA stay out
- * of Results. hasCarRental never grants eligibility on its own.
- *
- * Structural sources only: flightIncluded / transport tokens, affiliate
- * landing TransportType, Corendon airportRoute, and catalog IATA fields.
+ * VacationWeb MVP eligibility: only proven accommodation+flight packages.
+ * SelfDrive, hotel-only, and Flight records without a usable IATA stay out of
+ * the product catalog and Results. Missing airport is not itself a product.
  */
 
 export type FlightPackageOfferInput = {
@@ -31,10 +34,8 @@ export type FlightPackageEligibilityStats = {
   byProviderAfter: Record<string, number>;
 };
 
-const SUNWEB_PROVIDER_NAME = 'Sunweb';
 const SELFDRIVE_TOKEN = 'selfdrive';
 const ABSENT_AIRPORT_SENTINELS = new Set(['none', 'null', 'n/a', '-']);
-const IATA = /^[A-Z]{3}$/;
 
 function flightIncludedText(value: string | boolean | undefined): string {
   if (value === undefined || value === null) {
@@ -56,26 +57,16 @@ function isExplicitNonFlightFlag(flightIncluded: string): boolean {
   return value === 'false' || value === '0' || value === 'nee' || value === 'no';
 }
 
-/** TradeTracker productURL: nested landing in `r` or `u`. */
-function unwrapProductUrl(raw: string): string {
-  try {
-    const url = new URL(raw);
-    const nested = url.searchParams.get('r') || url.searchParams.get('u');
-    if (nested) {
-      return decodeURIComponent(nested);
-    }
-    return raw;
-  } catch {
-    return raw;
-  }
-}
-
-function unwrapLandingUrl(deepLink: string | undefined): URL | null {
+function unwrapLandingUrl(deepLink: string | undefined, provider: string): URL | null {
   if (!deepLink?.trim()) {
     return null;
   }
+  const raw =
+    provider === ELIZA_PROVIDER_NAME
+      ? unwrapElizaProductUrl(deepLink)
+      : unwrapSunwebProductUrl(deepLink);
   try {
-    return new URL(unwrapProductUrl(deepLink));
+    return new URL(raw);
   } catch {
     return null;
   }
@@ -90,8 +81,7 @@ function usableIata(raw: string | undefined): string | undefined {
   if (!trimmed || ABSENT_AIRPORT_SENTINELS.has(trimmed.toLowerCase())) {
     return undefined;
   }
-  const upper = trimmed.toUpperCase();
-  return IATA.test(upper) ? upper : undefined;
+  return canonicalizeDepartureAirportCode(trimmed);
 }
 
 function catalogIata(offer: FlightPackageOfferInput): string | undefined {
@@ -102,22 +92,13 @@ function catalogIata(offer: FlightPackageOfferInput): string | undefined {
   );
 }
 
-function departureIataFromAirportRoute(airportRoute: string | undefined): string | undefined {
-  const raw = airportRoute?.trim().toUpperCase() ?? '';
-  if (raw.length < 3) {
-    return undefined;
-  }
-  const iata = raw.slice(0, 3);
-  return IATA.test(iata) ? iata : undefined;
-}
-
 function isSunwebOrElizaFlightPackage(offer: FlightPackageOfferInput): boolean {
   const flightIncluded = flightIncludedText(offer.flightIncluded);
   if (isExplicitNonFlightFlag(flightIncluded) || isSelfDriveTransport(flightIncluded)) {
     return false;
   }
 
-  const landing = unwrapLandingUrl(offer.deepLink);
+  const landing = unwrapLandingUrl(offer.deepLink, offer.provider);
   const landingTransport = landing
     ? readLandingParam(landing, 'TransportType[0]', 'TransportType')
     : '';
@@ -126,8 +107,7 @@ function isSunwebOrElizaFlightPackage(offer: FlightPackageOfferInput): boolean {
   }
 
   const isLandingFlight = landingTransport.toLowerCase() === 'flight';
-  const isFeedFlight =
-    flightIncluded.toLowerCase() === 'true' || flightIncluded.toLowerCase() === 'flight';
+  const isFeedFlight = flightIncluded.toLowerCase() === 'true' || flightIncluded.toLowerCase() === 'flight';
   if (landingTransport && !isLandingFlight) {
     return false;
   }
@@ -148,8 +128,13 @@ function isCorendonFlightPackage(offer: FlightPackageOfferInput): boolean {
     return false;
   }
 
+  const merge = parseCorendonMergeFragment(offer.deepLink);
+  if (merge && !merge.airportRoute.trim()) {
+    return false;
+  }
+
   const live = offer.deepLink ? parseCorendonUrlFragment(offer.deepLink) : null;
-  const airportRoute = live?.airportRoute || '';
+  const airportRoute = live?.airportRoute || merge?.airportRoute || '';
   if (!airportRoute.trim()) {
     return false;
   }
@@ -182,7 +167,6 @@ function isPrijsvrijFlightPackage(offer: FlightPackageOfferInput): boolean {
 /**
  * True when the offer is a proven VacationWeb flight package.
  * Fail-closed: unknown provider, unknown transport, or Flight without IATA.
- * hasCarRental is ignored.
  */
 export function isVacationWebFlightPackage(offer: FlightPackageOfferInput): boolean {
   const provider = offer.provider?.trim();

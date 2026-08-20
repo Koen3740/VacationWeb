@@ -47,14 +47,17 @@ function PriceSortPageBody({
   pageSize: number;
   pending: boolean;
 }) {
-  const slice = slicePriceSortPoolPage(ranked, page, pageSize, { provisional: pending });
+  const slice = slicePriceSortPoolPage(ranked, page, pageSize, {
+    provisional: pending,
+    params,
+  });
   return (
     <>
       {pending ? <PriceSortPendingNotice /> : null}
       {pending ? null : <SyncPage1IdsToUrl page1Ids={slice.page1Ids} replaceExisting />}
       <div className="space-y-3.5">
         {slice.visibleOffers.map((offer) => (
-          <TravelCard key={offer.id} offer={offer} provisional={pending} />
+          <TravelCard key={offer.id} offer={offer} provisional={pending} searchParams={params} />
         ))}
       </div>
       <ResultsPagination

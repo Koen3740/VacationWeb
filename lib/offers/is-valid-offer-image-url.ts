@@ -15,6 +15,11 @@ export function isValidOfferImageUrl(value: string | null | undefined): boolean 
     return false;
   }
 
+  // Concatenated TradeTracker image lists are not a single image src.
+  if (/,(?=https?:\/\/)/i.test(src)) {
+    return false;
+  }
+
   // App-local assets (placeholder, static images).
   if (src.startsWith('/')) {
     return !src.includes(' ') && !src.includes(';') && src.length < 512;

@@ -105,9 +105,17 @@ export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps)
       departureEnd,
       flexibilityDays,
       selectedDurations,
+      selectedDepartureAirports: [],
       travelers,
     });
-  }, [departureEnd, departureStart, flexibilityDays, selectedCountries, selectedDurations, travelers]);
+  }, [
+    departureEnd,
+    departureStart,
+    flexibilityDays,
+    selectedCountries,
+    selectedDurations,
+    travelers,
+  ]);
 
   const destinationText =
     selectedCountries.length === 0 ? 'Bestemming' : formatSelectedCountriesLabel(selectedCountries);
@@ -118,7 +126,7 @@ export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps)
       : formatDate(departureStart)
     : 'Vertrekdatum';
   const durationText = formatSelectedDurationsLabel(selectedDurations);
-  const travelersText = formatTravelersLabel(travelers.rooms);
+  const travelersText = formatTravelersLabel(travelers);
 
   const searchHref = useMemo(
     () =>
@@ -128,9 +136,17 @@ export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps)
         departureEnd,
         flexibilityDays,
         selectedDurations,
+        selectedDepartureAirports: [],
         travelers,
       }),
-    [departureEnd, departureStart, flexibilityDays, selectedDurations, selectedCountries, travelers],
+    [
+      departureEnd,
+      departureStart,
+      flexibilityDays,
+      selectedDurations,
+      selectedCountries,
+      travelers,
+    ],
   );
 
   const openDeparturePopup = () => {

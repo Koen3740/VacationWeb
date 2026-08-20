@@ -7,7 +7,13 @@ export const CORENDON_FE_VERSION = '382.0.0.3';
 export const CORENDON_FE_HOST = 'www.corendon.be';
 /** Host already present on Corendon.nl feed productURLs (campaign 38108). */
 export const CORENDON_FE_HOST_NL = 'www.corendon.nl';
-export const CORENDON_ALLOWED_FE_HOSTS = [CORENDON_FE_HOST, CORENDON_FE_HOST_NL] as const;
+/** Host already present on Corendon BE-FR feed productURLs (campaign 38103 / material 2312856). */
+export const CORENDON_FE_HOST_BE_FR = 'fr.corendon.be';
+export const CORENDON_ALLOWED_FE_HOSTS = [
+  CORENDON_FE_HOST,
+  CORENDON_FE_HOST_NL,
+  CORENDON_FE_HOST_BE_FR,
+] as const;
 export type CorendonFeHost = (typeof CORENDON_ALLOWED_FE_HOSTS)[number];
 export const CORENDON_LIVE_TIMEOUT_MS = 15_000;
 /**
@@ -17,7 +23,12 @@ export const CORENDON_LIVE_TIMEOUT_MS = 15_000;
 export const CORENDON_LIVE_PAGE1_CONCURRENCY = 5;
 
 /**
- * Proven 2-adult partyComposition from the Sub 17-1 coverage audit.
- * lowestpricesacco occupancy is not proven price-determining; do not invent new encodings.
+ * Proven 2-adult / 1-room partyComposition from the Sub 17-1 coverage audit.
+ * Real ISO dates of birth are not a proven lowestpricesacco encoding.
  */
 export const CORENDON_DEFAULT_2A_PARTY = [['1-1-19860', '1-1-19861']] as const;
+/**
+ * Proven 2-adult / 2-room nested partyComposition (Bijbel §10.3).
+ * Nested arrays are rooms; tokens are the same proven placeholders, not user DOBs.
+ */
+export const CORENDON_TWO_ROOM_2A_PARTY = [['1-1-19860'], ['1-1-19861']] as const;

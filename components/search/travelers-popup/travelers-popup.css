@@ -1,3 +1,145 @@
+.travelers-popup__dialog {
+  width: min(100vw - 32px, 440px);
+  max-height: min(90vh, 760px);
+  overflow: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.travelers-popup__travellers {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 16px 0 12px;
+}
+
+.travelers-popup__traveller {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.travelers-popup__traveller-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.travelers-popup__traveller-header .travelers-popup__section-title {
+  margin-bottom: 0;
+}
+
+.travelers-popup__remove-traveller,
+.travelers-popup__add-traveller {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e40af;
+  cursor: pointer;
+}
+
+.travelers-popup__remove-traveller:hover,
+.travelers-popup__add-traveller:hover:not(:disabled) {
+  color: #1d4ed8;
+}
+
+.travelers-popup__add-traveller {
+  margin-bottom: 16px;
+}
+
+.travelers-popup__add-traveller:disabled {
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.travelers-popup__dob {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 88px;
+  gap: 8px;
+}
+
+.travelers-popup__dob-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.travelers-popup__dob-caption {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.travelers-popup__select {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 8px;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.travelers-popup__select:focus-visible {
+  outline: 2px solid #1e66f5;
+  outline-offset: 2px;
+}
+
+.travelers-popup__dob-hint,
+.travelers-popup__dob-error {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.travelers-popup__dob-hint {
+  color: #64748b;
+}
+
+.travelers-popup__dob-error {
+  color: #b91c1c;
+}
+
+.travelers-popup__room-assign {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.travelers-popup__room-assign .travelers-popup__select {
+  width: 140px;
+}
+
+.travelers-popup__rooms-block {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.travelers-popup__room-summary {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.travelers-popup__room-summary-row {
+  font-size: 13px;
+  color: #334155;
+}
+
 .travelers-popup__top-bar {
   margin-bottom: 20px;
 }

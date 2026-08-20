@@ -28,14 +28,14 @@ const HOME_THEME_DEFINITIONS: HomeThemeDefinition[] = [
     id: 'strand',
     title: 'Strand',
     description: 'Zon, zee en strandbestemmingen voor een ontspannen vakantie.',
-    href: '/results?sort=value',
+    href: '/results',
     matches: (offer) => matchesThemeKeywords(offer, ['strand', 'beach', 'zee', 'kust']),
   },
   {
     id: 'familie',
     title: 'Familie',
     description: 'Vakanties die geschikt zijn voor gezinnen met kinderen.',
-    href: '/results?sort=value',
+    href: '/results?vacationTypes=Familie',
     matches: (offer) => matchesThemeKeywords(offer, ['familie', 'family', 'kinder', 'kids']),
   },
   {

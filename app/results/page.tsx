@@ -10,7 +10,6 @@ import {
   expandDurationRange,
   formatSelectedDurationsLabel,
 } from '@/components/search/duration-popup/duration-popup-utils';
-import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
 import { loadOffers } from '@/lib/offers/load-offers';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
@@ -22,131 +21,24 @@ import {
   resolveResultsPageSlice,
   RESULTS_PRODUCT_PAGE_SIZE,
   startPage1ReceiptStream,
+  tryCatalogRefinePage1,
 } from '@/lib/providers/prijsvrij';
+import { countCarRentalFacet } from '@/lib/search/filtering';
 import { isPriceDependentSort, prepareResultsOffers } from '@/lib/search/prepare-results-offers';
 import { PriceSortResultsStream } from '@/components/results/price-sort-live-stream';
 import {
   buildResultsPageHref,
   limitRankedResultsForPagination,
-  parsePage1IdsParam,
-  parseResultsPageParam,
 } from '@/lib/search/pagination';
-import { parseAccommodationTypesParam } from '@/lib/search/accommodation-type-filter';
-import { parseAmenitiesParam } from '@/lib/search/amenity-filters';
-import { countCarRentalFacet } from '@/lib/search/filtering';
-import { parseHasCarRentalParam } from '@/lib/offers/has-car-rental';
-import {
-  parseBeachLocationsParam,
-  parseCenterLocationsParam,
-} from '@/lib/search/location-filters';
-import { parseStarsParam } from '@/lib/search/stars-param';
-import { parseVacationTypesParam } from '@/lib/search/vacation-type';
+import { parseSearchParams } from '@/lib/search/parse-search-params';
+import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
+import { attachSiteMarket } from '@/lib/search/site-market';
 import { SearchParams } from '@/types/travel';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
-
-function parseSearchParams(searchParams: Record<string, string | string[] | undefined>): SearchParams {
-  const boardTypes = typeof searchParams.boardTypes === 'string' ? searchParams.boardTypes.split(',') : undefined;
-  const countryRaw = typeof searchParams.country === 'string' ? searchParams.country : undefined;
-  const countries = countryRaw
-    ? countryRaw.split(',').map((country) => canonicalizeCountryName(country.trim())).filter(Boolean)
-    : undefined;
-  const nightsRaw = typeof searchParams.nights === 'string' ? searchParams.nights : undefined;
-  const nights = nightsRaw
-    ? nightsRaw
-        .split(',')
-        .map((value) => Number(value.trim()))
-        .filter((value) => Number.isFinite(value))
-    : undefined;
-
-  return {
-    country: countries?.length === 1 ? countries[0] : undefined,
-    countries: countries?.length ? countries : undefined,
-    region: typeof searchParams.region === 'string' ? searchParams.region : undefined,
-    city: typeof searchParams.city === 'string' ? searchParams.city : undefined,
-    budgetMin: typeof searchParams.budgetMin === 'string' ? Number(searchParams.budgetMin) : undefined,
-    budgetMax: typeof searchParams.budgetMax === 'string' ? Number(searchParams.budgetMax) : undefined,
-    nightsMin: typeof searchParams.nightsMin === 'string' ? Number(searchParams.nightsMin) : undefined,
-    nightsMax: typeof searchParams.nightsMax === 'string' ? Number(searchParams.nightsMax) : undefined,
-    nights: nights?.length ? nights : undefined,
-    boardTypes,
-    accommodationTypes: (() => {
-      if (typeof searchParams.accommodationTypes !== 'string') {
-        return undefined;
-      }
-      const parsed = parseAccommodationTypesParam(searchParams.accommodationTypes);
-      return parsed.length > 0 ? parsed : undefined;
-    })(),
-    adults: typeof searchParams.adults === 'string' ? Number(searchParams.adults) : undefined,
-    children: typeof searchParams.children === 'string' ? Number(searchParams.children) : undefined,
-    babies: typeof searchParams.babies === 'string' ? Number(searchParams.babies) : undefined,
-    rooms: typeof searchParams.rooms === 'string' ? Number(searchParams.rooms) : undefined,
-    departureStart: typeof searchParams.departureStart === 'string' ? searchParams.departureStart : undefined,
-    departureEnd: typeof searchParams.departureEnd === 'string' ? searchParams.departureEnd : undefined,
-    flexibilityDays: (() => {
-      if (typeof searchParams.flexibilityDays !== 'string') {
-        return undefined;
-      }
-
-      const parsed = Number(searchParams.flexibilityDays);
-
-      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 2) {
-        return undefined;
-      }
-
-      return parsed;
-    })(),
-    departureAirport: typeof searchParams.departureAirport === 'string' ? searchParams.departureAirport : undefined,
-    stars: (() => {
-      if (typeof searchParams.stars !== 'string') {
-        return undefined;
-      }
-      const parsed = parseStarsParam(searchParams.stars);
-      return parsed.length > 0 ? parsed : undefined;
-    })(),
-    vacationTypes: (() => {
-      if (typeof searchParams.vacationTypes !== 'string') {
-        return undefined;
-      }
-      const parsed = parseVacationTypesParam(searchParams.vacationTypes);
-      return parsed.length > 0 ? parsed : undefined;
-    })(),
-    beachLocation: (() => {
-      if (typeof searchParams.beachLocation !== 'string') {
-        return undefined;
-      }
-      const parsed = parseBeachLocationsParam(searchParams.beachLocation);
-      return parsed.length > 0 ? parsed : undefined;
-    })(),
-    centerLocation: (() => {
-      if (typeof searchParams.centerLocation !== 'string') {
-        return undefined;
-      }
-      const parsed = parseCenterLocationsParam(searchParams.centerLocation);
-      return parsed.length > 0 ? parsed : undefined;
-    })(),
-    amenities: (() => {
-      if (typeof searchParams.amenities !== 'string') {
-        return undefined;
-      }
-      const parsed = parseAmenitiesParam(searchParams.amenities);
-      return parsed.length > 0 ? parsed : undefined;
-    })(),
-    hasCarRental: parseHasCarRentalParam(
-      typeof searchParams.hasCarRental === 'string' ? searchParams.hasCarRental : undefined,
-    ),
-    sort: typeof searchParams.sort === 'string' ? searchParams.sort : 'value',
-    page: parseResultsPageParam(
-      typeof searchParams.page === 'string' ? searchParams.page : undefined,
-    ),
-    pageSize: RESULTS_PRODUCT_PAGE_SIZE,
-    page1Ids: parsePage1IdsParam(
-      typeof searchParams.page1Ids === 'string' ? searchParams.page1Ids : undefined,
-    ),
-  };
-}
 
 function buildSummaryLine(params: SearchParams): string {
   const parts: string[] = [];
@@ -179,12 +71,11 @@ function buildSummaryLine(params: SearchParams): string {
     parts.push(formatSelectedDurationsLabel(activeDurations));
   }
 
-  const adults = params.adults ?? 2;
-  parts.push(`${adults} volwassene${adults === 1 ? '' : 'n'}`);
-
-  if (params.rooms && params.rooms > 0) {
-    parts.push(`${params.rooms} kamer${params.rooms === 1 ? '' : 's'}`);
-  }
+  parts.push(
+    ...formatOccupancySummaryParts(params, {
+      includeRooms: Boolean(params.rooms && params.rooms > 0),
+    }),
+  );
 
   return parts.join(' • ');
 }
@@ -194,7 +85,10 @@ export default async function ResultsPage({
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const params = parseSearchParams(searchParams);
+  const params = attachSiteMarket(
+    parseSearchParams(searchParams),
+    headers().get('x-forwarded-host') ?? headers().get('host'),
+  );
   const offers = await loadOffers();
   const filterOptions = loadFilterOptions();
   const citiesByCountry = filterOptions.citiesByCountry ?? {};
@@ -214,7 +108,7 @@ export default async function ResultsPage({
     departureAirports: filterOptions.departureAirports,
     resultCount: matchCount,
     summaryLine: buildSummaryLine(params),
-    sortControl: <SortSelector currentSort={params.sort || 'value'} />,
+    sortControl: <SortSelector currentSort={params.sort && params.sort !== 'value' ? params.sort : ''} />,
     filters: (
       <FilterSidebar
         {...filterOptions}
@@ -279,18 +173,18 @@ export default async function ResultsPage({
       );
     }
 
-    if (params.page1Ids?.length) {
-      const catalogPage1 = await resolveResultsPageSlice(filtered, params, {
-        pageSize,
-        paginationPool: userPool,
-      });
+    const catalogPage1 = tryCatalogRefinePage1(filtered, params, {
+      pageSize,
+      paginationPool: userPool,
+    });
+    if (catalogPage1) {
       return (
         <ResultsPageClient
           {...pageShell}
           results={
             <div className="space-y-3.5">
               {catalogPage1.visibleOffers.map((offer) => (
-                <TravelCard key={offer.id} offer={offer} />
+                <TravelCard key={offer.id} offer={offer} searchParams={params} />
               ))}
             </div>
           }
@@ -311,11 +205,12 @@ export default async function ResultsPage({
     return (
       <ResultsPageClient
         {...pageShell}
-        results={<Page1ResultsStream stream={stream} />}
+        results={<Page1ResultsStream stream={stream} searchParams={{ ...params, pageSize }} />}
         pagination={
           <Page1PaginationStream
             stream={stream}
             params={{ ...params, pageSize }}
+            replaceExistingPage1Ids={Boolean(params.page1Ids?.length)}
           />
         }
       />
@@ -351,7 +246,7 @@ export default async function ResultsPage({
           visibleOffers.length > 0 ? (
             <div className="space-y-3.5">
               {visibleOffers.map((offer) => (
-                <TravelCard key={offer.id} offer={offer} />
+                <TravelCard key={offer.id} offer={offer} searchParams={params} />
               ))}
             </div>
           ) : (

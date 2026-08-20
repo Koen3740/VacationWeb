@@ -1,9 +1,10 @@
 import { importCorendonXml } from './importers/corendon';
+import { importElizaXml } from './importers/eliza';
 import { importPrijsvrijXml } from './importers/prijsvrij';
 import { importSunwebXml } from './importers/sunweb';
 import { StoredOffer } from './types/stored-offer';
 
-export type ImporterProfile = 'corendon' | 'prijsvrij' | 'sunweb';
+export type ImporterProfile = 'corendon' | 'prijsvrij' | 'sunweb' | 'eliza';
 
 type XmlImporter = (xml: string) => StoredOffer[];
 
@@ -11,6 +12,7 @@ const IMPORTERS: Record<ImporterProfile, XmlImporter> = {
   corendon: importCorendonXml,
   prijsvrij: importPrijsvrijXml,
   sunweb: importSunwebXml,
+  eliza: importElizaXml,
 };
 
 export function isKnownImporterProfile(profile: string): profile is ImporterProfile {

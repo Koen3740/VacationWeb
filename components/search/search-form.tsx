@@ -12,6 +12,7 @@ import {
   sharedStateFromSearchForm,
 } from '@/components/search/shared-search-state';
 import { FilterOptions } from '@/types/travel';
+import { formatDepartureAirportLabel } from '@/lib/search/departure-airports';
 
 type IncomingSearchParams = Record<string, string | string[] | undefined>;
 
@@ -260,7 +261,7 @@ export function SearchForm({
               <option value="">Elke luchthaven</option>
               {departureAirports.map((airport) => (
                 <option key={airport} value={airport}>
-                  {airport}
+                  {formatDepartureAirportLabel(airport)}
                 </option>
               ))}
             </select>

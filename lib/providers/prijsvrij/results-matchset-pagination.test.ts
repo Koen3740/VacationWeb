@@ -233,8 +233,9 @@ test('I. first new page 1 keeps max-3 Prijsvrij when alternatives exist', async 
     { adults: 2, page: 1 },
     { fetchImpl: makeReceiptFetch() },
   );
-  assert.equal(page1.visibleOffers.filter((offer) => offer.provider === PRIJSVRIJ_PROVIDER_NAME).length, 3);
+  assert.equal(page1.visibleOffers.filter((offer) => offer.provider === PRIJSVRIJ_PROVIDER_NAME).length, 8);
   assert.ok(page1.visibleOffers.length <= 10);
+  assert.ok(!page1.visibleOffers.some((offer) => offer.provider === 'Sunweb'));
 });
 
 test('J. subsequent search with page1Ids does not re-apply max-3 as a pagination rule', async () => {
@@ -365,7 +366,7 @@ test('observed empty-page sizes 60/59/34/30/11/6 keep filled pages', async () =>
   }
 });
 
-test('M. 150-cap: page 15 has results, page 16 does not', async () => {
+test('M. catalog Sunweb does not fill the 150-cap; only proven live prices paginate', async () => {
   const offers = [
     ...makePvOffers(20),
     ...Array.from({ length: 200 }, (_, index) =>
@@ -390,22 +391,19 @@ test('M. 150-cap: page 15 has results, page 16 does not', async () => {
     { adults: 2, page: 1, page1Ids: page1.page1Ids },
     { fetchImpl },
   );
-  assert.equal(page1After.paginationTotal, 150);
-  assert.equal(getResultsTotalPages(page1After.paginationTotal, 10), 15);
+  assert.equal(page1After.paginationTotal, 20);
+  assert.equal(getResultsTotalPages(page1After.paginationTotal, 10), 2);
 
-  const page15 = await resolveResultsPageSlice(
+  const page2 = await resolveResultsPageSlice(
     offers,
-    { adults: 2, page: 15, page1Ids: page1.page1Ids },
+    { adults: 2, page: 2, page1Ids: page1.page1Ids },
     { fetchImpl: makeReceiptFetch() },
   );
-  assert.ok(page15.visibleOffers.length > 0);
-  assert.ok(page15.visibleOffers.length <= 10);
-
-  const page16 = await resolveResultsPageSlice(
+  assert.equal(page2.visibleOffers.length, 10);
+  const page3 = await resolveResultsPageSlice(
     offers,
-    { adults: 2, page: 16, page1Ids: page1.page1Ids },
+    { adults: 2, page: 3, page1Ids: page1.page1Ids },
     { fetchImpl: makeReceiptFetch() },
   );
-  assert.equal(page16.visibleOffers.length, 0);
-  assert.equal(paginateResults(filterToPresentableOffers(page15.remaining), 15, 10).length, 0);
+  assert.equal(page3.visibleOffers.length, 0);
 });

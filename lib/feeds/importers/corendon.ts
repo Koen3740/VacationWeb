@@ -4,9 +4,11 @@ import {
   CorendonXmlProduct,
   CorendonXmlProperty,
 } from '../types/corendon-xml';
+import { flattenImageCandidates } from '../../offers/offer-images';
 import { StoredOffer } from '../types/stored-offer';
 import { buildExternalId, PROVIDERS } from '../providers';
 import { deriveCorendonHasCarRental } from '../../offers/has-car-rental';
+import { annotateCorendonSource } from './corendon-merge';
 
 function getProperties(product: CorendonXmlProduct): CorendonXmlProperty[] {
   const properties = product.properties?.property;
@@ -55,7 +57,53 @@ function parsePrice(product: CorendonXmlProduct): { price: number; currency: str
   };
 }
 
-function parseImages(product: CorendonXmlProduct): string[] | undefined {
+function propertyUrlList(product: CorendonXmlProduct, name: string): string[] {
+  const found = getProperties(product).find((property) => property.name === name);
+  if (!found) {
+    return [];
+  }
+  return flattenImageCandidates(found.value);
+}
+
+function parseProductImages(product: CorendonXmlProduct): string[] {
+  const numbered: Array<{ n: number; urls: string[] }> = [];
+
+  for (const property of getProperties(product)) {
+    const match = /^productimage_(\d+)$/i.exec(property.name);
+    if (!match) {
+      continue;
+    }
+    const urls = flattenImageCandidates(property.value);
+    if (urls.length === 0) {
+      continue;
+    }
+    numbered.push({ n: Number(match[1]), urls });
+  }
+
+  numbered.sort((a, b) => a.n - b.n);
+  return numbered.flatMap((item) => item.urls);
+}
+
+function mergeUniqueUrls(...lists: Array<string[] | undefined>): string[] | undefined {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const list of lists) {
+    if (!list) {
+      continue;
+    }
+    for (const raw of list) {
+      const url = raw.trim();
+      if (!url || seen.has(url)) {
+        continue;
+      }
+      seen.add(url);
+      out.push(url);
+    }
+  }
+  return out.length > 0 ? out : undefined;
+}
+
+function parseGalleryImages(product: CorendonXmlProduct): string[] | undefined {
   const image = product.images?.image;
 
   if (!image) {
@@ -63,9 +111,21 @@ function parseImages(product: CorendonXmlProduct): string[] | undefined {
   }
 
   const list = Array.isArray(image) ? image : [image];
-  const values = list.filter((url) => url.length > 0);
+  const values = flattenImageCandidates(list);
 
   return values.length > 0 ? values : undefined;
+}
+
+function parseImages(product: CorendonXmlProduct): string[] | undefined {
+  // imageURL_large is the TradeTracker designated large/hotel image. The tagged
+  // <images><image> entry is often a thumbnail (e.g. Corendon A2W0H0) and must
+  // not win the hero slot when a large URL exists.
+  return mergeUniqueUrls(
+    propertyUrlList(product, 'imageURL_large'),
+    parseGalleryImages(product),
+    parseProductImages(product),
+    propertyUrlList(product, 'imageURL_small'),
+  );
 }
 
 function parseCategories(product: CorendonXmlProduct): string[] | undefined {
@@ -118,9 +178,11 @@ function parseFeedDescription(product: CorendonXmlProduct): string | undefined {
 
 function mapCorendonProduct(product: CorendonXmlProduct): StoredOffer {
   const { price, currency } = parsePrice(product);
+  const imageLargeUrls = propertyUrlList(product, 'imageURL_large');
+  const imageSmallUrls = propertyUrlList(product, 'imageURL_small');
   const images = parseImages(product);
-  const imageLarge = getProperty(product, 'imageURL_large');
-  const imageSmall = getProperty(product, 'imageURL_small');
+  const imageLarge = imageLargeUrls[0];
+  const imageSmall = imageSmallUrls[0];
 
   return {
     externalId: buildExternalId('corendon', product.ID),
@@ -161,6 +223,7 @@ function mapCorendonProduct(product: CorendonXmlProduct): StoredOffer {
 
     departureAirport: getProperty(product, 'iataDeparture') || undefined,
     departureAirportCode: getProperty(product, 'isoCodeDeparture') || undefined,
+    arrivalAirport: getProperty(product, 'iataArrival') || undefined,
     airport: getProperty(product, 'airport') || undefined,
 
     boardType: getProperty(product, 'serviceType') || undefined,
@@ -181,7 +244,7 @@ function mapCorendonProduct(product: CorendonXmlProduct): StoredOffer {
   };
 }
 
-export function importCorendonXml(xml: string): StoredOffer[] {
+export function importCorendonXml(xml: string, manifestId?: string): StoredOffer[] {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: '',
@@ -192,5 +255,5 @@ export function importCorendonXml(xml: string): StoredOffer[] {
 
   const productList = Array.isArray(products) ? products : [products];
 
-  return productList.map(mapCorendonProduct);
+  return annotateCorendonSource(productList.map(mapCorendonProduct), manifestId);
 }

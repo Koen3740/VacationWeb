@@ -1,8 +1,9 @@
 /**
  * Proven "huurauto inbegrepen" for VacationWeb.
  * One canonical truth: offer.hasCarRental === true.
- * Derived only from structural feed fields at import/merge —
- * never from hotel name, marketing copy, searchText, or vacationTypes "Fly & Drive".
+ * Derived only from structural feed fields or a proven provider-level
+ * product rule at import/merge — never from hotel name, marketing copy,
+ * searchText, or vacationTypes "Fly & Drive".
  */
 
 export const CORENDON_FLY_DRIVE_TOKEN = 'Fly-Drive vakantie';
@@ -62,6 +63,16 @@ export function deriveCorendonHasCarRental(options: {
   }
   const tokens = splitSubcategoryTokens(options.subcategories);
   return tokens.includes(CORENDON_FLY_DRIVE_TOKEN) ? true : undefined;
+}
+
+/**
+ * Eliza was here: Flight packages include car rental (provider-level product rule).
+ * SelfDrive is not a VacationWeb flight package and must not be flagged.
+ */
+export function deriveElizaHasCarRental(options: {
+  transportType: string | undefined;
+}): true | undefined {
+  return options.transportType?.trim().toLowerCase() === 'flight' ? true : undefined;
 }
 
 /** URL: only `hasCarRental=1` activates the filter. Absent or any other value = off. */

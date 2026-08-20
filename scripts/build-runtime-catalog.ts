@@ -60,6 +60,9 @@ function main(): void {
 
   console.log(`✔ compact runtime catalog written`);
   console.log(`  - records: ${published.offerCount.toLocaleString('nl-NL')}`);
+  console.log(
+    `  - flight-package eligibility: ${published.eligibility.input.toLocaleString('nl-NL')} → ${published.eligibility.kept.toLocaleString('nl-NL')} (excluded ${published.eligibility.excluded.toLocaleString('nl-NL')})`,
+  );
   console.log(`  - runtime: ${FEED_PATHS.offers} (${(published.runtimeBytes / 1_000_000).toFixed(1)} MB)`);
   console.log(`  - details: ${FEED_PATHS.offerDetails} (${(published.detailBytes / 1_000_000).toFixed(1)} MB, ${published.detailCount.toLocaleString('nl-NL')} records)`);
   console.log(`  - filter-options: ${FEED_PATHS.filterOptions} (${published.filterOptionsBytes.toLocaleString('nl-NL')} bytes)`);

@@ -22,7 +22,7 @@ import {
   type Page1ReceiptPricingStats,
 } from './page1-receipt-pricing';
 import { paginateResults, buildResultsPageHref } from '../../search/pagination';
-import { filterToPresentableOffers } from '../../search/presentable-price';
+import { filterToPresentableOffers, hasValidPresentablePrice } from '../../search/presentable-price';
 import { clearPrijsvrijReceiptTokenCache } from './receipt-auth';
 import { clearResultsLivePriceCache } from '../../search/results-live-price-cache';
 import { buildPrijsvrijReceiptFilters, fetchPrijsvrijReceiptPrice } from './receipt-client';
@@ -454,6 +454,8 @@ test('page1 pricing: 2A+baby occupancy → no false Receipt price', async () => 
 
   assert.equal(receiptPosts, 0);
   assert.ok(!page.some((o) => o.provider === PRIJSVRIJ_PROVIDER_NAME && o.livePriceSource === 'receipt'));
+  assert.equal(page.some((o) => o.livePriceStatus === 'unpriced'), false);
+  assert.equal(page.length, 0);
 });
 
 test('markPrijsvrijLivePriceUnavailable: no proven PV price', () => {
@@ -857,8 +859,8 @@ test('page 1 with existing page1Ids skips Receipt when the catalog is already pr
         id: `sunweb-${i}`,
         provider: 'Sunweb',
         price: 200 + i,
-        livePriceStatus: 'catalog',
-        livePriceSource: 'feed',
+        livePriceStatus: 'proven',
+        livePriceSource: 'getPromotedPrice',
       }),
     ),
   ];
@@ -989,9 +991,9 @@ test('resolveResultsPageSlice: page 2/3/4 with valid page1Ids → 0 Receipt; ids
     assert.equal(slice.needsPage1IdsRedirect, undefined);
     assert.deepEqual(slice.page1Ids, page1.page1Ids, `page1Ids preserved on page ${page}`);
     const presentableRemaining = filterToPresentableOffers(page1.remaining);
-    assert.equal(slice.visibleOffers.length, 10);
     assert.ok(slice.visibleOffers.every((o) => !presented.has(o.id)));
     assert.ok(slice.visibleOffers.every((o) => o.livePriceStatus !== 'unavailable'));
+    assert.ok(slice.visibleOffers.every(hasValidPresentablePrice));
     assert.deepEqual(
       slice.visibleOffers.map((o) => o.id),
       presentableRemaining.slice((page - 2) * 10, (page - 1) * 10).map((o) => o.id),

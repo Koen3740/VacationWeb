@@ -1,4 +1,5 @@
 import { canonicalizeCountryName } from '../../offers/canonical-country';
+import { decodeHtmlEntities } from './decode-html-entities';
 import { TravelOffer } from './travel-offer';
 import { StoredOffer } from '../types/stored-offer';
 
@@ -29,7 +30,7 @@ export function normalizeOffer(offer: StoredOffer): TravelOffer {
     id: offer.externalId,
     provider: offer.provider,
 
-    hotelName: offer.hotelName,
+    hotelName: decodeHtmlEntities(String(offer.hotelName ?? '')),
     accommodation: offer.accommodation,
     accommodationType: offer.accommodationType,
 
@@ -78,6 +79,11 @@ export function normalizeOffer(offer: StoredOffer): TravelOffer {
 
     deepLink: offer.deepLink ?? '',
     affiliateCampaignId: offer.affiliateCampaignId,
+    arrivalAirport: offer.arrivalAirport,
+    feedSourceId: offer.feedSourceId,
+    listingHost: offer.listingHost,
+    providerListings: offer.providerListings,
+    localizedDescriptions: offer.localizedDescriptions,
 
     departureWindowStart: '',
     departureWindowEnd: '',

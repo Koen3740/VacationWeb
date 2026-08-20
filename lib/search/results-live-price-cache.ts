@@ -1,12 +1,23 @@
 import type { TravelOffer } from '../feeds/canonical/travel-offer';
 import type { SearchParams } from '../../types/travel';
+import { CORENDON_PROVIDER_NAME } from '../providers/corendon/constants';
+import {
+  corendonListingCacheKey,
+  rankCorendonListings,
+} from '../providers/corendon/listing-selection';
 
 export type ResultsLivePriceOverlay = Pick<
   TravelOffer,
   'price' | 'pricePerDay' | 'livePriceStatus' | 'livePriceSource'
->;
+> &
+  Partial<Pick<TravelOffer, 'deepLink' | 'listingHost' | 'feedSourceId' | 'affiliateCampaignId'>>;
 
-type OccupancyKey = Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms'>;
+export type LivePriceCacheParams = Pick<
+  SearchParams,
+  'adults' | 'children' | 'babies' | 'rooms' | 'party' | 'departureAirport' | 'siteMarket'
+> & {
+  listingKey?: string;
+};
 
 type CacheEntry = ResultsLivePriceOverlay & {
   cachedAtMs: number;
@@ -34,17 +45,40 @@ export function setResultsLivePriceNowMsForTests(nowMsValue: number | null): voi
   nowMsOverride = nowMsValue;
 }
 
-export function livePriceCacheKey(offerId: string, params: OccupancyKey): string {
-  return `${params.adults ?? 2}|${params.children ?? 0}|${params.babies ?? 0}|${params.rooms ?? 1}|${offerId}`;
+function partyFingerprint(params: LivePriceCacheParams): string {
+  if (!params.party?.length) {
+    return '';
+  }
+  return params.party
+    .map((traveller) => `${traveller.dateOfBirth ?? ''}@${traveller.roomIndex}`)
+    .join(',');
 }
 
-function readEntry(offerId: string, params: OccupancyKey): CacheEntry | undefined {
+function occupancyOfferPrefix(offerId: string, params: LivePriceCacheParams): string {
+  const base = `${params.adults ?? 2}|${params.children ?? 0}|${params.babies ?? 0}|${params.rooms ?? 1}|${offerId}`;
+  const party = partyFingerprint(params);
+  return party ? `${base}|p:${party}` : base;
+}
+
+function isFresh(entry: CacheEntry): boolean {
+  if (nowMs() - entry.cachedAtMs > RESULTS_LIVE_PRICE_TTL_MS) {
+    return false;
+  }
+  return true;
+}
+
+export function livePriceCacheKey(offerId: string, params: LivePriceCacheParams): string {
+  const prefix = occupancyOfferPrefix(offerId, params);
+  return params.listingKey ? `${prefix}|l:${params.listingKey}` : prefix;
+}
+
+function readEntry(offerId: string, params: LivePriceCacheParams): CacheEntry | undefined {
   const key = livePriceCacheKey(offerId, params);
   const entry = cache.get(key);
   if (!entry) {
     return undefined;
   }
-  if (nowMs() - entry.cachedAtMs > RESULTS_LIVE_PRICE_TTL_MS) {
+  if (!isFresh(entry)) {
     cache.delete(key);
     return undefined;
   }
@@ -57,6 +91,10 @@ function toOverlay(entry: CacheEntry): ResultsLivePriceOverlay {
     pricePerDay: entry.pricePerDay,
     livePriceStatus: entry.livePriceStatus,
     livePriceSource: entry.livePriceSource,
+    deepLink: entry.deepLink,
+    listingHost: entry.listingHost,
+    feedSourceId: entry.feedSourceId,
+    affiliateCampaignId: entry.affiliateCampaignId,
   };
 }
 
@@ -66,19 +104,36 @@ export function clearResultsLivePriceCache(): void {
 
 export function getResultsLivePriceOverlay(
   offerId: string,
-  params: OccupancyKey,
+  params: LivePriceCacheParams,
 ): ResultsLivePriceOverlay | undefined {
   const entry = readEntry(offerId, params);
   return entry ? toOverlay(entry) : undefined;
 }
 
-export function hasResultsLivePriceOverlay(offerId: string, params: OccupancyKey): boolean {
-  return readEntry(offerId, params) !== undefined;
+export function hasResultsLivePriceOverlay(offerId: string, params: LivePriceCacheParams): boolean {
+  if (readEntry(offerId, params)) {
+    return true;
+  }
+  if (params.listingKey) {
+    return false;
+  }
+  const prefix = `${occupancyOfferPrefix(offerId, params)}|l:`;
+  for (const [key, entry] of cache) {
+    if (!key.startsWith(prefix)) {
+      continue;
+    }
+    if (!isFresh(entry)) {
+      cache.delete(key);
+      continue;
+    }
+    return true;
+  }
+  return false;
 }
 
 export function setResultsLivePriceOverlay(
   offerId: string,
-  params: OccupancyKey,
+  params: LivePriceCacheParams,
   overlay: ResultsLivePriceOverlay,
   options?: { cachedAtMs?: number },
 ): void {
@@ -88,17 +143,60 @@ export function setResultsLivePriceOverlay(
   });
 }
 
-export function applyResultsLivePriceOverlay(offer: TravelOffer, params: OccupancyKey): TravelOffer {
+function applyOverlay(offer: TravelOffer, overlay: ResultsLivePriceOverlay): TravelOffer {
+  return { ...offer, ...overlay };
+}
+
+export function applyResultsLivePriceOverlay(
+  offer: TravelOffer,
+  params: LivePriceCacheParams,
+): TravelOffer {
+  if (offer.provider === CORENDON_PROVIDER_NAME && !params.listingKey) {
+    const ranked = rankCorendonListings(offer, params);
+    for (const listing of ranked) {
+      const overlay = getResultsLivePriceOverlay(offer.id, {
+        ...params,
+        listingKey: corendonListingCacheKey(listing),
+      });
+      if (overlay?.livePriceStatus === 'proven') {
+        return applyOverlay(offer, {
+          ...overlay,
+          deepLink: overlay.deepLink ?? listing.deepLink,
+          listingHost: overlay.listingHost ?? listing.host,
+          feedSourceId: overlay.feedSourceId ?? listing.feedId,
+          affiliateCampaignId: overlay.affiliateCampaignId ?? listing.campaignId,
+        });
+      }
+    }
+    const baseOverlay = getResultsLivePriceOverlay(offer.id, params);
+    if (baseOverlay?.livePriceStatus === 'unpriced') {
+      return applyOverlay(offer, baseOverlay);
+    }
+    for (const listing of ranked) {
+      const overlay = getResultsLivePriceOverlay(offer.id, {
+        ...params,
+        listingKey: corendonListingCacheKey(listing),
+      });
+      if (overlay) {
+        return applyOverlay(offer, overlay);
+      }
+    }
+    if (baseOverlay) {
+      return applyOverlay(offer, baseOverlay);
+    }
+    return offer;
+  }
+
   const overlay = getResultsLivePriceOverlay(offer.id, params);
   if (!overlay) {
     return offer;
   }
-  return { ...offer, ...overlay };
+  return applyOverlay(offer, overlay);
 }
 
 export function applyResultsLivePriceOverlays(
   offers: readonly TravelOffer[],
-  params: OccupancyKey,
+  params: LivePriceCacheParams,
 ): TravelOffer[] {
   return offers.map((offer) => applyResultsLivePriceOverlay(offer, params));
 }

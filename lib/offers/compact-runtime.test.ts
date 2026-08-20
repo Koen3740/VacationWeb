@@ -6,6 +6,7 @@ import {
   compactStoredOffer,
   mergeOfferDetail,
 } from '@/lib/offers/compact-runtime';
+import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { offerMatchesAmenity } from '@/lib/search/amenity-filters';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
 import { offerSearchText } from '@/lib/search/offer-text';
@@ -88,6 +89,91 @@ test('compact runtime keeps filter/sort/card/live-pricing fields and strips deta
   assert.equal(detail.durationType, 'dagen');
 });
 
+test('compact runtime stores decoded hotelName once', () => {
+  const { runtime } = compactStoredOffer(
+    makeStored({ hotelName: "Appartementen Villa&#039;s Elpiniki" }),
+  );
+  assert.equal(runtime.hotelName, "Appartementen Villa's Elpiniki");
+  assert.equal(normalizeOffer(runtime).hotelName, "Appartementen Villa's Elpiniki");
+});
+
+test('compact runtime keeps Corendon listing/source context on the catalog', () => {
+  const listings = [
+    {
+      provider: 'Corendon',
+      feedId: 'corendon-benl',
+      campaignId: '38103',
+      host: 'www.corendon.be',
+      deepLink: 'https://www.corendon.be/vakantie#5007.MLELC.EINPMI.041027.3.DZI-U',
+      locale: 'nl-BE',
+    },
+    {
+      provider: 'Corendon',
+      feedId: 'corendon-nl',
+      campaignId: '38108',
+      host: 'www.corendon.nl',
+      deepLink: 'https://www.corendon.nl/vakantie#5007.MLELC.EINPMI.041027.3.DZI-U',
+      locale: 'nl-NL',
+    },
+  ];
+  const { runtime, detail } = compactStoredOffer(
+    makeStored({
+      provider: 'Corendon',
+      externalId: 'corendon-5007-EINPMI-041027-3-DZIU',
+      feedSourceId: 'corendon-benl',
+      listingHost: 'www.corendon.be',
+      arrivalAirport: 'PMI',
+      providerListings: listings,
+      localizedDescriptions: { 'nl-BE': 'BE copy', 'nl-NL': 'NL copy' },
+    }),
+  );
+
+  assert.equal(runtime.feedSourceId, 'corendon-benl');
+  assert.equal(runtime.listingHost, 'www.corendon.be');
+  assert.equal(runtime.arrivalAirport, 'PMI');
+  assert.deepEqual(runtime.providerListings, listings);
+  assert.equal(runtime.localizedDescriptions, undefined);
+  assert.deepEqual(detail?.localizedDescriptions, { 'nl-BE': 'BE copy', 'nl-NL': 'NL copy' });
+});
+
+test('compact runtime keeps Sunweb providerListings on the catalog', () => {
+  const listings = [
+    {
+      provider: 'Sunweb',
+      feedId: 'sunweb-accomodatie',
+      campaignId: '1393',
+      host: 'www.sunweb.be',
+      deepLink: 'https://www.sunweb.be/nl/vakantie/reizen?tt=1393_1754875_511747_&r=x',
+    },
+    {
+      provider: 'Sunweb',
+      feedId: 'sunweb-griekenland',
+      campaignId: '1393',
+      host: 'www.sunweb.be',
+      deepLink: 'https://www.sunweb.be/nl/vakantie/reizen?tt=1393_2087580_511747_&r=x',
+    },
+    {
+      provider: 'Sunweb',
+      feedId: 'sunweb-lastminute',
+      campaignId: '1393',
+      host: 'www.sunweb.be',
+      deepLink: 'https://www.sunweb.be/nl/vakantie/reizen?tt=1393_1761331_511747_&r=x',
+    },
+  ];
+  const { runtime } = compactStoredOffer(
+    makeStored({
+      provider: 'Sunweb',
+      externalId: 'sunweb-38128-2026-08-28-8-BRU-Logies',
+      hotelName: "Appartementen Villa's Elpiniki",
+      feedSourceId: 'sunweb-accomodatie',
+      listingHost: 'www.sunweb.be',
+      providerListings: listings,
+    }),
+  );
+  assert.equal(runtime.providerListings?.length, 3);
+  assert.deepEqual(runtime.providerListings, listings);
+});
+
 test('compact searchText stores overlapping long/feed copy once', () => {
   const { runtime } = compactStoredOffer(
     makeStored({
@@ -163,4 +249,72 @@ test('detail merge restores long copy and gallery without changing identity', ()
     'https://example.com/b.jpg',
     'https://example.com/c.jpg',
   ]);
+});
+
+test('Eliza compact runtime uses XML[3] as Results hero and keeps feed order in the sidecar', () => {
+  const images = [
+    'https://static.elizawashere.be/products/Images/Original/51100000/42000/51142586-Original.jpg?width=640&height=640&mode=crop',
+    'https://static.elizawashere.be/products/Images/Original/46100000/21000/46121218-Original.jpg?width=640&height=640&mode=crop',
+    'https://static.elizawashere.be/products/Images/Original/46100000/21000/46121244-Original.jpg?width=640&height=640&mode=crop',
+    'https://static.elizawashere.be/products/Images/Original/46100000/21000/46121219-Original.jpg?width=640&height=640&mode=crop',
+    'https://static.elizawashere.be/products/Images/Original/51100000/42000/51142588-Original.jpg?width=640&height=640&mode=crop',
+    'https://static.elizawashere.be/products/Images/Original/51100000/42000/51142587-Original.jpg?width=640&height=640&mode=crop',
+  ];
+  const stored = makeStored({
+    provider: 'Eliza was here',
+    externalId: 'eliza-133863',
+    imageUrl: images[0],
+    imageLarge: images[0],
+    imageSmall: images[1],
+    images,
+  });
+  const { runtime, detail } = compactStoredOffer(stored);
+  assert.equal(runtime.imageUrl, images[3]);
+  assert.deepEqual(detail?.images, images);
+
+  const merged = mergeOfferDetail(normalizeOffer(runtime), detail);
+  const display = collectOrderedOfferImages(merged);
+  assert.equal(display[0], images[3]);
+  assert.deepEqual(display, [images[3], images[0], images[1], images[2], images[4], images[5]]);
+});
+
+test('compact runtime hero prefers split imageURL_large over tagged thumbnail', () => {
+  const a1 = 'https://images.corendonresources.com/L1E2208A1W1600H1066.jpg?v=1';
+  const a2 = 'https://images.corendonresources.com/L1E2208A2W1600H1066.jpg?v=1';
+  const thumb = 'https://images.corendonresources.com/L1E2208A2W0H0.jpg?v=1';
+  const { runtime, detail } = compactStoredOffer(
+    makeStored({
+      provider: 'Corendon',
+      imageUrl: thumb,
+      imageLarge: `${a1},${a2}`,
+      images: [thumb, a2],
+    }),
+  );
+  assert.equal(runtime.imageUrl, a1);
+  assert.ok(detail?.images?.includes(thumb));
+  assert.ok(detail?.images?.includes(a2));
+  assert.equal(detail?.images?.[0], a1);
+});
+
+test('compact runtime keeps hasCarRental=true and omits false', () => {
+  const kept = compactStoredOffer(makeStored({ hasCarRental: true }));
+  assert.equal(kept.runtime.hasCarRental, true);
+  assert.equal(normalizeOffer(kept.runtime).hasCarRental, true);
+
+  const omitted = compactStoredOffer(makeStored({ hasCarRental: false }));
+  assert.equal(omitted.runtime.hasCarRental, undefined);
+  assert.equal(normalizeOffer(omitted.runtime).hasCarRental, undefined);
+});
+
+test('G. compact/normalize keeps Eliza Flight hasCarRental=true', () => {
+  const compacted = compactStoredOffer(
+    makeStored({
+      externalId: 'eliza-6270665',
+      provider: 'Eliza was here',
+      flightIncluded: 'true',
+      hasCarRental: true,
+    }),
+  );
+  assert.equal(compacted.runtime.hasCarRental, true);
+  assert.equal(normalizeOffer(compacted.runtime).hasCarRental, true);
 });

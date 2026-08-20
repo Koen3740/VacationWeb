@@ -13,6 +13,7 @@ import {
 } from '../prijsvrij/page1-receipt-pricing';
 import { clearPrijsvrijReceiptTokenCache } from '../prijsvrij/receipt-auth';
 import { clearResultsLivePriceCache } from '../../search/results-live-price-cache';
+import { hasValidPresentablePrice } from '../../search/presentable-price';
 
 const FRAGMENT = '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U';
 const DIRECT_URL = `https://www.corendon.be/vakantie#${FRAGMENT}`;
@@ -42,6 +43,27 @@ function okLowestBody(price = 876): string {
         trip: {
           price,
           tripCode: '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U.BRUCFU4C.CFU',
+          tripUrlHash:
+            '[filters]BEL/BRU.*.*.*.0|||9514.COSPY.BRUCFU.270826.3-4-3.SZ-U.BRUCFU4C.CFU|||true',
+          priceTableDate: '20260827',
+          durationInDays: 5,
+        },
+      },
+    },
+  });
+}
+
+function okUpsalesBody(pricePerPerson = 600): string {
+  return JSON.stringify({
+    result: {
+      extendedTripCode: '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U.BRUCFU4C.CFU',
+      prices: {
+        totalPrice: pricePerPerson * 4,
+        priceTableCalculatedPricePerPerson: pricePerPerson,
+      },
+      selectedTripCudl: {
+        selectedTrip: {
+          system: { request: { departureDate: '2026-08-27' } },
         },
       },
     },
@@ -62,7 +84,10 @@ function okReceiptBody(total = 800): string {
 function makeLiveFetch(options: {
   lowestStatus?: number;
   lowestBody?: string | null;
+  upsalesStatus?: number;
+  upsalesBody?: string | null;
   onLowest?: (url: string) => void;
+  onUpsales?: (url: string) => void;
   onReceipt?: () => void;
 }): typeof fetch {
   return async (input) => {
@@ -74,6 +99,14 @@ function makeLiveFetch(options: {
         return new Response(null, { status: 204 });
       }
       return new Response(options.lowestBody ?? okLowestBody(), { status });
+    }
+    if (url.includes('/upsales')) {
+      options.onUpsales?.(url);
+      const status = options.upsalesStatus ?? 200;
+      if (status === 204) {
+        return new Response(null, { status: 204 });
+      }
+      return new Response(options.upsalesBody ?? okUpsalesBody(), { status });
     }
     if (url.includes('/token') && !url.includes('receipt')) {
       return new Response(JSON.stringify({ token: 't'.repeat(40) }), { status: 200 });
@@ -128,7 +161,7 @@ test('page1: Corendon 204 does not present the offer and does not use feed as li
   assert.ok(!page.some((offer) => offer.id === 'corendon-9514'));
 });
 
-test('page1: invalid occupancy does not call lowestpricesacco', async () => {
+test('page1: invalid occupancy does not call lowestpricesacco and is not shown', async () => {
   let lowestCalls = 0;
   const page = await pricePage1WithPrijsvrijReceipts(
     [makeOffer({ id: 'corendon-9514', provider: 'Corendon', price: 458 })],
@@ -144,6 +177,53 @@ test('page1: invalid occupancy does not call lowestpricesacco', async () => {
 
   assert.equal(lowestCalls, 0);
   assert.equal(page.length, 0);
+});
+
+const FOUR_PAX_TWO_ROOMS = {
+  adults: 2,
+  children: 2,
+  rooms: 2,
+  party: [
+    { dateOfBirth: '1990-01-15', roomIndex: 0 },
+    { dateOfBirth: '1988-03-03', roomIndex: 0 },
+    { dateOfBirth: '2014-06-14', roomIndex: 1 },
+    { dateOfBirth: '2018-01-22', roomIndex: 1 },
+  ],
+};
+
+test('page1: 4 pax / 2 rooms uses proven upsales, not feed or 2A lowest €', async () => {
+  let lowestCalls = 0;
+  let upsalesCalls = 0;
+  const page = await pricePage1WithPrijsvrijReceipts(
+    [
+      makeOffer({ id: 'corendon-9514', provider: 'Corendon', price: 458 }),
+      makeOffer({ id: 'sunweb-a', provider: 'Sunweb', price: 350, deepLink: 'https://example.com' }),
+    ],
+    FOUR_PAX_TWO_ROOMS,
+    {
+      fetchImpl: makeLiveFetch({
+        onLowest: () => {
+          lowestCalls += 1;
+        },
+        onUpsales: () => {
+          upsalesCalls += 1;
+        },
+      }),
+    },
+  );
+
+  assert.equal(lowestCalls, 1);
+  assert.equal(upsalesCalls, 1);
+  const cor = page.find((offer) => offer.provider === 'Corendon');
+  const sun = page.find((offer) => offer.provider === 'Sunweb');
+  assert.ok(cor);
+  assert.equal(cor.livePriceStatus, 'proven');
+  assert.equal(cor.livePriceSource, 'upsales');
+  assert.equal(cor.price, 600);
+  assert.notEqual(cor.price, 458);
+  assert.notEqual(cor.price, 876);
+  assert.equal(hasValidPresentablePrice(cor), true);
+  assert.equal(sun, undefined);
 });
 
 test('page1: missing fragment does not invent a live price', async () => {
@@ -171,7 +251,25 @@ test('page1: missing fragment does not invent a live price', async () => {
   assert.equal(page.length, 0);
 });
 
-test('stream: valid Corendon is pending; invalid Corendon is immediate unavailable', async () => {
+test('stream: occupancy outside live route is not selected onto Results', async () => {
+  const stream = startPage1ReceiptStream(
+    [
+      makeOffer({ id: 'corendon-9514', provider: 'Corendon', price: 458 }),
+      makeOffer({ id: 'sunweb-a', provider: 'Sunweb', deepLink: 'https://example.com' }),
+    ],
+    { adults: 2, children: 1 },
+    { fetchImpl: makeLiveFetch({}) },
+  );
+
+  const pending = stream.slots.filter((slot) => slot.kind === 'pending');
+  const immediate = stream.slots.filter((slot) => slot.kind === 'immediate');
+  assert.equal(pending.length, 0);
+  assert.equal(immediate.length, 0);
+  const presented = await stream.presented;
+  assert.equal(presented.page1.length, 0);
+});
+
+test('stream: valid Corendon is pending; invalid Corendon is not a visible card', async () => {
   const stream = startPage1ReceiptStream(
     [
       makeOffer({ id: 'corendon-9514', provider: 'Corendon' }),
@@ -189,22 +287,20 @@ test('stream: valid Corendon is pending; invalid Corendon is immediate unavailab
   const pending = stream.slots.filter((slot) => slot.kind === 'pending');
   const immediate = stream.slots.filter((slot) => slot.kind === 'immediate');
   assert.equal(pending.length, 1);
-  assert.equal(immediate.length, 2);
+  assert.equal(immediate.length, 1);
   assert.equal(immediate[0].kind, 'immediate');
   if (immediate[0].kind === 'immediate') {
     assert.equal(immediate[0].offer.id, 'corendon-1');
     assert.equal(immediate[0].offer.livePriceStatus, 'unavailable');
-  }
-  assert.equal(immediate[1].kind, 'immediate');
-  if (immediate[1].kind === 'immediate') {
-    assert.equal(immediate[1].offer.provider, 'Sunweb');
-    assert.equal(immediate[1].offer.livePriceSource, 'feed');
   }
 
   const priced = await pending[0].offer;
   assert.ok(priced);
   assert.equal(priced.livePriceStatus, 'proven');
   assert.equal(priced.livePriceSource, 'lowestpricesacco');
+  const presented = await stream.presented;
+  assert.ok(presented.page1.every((offer) => offer.id !== 'sunweb-a'));
+  assert.ok(presented.page1.every((offer) => offer.livePriceStatus === 'proven'));
 });
 
 test('stream: Corendon failure does not present the card or use Search/feed as live', async () => {
@@ -228,7 +324,7 @@ test('stream: Corendon failure does not present the card or use Search/feed as l
   assert.ok(presented.page1.every((offer) => offer.livePriceSource !== 'feed' || offer.provider !== 'Corendon'));
 });
 
-test('page2+: remaining Corendon is live-priced on the matchset, then cached', async () => {
+test('page1: live-capable Corendon is priced on page 1 when Sunweb 2A cannot fill slots', async () => {
   clearPrijsvrijReceiptTokenCache();
   clearResultsLivePriceCache();
   const offers = [
@@ -254,23 +350,11 @@ test('page2+: remaining Corendon is live-priced on the matchset, then cached', a
     { adults: 2, page: 1 },
     { fetchImpl, pageSize: 10 },
   );
-  assert.equal(lowestCalls, 0);
-  assert.ok(page1.page1Ids);
-
-  await priceLiveRequiredMatchset(offers, { adults: 2 }, { fetchImpl });
   assert.equal(lowestCalls, 1);
-
-  lowestCalls = 0;
-  const page2 = await resolveResultsPageSlice(
-    offers,
-    { adults: 2, page: 2, page1Ids: page1.page1Ids },
-    { fetchImpl, pageSize: 10 },
-  );
-  assert.equal(lowestCalls, 0);
-  const cor = page2.visibleOffers.find((offer) => offer.provider === 'Corendon');
+  const cor = page1.visibleOffers.find((offer) => offer.provider === 'Corendon');
   assert.ok(cor);
   assert.equal(cor.livePriceSource, 'lowestpricesacco');
-  assert.equal(cor.livePriceStatus, 'proven');
+  assert.equal(page1.visibleOffers.some((offer) => offer.provider === 'Sunweb'), false);
 });
 
 test('Package-1 invariants still hold with a live Corendon slot', async () => {
@@ -314,8 +398,10 @@ test('Package-1 invariants still hold with a live Corendon slot', async () => {
     },
   );
 
-  assert.equal(page.length, 10);
-  assert.ok(page.filter((offer) => offer.provider === PRIJSVRIJ_PROVIDER_NAME).length <= 3);
+  assert.ok(page.every((offer) => offer.livePriceStatus === 'proven'));
+  assert.ok(page.some((offer) => offer.provider === 'Corendon'));
+  assert.ok(!page.some((offer) => offer.provider === 'Sunweb'));
+  assert.ok(page.filter((offer) => offer.provider === PRIJSVRIJ_PROVIDER_NAME).length <= 5);
   assert.ok(stats.receiptCalls <= 10);
   assert.equal(stats.receiptCalls + (stats.matchsetReceiptCalls ?? 0), receiptCalls);
   const cor = page.find((offer) => offer.provider === 'Corendon');

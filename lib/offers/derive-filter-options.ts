@@ -5,6 +5,7 @@ import {
   canonicalizeBoardType,
 } from './canonicalize-board-type';
 import { canonicalizeCountryName } from './canonical-country';
+import { resolveOfferIataAirportCode } from '../search/departure-airports';
 import {
   deriveDestinationCountryCounts,
   derivePopularDestinations,
@@ -72,8 +73,9 @@ export function deriveFilterOptions(offers: TravelOffer[]): FilterOptions {
       boardTypeSet.add(boardType);
     }
 
-    if (offer.departureAirport) {
-      airportSet.add(offer.departureAirport);
+    const iata = resolveOfferIataAirportCode(offer);
+    if (iata) {
+      airportSet.add(iata);
     }
   }
 

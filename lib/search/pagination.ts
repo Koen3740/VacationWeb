@@ -72,7 +72,7 @@ export function getResultsTotalPages(totalResults: number, pageSize: number): nu
   return Math.ceil(totalResults / pageSize);
 }
 
-export function buildResultsPageHref(params: SearchParams, page: number): string {
+export function buildResultsSearchQuery(params: SearchParams, page: number): URLSearchParams {
   const query = new URLSearchParams();
 
   if (params.countries?.length) {
@@ -105,6 +105,10 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
     query.set('nightsMax', String(params.nightsMax));
   }
 
+  if (params.nights?.length) {
+    query.set('nights', params.nights.join(','));
+  }
+
   if (params.boardTypes?.length) {
     query.set('boardTypes', params.boardTypes.join(','));
   }
@@ -127,6 +131,21 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
 
   if (params.rooms !== undefined && !Number.isNaN(params.rooms)) {
     query.set('rooms', String(params.rooms));
+  }
+
+  if (params.party && params.party.length > 0) {
+    query.set('dob', params.party.map((traveller) => traveller.dateOfBirth ?? '').join(','));
+    const maxRoomIndex = params.party.reduce(
+      (highest, traveller) => Math.max(highest, traveller.roomIndex),
+      0,
+    );
+    const roomCount = Math.max(params.rooms ?? 1, maxRoomIndex + 1);
+    if (roomCount > 1) {
+      if (!query.has('rooms')) {
+        query.set('rooms', String(roomCount));
+      }
+      query.set('partyRooms', params.party.map((traveller) => String(traveller.roomIndex + 1)).join(','));
+    }
   }
 
   if (params.departureStart) {
@@ -169,7 +188,7 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
     query.set('hasCarRental', '1');
   }
 
-  if (params.sort) {
+  if (params.sort && params.sort !== 'value') {
     query.set('sort', params.sort);
   }
 
@@ -180,7 +199,21 @@ export function buildResultsPageHref(params: SearchParams, page: number): string
   query.set('page', String(page));
   query.set('pageSize', String(params.pageSize ?? RESULTS_PAGE_SIZE_DEFAULT));
 
-  return `/results?${query.toString()}`;
+  return query;
+}
+
+export function buildResultsPageHref(params: SearchParams, page: number): string {
+  return `/results?${buildResultsSearchQuery(params, page).toString()}`;
+}
+
+/** Detail URL that keeps the Results search context (occupancy, dates, filters). */
+export function buildOfferDetailHref(offerId: string, params: SearchParams): string {
+  const page = params.page ?? RESULTS_PAGE_DEFAULT;
+  const query = buildResultsSearchQuery(params, page);
+  if (params.selectedRoom) {
+    query.set('room', params.selectedRoom);
+  }
+  return `/offers/${encodeURIComponent(offerId)}?${query.toString()}`;
 }
 
 /** Parse definitive page-1 offer IDs carried for page 2+ remaining (no Receipt). */

@@ -1,3 +1,5 @@
+import type { ProviderListing } from '../types/stored-offer';
+
 export interface TravelOffer {
   // Identificatie
   id: string;
@@ -39,14 +41,20 @@ export interface TravelOffer {
   currency?: string;
   /**
    * Live-price provenance for Results (Fase 4).
-   * Prijsvrij: only `proven` + `receipt` may be presented.
-   * Corendon: only `proven` + `lowestpricesacco` may be presented.
-   * Eliza was here: only `proven` + `getPromotedPrice` may be presented.
-   * Sunweb: `proven` + `getPromotedPrice`, or catalog numeric when live was not attempted.
-   * Offers without a valid allowed price are not presented.
+   * Prijsvrij: only `proven` + `receipt` may be presented as a price.
+   * Corendon: only `proven` + `lowestpricesacco` (2A) or `upsales` (4 travellers / 2 rooms)
+   * may be presented as a price.
+   * Eliza was here: only `proven` + `getPromotedPrice` may be presented as a price.
+   * Sunweb: `proven` + `getPromotedPrice` for 4 travellers / 2 rooms; catalog numeric
+   * when live was not attempted (2A). `unpriced` when that occupancy is outside the
+   * proven Participants route.
+   * `unpriced`: catalog trip remains visible on Results; live occupancy is outside
+   * the proven price route, so no price is shown.
+   * `unavailable`: live was attempted for this occupancy and failed, or the proven
+   * occupancy cannot build a live context. Hidden on Results.
    */
-  livePriceStatus?: 'proven' | 'unavailable' | 'catalog';
-  livePriceSource?: 'receipt' | 'lowestpricesacco' | 'getPromotedPrice' | 'feed' | 'search';
+  livePriceStatus?: 'proven' | 'unavailable' | 'catalog' | 'unpriced';
+  livePriceSource?: 'receipt' | 'lowestpricesacco' | 'upsales' | 'getPromotedPrice' | 'feed' | 'search';
 
   // Hotelkwaliteit
   stars?: number | null;
@@ -84,6 +92,11 @@ export interface TravelOffer {
   // Affiliate
   deepLink: string;
   affiliateCampaignId?: string;
+  arrivalAirport?: string;
+  feedSourceId?: string;
+  listingHost?: string;
+  providerListings?: ProviderListing[];
+  localizedDescriptions?: Record<string, string>;
 
   // Toekomstige scores
   departureWindowStart?: string;

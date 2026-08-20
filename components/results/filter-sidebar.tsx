@@ -495,45 +495,6 @@ export function FilterSidebar({
     setOpenLocationGroups((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const clearAllFilters = () => {
-    if (navigationLockRef.current || filterBusy) {
-      return;
-    }
-
-    const params = new URLSearchParams(searchParams.toString());
-    for (const key of [
-      'country',
-      'region',
-      'city',
-      'budgetMin',
-      'budgetMax',
-      'nightsMin',
-      'nightsMax',
-      'stars',
-      'boardTypes',
-      'accommodationTypes',
-      'vacationTypes',
-      'beachLocation',
-      'centerLocation',
-      'seaView',
-      'amenities',
-      'hasCarRental',
-      'departureAirport',
-    ]) {
-      params.delete(key);
-    }
-    applyFilterNavigationPaging(params, {
-      preservePage1Ids: true,
-      liveQuery: typeof window === 'undefined' ? undefined : window.location.search,
-    });
-    const query = params.toString();
-    navigationLockRef.current = true;
-    setIsNavigating(true);
-    startTransition(() => {
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    });
-  };
-
   const [draftBudget, setDraftBudget] = useState({
     min: filters.budgetMin,
     max: filters.budgetMax,
@@ -925,15 +886,6 @@ export function FilterSidebar({
           </div>
         </Accordion>
 
-        <div className="py-4">
-          <button
-            type="button"
-            onClick={clearAllFilters}
-            className="w-full rounded-[10px] border border-[#D9E0EA] bg-white px-3 py-2.5 text-[14px] font-medium text-[#0A2D62] transition hover:bg-[#F8FAFC]"
-          >
-            Wis alle filters
-          </button>
-        </div>
       </div>
 
       <ResultsWhyCard />
