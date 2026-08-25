@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
 import {
+  RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS,
   RESULTS_LIVE_PRICE_TTL_MS,
   applyResultsLivePriceOverlays,
   clearResultsLivePriceCache,
@@ -70,6 +71,27 @@ test('expired overlay is a miss and is dropped', () => {
   setResultsLivePriceNowMsForTests(t0 + RESULTS_LIVE_PRICE_TTL_MS + 1);
   assert.equal(hasResultsLivePriceOverlay('pv-1', occupancy), false);
   assert.equal(getResultsLivePriceOverlay('pv-1', occupancy), undefined);
+});
+
+test('technical C failure TTL expires far sooner than proven 8h TTL', () => {
+  const t0 = 2_000_000;
+  setResultsLivePriceNowMsForTests(t0);
+  setResultsLivePriceOverlay(
+    'eliza-1',
+    occupancy,
+    {
+      price: 599,
+      pricePerDay: 86,
+      livePriceStatus: 'unavailable',
+      livePriceFailureReason: 'timeout',
+    },
+    { ttlMs: RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS },
+  );
+  setResultsLivePriceOverlay('eliza-proven', occupancy, proven);
+  setResultsLivePriceNowMsForTests(t0 + RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS + 1);
+  assert.equal(hasResultsLivePriceOverlay('eliza-1', occupancy), false);
+  assert.equal(hasResultsLivePriceOverlay('eliza-proven', occupancy), true);
+  assert.ok(RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS < RESULTS_LIVE_PRICE_TTL_MS);
 });
 
 test('overlay application uses cached live price for ranking inputs', () => {

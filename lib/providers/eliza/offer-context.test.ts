@@ -100,6 +100,20 @@ test('occupancy: default 2A only; 4p/2r needs party DOBs', () => {
     assert.equal(twoAdults.mode, 'feed-two-adults');
   }
   assert.equal(resolveElizaLiveOccupancy({ adults: 2, children: 1 }).ok, false);
+  const twoAdultsOneChild = resolveElizaLiveOccupancy({
+    adults: 2,
+    children: 1,
+    rooms: 1,
+    party: [
+      { dateOfBirth: '1986-01-01', roomIndex: 0 },
+      { dateOfBirth: '1986-01-01', roomIndex: 0 },
+      { dateOfBirth: '2024-06-01', roomIndex: 0 },
+    ],
+  });
+  assert.equal(twoAdultsOneChild.ok, true);
+  if (twoAdultsOneChild.ok && twoAdultsOneChild.mode === 'party') {
+    assert.equal(twoAdultsOneChild.participants.length, 3);
+  }
   assert.equal(resolveElizaLiveOccupancy({ adults: 2, babies: 1 }).ok, false);
   assert.equal(resolveElizaLiveOccupancy({ adults: 2, rooms: 2 }).ok, false);
   assert.equal(resolveElizaLiveOccupancy({ adults: 3 }).ok, false);

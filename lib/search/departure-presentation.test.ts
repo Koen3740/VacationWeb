@@ -11,13 +11,29 @@ test('vaste zoekdatum → Vertrek op DD/MM/YYYY (ISO)', () => {
   assert.equal(result.phrase, 'Vertrek op 28/08/2026');
 });
 
-test('echte datumrange → Vertrek tussen DD/MM/YYYY en DD/MM/YYYY', () => {
+test('echte datumrange zonder offer → Vertrek tussen DD/MM/YYYY en DD/MM/YYYY', () => {
   const result = formatDeparturePresentation({
     departureStart: '2026-08-28',
     departureEnd: '2026-09-02',
   });
   assert.equal(result.mode, 'period');
   assert.equal(result.phrase, 'Vertrek tussen 28/08/2026 en 02/09/2026');
+});
+
+test('flexibel zoekvenster + concrete offerdatum → Vertrek op offerdatum', () => {
+  const a = formatDeparturePresentation(
+    { departureStart: '2026-08-26', departureEnd: '2026-09-02' },
+    '2026-08-29',
+  );
+  assert.equal(a.mode, 'exact');
+  assert.equal(a.phrase, 'Vertrek op 29/08/2026');
+  assert.equal(a.phrase?.includes('tussen'), false);
+
+  const b = formatDeparturePresentation(
+    { departureStart: '2026-08-26', departureEnd: '2026-09-02' },
+    '2026-09-01',
+  );
+  assert.equal(b.phrase, 'Vertrek op 01/09/2026');
 });
 
 test('flexibele zoekdatum zonder start/eind: offerdatum als Vertrek op, nooit tussen', () => {
@@ -46,7 +62,7 @@ test('Corendon-feeddatum DD/MM/YYYY is not parsed as US MM/DD', () => {
     { departureStart: '28/08/2026', departureEnd: '28/08/2026' },
     '17/11/2026',
   );
-  assert.equal(result.phrase, 'Vertrek op 28/08/2026');
+  assert.equal(result.phrase, 'Vertrek op 17/11/2026');
 });
 
 test('Sunweb/Eliza ISO offer date fallback when search has no window', () => {

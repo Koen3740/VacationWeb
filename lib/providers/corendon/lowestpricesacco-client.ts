@@ -1,3 +1,4 @@
+import '@/lib/http/prefer-ipv4';
 import type { FetchLike } from '../prijsvrij/auth';
 import {
   CORENDON_DEFAULT_2A_PARTY,
@@ -18,13 +19,26 @@ export type CorendonLowestHop = {
   nights: number;
 };
 
+export type CorendonLivePricePerPersonField =
+  | 'upsales.displayedPricePerPerson'
+  | 'display.totalDividedByPax';
+
 export type CorendonLivePriceResult =
   | {
       ok: true;
       pricePerPerson: number;
+      /**
+       * Upsales display p.p. provenance only.
+       * `display.totalDividedByPax` is not a Corendon-supplied p.p. field
+       * and must never be written back as liveTotalPrice.
+       */
+      pricePerPersonField?: CorendonLivePricePerPersonField;
       tripCode: string;
       source: CorendonLivePriceSource;
       hop?: CorendonLowestHop;
+      /** Provider upsales total only. Never lowest × pax. */
+      totalPrice?: number;
+      totalPriceField?: 'upsales.totalPrice' | 'upsales.realTimeBlankPrice';
     }
   | {
       ok: false;
@@ -155,7 +169,7 @@ function hopFromTrip(trip: {
 
 /**
  * Proven Corendon Feed→Live hop: productURL fragment → Base64 hash → lowestpricesacco.
- * Occupancy-specific 4-pax quotes use upsales after this hop (`fetchCorendonLivePrice`).
+ * Occupancy-specific quotes (2A / 2A+1C / 4p with party ISO DOBs) use upsales after this hop (`fetchCorendonLivePrice`).
  */
 export async function fetchCorendonLowestpricesaccoPrice(
   ctx: CorendonLiveContext,

@@ -119,10 +119,51 @@ function okBody(price = 876, tripCode = `${FRAGMENT_BRU}.BRUCFU4C.CFU`) {
     package: {
       lowestPriceTrip: {
         tripDepartureDate: '2026-08-27T00:00:00',
-        trip: { price, tripCode },
+        trip: {
+          price,
+          tripCode,
+          tripUrlHash: `[filters]BEL/BRU.*.*.*.0|||${tripCode}|||true`,
+          priceTableDate: '20260827',
+          durationInDays: 5,
+        },
       },
     },
   });
+}
+
+function okUpsalesBody(pricePerPerson = 876, totalPrice = 1752, tripCode = `${FRAGMENT_BRU}.BRUCFU4C.CFU`) {
+  return JSON.stringify({
+    result: {
+      extendedTripCode: tripCode,
+      prices: {
+        totalPrice,
+        priceTableCalculatedPricePerPerson: pricePerPerson,
+      },
+      selectedTripCudl: {
+        selectedTrip: {
+          system: { request: { departureDate: '2026-08-27' } },
+        },
+      },
+    },
+  });
+}
+
+function listingBoundFetch(onLowestHost?: (host: string) => Response | void): typeof fetch {
+  return async (input) => {
+    const url = new URL(String(input));
+    const host = url.searchParams.get('originalHost') ?? '';
+    if (String(input).includes('lowestpricesacco')) {
+      const override = onLowestHost?.(host);
+      if (override) {
+        return override;
+      }
+      return new Response(okBody(), { status: 200 });
+    }
+    if (String(input).includes('/upsales')) {
+      return new Response(okUpsalesBody(), { status: 200 });
+    }
+    throw new Error(`unexpected fetch ${String(input)}`);
+  };
 }
 
 test('BE-NL listing builds www.corendon.be live context', () => {
@@ -172,13 +213,15 @@ test('click-out uses the same listing as the live-price source', async () => {
   }, {
     fetchImpl: async (input) => {
       const url = new URL(String(input));
-      hosts.push(url.searchParams.get('originalHost') ?? '');
-      return new Response(okBody(), { status: 200 });
+      if (String(input).includes('lowestpricesacco')) {
+        hosts.push(url.searchParams.get('originalHost') ?? '');
+      }
+      return listingBoundFetch()(input);
     },
   });
 
   assert.equal(priced.livePriceStatus, 'proven');
-  assert.equal(priced.livePriceSource, 'lowestpricesacco');
+  assert.equal(priced.livePriceSource, 'upsales');
   assert.equal(priced.price, 876);
   assert.notEqual(priced.price, 458);
   assert.equal(hosts[0], priced.listingHost);
@@ -229,6 +272,11 @@ test('room count uses proven nested partyComposition on lowestpricesacco', () =>
     ],
   });
   assert.ok(ctx);
+  assert.equal(ctx.pricingRoute, 'upsales');
+  assert.deepEqual(ctx.upsalesPax, [
+    { birthDate: '1975-03-12', roomNr: 1 },
+    { birthDate: '1978-06-04', roomNr: 2 },
+  ]);
   assert.deepEqual(ctx.partyComposition, CORENDON_TWO_ROOM_2A_PARTY);
   const url = new URL(buildCorendonLowestpricesaccoUrl(ctx));
   assert.equal(url.searchParams.get('partyComposition'), JSON.stringify(CORENDON_TWO_ROOM_2A_PARTY));
@@ -304,7 +352,48 @@ test('Detail click-out keeps Results occupancy and selected listing host', async
   });
   const parsed = parseSearchParams(Object.fromEntries(new URL(href, 'https://vacationmap.be').searchParams));
   const priced = await priceOfferForDetail(makeOffer(), parsed, {
-    fetchImpl: async () => new Response(okBody(), { status: 200 }),
+    fetchImpl: async (input) => {
+      const url = String(input);
+      if (url.includes('lowestpricesacco')) {
+        return new Response(
+          JSON.stringify({
+            package: {
+              lowestPriceTrip: {
+                tripDepartureDate: '2026-08-27T00:00:00',
+                trip: {
+                  price: 876,
+                  tripCode: `${FRAGMENT_BRU}.BRUCFU4C.CFU`,
+                  tripUrlHash: `[filters]BEL/BRU.*.*.*.0|||${FRAGMENT_BRU}.BRUCFU4C.CFU|||true`,
+                  priceTableDate: '20260827',
+                  durationInDays: 5,
+                },
+              },
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      if (url.includes('/upsales')) {
+        return new Response(
+          JSON.stringify({
+            result: {
+              extendedTripCode: `${FRAGMENT_BRU}.BRUCFU4C.CFU`,
+              prices: {
+                totalPrice: 1424,
+                priceTableCalculatedPricePerPerson: 710,
+              },
+              selectedTripCudl: {
+                selectedTrip: {
+                  system: { request: { departureDate: '2026-08-27' } },
+                },
+              },
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    },
   });
   assert.equal(parsed.adults, 2);
   assert.equal(parsed.party?.length, 2);
@@ -324,7 +413,7 @@ test('unique BE-FR-only offer keeps fr.corendon.be for live and click-out', asyn
     fetchImpl: async (input) => {
       const url = new URL(String(input));
       assert.equal(url.searchParams.get('originalHost'), CORENDON_FE_HOST_BE_FR);
-      return new Response(okBody(), { status: 200 });
+      return listingBoundFetch()(input);
     },
   });
   assert.equal(priced.listingHost, CORENDON_FE_HOST_BE_FR);
@@ -339,11 +428,17 @@ test('live waterfall uses next listing when the preferred host is empty', async 
   }, {
     fetchImpl: async (input) => {
       const host = new URL(String(input)).searchParams.get('originalHost') ?? '';
-      hosts.push(host);
-      if (host === CORENDON_FE_HOST) {
-        return new Response(null, { status: 204 });
+      if (String(input).includes('lowestpricesacco')) {
+        hosts.push(host);
+        if (host === CORENDON_FE_HOST) {
+          return new Response(null, { status: 204 });
+        }
+        return new Response(okBody(), { status: 200 });
       }
-      return new Response(okBody(), { status: 200 });
+      if (String(input).includes('/upsales')) {
+        return new Response(okUpsalesBody(), { status: 200 });
+      }
+      throw new Error(`unexpected fetch ${String(input)}`);
     },
   });
   assert.deepEqual(hosts, [CORENDON_FE_HOST, CORENDON_FE_HOST_NL]);

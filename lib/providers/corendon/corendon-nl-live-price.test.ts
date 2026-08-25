@@ -13,6 +13,7 @@ import {
   unwrapCorendonProductUrl,
 } from './offer-context';
 import {
+  priceLiveRequiredMatchset,
   pricePage1WithPrijsvrijReceipts,
   startPage1ReceiptStream,
 } from '../prijsvrij/page1-receipt-pricing';
@@ -123,16 +124,23 @@ test('NL hash request uses www.corendon.nl host and same lowestpricesacco contra
 test('NL success: proven + lowestpricesacco; feed price not used', async () => {
   const page = await pricePage1WithPrijsvrijReceipts(
     [makeNlOffer({ price: 405 })],
-    { adults: 2 },
+    { adults: 2, rooms: 2 },
     {
       fetchImpl: async () => new Response(okNlBody({ price: 512 }), { status: 200 }),
     },
   );
-  assert.equal(page.length, 1);
-  assert.equal(page[0].livePriceStatus, 'proven');
-  assert.equal(page[0].livePriceSource, 'lowestpricesacco');
-  assert.equal(page[0].price, 512);
-  assert.notEqual(page[0].price, 405);
+  assert.equal(page.length, 0);
+  const [priced] = await priceLiveRequiredMatchset(
+    [makeNlOffer({ price: 405 })],
+    { adults: 2, rooms: 2 },
+    {
+      fetchImpl: async () => new Response(okNlBody({ price: 512 }), { status: 200 }),
+    },
+  );
+  assert.equal(priced.livePriceStatus, 'proven');
+  assert.equal(priced.livePriceSource, 'lowestpricesacco');
+  assert.equal(priced.price, 512);
+  assert.notEqual(priced.price, 405);
 });
 
 test('NL tripCode match required: date / airport / acco mismatch is not live', async () => {
@@ -187,7 +195,7 @@ test('NL 204 / malformed / API failure: offer not presented, no feed fallback', 
 test('NL stream: valid offer is pending live slot; failure is not presented', async () => {
   const stream = startPage1ReceiptStream(
     [makeNlOffer(), { ...makeNlOffer(), id: 'sunweb-a', provider: 'Sunweb', deepLink: 'https://example.com' }],
-    { adults: 2 },
+    { adults: 2, rooms: 2 },
     { fetchImpl: async () => new Response(okNlBody(), { status: 200 }) },
   );
   const pending = stream.slots.filter((slot) => slot.kind === 'pending');

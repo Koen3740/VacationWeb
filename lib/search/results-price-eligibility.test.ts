@@ -44,8 +44,10 @@ test('eligibility counts unique offers, not repeated rows', () => {
     id: 'corendon-1',
     provider: CORENDON_PROVIDER_NAME,
     livePriceStatus: 'proven',
-    livePriceSource: 'lowestpricesacco',
-    price: 876,
+    livePriceSource: 'upsales',
+    price: 626,
+    liveTotalPrice: 1893,
+    liveTotalPriceField: 'upsales.totalPrice',
   });
   const snapshot = measureResultsPriceEligibility([proven, { ...proven }], { adults: 2, rooms: 1 });
   assert.equal(snapshot.uniqueOffers, 1);
@@ -61,8 +63,10 @@ test('UNPRICED / UNAVAILABLE / feed without proof are excluded from Results', ()
       id: 'cor-ok',
       provider: CORENDON_PROVIDER_NAME,
       livePriceStatus: 'proven',
-      livePriceSource: 'lowestpricesacco',
-      price: 876,
+      livePriceSource: 'upsales',
+      price: 626,
+      liveTotalPrice: 1893,
+      liveTotalPriceField: 'upsales.totalPrice',
     }),
     makeOffer({
       id: 'cor-unpriced',
@@ -89,6 +93,8 @@ test('UNPRICED / UNAVAILABLE / feed without proof are excluded from Results', ()
       livePriceStatus: 'proven',
       livePriceSource: 'getPromotedPrice',
       price: 672,
+      liveTotalPrice: 1901,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
     }),
     makeOffer({
       id: 'pv-unpriced',

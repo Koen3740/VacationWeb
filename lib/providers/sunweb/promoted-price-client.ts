@@ -19,7 +19,7 @@ export type SunwebLivePriceResult =
   | {
       ok: true;
       pricePerPerson: number;
-      totalPrice: number;
+      totalPrice?: number;
       accoId: string;
     }
   | {
@@ -262,7 +262,9 @@ export async function fetchSunwebPromotedPrice(
     return {
       ok: true,
       pricePerPerson: live.averagePrice,
-      totalPrice: live.totalPrice,
+      ...(Number.isFinite(live.totalPrice) && live.totalPrice > 0
+        ? { totalPrice: live.totalPrice }
+        : {}),
       accoId: live.accommodationId,
     };
   } catch (error) {

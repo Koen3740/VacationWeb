@@ -11,6 +11,11 @@ export type ProviderListing = {
 export interface StoredOffer {
   externalId: string;
   provider: string;
+  /**
+   * Additive Gate 0B identity for versioned detail-store addressing.
+   * Does not replace externalId / URL identity / live extractors.
+   */
+  canonicalOfferIdentity?: string;
 
   hotelName: string;
   accommodation?: string;

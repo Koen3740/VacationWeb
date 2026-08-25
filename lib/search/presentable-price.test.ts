@@ -7,6 +7,7 @@ import type { TravelOffer } from '@/types/travel';
 import {
   clearLivePriceInflightForTests,
   presentCatalogPage1WithoutLivePricing,
+  priceLiveRequiredMatchset,
   pricePage1WithPrijsvrijReceipts,
   resolveResultsPageSlice,
   startPage1ReceiptStream,
@@ -15,13 +16,23 @@ import { PRIJSVRIJ_PROVIDER_NAME } from '@/lib/providers/prijsvrij/constants';
 import { clearPrijsvrijReceiptTokenCache } from '@/lib/providers/prijsvrij/receipt-auth';
 import { clearResultsLivePriceCache } from '@/lib/search/results-live-price-cache';
 import { priceOfferForDetail } from '@/lib/search/price-offer-for-detail';
+import { SUNWEB_PRODUCT_URL } from '../providers/sunweb/offer-context.test';
+import {
+  echoGroupedPricesFromUrl,
+  okPromotedBody as okSunwebPromotedBody,
+  SUNWEB_LANDING_HTML,
+} from '../providers/sunweb/promoted-price-client.test';
 import { sortOffers } from '@/lib/search/filtering';
+import { rankLivePricedCandidatePool } from '@/lib/search/prepare-results-offers';
 import {
   ELIZA_PROVIDER_NAME,
   RESULTS_PRICE_COPY,
   filterToPresentableOffers,
   filterToResultsVisibleOffers,
+  hasProvenLiveDisplayPrice,
+  hasProvenLiveTotalPrice,
   hasValidPresentablePrice,
+  isResultsListableOffer,
   isResultsVisibleOffer,
   isUnpricedResultsOffer,
   isValidNumericPrice,
@@ -116,6 +127,15 @@ function makeLiveFetch(options: {
 }): typeof fetch {
   return async (input) => {
     const url = String(input);
+    if (url.includes('GetPromotedPriceApi')) {
+      return new Response(okSunwebPromotedBody(), { status: 200 });
+    }
+    if (url.includes('GetPricesGroupedByDurationApi')) {
+      return new Response(echoGroupedPricesFromUrl(url), { status: 200 });
+    }
+    if (url.includes('sunweb.be') && !url.includes('/api/')) {
+      return new Response(SUNWEB_LANDING_HTML, { status: 200 });
+    }
     if (url.includes('lowestpricesacco')) {
       const status = options.lowestStatus ?? 200;
       if (status === 204) {
@@ -144,7 +164,7 @@ beforeEach(() => {
   clearLivePriceInflightForTests();
 });
 
-test('1. Prijsvrij Receipt success → offer zichtbaar', async () => {
+test('1. Prijsvrij Receipt success remains internally proven; Results still parks the provider', async () => {
   clearPrijsvrijReceiptTokenCache();
   const page = await pricePage1WithPrijsvrijReceipts(
     [makeOffer({ id: 'prijsvrij-100-x', provider: PRIJSVRIJ_PROVIDER_NAME, price: 999 })],
@@ -209,17 +229,27 @@ test('6. Prijsvrij catalog/unavailable is never presentable', () => {
   );
 });
 
-test('7. Corendon live success → offer zichtbaar', async () => {
+test('7. Corendon 2A without DOB is presentable only when upsales supplies a provider total', async () => {
   const page = await pricePage1WithPrijsvrijReceipts(
     [makeCorendonOffer({ price: 458 })],
     { adults: 2 },
     { fetchImpl: makeLiveFetch({}) },
   );
   assert.equal(page.length, 1);
-  assert.equal(page[0].livePriceStatus, 'proven');
-  assert.equal(page[0].livePriceSource, 'lowestpricesacco');
-  assert.equal(page[0].price, 876);
-  assert.ok(hasValidPresentablePrice(page[0]));
+  assert.equal(page[0].livePriceSource, 'upsales');
+  assert.equal(hasValidPresentablePrice(page[0]), true);
+
+  const [lowestOnly] = await priceLiveRequiredMatchset(
+    [makeCorendonOffer({ price: 458 })],
+    { adults: 2, rooms: 2 },
+    { fetchImpl: makeLiveFetch({}) },
+  );
+  assert.equal(lowestOnly.livePriceStatus, 'proven');
+  assert.equal(lowestOnly.livePriceSource, 'lowestpricesacco');
+  assert.equal(lowestOnly.price, 876);
+  assert.equal(hasProvenLiveDisplayPrice(lowestOnly), true);
+  assert.equal(hasProvenLiveTotalPrice(lowestOnly), false);
+  assert.equal(hasValidPresentablePrice(lowestOnly), false);
 });
 
 test('8-10. Corendon live failure → niet zichtbaar; geen feed fallback', async () => {
@@ -266,6 +296,8 @@ test('11-12. Sunweb live success zichtbaar; live failure niet', () => {
     price: 1250,
     livePriceStatus: 'proven',
     livePriceSource: 'getPromotedPrice',
+    liveTotalPrice: 5000,
+    liveTotalPriceField: 'getPromotedPrice.totalPrice',
   });
   const failure = makeOffer({
     id: 'sun-fail',
@@ -285,6 +317,8 @@ test('13-14. Eliza live success zichtbaar; live failure en catalog niet', () => 
     price: 1100,
     livePriceStatus: 'proven',
     livePriceSource: 'getPromotedPrice',
+    liveTotalPrice: 2200,
+    liveTotalPriceField: 'getPromotedPrice.totalPrice',
   });
   const failure = makeOffer({
     id: 'eliza-fail',
@@ -353,6 +387,8 @@ test('16-17. Fast catalog filters keep valid price semantics and do not invent u
       boardType: 'All Inclusive',
       livePriceStatus: 'proven',
       livePriceSource: 'getPromotedPrice',
+      liveTotalPrice: 2500,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
     }),
   ];
 
@@ -394,6 +430,8 @@ test('19-20. Price sort low→high and high→low only includes numeric presenta
       price: 1450,
       livePriceStatus: 'proven',
       livePriceSource: 'getPromotedPrice',
+      liveTotalPrice: 2900,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
     }),
     makeOffer({
       id: 'mid',
@@ -401,6 +439,8 @@ test('19-20. Price sort low→high and high→low only includes numeric presenta
       price: 1300,
       livePriceStatus: 'proven',
       livePriceSource: 'getPromotedPrice',
+      liveTotalPrice: 2600,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
     }),
     makeOffer({
       id: 'low',
@@ -426,11 +466,13 @@ test('19-20. Price sort low→high and high→low only includes numeric presenta
   assert.ok(presentable.every((offer) => isValidNumericPrice(offer.price)));
   assert.ok(!presentable.some((offer) => offer.id.startsWith('hidden')));
 
+  assert.deepEqual(presentable.map((offer) => offer.id).sort(), ['high', 'mid']);
+
   const lowToHigh = sortOffers(presentable, 'price');
-  assert.deepEqual(lowToHigh.map((offer) => offer.price), [1250, 1300, 1450]);
+  assert.deepEqual(lowToHigh.map((offer) => offer.price), [1300, 1450]);
 
   const highToLow = sortOffers(presentable, 'price-desc');
-  assert.deepEqual(highToLow.map((offer) => offer.price), [1450, 1300, 1250]);
+  assert.deepEqual(highToLow.map((offer) => offer.price), [1450, 1300]);
 });
 
 test('21. Package-1: Receipt success stays, failure is reserved, no redesign of caps', async () => {
@@ -466,8 +508,12 @@ test('22. Package-2A: non-PV presentable cards stay immediate; failed live slots
   const immediate = stream.slots.filter((slot) => slot.kind === 'immediate');
   assert.equal(
     immediate.some((slot) => slot.kind === 'immediate' && slot.offer.provider === SUNWEB_PROVIDER_NAME),
-    false,
+    true,
   );
+  if (immediate.some((slot) => slot.offer.provider === SUNWEB_PROVIDER_NAME)) {
+    const sunweb = immediate.find((slot) => slot.offer.provider === SUNWEB_PROVIDER_NAME);
+    assert.equal(sunweb?.offer.livePriceStatus, 'unavailable');
+  }
   const presented = await stream.presented;
   assert.ok(presented.page1.every(hasValidPresentablePrice));
   assert.equal(presented.page1.some((offer) => offer.provider === SUNWEB_PROVIDER_NAME), false);
@@ -544,6 +590,8 @@ test('Corendon proven upsales is a presentable live price', () => {
         livePriceStatus: 'proven',
         livePriceSource: 'upsales',
         price: 600,
+        liveTotalPrice: 1893,
+        liveTotalPriceField: 'upsales.totalPrice',
       }),
     ),
     true,
@@ -606,6 +654,8 @@ test('1. SUCCESS → kaart zichtbaar + prijs', () => {
     price: 1100,
     livePriceStatus: 'proven',
     livePriceSource: 'getPromotedPrice',
+    liveTotalPrice: 2200,
+    liveTotalPriceField: 'getPromotedPrice.totalPrice',
   });
   assert.equal(hasValidPresentablePrice(offer), true);
   assert.equal(isResultsVisibleOffer(offer), true);
@@ -625,6 +675,23 @@ test('3. UNAVAILABLE → kaart niet zichtbaar', () => {
   assert.equal(hasValidPresentablePrice(offer), false);
   assert.equal(isResultsVisibleOffer(offer), false);
   assert.equal(resultsPricePresentation(offer), 'unavailable');
+});
+
+test('3b. provider-confirmed unavailable is not Results-listable; timeout still is', () => {
+  const confirmed = makeCorendonOffer({
+    livePriceStatus: 'unavailable',
+    livePriceFailureReason: 'no_trip',
+    price: 458,
+  });
+  assert.equal(isResultsListableOffer(confirmed), false);
+
+  const timedOut = makeCorendonOffer({
+    livePriceStatus: 'unavailable',
+    livePriceFailureReason: 'timeout',
+    price: 458,
+  });
+  assert.equal(isResultsListableOffer(timedOut), true);
+  assert.equal(resultsPricePresentation(timedOut), 'unavailable');
 });
 
 test('4. ERROR → kaart niet zichtbaar', () => {
@@ -673,24 +740,41 @@ test('6. Feedprijs zonder live bewijs → kaart niet zichtbaar', () => {
   );
 });
 
-test('7. 2A/1R Sunweb zonder bewezen live p.p.-prijs → niet op Results', async () => {
+test('7. 2A/1R Sunweb with proven GetPromotedPrice is presentable on Results', async () => {
   const page = await pricePage1WithPrijsvrijReceipts(
-    [makeOffer({ id: 'sunweb-84012', provider: SUNWEB_PROVIDER_NAME, price: 427 })],
-    { adults: 2, rooms: 1 },
-    { fetchImpl: makeLiveFetch({}) },
-  );
-  assert.equal(page.length, 0);
-});
-
-test('8. 2A/1R Corendon SUCCESS → zichtbaar', async () => {
-  const page = await pricePage1WithPrijsvrijReceipts(
-    [makeCorendonOffer({ price: 458 })],
+    [
+      makeOffer({
+        id: 'sunweb-84012',
+        provider: SUNWEB_PROVIDER_NAME,
+        price: 427,
+        deepLink: SUNWEB_PRODUCT_URL,
+      }),
+    ],
     { adults: 2, rooms: 1 },
     { fetchImpl: makeLiveFetch({}) },
   );
   assert.equal(page.length, 1);
-  assert.equal(page[0].livePriceSource, 'lowestpricesacco');
-  assert.equal(resultsPricePresentation(page[0]), 'amount');
+  assert.equal(page[0].livePriceSource, 'getPromotedPrice');
+  assert.ok(hasValidPresentablePrice(page[0]));
+});
+
+test('8. 2A/1R Corendon lowest source without a provider total is not presentable', async () => {
+  const page = await pricePage1WithPrijsvrijReceipts(
+    [makeCorendonOffer({ price: 458 })],
+    { adults: 2, rooms: 2 },
+    { fetchImpl: makeLiveFetch({}) },
+  );
+  assert.equal(page.length, 0);
+  assert.equal(
+    hasValidPresentablePrice(
+      makeCorendonOffer({
+        livePriceStatus: 'proven',
+        livePriceSource: 'lowestpricesacco',
+        price: 876,
+      }),
+    ),
+    false,
+  );
 });
 
 test('9. 2A/1R Eliza SUCCESS → zichtbaar', () => {
@@ -700,6 +784,8 @@ test('9. 2A/1R Eliza SUCCESS → zichtbaar', () => {
     price: 672,
     livePriceStatus: 'proven',
     livePriceSource: 'getPromotedPrice',
+    liveTotalPrice: 1901,
+    liveTotalPriceField: 'getPromotedPrice.totalPrice',
   });
   assert.equal(isResultsVisibleOffer(offer), true);
   assert.equal(resultsPricePresentation(offer), 'amount');
@@ -712,6 +798,8 @@ test('10. 4P/2R Sunweb SUCCESS → zichtbaar', () => {
     price: 1250,
     livePriceStatus: 'proven',
     livePriceSource: 'getPromotedPrice',
+    liveTotalPrice: 5000,
+    liveTotalPriceField: 'getPromotedPrice.totalPrice',
   });
   assert.equal(hasValidPresentablePrice(offer), true);
   assert.equal(isResultsVisibleOffer(offer), true);
@@ -725,6 +813,8 @@ test('11. 4P/2R Eliza SUCCESS → zichtbaar', () => {
     price: 890,
     livePriceStatus: 'proven',
     livePriceSource: 'getPromotedPrice',
+    liveTotalPrice: 3560,
+    liveTotalPriceField: 'getPromotedPrice.totalPrice',
   });
   assert.equal(isResultsVisibleOffer(offer), true);
   assert.equal(resultsPricePresentation(offer), 'amount');
@@ -737,6 +827,8 @@ test('12. 4P/2R Corendon SUCCESS → zichtbaar', () => {
         livePriceStatus: 'proven',
         livePriceSource: 'upsales',
         price: 600,
+        liveTotalPrice: 2400,
+        liveTotalPriceField: 'upsales.totalPrice',
       }),
     ),
     true,
@@ -770,7 +862,7 @@ test('14. Prijsvrij blijft PARKED: catalog is not presentable and Detail does no
   assert.equal(hasValidPresentablePrice(detail), false);
 });
 
-test('15. Price sorting bevat uitsluitend offers met bewezen prijs', () => {
+test('15. Price sorting behoudt catalogusoffers; presentable sorteert vooraan', () => {
   const offers = [
     makeOffer({
       id: 'proven',
@@ -778,6 +870,8 @@ test('15. Price sorting bevat uitsluitend offers met bewezen prijs', () => {
       price: 1250,
       livePriceStatus: 'proven',
       livePriceSource: 'getPromotedPrice',
+      liveTotalPrice: 5000,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
     }),
     makeOffer({
       id: 'feed',
@@ -786,10 +880,16 @@ test('15. Price sorting bevat uitsluitend offers met bewezen prijs', () => {
       livePriceStatus: 'catalog',
       livePriceSource: 'feed',
     }),
-    makeCorendonOffer({ livePriceStatus: 'unpriced', price: 90 }),
+    makeCorendonOffer({ id: 'corendon-unpriced', livePriceStatus: 'unpriced', price: 90 }),
   ];
   const presentable = filterToPresentableOffers(offers);
   assert.deepEqual(presentable.map((offer) => offer.id), ['proven']);
+  const ranked = rankLivePricedCandidatePool(offers, { adults: 2, sort: 'price' });
+  assert.equal(ranked.length, 3);
+  assert.equal(ranked[0].id, 'proven');
+  assert.equal(hasValidPresentablePrice(ranked[0]), true);
+  assert.equal(hasValidPresentablePrice(ranked[1]), false);
+  assert.equal(hasValidPresentablePrice(ranked[2]), false);
   assert.deepEqual(sortOffers(presentable, 'price').map((offer) => offer.id), ['proven']);
 });
 
@@ -841,6 +941,8 @@ test('10. Eliza proven live price blijft zichtbaar', () => {
         price: 1100,
         livePriceStatus: 'proven',
         livePriceSource: 'getPromotedPrice',
+        liveTotalPrice: 2200,
+        liveTotalPriceField: 'getPromotedPrice.totalPrice',
       }),
     ),
     'amount',

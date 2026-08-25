@@ -9,20 +9,22 @@ import {
 } from '@/lib/search/presentable-price';
 import { applyResultsLivePriceOverlay } from '@/lib/search/results-live-price-cache';
 import type { SearchParams, TravelOffer } from '@/types/travel';
-import { isSunwebFourTravellerTwoRoomSearch } from '@/lib/providers/sunweb';
+import { resolveSunwebLiveOccupancy } from '@/lib/providers/sunweb';
 
 function withCatalogPriceHidden(offer: TravelOffer): TravelOffer {
   return {
     ...offer,
     livePriceStatus: 'unavailable',
     livePriceSource: undefined,
+    liveTotalPrice: undefined,
+    liveTotalPriceField: undefined,
   };
 }
 
 /**
  * Detail uses the same live overlay as Results for Corendon / Eliza /
- * Sunweb 4 travellers / 2 rooms. Prijsvrij Receipt is PARKED: reuse a proven
- * cache hit only; never call Receipt; never present feed € as live.
+ * and proven Sunweb PromotedPrice occupancies. Prijsvrij Receipt is PARKED:
+ * reuse a proven cache hit only; never call Receipt; never present feed € as live.
  */
 export async function priceOfferForDetail(
   offer: TravelOffer,
@@ -44,7 +46,7 @@ export async function priceOfferForDetail(
     return priced;
   }
 
-  if (offer.provider === SUNWEB_PROVIDER_NAME && isSunwebFourTravellerTwoRoomSearch(params)) {
+  if (offer.provider === SUNWEB_PROVIDER_NAME && resolveSunwebLiveOccupancy(params).ok) {
     const [priced] = await priceLiveRequiredMatchset([offer], params, {
       fetchImpl: options.fetchImpl,
     });

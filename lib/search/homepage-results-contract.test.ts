@@ -32,6 +32,27 @@ function hrefQuery(href: string): Record<string, string | string[] | undefined> 
   return record;
 }
 
+test('homepage 2 adults with real DOBs reach Results party unchanged', () => {
+  const href = buildResultsHref({
+    ...createDefaultSharedSearchState(),
+    travelers: {
+      travellers: [
+        { id: 't-1', dateOfBirth: '1980-03-12' },
+        { id: 't-2', dateOfBirth: '1982-08-07' },
+      ],
+      roomCount: 1,
+      roomAssignments: [0, 0],
+    },
+  });
+  const query = hrefQuery(href);
+  assert.equal(query.dob, '1980-03-12,1982-08-07');
+  const params = parseSearchParams(query);
+  assert.deepEqual(params.party, [
+    { dateOfBirth: '1980-03-12', roomIndex: 0 },
+    { dateOfBirth: '1982-08-07', roomIndex: 0 },
+  ]);
+});
+
 test('homepage default search carries 2 adults into Results params', () => {
   const href = buildResultsHref(createDefaultSharedSearchState());
   assert.match(href, /^\/results\?/);

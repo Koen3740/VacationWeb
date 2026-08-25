@@ -3,12 +3,11 @@ import { priceLiveRequiredMatchset, stampUnpricedWhenLiveOccupancyUnsupported } 
 import type { SearchParams, TravelOffer } from '../../types/travel';
 import { filterOffers, sortOffers } from './filtering';
 import { limitRankedResultsForPagination, paginateResults } from './pagination';
-import { isSunwebFourTravellerTwoRoomSearch } from '../providers/sunweb';
+import { requiresSunwebResultsLivePrice } from '../providers/sunweb';
 import {
   CORENDON_PROVIDER_NAME,
   ELIZA_PROVIDER_NAME,
   hasValidPresentablePrice,
-  isResultsVisibleOffer,
   PRIJSVRIJ_PROVIDER_NAME,
   SUNWEB_PROVIDER_NAME,
 } from './presentable-price';
@@ -44,14 +43,17 @@ export function rankCatalogOffers(
 
 /**
  * Live-price ranking of an already-selected candidate pool.
- * Only proven live p.p. prices may participate in price sorting.
+ * Proven live prices sort first; catalog offers without a proven price stay
+ * in the matchset (not removed) and follow in catalog order.
  */
 export function rankLivePricedCandidatePool(
   pool: readonly TravelOffer[],
   params: SearchParams,
 ): TravelOffer[] {
   const overlaid = applyResultsLivePriceOverlays(pool, params);
-  return sortOffers(overlaid.filter(hasValidPresentablePrice), params.sort);
+  const presentable = sortOffers(overlaid.filter(hasValidPresentablePrice), params.sort);
+  const notPresentable = overlaid.filter((offer) => !hasValidPresentablePrice(offer));
+  return [...presentable, ...notPresentable];
 }
 
 export function offerNeedsLivePriceWork(offer: TravelOffer, params: SearchParams): boolean {
@@ -62,7 +64,7 @@ export function offerNeedsLivePriceWork(offer: TravelOffer, params: SearchParams
     offer.provider === PRIJSVRIJ_PROVIDER_NAME ||
     offer.provider === CORENDON_PROVIDER_NAME ||
     offer.provider === ELIZA_PROVIDER_NAME ||
-    (offer.provider === SUNWEB_PROVIDER_NAME && isSunwebFourTravellerTwoRoomSearch(params))
+    (offer.provider === SUNWEB_PROVIDER_NAME && requiresSunwebResultsLivePrice(params))
   );
 }
 
@@ -79,25 +81,18 @@ export function slicePriceSortPoolPage(
   ranked: readonly TravelOffer[],
   page: number,
   pageSize: number,
-  options: { provisional: boolean; params?: SearchParams },
+  _options: { provisional: boolean; params?: SearchParams } = { provisional: false },
 ): {
   visibleOffers: TravelOffer[];
   page1Ids: string[];
   paginationTotal: number;
 } {
   const pool = limitRankedResultsForPagination(ranked as TravelOffer[]);
-  const list = options.provisional
-    ? pool.filter(
-        (offer) =>
-          isResultsVisibleOffer(offer) ||
-          (options.params != null && offerNeedsLivePriceWork(offer, options.params)),
-      )
-    : pool.filter(isResultsVisibleOffer);
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
   return {
-    visibleOffers: paginateResults(list, safePage, pageSize),
-    page1Ids: list.slice(0, pageSize).map((offer) => offer.id),
-    paginationTotal: list.length,
+    visibleOffers: paginateResults(pool, safePage, pageSize),
+    page1Ids: paginateResults(pool, 1, pageSize).map((offer) => offer.id),
+    paginationTotal: pool.length,
   };
 }
 
@@ -105,13 +100,17 @@ export function slicePriceSortPoolPage(
  * Results request ranking with live-price coordination.
  *
  * Non-price sorts (Recommended, stars, …): rank immediately and schedule
- * full-matchset live pricing in the background. Page 1 must not wait.
+ * full-matchset live pricing in the background (not awaited). Page overlays
+ * (`startCatalogPageLiveOverlays`) still give the current page priority and
+ * join the same cache / in-flight maps.
  *
  * Price-dependent sorts: from the CURRENT catalog-filtered matchset, take the
  * maximum-150 candidate pool and return that catalog ranking immediately.
  * Live pricing of that pool continues on the same request; `exactOffers`
  * resolves to the exact live ranking when every pool candidate has a terminal
  * live result. A previous request's 150 is not the next filter's universe.
+ * That 150-pool is a price-sort await path; Recommended uses the full filtered
+ * matchset as the background coverage set.
  */
 export async function prepareResultsOffers(
   offers: readonly TravelOffer[],

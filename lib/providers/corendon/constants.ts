@@ -28,6 +28,16 @@ export const CORENDON_LIVE_PAGE1_CONCURRENCY = 5;
  */
 export const CORENDON_DEFAULT_2A_PARTY = [['1-1-19860', '1-1-19861']] as const;
 /**
+ * Technical adult occupancy classification for standard 2A pricing only
+ * (2 adults / 1 room / 0 children / 0 babies, no user-entered ISO DOBs).
+ *
+ * Observed as Corendon's own Reisgezelschap default when a traveller is
+ * added without an entered date of birth. Used only as upsales
+ * `pax[].birthDate` input. Not a stored or displayed personal DOB.
+ * Not applied to children or babies.
+ */
+export const CORENDON_ADULT_REFERENCE_DOB = '1986-01-01';
+/**
  * Proven 2-adult / 2-room nested partyComposition (Bijbel §10.3).
  * Nested arrays are rooms; tokens are the same proven placeholders, not user DOBs.
  */

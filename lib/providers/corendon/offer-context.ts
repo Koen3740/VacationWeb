@@ -2,6 +2,7 @@ import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import type { ProviderListing } from '../../feeds/types/stored-offer';
 import type { SearchParams } from '../../../types/travel';
 import {
+  CORENDON_ADULT_REFERENCE_DOB,
   CORENDON_ALLOWED_FE_HOSTS,
   CORENDON_DEFAULT_2A_PARTY,
   CORENDON_FE_HOST_BE_FR,
@@ -34,7 +35,7 @@ export type CorendonLiveContext = {
   feHost: CorendonFeHost;
   listing?: ProviderListing;
   partyComposition?: readonly (readonly string[])[];
-  /** Default `lowest`. `upsales` = 4 travellers / 2 rooms using SearchParams.party DOBs. */
+  /** Default `lowest`. `upsales` = user ISO DOBs, or standard 2A adult-reference occupancy. */
   pricingRoute?: 'lowest' | 'upsales';
   upsalesPax?: readonly CorendonUpsalesPax[];
 };
@@ -119,7 +120,7 @@ export function corendonFragmentDateToIso(dateYymmdd: string): string | null {
 
 export type CorendonLiveOccupancy =
   | { ok: true; roomCount: 1 | 2; pricingRoute: 'lowest' }
-  | { ok: true; roomCount: 2; pricingRoute: 'upsales'; pax: CorendonUpsalesPax[] };
+  | { ok: true; roomCount: 1 | 2; pricingRoute: 'upsales'; pax: CorendonUpsalesPax[] };
 
 const ISO_DOB = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -127,15 +128,38 @@ function isIsoDob(value: string | null | undefined): value is string {
   return typeof value === 'string' && ISO_DOB.test(value);
 }
 
+function adultReferenceUpsalesPax(): CorendonUpsalesPax[] {
+  return [
+    { birthDate: CORENDON_ADULT_REFERENCE_DOB, roomNr: 1 },
+    { birthDate: CORENDON_ADULT_REFERENCE_DOB, roomNr: 1 },
+  ];
+}
+
+function canUseAdultReferenceDob(
+  params: Pick<SearchParams, 'children' | 'babies'>,
+  roomCount: 1 | 2,
+): boolean {
+  return roomCount === 1 && (params.children ?? 0) === 0 && (params.babies ?? 0) === 0;
+}
+
 /**
  * Proven live occupancy:
- * - 2 travellers / 1 room → lowestpricesacco CORENDON_DEFAULT_2A_PARTY
- * - 2 travellers / 2 rooms → lowestpricesacco CORENDON_TWO_ROOM_2A_PARTY (Bijbel §10.3)
+ * - 2 travellers / 1 room with party ISO DOBs → lowestpricesacco hop + upsales pax
+ *   (Bijbel §8.4 evidence 13 occupancy A: totalPrice 1424, not table-pp × 2)
+ * - 2 travellers / 2 rooms with party ISO DOBs → lowestpricesacco hop + upsales pax
+ *   (Bijbel §10.3 pax[].roomNr; lowest hop still uses CORENDON_TWO_ROOM_2A_PARTY)
+ * - standard 2A / 1 room / 0C / 0B without user ISO DOBs → same upsales route
+ *   with CORENDON_ADULT_REFERENCE_DOB (technical adult classification only)
+ * - one of two adult ISO DOBs missing → lowestpricesacco only
+ * - 2 rooms without ISO DOBs → lowestpricesacco only
+ * - 2A+1C / 1 room with party ISO DOBs → lowestpricesacco hop + upsales pax
+ *   (Bijbel §8.4; evidence 13: totalPrice 1424 → 1893)
  * - 4 travellers / 2 rooms with party ISO DOBs → lowestpricesacco hop + upsales pax
  *   (Bijbel §8.4 occupancy-price on upsales; §10.3 pax[].roomNr multi-room)
  *
- * Real ISO DOBs are never rewritten into lowestpricesacco partyComposition tokens.
- * Missing party DOBs are not filled with placeholders.
+ * Real user ISO DOBs are never rewritten into lowestpricesacco partyComposition
+ * tokens and always win over the adult reference DOB. The reference DOB is not
+ * applied to children or babies.
  */
 export function resolveCorendonLiveOccupancy(
   params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
@@ -166,17 +190,74 @@ export function resolveCorendonLiveOccupancy(
         })),
       };
     }
+    if (party.length === 3) {
+      if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
+        return { ok: false, reason: 'invalid_occupancy' };
+      }
+      const rooms = new Set(party.map((traveller) => traveller.roomIndex));
+      if (rooms.size !== 1) {
+        return { ok: false, reason: 'invalid_occupancy' };
+      }
+      const roomIndex = party[0]?.roomIndex;
+      if (roomIndex !== 0 && roomIndex !== 1) {
+        return { ok: false, reason: 'invalid_occupancy' };
+      }
+      return {
+        ok: true,
+        roomCount: 1,
+        pricingRoute: 'upsales',
+        pax: party.map((traveller) => ({
+          birthDate: traveller.dateOfBirth as string,
+          roomNr: 1 as const,
+        })),
+      };
+    }
     if (party.length !== 2) {
       return { ok: false, reason: 'invalid_occupancy' };
     }
     const distinctRooms = new Set(party.map((traveller) => traveller.roomIndex));
-    if (distinctRooms.size === 1) {
-      return { ok: true, roomCount: 1, pricingRoute: 'lowest' };
+    const roomCount: 1 | 2 | null =
+      distinctRooms.size === 1 ? 1 : distinctRooms.size === 2 ? 2 : null;
+    if (!roomCount) {
+      return { ok: false, reason: 'invalid_occupancy' };
     }
-    if (distinctRooms.size === 2) {
-      return { ok: true, roomCount: 2, pricingRoute: 'lowest' };
+    for (const traveller of party) {
+      if (traveller.roomIndex !== 0 && traveller.roomIndex !== 1) {
+        return { ok: false, reason: 'invalid_occupancy' };
+      }
     }
-    return { ok: false, reason: 'invalid_occupancy' };
+    if (roomCount === 2) {
+      const roomCounts = [0, 0];
+      for (const traveller of party) {
+        roomCounts[traveller.roomIndex] += 1;
+      }
+      if (roomCounts[0] < 1 || roomCounts[1] < 1) {
+        return { ok: false, reason: 'invalid_occupancy' };
+      }
+    }
+    if (party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
+      return {
+        ok: true,
+        roomCount,
+        pricingRoute: 'upsales',
+        pax: party.map((traveller) => ({
+          birthDate: traveller.dateOfBirth as string,
+          roomNr: (roomCount === 1 ? 1 : traveller.roomIndex + 1) as 1 | 2,
+        })),
+      };
+    }
+    if (
+      canUseAdultReferenceDob(params, roomCount) &&
+      party.every((traveller) => !isIsoDob(traveller.dateOfBirth))
+    ) {
+      return {
+        ok: true,
+        roomCount: 1,
+        pricingRoute: 'upsales',
+        pax: adultReferenceUpsalesPax(),
+      };
+    }
+    return { ok: true, roomCount, pricingRoute: 'lowest' };
   }
 
   const adults = params.adults ?? 2;
@@ -198,7 +279,12 @@ export function resolveCorendonLiveOccupancy(
   }
 
   if (rooms === 1) {
-    return { ok: true, roomCount: 1, pricingRoute: 'lowest' };
+    return {
+      ok: true,
+      roomCount: 1,
+      pricingRoute: 'upsales',
+      pax: adultReferenceUpsalesPax(),
+    };
   }
   if (rooms === 2) {
     return { ok: true, roomCount: 2, pricingRoute: 'lowest' };

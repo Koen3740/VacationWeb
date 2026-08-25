@@ -123,6 +123,8 @@ test('fast catalog refine with page1Ids does 0 live HTTP for stars / board / vac
       hotelName: 'Adults Only Resort',
       livePriceStatus: 'proven',
       livePriceSource: 'getPromotedPrice',
+      liveTotalPrice: 1901,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
       hasCarRental: true,
     }),
     makeOffer({
@@ -133,6 +135,8 @@ test('fast catalog refine with page1Ids does 0 live HTTP for stars / board / vac
       hotelName: 'Family Hotel',
       livePriceStatus: 'proven',
       livePriceSource: 'getPromotedPrice',
+      liveTotalPrice: 1600,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
     }),
     ...Array.from({ length: 12 }, (_, index) =>
       makeOffer({
@@ -191,6 +195,8 @@ test('presentCatalogPage1WithoutLivePricing re-filters the full catalog, not onl
       price: 400 + index,
       livePriceStatus: 'proven',
       livePriceSource: 'getPromotedPrice',
+      liveTotalPrice: 1600 + index,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
     }),
   );
   const fiveStar = offers.filter((offer) => offer.stars === 5);

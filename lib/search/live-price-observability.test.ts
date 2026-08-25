@@ -3,6 +3,7 @@ import { beforeEach, test } from 'node:test';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 import {
   clearLivePriceInflightForTests,
+  priceLiveRequiredMatchset,
   pricePage1WithPrijsvrijReceipts,
 } from '@/lib/providers/prijsvrij';
 import { PRIJSVRIJ_PROVIDER_NAME } from '@/lib/providers/prijsvrij/constants';
@@ -19,6 +20,7 @@ import {
   classifyLivePriceFailure,
   clearLivePriceObservabilityForTests,
   getLivePriceObservabilitySnapshot,
+  isRetryableTechnicalLivePriceFailure,
   livePriceTelemetryContainsPersonalData,
   recordLivePriceAttempt,
   type LivePriceAttemptEvent,
@@ -158,6 +160,14 @@ test('status definitions are strict and not interchangeable', () => {
     status: LIVE_PRICE_ATTEMPT_STATUS.ERROR,
     reason: LIVE_PRICE_ATTEMPT_REASON.stale_context,
   });
+  assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'timeout' }), true);
+  assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'network_error' }), true);
+  assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'exception' }), true);
+  assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'http_error', httpStatus: 503 }), true);
+  assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'http_error', httpStatus: 429 }), true);
+  assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'http_error', httpStatus: 404 }), false);
+  assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'empty', httpStatus: 204 }), false);
+  assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'unavailable_trip' }), false);
   assert.notEqual(
     classifyLivePriceFailure({ reason: 'empty', httpStatus: 204 }).status,
     LIVE_PRICE_ATTEMPT_STATUS.UNPRICED,
@@ -170,10 +180,17 @@ test('proven 2A Corendon live price → SUCCESS', async () => {
     { adults: 2, rooms: 1 },
     { fetchImpl: makeLiveFetch() },
   );
+  const [priced] = await priceLiveRequiredMatchset(
+    [makeCorendonOffer()],
+    { adults: 2, rooms: 1 },
+    { fetchImpl: makeLiveFetch() },
+  );
 
   assert.equal(page.length, 1);
-  assert.equal(page[0].livePriceStatus, 'proven');
-  assert.equal(isResultsVisibleOffer(page[0]), true);
+  assert.equal(priced.livePriceStatus, 'proven');
+  assert.equal(priced.livePriceSource, 'upsales');
+  assert.equal(isResultsVisibleOffer(priced), true);
+  assert.equal(hasValidPresentablePrice(priced), true);
 
   const snapshot = getLivePriceObservabilitySnapshot();
   assert.equal(snapshot.attempts, 1);

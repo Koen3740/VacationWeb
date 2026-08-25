@@ -11,16 +11,22 @@ import {
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
 import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { carRentalIncludedLabel } from '@/lib/offers/has-car-rental';
+import { formatNightsLabel } from '@/lib/offers/offer-detail-view';
 import { buildOfferDetailHref } from '@/lib/search/pagination';
 import { formatOfferDepartureAirportLabel } from '@/lib/search/departure-airports';
 import { formatDeparturePresentation } from '@/lib/search/departure-presentation';
 import {
   RESULTS_PRICE_COPY,
-  isResultsVisibleOffer,
-  resultsPricePresentation,
+  hasValidPresentablePrice,
+  isResultsListableOffer,
+  isUnpricedResultsOffer,
 } from '@/lib/search/presentable-price';
+import { cardBlurbForDutchUi, preferredDutchLocalizedText } from '@/lib/offers/ui-locale';
+import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
+import { canonicalizeRegionName } from '@/lib/offers/canonical-region';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 import Link from 'next/link';
+import React from 'react';
 
 function ratingLabel(rating: number | null | undefined): string {
   if (rating == null) return '';
@@ -105,10 +111,10 @@ function HeartButton() {
 
 /** Prefer island/province over broad archipelago region labels (e.g. Balearen → Mallorca). */
 function formatCardLocation(offer: TravelOffer): string {
-  const region = offer.destinationRegion?.trim() || '';
+  const region = canonicalizeRegionName(offer.destinationRegion);
   const province = offer.destinationProvince?.trim() || '';
   const city = offer.destinationCity?.trim() || '';
-  const country = offer.destinationCountry?.trim() || '';
+  const country = canonicalizeCountryName(offer.destinationCountry?.trim() || '');
 
   const ARCHIPELAGO_REGIONS = new Set([
     'balearen',
@@ -143,16 +149,16 @@ export function TravelCard({
   provisional?: boolean;
   searchParams?: SearchParams;
 }) {
-  const priceKind = resultsPricePresentation(offer, { provisional });
-  if (!isResultsVisibleOffer(offer)) {
-    const pendingLiveCall =
-      provisional &&
-      offer.livePriceStatus !== 'unpriced' &&
-      offer.livePriceStatus !== 'unavailable';
-    if (!pendingLiveCall) {
-      return null;
-    }
+  if (!isResultsListableOffer(offer)) {
+    return null;
   }
+  const priceKind = hasValidPresentablePrice(offer)
+    ? 'amount'
+    : provisional && offer.livePriceStatus !== 'unpriced' && offer.livePriceStatus !== 'unavailable'
+      ? 'pending'
+      : isUnpricedResultsOffer(offer)
+        ? 'unpriced'
+        : 'unavailable';
 
   const location = formatCardLocation(offer);
   const stars = offer.stars && offer.stars > 0 ? offer.stars : 0;
@@ -161,8 +167,13 @@ export function TravelCard({
   const airport = formatOfferDepartureAirportLabel(offer);
   const images = collectImages(offer);
   const departurePhrase = formatDeparturePresentation(searchParams, offer.departureDate).phrase;
-  const shortDescriptionRaw = plainTextSnippet(offer.descriptionShort);
-  const extraInfoRaw = plainTextSnippet(offer.extraInfo);
+  const localizedDutch = preferredDutchLocalizedText(offer.localizedDescriptions);
+  const shortDescriptionRaw = cardBlurbForDutchUi(
+    offer,
+    plainTextSnippet(localizedDutch || offer.descriptionShort),
+    { allowLocalizedFallback: true },
+  );
+  const extraInfoRaw = cardBlurbForDutchUi(offer, plainTextSnippet(offer.extraInfo));
   const shortDescription = isCardBlurbUseful(shortDescriptionRaw) ? shortDescriptionRaw : undefined;
   const extraInfo =
     isCardBlurbUseful(extraInfoRaw) &&
@@ -179,7 +190,7 @@ export function TravelCard({
 
   const metaLine = [
     accommodationType,
-    `${offer.nights} nachten`,
+    formatNightsLabel(offer.nights, offer.durationType, offer.provider),
     offer.boardType,
     flightLabel,
     carRentalLabel,

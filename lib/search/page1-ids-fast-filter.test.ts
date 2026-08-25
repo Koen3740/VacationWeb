@@ -21,6 +21,22 @@ import { hasValidPresentablePrice } from './presentable-price';
 
 const CORENDON_HOTEL_IDS = [9514, 9515, 9516, 9517, 9518, 9519, 9520, 9521, 9522, 9523] as const;
 
+const FOUR_PAX_TWO_ROOMS: Pick<SearchParams, 'adults' | 'children' | 'rooms' | 'party'> = {
+  adults: 2,
+  children: 2,
+  rooms: 2,
+  party: [
+    { dateOfBirth: '1990-01-15', roomIndex: 0 },
+    { dateOfBirth: '1988-03-03', roomIndex: 0 },
+    { dateOfBirth: '2014-06-14', roomIndex: 1 },
+    { dateOfBirth: '2018-01-22', roomIndex: 1 },
+  ],
+};
+
+function withLiveTotalOccupancy(params: SearchParams): SearchParams {
+  return { ...params, ...FOUR_PAX_TWO_ROOMS, page: params.page, page1Ids: params.page1Ids };
+}
+
 function corendonDeepLink(hotelId: number): string {
   return `https://www.corendon.be/vakantie#${hotelId}.COSPY.BRUCFU.270826.3-4-3.SZ-U`;
 }
@@ -47,6 +63,8 @@ function makeSunweb(
       ),
     livePriceStatus: 'proven',
     livePriceSource: 'getPromotedPrice',
+    liveTotalPrice: 1600,
+    liveTotalPriceField: 'getPromotedPrice.totalPrice',
     ...overrides,
   };
 }
@@ -111,12 +129,32 @@ function okLowestBody(price = 876): string {
   });
 }
 
+function okUpsalesBody(pricePerPerson = 600): string {
+  return JSON.stringify({
+    result: {
+      extendedTripCode: '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U.BRUCFU4C.CFU',
+      prices: {
+        totalPrice: pricePerPerson * 4,
+        priceTableCalculatedPricePerPerson: pricePerPerson,
+      },
+      selectedTripCudl: {
+        selectedTrip: {
+          system: { request: { departureDate: '2026-08-27' } },
+        },
+      },
+    },
+  });
+}
+
 function makeLiveFetch(onLowest?: (url: string) => void): typeof fetch {
   return async (input) => {
     const url = String(input);
     if (url.includes('lowestpricesacco')) {
       onLowest?.(url);
       return new Response(okLowestBody(), { status: 200 });
+    }
+    if (url.includes('/upsales')) {
+      return new Response(okUpsalesBody(), { status: 200 });
     }
     throw new Error(`unexpected live HTTP: ${url}`);
   };
@@ -136,12 +174,12 @@ test('A/C: stale page1Ids are not a whitelist; empty presentable page 1 falls ba
   const stale = stalePage1Sunweb();
   const matching = matchingCorendon();
   const catalog = [...stale, ...matching];
-  const params: SearchParams = {
+  const params: SearchParams = withLiveTotalOccupancy({
     adults: 2,
     page: 1,
     page1Ids: stale.map((offer) => offer.id),
     hasCarRental: true,
-  };
+  });
   const filtered = prepareMatchset(catalog, params);
   assert.equal(filtered.length, matching.length);
   assert.equal(
@@ -172,12 +210,12 @@ test('A/C: stale page1Ids are not a whitelist; empty presentable page 1 falls ba
 
 test('B: filtered matchset > 0 must not yield 0 cards solely because page1Ids are stale', async () => {
   const catalog = [...stalePage1Sunweb(), ...matchingCorendon()];
-  const params: SearchParams = {
+  const params: SearchParams = withLiveTotalOccupancy({
     adults: 2,
     page: 1,
     page1Ids: stalePage1Sunweb().map((offer) => offer.id),
     stars: [5],
-  };
+  });
   const filtered = prepareMatchset(catalog, params);
   assert.ok(filtered.length >= 10);
 
@@ -192,15 +230,19 @@ test('D: partial page1Ids overlap keeps presentable matches and fills from the f
   const provenMatches = CORENDON_HOTEL_IDS.slice(0, 2).map((hotelId, index) =>
     makeCorendonLive(hotelId, {
       livePriceStatus: 'proven',
-      livePriceSource: 'lowestpricesacco',
+      livePriceSource: 'upsales',
       price: 700 + index,
+      liveTotalPrice: 2800 + index,
+      liveTotalPriceField: 'upsales.totalPrice',
     }),
   );
   const extraPresentable = CORENDON_HOTEL_IDS.slice(2, 8).map((hotelId, index) =>
     makeCorendonLive(hotelId, {
       livePriceStatus: 'proven',
-      livePriceSource: 'lowestpricesacco',
+      livePriceSource: 'upsales',
       price: 800 + index,
+      liveTotalPrice: 3200 + index,
+      liveTotalPriceField: 'upsales.totalPrice',
     }),
   );
   const staleOthers = stalePage1Sunweb().slice(2);
@@ -252,12 +294,12 @@ test('E: filter off keeps ordinary flight packages visible with stale page1Ids',
 
 test('F: hasCarRental filter on only returns matching offers', async () => {
   const catalog = [...stalePage1Sunweb(), ...matchingCorendon()];
-  const params: SearchParams = {
+  const params: SearchParams = withLiveTotalOccupancy({
     adults: 2,
     page: 1,
     page1Ids: stalePage1Sunweb().map((offer) => offer.id),
     hasCarRental: true,
-  };
+  });
   const filtered = prepareMatchset(catalog, params);
   const slice = await resolveResultsPageSlice(filtered, params, { fetchImpl: makeLiveFetch() });
   assert.ok(slice.visibleOffers.length > 0);
@@ -266,12 +308,12 @@ test('F: hasCarRental filter on only returns matching offers', async () => {
 
 test('G: pagination of the rebuilt set stays inside the filtered remaining', async () => {
   const catalog = [...stalePage1Sunweb(), ...matchingCorendon()];
-  const params: SearchParams = {
+  const params: SearchParams = withLiveTotalOccupancy({
     adults: 2,
     page: 1,
     page1Ids: stalePage1Sunweb().map((offer) => offer.id),
     hasCarRental: true,
-  };
+  });
   const filtered = prepareMatchset(catalog, params);
   const page1 = await resolveResultsPageSlice(filtered, params, { fetchImpl: makeLiveFetch() });
   assert.ok((page1.page1Ids?.length ?? 0) > 0);
@@ -337,10 +379,21 @@ test('K: stars / board / vacation / country with stale disjoint page1Ids are the
   const matching = matchingCorendon();
   const catalog = [...stale, ...matching];
   const cases: SearchParams[] = [
-    { adults: 2, page: 1, page1Ids: stale.map((o) => o.id), stars: [5] },
-    { adults: 2, page: 1, page1Ids: stale.map((o) => o.id), boardTypes: ['All Inclusive'] },
-    { adults: 2, page: 1, page1Ids: stale.map((o) => o.id), country: 'Spanje', stars: [5] },
-    { adults: 2, page: 1, page1Ids: stale.map((o) => o.id), hasCarRental: true },
+    withLiveTotalOccupancy({ adults: 2, page: 1, page1Ids: stale.map((o) => o.id), stars: [5] }),
+    withLiveTotalOccupancy({
+      adults: 2,
+      page: 1,
+      page1Ids: stale.map((o) => o.id),
+      boardTypes: ['All Inclusive'],
+    }),
+    withLiveTotalOccupancy({
+      adults: 2,
+      page: 1,
+      page1Ids: stale.map((o) => o.id),
+      country: 'Spanje',
+      stars: [5],
+    }),
+    withLiveTotalOccupancy({ adults: 2, page: 1, page1Ids: stale.map((o) => o.id), hasCarRental: true }),
   ];
 
   for (const params of cases) {

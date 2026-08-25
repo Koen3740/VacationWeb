@@ -1,4 +1,8 @@
 import type { TravelOffer } from '@/types/travel';
+import {
+  LIVE_PRICE_ATTEMPT_REASON,
+  type LivePriceAttemptReason,
+} from '@/lib/search/live-price-observability';
 
 export const PRIJSVRIJ_PROVIDER_NAME = 'Prijsvrij';
 export const CORENDON_PROVIDER_NAME = 'Corendon';
@@ -15,11 +19,79 @@ export const RESULTS_PRICE_COPY = {
 export type ResultsPricePresentationKind = 'amount' | 'pending' | 'unpriced' | 'unavailable';
 
 /**
+ * Provider confirmed the exact trip is not bookable for this request.
+ * Not timeouts, network errors, missing mapping context, or occupancy-unpriced.
+ */
+const PROVIDER_CONFIRMED_UNAVAILABLE_REASONS: ReadonlySet<string> = new Set([
+  LIVE_PRICE_ATTEMPT_REASON.http_204,
+  LIVE_PRICE_ATTEMPT_REASON.provider_empty,
+  LIVE_PRICE_ATTEMPT_REASON.no_trip,
+  LIVE_PRICE_ATTEMPT_REASON.unavailable_trip,
+  LIVE_PRICE_ATTEMPT_REASON.invalid_price,
+  LIVE_PRICE_ATTEMPT_REASON.empty_receipt,
+  LIVE_PRICE_ATTEMPT_REASON.missing_package,
+  LIVE_PRICE_ATTEMPT_REASON.invalid_total,
+]);
+
+export function isProviderConfirmedUnavailableReason(
+  reason: string | undefined | null,
+): reason is LivePriceAttemptReason {
+  return Boolean(reason && PROVIDER_CONFIRMED_UNAVAILABLE_REASONS.has(reason));
+}
+
+/** Exact trip unavailable per provider live response — not a Results card. */
+export function isProviderConfirmedUnavailable(offer: TravelOffer): boolean {
+  return (
+    offer.livePriceStatus === 'unavailable' &&
+    isProviderConfirmedUnavailableReason(offer.livePriceFailureReason)
+  );
+}
+/**
  * Product rule: only a valid allowed price may be shown.
  * No "Prijs op aanvraag", €0, feed-as-live, Search, or Matrix fallback.
  */
 export function isValidNumericPrice(price: unknown): price is number {
   return typeof price === 'number' && Number.isFinite(price) && price > 0;
+}
+
+/** Prijsvrij is PARKED: not a visible Results provider. Receipt is not a Results price path. */
+export function isParkedResultsProvider(provider: string): boolean {
+  return provider === PRIJSVRIJ_PROVIDER_NAME;
+}
+
+export function excludeParkedResultsProviders<T extends { provider: string }>(
+  offers: readonly T[],
+): T[] {
+  return offers.filter((offer) => !isParkedResultsProvider(offer.provider));
+}
+
+export type LiveTotalPriceField = NonNullable<TravelOffer['liveTotalPriceField']>;
+
+export function isValidLiveTotalAmount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+/**
+ * Proven live package total from the provider response.
+ * Never true for feed / search / matrix / lowestpricesacco / derived pp × pax.
+ */
+export function hasProvenLiveTotalPrice(offer: TravelOffer): boolean {
+  if (!isValidLiveTotalAmount(offer.liveTotalPrice) || offer.livePriceStatus !== 'proven') {
+    return false;
+  }
+  if (offer.livePriceSource === 'upsales') {
+    return (
+      offer.liveTotalPriceField === 'upsales.totalPrice' ||
+      offer.liveTotalPriceField === 'upsales.realTimeBlankPrice'
+    );
+  }
+  if (offer.livePriceSource === 'receipt') {
+    return offer.liveTotalPriceField === 'receipt.TotalInclLocal';
+  }
+  if (offer.livePriceSource === 'getPromotedPrice') {
+    return offer.liveTotalPriceField === 'getPromotedPrice.totalPrice';
+  }
+  return false;
 }
 
 /** Amounts may only come from a proven live-price route. Feed € is never a live amount. */
@@ -28,6 +100,8 @@ export function hasProvenLiveDisplayPrice(offer: TravelOffer): boolean {
     return false;
   }
   if (offer.provider === PRIJSVRIJ_PROVIDER_NAME) {
+    // PARKED for Results via excludeParkedResultsProviders.
+    // Receipt remains the only internally proven Prijsvrij source if ever unparked.
     return offer.livePriceSource === 'receipt';
   }
   if (offer.provider === CORENDON_PROVIDER_NAME) {
@@ -40,11 +114,13 @@ export function hasProvenLiveDisplayPrice(offer: TravelOffer): boolean {
 }
 
 /**
- * Results price-eligibility: a proven live p.p. price for this occupancy.
- * Catalog/feed € is never presentable. UNPRICED / UNAVAILABLE / ERROR are not.
+ * Results admission after the existing live-price flow:
+ * proven live p.p. AND a proven live provider total for this occupancy.
+ * Feed / search / matrix / lowestpricesacco / derived pp × pax never qualify.
+ * Corendon 2A is Results-presentable only when party ISO DOBs produced an upsales total.
  */
 export function hasValidPresentablePrice(offer: TravelOffer): boolean {
-  return hasProvenLiveDisplayPrice(offer);
+  return hasProvenLiveDisplayPrice(offer) && hasProvenLiveTotalPrice(offer);
 }
 
 export function filterToPresentableOffers(offers: TravelOffer[]): TravelOffer[] {
@@ -57,9 +133,8 @@ export function isUnpricedResultsOffer(offer: TravelOffer): boolean {
 }
 
 /**
- * Results shows only offers with a proven live p.p. price.
- * UNPRICED / UNAVAILABLE / ERROR / feed-without-proof are excluded.
- * Pending live slots are handled separately via TravelCard `provisional`.
+ * Live-price overlay gate: the card may show an actuele € only when this is true.
+ * Not a Results list-admission gate. Catalog cards stay visible without this.
  */
 export function isResultsVisibleOffer(offer: TravelOffer): boolean {
   return hasValidPresentablePrice(offer);
@@ -67,6 +142,18 @@ export function isResultsVisibleOffer(offer: TravelOffer): boolean {
 
 export function filterToResultsVisibleOffers(offers: TravelOffer[]): TravelOffer[] {
   return offers.filter(isResultsVisibleOffer);
+}
+
+/** Parked Prijsvrij is not a Results card. Provider-confirmed unavailable is not either. */
+export function isResultsListableOffer(offer: TravelOffer): boolean {
+  if (isParkedResultsProvider(offer.provider)) {
+    return false;
+  }
+  return !isProviderConfirmedUnavailable(offer);
+}
+
+export function filterToResultsListableOffers(offers: TravelOffer[]): TravelOffer[] {
+  return offers.filter(isResultsListableOffer);
 }
 
 /**

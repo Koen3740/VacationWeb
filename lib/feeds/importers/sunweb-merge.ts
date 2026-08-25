@@ -45,17 +45,7 @@ function tradeTrackerToken(deepLink: string): string {
   }
 }
 
-/**
- * Bookable Sunweb identity from landing query, with feed fallbacks for overlay gaps.
- * Hotel name, price, image, description, tt and feed-id are not part of the key.
- * Airport may be absent (SelfDrive); that slot is then SUNWEB_ABSENT_AIRPORT.
- */
-export function resolveSunwebBookableContext(offer: StoredOffer): SunwebBookableContext | null {
-  const accoId = extractSunwebAccommodationId(offer.externalId);
-  if (!accoId) {
-    return null;
-  }
-
+export function resolveSunwebTripFields(offer: StoredOffer): Omit<SunwebBookableContext, 'accoId'> | null {
   const landingDate = readLandingParam(offer.deepLink, 'DepartureDate[0]', 'DepartureDate');
   const landingAirport = readLandingParam(offer.deepLink, 'DepartureAirport[0]', 'DepartureAirport');
   const landingDuration = readLandingParam(offer.deepLink, 'Duration[0]', 'Duration');
@@ -75,11 +65,30 @@ export function resolveSunwebBookableContext(offer: StoredOffer): SunwebBookable
   }
 
   return {
-    accoId,
     departureDate,
     departureAirport: resolvedAirport || SUNWEB_ABSENT_AIRPORT,
     duration,
     board,
+  };
+}
+
+/**
+ * Bookable Sunweb identity from landing query, with feed fallbacks for overlay gaps.
+ * Hotel name, price, image, description, tt and feed-id are not part of the key.
+ * Airport may be absent (SelfDrive); that slot is then SUNWEB_ABSENT_AIRPORT.
+ */
+export function resolveSunwebBookableContext(offer: StoredOffer): SunwebBookableContext | null {
+  const accoId = extractSunwebAccommodationId(offer.externalId);
+  if (!accoId) {
+    return null;
+  }
+  const trip = resolveSunwebTripFields(offer);
+  if (!trip) {
+    return null;
+  }
+  return {
+    accoId,
+    ...trip,
   };
 }
 

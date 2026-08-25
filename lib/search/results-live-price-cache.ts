@@ -10,7 +10,18 @@ export type ResultsLivePriceOverlay = Pick<
   TravelOffer,
   'price' | 'pricePerDay' | 'livePriceStatus' | 'livePriceSource'
 > &
-  Partial<Pick<TravelOffer, 'deepLink' | 'listingHost' | 'feedSourceId' | 'affiliateCampaignId'>>;
+  Partial<
+    Pick<
+      TravelOffer,
+      | 'deepLink'
+      | 'listingHost'
+      | 'feedSourceId'
+      | 'affiliateCampaignId'
+      | 'liveTotalPrice'
+      | 'liveTotalPriceField'
+      | 'livePriceFailureReason'
+    >
+  >;
 
 export type LivePriceCacheParams = Pick<
   SearchParams,
@@ -21,10 +32,13 @@ export type LivePriceCacheParams = Pick<
 
 type CacheEntry = ResultsLivePriceOverlay & {
   cachedAtMs: number;
+  /** When set, overrides {@link RESULTS_LIVE_PRICE_TTL_MS} for this entry. */
+  ttlMs?: number;
 };
 
 /**
- * Reuse window for a live price in the current Node process.
+ * Reuse window for a proven / confirmed-unavailable live result in the current
+ * Node process.
  *
  * No provider quote TTL exists. Receipt JWT (~1h) is auth, not price validity.
  * Product requirement is session-length reuse without minute/hourly re-pricing.
@@ -32,6 +46,13 @@ type CacheEntry = ResultsLivePriceOverlay & {
  * workday-plus-commute gets a refresh; filter/sort within a visit does not.
  */
 export const RESULTS_LIVE_PRICE_TTL_MS = 8 * 60 * 60 * 1000;
+
+/**
+ * Technical (C) failures are not “unavailable for 8h”.
+ * Short TTL keeps the current request / price-sort terminal (same isolate) while
+ * allowing a later search to retry. Not a cooldown — only a soft same-burst mark.
+ */
+export const RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS = 2 * 60 * 1000;
 
 const cache = new Map<string, CacheEntry>();
 let nowMsOverride: number | null = null;
@@ -43,6 +64,10 @@ function nowMs(): number {
 /** Test helper — freeze/advance cache time. Pass null to restore Date.now(). */
 export function setResultsLivePriceNowMsForTests(nowMsValue: number | null): void {
   nowMsOverride = nowMsValue;
+}
+
+function entryTtlMs(entry: CacheEntry): number {
+  return entry.ttlMs ?? RESULTS_LIVE_PRICE_TTL_MS;
 }
 
 function partyFingerprint(params: LivePriceCacheParams): string {
@@ -61,10 +86,7 @@ function occupancyOfferPrefix(offerId: string, params: LivePriceCacheParams): st
 }
 
 function isFresh(entry: CacheEntry): boolean {
-  if (nowMs() - entry.cachedAtMs > RESULTS_LIVE_PRICE_TTL_MS) {
-    return false;
-  }
-  return true;
+  return nowMs() - entry.cachedAtMs <= entryTtlMs(entry);
 }
 
 export function livePriceCacheKey(offerId: string, params: LivePriceCacheParams): string {
@@ -91,6 +113,9 @@ function toOverlay(entry: CacheEntry): ResultsLivePriceOverlay {
     pricePerDay: entry.pricePerDay,
     livePriceStatus: entry.livePriceStatus,
     livePriceSource: entry.livePriceSource,
+    liveTotalPrice: entry.liveTotalPrice,
+    liveTotalPriceField: entry.liveTotalPriceField,
+    livePriceFailureReason: entry.livePriceFailureReason,
     deepLink: entry.deepLink,
     listingHost: entry.listingHost,
     feedSourceId: entry.feedSourceId,
@@ -135,11 +160,12 @@ export function setResultsLivePriceOverlay(
   offerId: string,
   params: LivePriceCacheParams,
   overlay: ResultsLivePriceOverlay,
-  options?: { cachedAtMs?: number },
+  options?: { cachedAtMs?: number; ttlMs?: number },
 ): void {
   cache.set(livePriceCacheKey(offerId, params), {
     ...overlay,
     cachedAtMs: options?.cachedAtMs ?? nowMs(),
+    ...(options?.ttlMs != null ? { ttlMs: options.ttlMs } : {}),
   });
 }
 

@@ -1,3 +1,5 @@
+import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
+import { canonicalizeRegionName } from '@/lib/offers/canonical-region';
 import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { carRentalIncludedLabel } from '@/lib/offers/has-car-rental';
 import {
@@ -10,10 +12,20 @@ import {
   isSunweb,
   isSunwebFourTravellerTwoRoomSearch,
 } from '@/lib/providers/sunweb/offer-context';
+import {
+  catalogDurationUsesDays,
+  catalogReturnDateOffsetDays,
+  formatCatalogDurationDaysLabel,
+} from '@/lib/offers/duration-semantics';
+import { normalizeDepartureDateToIso } from '@/lib/search/departure-date';
 import { formatDateDdMmYyyy, formatDeparturePresentation } from '@/lib/search/departure-presentation';
 import { formatOfferDepartureAirportLabel } from '@/lib/search/departure-airports';
 import { formatOccupancyCompositionNl } from '@/lib/search/occupancy-category';
+import type { ProviderListing } from '@/lib/feeds/types/stored-offer';
 import type { SearchParams, TravelOffer } from '@/types/travel';
+
+/** Caption when Detail shows a proven live amount for the current occupancy. */
+export const DETAIL_LIVE_PRICE_CAPTION = 'Actuele prijs voor deze samenstelling';
 
 export type OfferDetailFact = {
   label: string;
@@ -27,9 +39,9 @@ export function buildGalleryImages(offer: TravelOffer): string[] {
 export function formatDestination(offer: TravelOffer): string {
   const parts = [
     offer.destinationCity,
-    offer.destinationRegion,
+    canonicalizeRegionName(offer.destinationRegion),
     offer.destinationProvince,
-    offer.destinationCountry,
+    canonicalizeCountryName(offer.destinationCountry ?? ''),
   ]
     .map((part) => part?.trim())
     .filter((part): part is string => Boolean(part));
@@ -88,7 +100,44 @@ export function formatDurationType(value: string | undefined): string | undefine
     return undefined;
   }
 
+  const normalized = trimmed.toLowerCase();
+  if (
+    normalized === 'dagen' ||
+    normalized === 'dag' ||
+    normalized === 'days' ||
+    normalized === 'day' ||
+    normalized === 'jours' ||
+    normalized === 'jour'
+  ) {
+    return undefined;
+  }
+
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+export function formatNightsLabel(
+  nights: number | undefined,
+  durationType?: string,
+  provider?: string,
+): string | undefined {
+  if (!nights) {
+    return undefined;
+  }
+  const usesDays = catalogDurationUsesDays({
+    provider: provider ?? '',
+    durationType,
+  });
+  if (usesDays) {
+    const base = formatCatalogDurationDaysLabel(nights);
+    const durationTypeLabel = formatDurationType(durationType);
+    return durationTypeLabel ? `${base} • ${durationTypeLabel}` : base;
+  }
+  const durationTypeLabel = formatDurationType(durationType);
+  return durationTypeLabel ? `${nights} nachten • ${durationTypeLabel}` : `${nights} nachten`;
+}
+
+export function formatOfferReturnDateLabel(offer: TravelOffer): string | undefined {
+  return formatReturnDateLabel(offer.departureDate, catalogReturnDateOffsetDays(offer));
 }
 
 export function formatDepartureAirport(offer: TravelOffer): string | undefined {
@@ -165,13 +214,77 @@ export function formatTravelerLines(params: SearchParams): string[] {
   });
 }
 
+const STYLE_OR_SCRIPT_BLOCK = /<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi;
+const CSS_SELECTOR_BLOCK =
+  /(?:^|[\s>])(?:\.[A-Za-z_-][\w-]*|#[A-Za-z_-][\w-]*)(?:\s+[A-Za-z_-][\w-]*)*\s*\{[^}]*\}/g;
+const CSS_DECLARATION =
+  /(?:^|\s)(?:list-style|margin(?:-[a-z]+)?|padding(?:-[a-z]+)?|font-family|font-size|border(?:-radius|-color|-width|-style)?|content|display|width|height|color|background(?:-color)?|text-align|vertical-align|white-space|letter-spacing|box-sizing|float|clear|position|top|left|right|bottom|z-index|opacity|overflow(?:-[xy])?|flex(?:-direction|-wrap|-grow|-shrink|-basis)?|justify-content|align-items|gap|grid(?:-template(?:-columns|-rows)?)?)\s*:\s*[^;{}]+;?/gi;
+
+export function looksLikeTechnicalDisplayText(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return true;
+  }
+  if (/<style\b|<script\b|<\/style>|<\/script>/i.test(trimmed)) {
+    return true;
+  }
+  if (/(?:^|\s)(?:\.[A-Za-z_-][\w-]*|#[A-Za-z_-][\w-]*)(?:\s|:|\{)/.test(trimmed)) {
+    return true;
+  }
+  if (/[{}].*:.*;/.test(trimmed) && /(?:list-style|font-family|border-radius|margin-left)\s*:/i.test(trimmed)) {
+    return true;
+  }
+  if (/\b(?:undefined|null|\[object Object\])\b/.test(trimmed)) {
+    return true;
+  }
+  return false;
+}
+
+/** Strip feed HTML/CSS so Overview never shows selectors or declarations. */
 export function stripSimpleHtml(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   if (!trimmed) {
     return undefined;
   }
-  const stripped = trimmed.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-  return stripped || undefined;
+
+  let next = trimmed
+    .replace(STYLE_OR_SCRIPT_BLOCK, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ');
+  next = next.replace(CSS_SELECTOR_BLOCK, ' ');
+  next = next.replace(/<[^>]+>/g, ' ');
+  next = next.replace(CSS_DECLARATION, ' ');
+  next = next.replace(/[{}]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  if (!next || looksLikeTechnicalDisplayText(next)) {
+    return undefined;
+  }
+
+  return next;
+}
+
+export function formatReturnDateLabel(
+  departureDate: string | undefined,
+  nights: number | undefined,
+): string | undefined {
+  if (!nights || nights < 1) {
+    return undefined;
+  }
+  const iso = normalizeDepartureDateToIso(departureDate);
+  if (!iso) {
+    return undefined;
+  }
+  const [year, month, day] = iso.split('-').map(Number);
+  if (!year || !month || !day) {
+    return undefined;
+  }
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + nights);
+  return date.toLocaleDateString('nl-NL', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 export function formatCoordinates(
@@ -293,14 +406,17 @@ export function buildBasisFacts(offer: TravelOffer): OfferDetailFact[] {
   return [
     { label: 'Aanbieder', value: offer.provider },
     { label: 'Stad', value: offer.destinationCity },
-    { label: 'Regio', value: offer.destinationRegion },
+    { label: 'Regio', value: canonicalizeRegionName(offer.destinationRegion) || undefined },
     { label: 'Provincie', value: offer.destinationProvince },
-    { label: 'Land', value: offer.destinationCountry },
+    { label: 'Land', value: canonicalizeCountryName(offer.destinationCountry ?? '') || undefined },
     { label: 'Valuta', value: offer.currency?.trim() },
     { label: 'Verzorging', value: offer.boardType },
     { label: 'Accommodatie', value: offer.accommodation },
     { label: 'Accommodatietype', value: offer.accommodationType },
-    { label: 'Aantal nachten', value: offer.nights ? `${offer.nights} nachten` : undefined },
+    {
+      label: catalogDurationUsesDays(offer) ? 'Reisduur' : 'Aantal nachten',
+      value: formatNightsLabel(offer.nights, offer.durationType, offer.provider),
+    },
     { label: 'Duurtype', value: durationTypeLabel },
     { label: 'Vlucht', value: flightIncludedLabel },
     { label: 'Huurauto', value: carRentalIncludedLabel(offer) },
@@ -326,15 +442,41 @@ export function buildBasisFacts(offer: TravelOffer): OfferDetailFact[] {
   ].filter((fact): fact is OfferDetailFact => Boolean(fact.value));
 }
 
+/**
+ * Listing that live-price already bound onto the offer (`listingHost`).
+ * Language/UI must not pick a different host.
+ */
+export function selectedProviderListing(offer: TravelOffer): ProviderListing | undefined {
+  const host = offer.listingHost?.trim().toLowerCase();
+  if (!host || !offer.providerListings?.length) {
+    return undefined;
+  }
+  return offer.providerListings.find(
+    (listing) => listing.host.toLowerCase() === host && listing.deepLink.trim() !== '',
+  );
+}
+
+/** User-facing booking host, without inventing a market label. */
+export function formatListingHostLabel(host: string | undefined): string | undefined {
+  const trimmed = host?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed.replace(/^www\./i, '');
+}
+
+export function bookingCtaLabel(offer: TravelOffer): string {
+  return `Boek bij ${offer.provider}`;
+}
+
+export function bookingVacationCtaLabel(offer: TravelOffer): string {
+  return `Boek deze vakantie bij ${offer.provider}`;
+}
+
 export function affiliateHref(offer: TravelOffer, params?: SearchParams): string | undefined {
-  if (offer.listingHost && offer.providerListings?.length) {
-    const host = offer.listingHost.toLowerCase();
-    const selected = offer.providerListings.find(
-      (listing) => listing.host.toLowerCase() === host && listing.deepLink.trim() !== '',
-    );
-    if (selected) {
-      return selected.deepLink.trim();
-    }
+  const selected = selectedProviderListing(offer);
+  if (selected) {
+    return selected.deepLink.trim();
   }
 
   if (

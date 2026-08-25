@@ -121,7 +121,36 @@ function readNumber(value: unknown): number | null {
   return numeric;
 }
 
-function readUpsalesPricePerPerson(json: unknown, paxCount: number): number | null {
+function readUpsalesTotal(json: unknown): {
+  amount: number;
+  field: 'upsales.totalPrice' | 'upsales.realTimeBlankPrice';
+} | null {
+  const root = readUpsalesRoot(json);
+  if (!root) {
+    return null;
+  }
+  const prices = (root.prices && typeof root.prices === 'object' ? root.prices : {}) as Record<
+    string,
+    unknown
+  >;
+  const total = readNumber(prices.totalPrice ?? root.totalPrice);
+  if (total) {
+    return { amount: total, field: 'upsales.totalPrice' };
+  }
+  const realtime = readNumber(prices.realTimeBlankPrice ?? root.realTimeBlankPrice);
+  if (realtime) {
+    return { amount: realtime, field: 'upsales.realTimeBlankPrice' };
+  }
+  return null;
+}
+
+function readUpsalesPricePerPerson(
+  json: unknown,
+  paxCount: number,
+): {
+  amount: number;
+  field: 'upsales.displayedPricePerPerson' | 'display.totalDividedByPax';
+} | null {
   const root = readUpsalesRoot(json);
   if (!root) {
     return null;
@@ -132,17 +161,15 @@ function readUpsalesPricePerPerson(json: unknown, paxCount: number): number | nu
   >;
   const displayed = readNumber(root.displayedPricePerPerson ?? prices.displayedPricePerPerson);
   if (displayed) {
-    return displayed;
+    return { amount: displayed, field: 'upsales.displayedPricePerPerson' };
   }
-  const tablePp = readNumber(
-    prices.priceTableCalculatedPricePerPerson ?? root.priceTableCalculatedPricePerPerson,
-  );
-  if (tablePp) {
-    return tablePp;
-  }
-  const total = readNumber(prices.totalPrice);
+  // priceTableCalculatedPricePerPerson is table-calc, not selected booking p.p.
+  const total = readUpsalesTotal(json);
   if (total && paxCount > 0) {
-    return Math.round(total / paxCount);
+    return {
+      amount: Math.round(total.amount / paxCount),
+      field: 'display.totalDividedByPax',
+    };
   }
   return null;
 }
@@ -212,8 +239,8 @@ export async function fetchCorendonUpsalesPrice(
       return { ok: false, reason: 'empty', httpStatus: 200 };
     }
 
-    const pricePerPerson = readUpsalesPricePerPerson(json, paxCount);
-    if (pricePerPerson == null) {
+    const displayPp = readUpsalesPricePerPerson(json, paxCount);
+    if (displayPp == null) {
       return { ok: false, reason: 'invalid_price', httpStatus: 200 };
     }
 
@@ -223,12 +250,17 @@ export async function fetchCorendonUpsalesPrice(
       return { ok: false, reason: 'stale_context', httpStatus: 200 };
     }
 
+    const total = readUpsalesTotal(json);
     return {
       ok: true,
-      pricePerPerson,
+      pricePerPerson: displayPp.amount,
+      pricePerPersonField: displayPp.field,
       tripCode,
       source: 'upsales',
       hop,
+      ...(total
+        ? { totalPrice: total.amount, totalPriceField: total.field }
+        : {}),
     };
   } catch (error) {
     if (isTimeoutError(error)) {

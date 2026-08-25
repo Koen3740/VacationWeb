@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import {
+  CORENDON_ADULT_REFERENCE_DOB,
   CORENDON_TWO_ROOM_2A_PARTY,
 } from './constants';
 import {
@@ -69,33 +70,146 @@ test('parseCorendonUrlFragment: empty airport route is not a live-price fragment
   assert.equal(parsed, null);
 });
 
-test('occupancy: 2A 1-room or proven 2-room; children/extra pax invalid', () => {
+test('occupancy: 2A 1-room or proven 2-room; children without party DOBs invalid', () => {
   assert.equal(resolveCorendonLiveOccupancy({}).ok, true);
   assert.equal(resolveCorendonLiveOccupancy({ adults: 2 }).ok, true);
   assert.equal(resolveCorendonLiveOccupancy({ adults: 2, rooms: 2 }).ok, true);
-  assert.equal(
-    resolveCorendonLiveOccupancy({
-      party: [
-        { dateOfBirth: '1975-03-12', roomIndex: 0 },
-        { dateOfBirth: '1978-06-04', roomIndex: 1 },
-      ],
-    }).ok,
-    true,
-  );
+  const twoAdultsNoDob = resolveCorendonLiveOccupancy({
+    adults: 2,
+    children: 0,
+    babies: 0,
+    rooms: 1,
+    party: [
+      { dateOfBirth: null, roomIndex: 0 },
+      { dateOfBirth: null, roomIndex: 0 },
+    ],
+  });
+  assert.equal(twoAdultsNoDob.ok, true);
+  if (twoAdultsNoDob.ok) {
+    assert.equal(twoAdultsNoDob.pricingRoute, 'upsales');
+    assert.equal(twoAdultsNoDob.roomCount, 1);
+    if (twoAdultsNoDob.pricingRoute === 'upsales') {
+      assert.deepEqual(twoAdultsNoDob.pax, [
+        { birthDate: CORENDON_ADULT_REFERENCE_DOB, roomNr: 1 },
+        { birthDate: CORENDON_ADULT_REFERENCE_DOB, roomNr: 1 },
+      ]);
+    }
+  }
+  const twoAdultsNoParty = resolveCorendonLiveOccupancy({
+    adults: 2,
+    children: 0,
+    babies: 0,
+    rooms: 1,
+  });
+  assert.equal(twoAdultsNoParty.ok, true);
+  if (twoAdultsNoParty.ok) {
+    assert.equal(twoAdultsNoParty.pricingRoute, 'upsales');
+    if (twoAdultsNoParty.pricingRoute === 'upsales') {
+      assert.deepEqual(twoAdultsNoParty.pax, [
+        { birthDate: CORENDON_ADULT_REFERENCE_DOB, roomNr: 1 },
+        { birthDate: CORENDON_ADULT_REFERENCE_DOB, roomNr: 1 },
+      ]);
+    }
+  }
+  const twoRoomsNoDob = resolveCorendonLiveOccupancy({
+    adults: 2,
+    children: 0,
+    babies: 0,
+    rooms: 2,
+  });
+  assert.equal(twoRoomsNoDob.ok, true);
+  if (twoRoomsNoDob.ok) {
+    assert.equal(twoRoomsNoDob.pricingRoute, 'lowest');
+    assert.equal('pax' in twoRoomsNoDob, false);
+  }
+  const twoAdultsIso = resolveCorendonLiveOccupancy({
+    party: [
+      { dateOfBirth: '1980-03-12', roomIndex: 0 },
+      { dateOfBirth: '1982-08-07', roomIndex: 0 },
+    ],
+  });
+  assert.equal(twoAdultsIso.ok, true);
+  if (twoAdultsIso.ok) {
+    assert.equal(twoAdultsIso.pricingRoute, 'upsales');
+    assert.equal(twoAdultsIso.roomCount, 1);
+    if (twoAdultsIso.pricingRoute === 'upsales') {
+      assert.deepEqual(twoAdultsIso.pax, [
+        { birthDate: '1980-03-12', roomNr: 1 },
+        { birthDate: '1982-08-07', roomNr: 1 },
+      ]);
+    }
+  }
+  const twoAdultsTwoRooms = resolveCorendonLiveOccupancy({
+    party: [
+      { dateOfBirth: '1975-03-12', roomIndex: 0 },
+      { dateOfBirth: '1978-06-04', roomIndex: 1 },
+    ],
+  });
+  assert.equal(twoAdultsTwoRooms.ok, true);
+  if (twoAdultsTwoRooms.ok) {
+    assert.equal(twoAdultsTwoRooms.pricingRoute, 'upsales');
+    assert.equal(twoAdultsTwoRooms.roomCount, 2);
+  }
+  const oneMissingDob = resolveCorendonLiveOccupancy({
+    party: [
+      { dateOfBirth: '1980-03-12', roomIndex: 0 },
+      { dateOfBirth: null, roomIndex: 0 },
+    ],
+  });
+  assert.equal(oneMissingDob.ok, true);
+  if (oneMissingDob.ok) {
+    assert.equal(oneMissingDob.pricingRoute, 'lowest');
+  }
   assert.equal(resolveCorendonLiveOccupancy({ adults: 2, children: 1 }).ok, false);
   assert.equal(resolveCorendonLiveOccupancy({ adults: 2, babies: 1 }).ok, false);
   assert.equal(resolveCorendonLiveOccupancy({ adults: 3 }).ok, false);
   assert.equal(resolveCorendonLiveOccupancy({ adults: 4, rooms: 2 }).ok, false);
-  assert.equal(
-    resolveCorendonLiveOccupancy({
-      party: [
-        { dateOfBirth: '1975-03-12', roomIndex: 0 },
-        { dateOfBirth: '1978-06-04', roomIndex: 0 },
-        { dateOfBirth: '2010-01-01', roomIndex: 0 },
-      ],
-    }).ok,
-    false,
-  );
+  const twoAdultsPlusChildNoDob = resolveCorendonLiveOccupancy({
+    adults: 2,
+    children: 1,
+    babies: 0,
+    rooms: 1,
+    party: [
+      { dateOfBirth: null, roomIndex: 0 },
+      { dateOfBirth: null, roomIndex: 0 },
+    ],
+  });
+  assert.equal(twoAdultsPlusChildNoDob.ok, true);
+  if (twoAdultsPlusChildNoDob.ok) {
+    assert.equal(twoAdultsPlusChildNoDob.pricingRoute, 'lowest');
+    assert.equal('pax' in twoAdultsPlusChildNoDob, false);
+  }
+  const twoAdultsOneChildMissingChildDob = resolveCorendonLiveOccupancy({
+    adults: 2,
+    children: 1,
+    party: [
+      { dateOfBirth: '1980-03-12', roomIndex: 0 },
+      { dateOfBirth: '1982-08-07', roomIndex: 0 },
+      { dateOfBirth: null, roomIndex: 0 },
+    ],
+  });
+  assert.equal(twoAdultsOneChildMissingChildDob.ok, false);
+  const twoAdultsOneChild = resolveCorendonLiveOccupancy({
+    adults: 2,
+    children: 1,
+    party: [
+      { dateOfBirth: '1986-01-01', roomIndex: 0 },
+      { dateOfBirth: '1986-01-01', roomIndex: 0 },
+      { dateOfBirth: '2016-01-01', roomIndex: 0 },
+    ],
+  });
+  assert.equal(twoAdultsOneChild.ok, true);
+  if (twoAdultsOneChild.ok) {
+    assert.equal(twoAdultsOneChild.pricingRoute, 'upsales');
+    assert.equal(twoAdultsOneChild.roomCount, 1);
+    if (twoAdultsOneChild.pricingRoute === 'upsales') {
+      assert.deepEqual(twoAdultsOneChild.pax, [
+        { birthDate: '1986-01-01', roomNr: 1 },
+        { birthDate: '1986-01-01', roomNr: 1 },
+        { birthDate: '2016-01-01', roomNr: 1 },
+      ]);
+    }
+  }
 });
 
 test('occupancy: 4 travellers / 2 rooms with party DOBs uses upsales route', () => {
@@ -147,7 +261,25 @@ test('buildCorendonLiveContext: mapping + date + occupancy', () => {
   assert.equal(ok.fragment.airportRoute, 'BRUCFU');
   assert.equal(ok.fragment.durationNights, '3-4-3');
   assert.equal(ok.feHost, 'www.corendon.be');
-  assert.equal(ok.pricingRoute, 'lowest');
+  assert.equal(ok.pricingRoute, 'upsales');
+  assert.deepEqual(ok.upsalesPax, [
+    { birthDate: CORENDON_ADULT_REFERENCE_DOB, roomNr: 1 },
+    { birthDate: CORENDON_ADULT_REFERENCE_DOB, roomNr: 1 },
+  ]);
+
+  const twoAdultsIso = buildCorendonLiveContext(makeOffer(), {
+    adults: 2,
+    party: [
+      { dateOfBirth: '1980-03-12', roomIndex: 0 },
+      { dateOfBirth: '1982-08-07', roomIndex: 0 },
+    ],
+  });
+  assert.ok(twoAdultsIso);
+  assert.equal(twoAdultsIso.pricingRoute, 'upsales');
+  assert.deepEqual(twoAdultsIso.upsalesPax, [
+    { birthDate: '1980-03-12', roomNr: 1 },
+    { birthDate: '1982-08-07', roomNr: 1 },
+  ]);
 
   const fourPax = buildCorendonLiveContext(makeOffer(), {
     adults: 4,
@@ -179,6 +311,18 @@ test('buildCorendonLiveContext: mapping + date + occupancy', () => {
   assert.equal(fr.feHost, 'fr.corendon.be');
 
   assert.equal(buildCorendonLiveContext(makeOffer(), { adults: 2, children: 1 }), null);
+  const twoAdultsOneChild = buildCorendonLiveContext(makeOffer(), {
+    adults: 2,
+    children: 1,
+    party: [
+      { dateOfBirth: '1986-01-01', roomIndex: 0 },
+      { dateOfBirth: '1986-01-01', roomIndex: 0 },
+      { dateOfBirth: '2016-01-01', roomIndex: 0 },
+    ],
+  });
+  assert.ok(twoAdultsOneChild);
+  assert.equal(twoAdultsOneChild.pricingRoute, 'upsales');
+  assert.equal(twoAdultsOneChild.upsalesPax?.length, 3);
   assert.equal(
     buildCorendonLiveContext(makeOffer({ id: 'corendon-9999' }), { adults: 2 }),
     null,

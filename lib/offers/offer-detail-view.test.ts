@@ -7,10 +7,19 @@ import { unwrapSunwebProductUrl } from '../providers/sunweb/offer-context';
 import { SUNWEB_LANDING, SUNWEB_PRODUCT_URL } from '../providers/sunweb/offer-context.test';
 import {
   affiliateHref,
+  bookingCtaLabel,
+  bookingVacationCtaLabel,
   buildBasisFacts,
   formatDepartureAirport,
+  formatListingHostLabel,
+  formatNightsLabel,
+  formatDurationType,
   formatOccupancySummary,
+  formatOfferReturnDateLabel,
+  formatReturnDateLabel,
   parseVariationRoomNames,
+  selectedProviderListing,
+  stripSimpleHtml,
 } from './offer-detail-view';
 import { formatDeparturePresentation } from '../search/departure-presentation';
 
@@ -182,6 +191,11 @@ test('affiliate href uses the selected Corendon listing deepLink', () => {
   });
   assert.equal(affiliateHref(offer), 'https://www.corendon.nl/vakantie#x');
   assert.equal(affiliateHref(offer, FOUR_PAX_TWO_ROOMS), 'https://www.corendon.nl/vakantie#x');
+  assert.equal(selectedProviderListing(offer)?.host, 'www.corendon.nl');
+  assert.equal(formatListingHostLabel(offer.listingHost), 'corendon.nl');
+  assert.equal(bookingCtaLabel(offer), 'Boek bij Corendon');
+  assert.equal(bookingVacationCtaLabel(offer), 'Boek deze vakantie bij Corendon');
+  assert.equal(formatListingHostLabel('fr.corendon.be'), 'fr.corendon.be');
 });
 
 test('variation JSON exposes room names, not raw JSON', () => {
@@ -294,7 +308,7 @@ test('detail airport label is VacationWeb name, not IATA or country ISO', () => 
   assert.equal(facts.some((fact) => fact.value === 'BRU' || fact.value.includes('BE')), false);
 });
 
-test('Results and Detail share Vertrek op vs Vertrek tussen', () => {
+test('Results and Detail prefer offer departure date over search window', () => {
   const sunwebExact = formatDeparturePresentation(
     { departureStart: '2026-08-28', departureEnd: '2026-08-28' },
     '2026-08-28',
@@ -306,14 +320,88 @@ test('Results and Detail share Vertrek op vs Vertrek tussen', () => {
   assert.equal(sunwebExact.phrase, 'Vertrek op 28/08/2026');
   assert.equal(corendonExact.phrase, sunwebExact.phrase);
 
-  const range = formatDeparturePresentation({
+  const rangeOnly = formatDeparturePresentation({
     departureStart: '2026-08-28',
     departureEnd: '2026-09-02',
   });
-  assert.equal(range.phrase, 'Vertrek tussen 28/08/2026 en 02/09/2026');
+  assert.equal(rangeOnly.phrase, 'Vertrek tussen 28/08/2026 en 02/09/2026');
+
+  const offerInRange = formatDeparturePresentation(
+    { departureStart: '2026-08-28', departureEnd: '2026-09-02' },
+    '2026-08-29',
+  );
+  assert.equal(offerInRange.phrase, 'Vertrek op 29/08/2026');
 
   const facts = buildBasisFacts(makeOffer({ departureDate: '2026-08-28' }));
   const dateFact = facts.find((fact) => fact.label === 'Vertrekdatum');
   assert.equal(dateFact?.value, 'Vertrek op 28/08/2026');
+});
+
+test('stripSimpleHtml drops Corendon style blocks so Overview never shows CSS', () => {
+  const raw = `<style>
+ .usp ul {
+ list-style: none;
+ }
+ .usp li:before {
+ content: "\\e775";
+ font-family: COR Icons WF;
+ display: inline-block;
+ color: #26a514;
+ width: 1.3em;
+ margin-left: -3.1em;
+ }
+</style>
+<div class="row"><p>Club Big Blue Suite Hotel ligt in de rustige wijk Oba.</p></div>`;
+  const cleaned = stripSimpleHtml(raw);
+  assert.equal(cleaned, 'Club Big Blue Suite Hotel ligt in de rustige wijk Oba.');
+  assert.doesNotMatch(cleaned ?? '', /\.usp/);
+  assert.doesNotMatch(cleaned ?? '', /list-style/);
+  assert.doesNotMatch(cleaned ?? '', /font-family/);
+  assert.equal(stripSimpleHtml('.usp { color: red; }'), undefined);
+});
+
+test('return date is departure plus nights and is not invented without a date', () => {
+  assert.match(formatReturnDateLabel('15/10/2026', 7) ?? '', /22\s*okt\.?\s*2026/i);
+  assert.match(formatReturnDateLabel('2026-10-15', 7) ?? '', /22\s*okt\.?\s*2026/i);
+  assert.equal(formatReturnDateLabel(undefined, 7), undefined);
+  assert.equal(formatReturnDateLabel('15/10/2026', 0), undefined);
+});
+
+test('generic durationType dagen is shown as days for Sunweb catalog offers', () => {
+  assert.equal(formatDurationType('dagen'), undefined);
+  assert.equal(formatDurationType('Dagen'), undefined);
+  assert.equal(formatDurationType('days'), undefined);
+  assert.equal(formatNightsLabel(5, 'dagen', 'Sunweb'), '5 dagen');
+  assert.equal(formatNightsLabel(5, 'rondreis', 'Sunweb'), '5 dagen • Rondreis');
+  assert.equal(formatNightsLabel(5, 'rondreis'), '5 nachten • Rondreis');
+  const facts = buildBasisFacts(makeOffer({ nights: 5, durationType: 'dagen' }));
+  assert.equal(facts.find((fact) => fact.label === 'Reisduur')?.value, '5 dagen');
+  assert.equal(facts.find((fact) => fact.label === 'Duurtype'), undefined);
+});
+
+test('Corendon return date uses catalog days minus one', () => {
+  assert.match(
+    formatOfferReturnDateLabel(
+      makeOffer({
+        provider: 'Corendon',
+        nights: 8,
+        departureDate: '2026-08-29',
+      }),
+    ) ?? '',
+    /5\s*sep\.?\s*2026/i,
+  );
+});
+
+test('Sunweb return date uses catalog days as calendar offset', () => {
+  assert.match(
+    formatOfferReturnDateLabel(
+      makeOffer({
+        provider: 'Sunweb',
+        nights: 8,
+        departureDate: '2026-10-07',
+      }),
+    ) ?? '',
+    /15\s*okt\.?\s*2026/i,
+  );
 });
 

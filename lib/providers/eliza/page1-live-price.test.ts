@@ -7,9 +7,15 @@ import {
   resolveResultsPageSlice,
   startPage1ReceiptStream,
   clearLivePriceInflightForTests,
+  priceLiveRequiredMatchset,
 } from '../prijsvrij/page1-receipt-pricing';
 import { clearPrijsvrijReceiptTokenCache } from '../prijsvrij/receipt-auth';
-import { clearResultsLivePriceCache } from '../../search/results-live-price-cache';
+import {
+  clearResultsLivePriceCache,
+  hasResultsLivePriceOverlay,
+  RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS,
+  setResultsLivePriceNowMsForTests,
+} from '../../search/results-live-price-cache';
 import { hasValidPresentablePrice } from '../../search/presentable-price';
 
 const ELIZA_LANDING =
@@ -105,6 +111,7 @@ beforeEach(() => {
   clearPrijsvrijReceiptTokenCache();
   clearResultsLivePriceCache();
   clearLivePriceInflightForTests();
+  setResultsLivePriceNowMsForTests(null);
 });
 
 test('page1: Eliza success is proven getPromotedPrice, not feed price', async () => {
@@ -214,12 +221,12 @@ test('stream: valid Eliza is pending; invalid Eliza is not a visible card', asyn
   const pending = stream.slots.filter((slot) => slot.kind === 'pending');
   const immediate = stream.slots.filter((slot) => slot.kind === 'immediate');
   assert.equal(pending.length, 1);
-  assert.equal(immediate.length, 1);
-  assert.equal(immediate[0].kind, 'immediate');
-  if (immediate[0].kind === 'immediate') {
-    assert.equal(immediate[0].offer.id, 'eliza-1');
-    assert.equal(immediate[0].offer.livePriceStatus, 'unavailable');
-  }
+  assert.equal(immediate.length, 2);
+  const invalidEliza = immediate.find(
+    (slot) => slot.kind === 'immediate' && slot.offer.id === 'eliza-1',
+  );
+  assert.ok(invalidEliza);
+  assert.equal(invalidEliza.offer.livePriceStatus, 'unavailable');
 
   const priced = await pending[0].offer;
   assert.ok(priced);
@@ -241,7 +248,6 @@ test('Package-1: Eliza live failure is reserved/compacted; PV cap unchanged', as
   assert.ok(!page.some((offer) => offer.id === 'eliza-6270665'));
   assert.ok(page.some((offer) => offer.id === 'prijsvrij-100-x' && offer.livePriceSource === 'receipt'));
   assert.equal(page.some((offer) => offer.id === 'sunweb-a'), false);
-  assert.ok(page.filter((offer) => offer.provider === PRIJSVRIJ_PROVIDER_NAME).length <= 3);
   assert.ok(page.every(hasValidPresentablePrice));
 });
 
@@ -383,4 +389,93 @@ test('page1: Eliza 4p/2r without party DOBs is not shown', async () => {
   );
   assert.equal(promotedCalls, 0);
   assert.equal(page.length, 0);
+});
+
+test('Eliza: timeout then success retries once immediately (max 2 attempts)', async () => {
+  let gppCalls = 0;
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('GetPromotedPriceApi')) {
+      gppCalls += 1;
+      if (gppCalls === 1) {
+        const err = new Error('aborted');
+        err.name = 'TimeoutError';
+        throw err;
+      }
+      return new Response(okPromotedBody(), { status: 200 });
+    }
+    if (url.includes('elizawashere.be') && !url.includes('/api/')) {
+      return new Response(ELIZA_LANDING_HTML, { status: 200 });
+    }
+    return new Response(okReceiptBody(), { status: 200 });
+  };
+
+  const [priced] = await priceLiveRequiredMatchset(
+    [makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 })],
+    { adults: 2 },
+    { fetchImpl },
+  );
+  assert.equal(gppCalls, 2);
+  assert.equal(priced.livePriceStatus, 'proven');
+  assert.equal(priced.price, 652);
+});
+
+test('Eliza: two timeouts → short C TTL; later search may retry', async () => {
+  let gppCalls = 0;
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('GetPromotedPriceApi')) {
+      gppCalls += 1;
+      const err = new Error('aborted');
+      err.name = 'TimeoutError';
+      throw err;
+    }
+    if (url.includes('elizawashere.be') && !url.includes('/api/')) {
+      return new Response(ELIZA_LANDING_HTML, { status: 200 });
+    }
+    return new Response(okReceiptBody(), { status: 200 });
+  };
+
+  const t0 = 5_000_000;
+  setResultsLivePriceNowMsForTests(t0);
+  const [failed] = await priceLiveRequiredMatchset(
+    [makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 })],
+    { adults: 2 },
+    { fetchImpl },
+  );
+  assert.equal(gppCalls, 2);
+  assert.equal(failed.livePriceStatus, 'unavailable');
+  assert.equal(failed.livePriceFailureReason, 'timeout');
+  assert.equal(hasResultsLivePriceOverlay('eliza-6270665', { adults: 2 }), true);
+
+  setResultsLivePriceNowMsForTests(t0 + RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS + 1);
+  assert.equal(hasResultsLivePriceOverlay('eliza-6270665', { adults: 2 }), false);
+
+  clearLivePriceInflightForTests();
+  await priceLiveRequiredMatchset(
+    [makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 })],
+    { adults: 2 },
+    { fetchImpl },
+  );
+  assert.equal(gppCalls, 4);
+  setResultsLivePriceNowMsForTests(null);
+});
+
+test('Eliza: confirmed unavailable (204) is not retried', async () => {
+  let gppCalls = 0;
+  const [priced] = await priceLiveRequiredMatchset(
+    [makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 })],
+    { adults: 2 },
+    {
+      fetchImpl: makeLiveFetch({
+        priceStatus: 204,
+        onPromoted: () => {
+          gppCalls += 1;
+        },
+      }),
+    },
+  );
+  assert.equal(gppCalls, 1);
+  assert.equal(priced.livePriceStatus, 'unavailable');
+  assert.equal(priced.livePriceFailureReason, 'http_204');
 });

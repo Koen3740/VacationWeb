@@ -47,6 +47,19 @@ test('deriveFilterOptions stores cities, accommodation types, counts and themes 
   assert.ok(options.departureAirports.includes('AMS'));
 });
 
+test('deriveFilterOptions merges French country aliases into Dutch labels', () => {
+  const options = deriveFilterOptions([
+    makeOffer({ destinationCountry: 'Espagne' }),
+    makeOffer({ id: 'test-fr-2', destinationCountry: 'Spanje', destinationCity: 'Ibiza' }),
+    makeOffer({ id: 'test-fr-3', destinationCountry: 'Turquie', destinationCity: 'Alanya' }),
+  ]);
+  assert.ok(options.countries.includes('Spanje'));
+  assert.ok(options.countries.includes('Turkije'));
+  assert.ok(!options.countries.includes('Espagne'));
+  assert.ok(!options.countries.includes('Turquie'));
+  assert.equal(options.countryCounts?.Spanje, 2);
+});
+
 test('filter airports keep IATA identity and ignore country ISO / provider names', () => {
   const options = deriveFilterOptions([
     makeOffer({

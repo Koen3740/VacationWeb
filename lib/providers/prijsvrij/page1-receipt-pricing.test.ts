@@ -109,7 +109,9 @@ test('receipt pp: TotalInclLocal ceil / (Adults+Children); infants excluded', ()
   });
   assert.ok(price);
   assert.equal(price.pricePerPerson, 477);
+  assert.equal(price.totalInclLocal, 952.99);
   assert.equal(price.infants, 1);
+  assert.notEqual(price.totalInclLocal, price.pricePerPerson * 2);
 });
 
 test('receipt pp: children in denominator', () => {

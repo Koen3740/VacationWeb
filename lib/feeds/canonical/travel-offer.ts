@@ -4,6 +4,11 @@ export interface TravelOffer {
   // Identificatie
   id: string;
   provider: string;
+  /**
+   * Additive Gate 0B identity for versioned detail-store addressing.
+   * Does not replace id / externalId.
+   */
+  canonicalOfferIdentity?: string;
 
   // Hotel
   hotelName: string;
@@ -42,19 +47,42 @@ export interface TravelOffer {
   /**
    * Live-price provenance for Results (Fase 4).
    * Prijsvrij: only `proven` + `receipt` may be presented as a price.
-   * Corendon: only `proven` + `lowestpricesacco` (2A) or `upsales` (4 travellers / 2 rooms)
-   * may be presented as a price.
+   * Corendon: `proven` + `lowestpricesacco` is a live p.p. only.
+   * Interactive Results require a proven live total, so only `upsales`
+   * (2 travellers with party ISO DOBs, 2A+1C with party ISO DOBs, or
+   * 4 travellers / 2 rooms with party ISO DOBs) is Results-presentable.
    * Eliza was here: only `proven` + `getPromotedPrice` may be presented as a price.
-   * Sunweb: `proven` + `getPromotedPrice` for 4 travellers / 2 rooms; catalog numeric
-   * when live was not attempted (2A). `unpriced` when that occupancy is outside the
-   * proven Participants route.
+   * Sunweb: `proven` + `getPromotedPrice` for Results 4 travellers / 2 rooms;
+   * Detail may also use other proven PromotedPrice occupancies. Catalog numeric
+   * is never a live amount.
    * `unpriced`: catalog trip remains visible on Results; live occupancy is outside
    * the proven price route, so no price is shown.
-   * `unavailable`: live was attempted for this occupancy and failed, or the proven
-   * occupancy cannot build a live context. Hidden on Results.
+   * `unavailable`: live was attempted for this occupancy and failed closed for €.
+   * Provider-confirmed unavailability (see livePriceFailureReason) is not listable
+   * on Results; technical errors remain listable without a live €.
    */
   livePriceStatus?: 'proven' | 'unavailable' | 'catalog' | 'unpriced';
   livePriceSource?: 'receipt' | 'lowestpricesacco' | 'upsales' | 'getPromotedPrice' | 'feed' | 'search';
+  /**
+   * Classified live-price failure reason from classifyLivePriceFailure.
+   * Used to distinguish provider-confirmed unavailability from technical errors.
+   */
+  livePriceFailureReason?: string;
+  /**
+   * Provider-returned live package total for this occupancy and livePriceSource.
+   * Set only from a proven total field in the live response.
+   * Never derived from price × travellers, lowest × pax, or ceil(pp) × pax.
+   * Absent for lowestpricesacco, feed, search, and matrix.
+   */
+  liveTotalPrice?: number;
+  /**
+   * Which provider response field supplied liveTotalPrice.
+   */
+  liveTotalPriceField?:
+    | 'upsales.totalPrice'
+    | 'upsales.realTimeBlankPrice'
+    | 'receipt.TotalInclLocal'
+    | 'getPromotedPrice.totalPrice';
 
   // Hotelkwaliteit
   stars?: number | null;

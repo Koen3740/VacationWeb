@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   formatOccupancyCompositionNl,
   occupancyCategoryFromSearchParams,
+  searchParamsOccupancyFromParty,
 } from './occupancy-category';
 import type { SearchParams } from '@/types/travel';
 
@@ -118,6 +119,53 @@ test('presentation: 2 volwassenen + 2 kinderen + 2 kamers from DOBs', () => {
     formatOccupancyCompositionNl(TWO_ADULTS_TWO_CHILDREN_TWO_ROOMS, { today: TODAY }),
     '2 volwassenen • 2 kinderen • 2 kamers',
   );
+});
+
+test('searchParams occupancy: unclassified 2 travellers / 1 room stays 2A', () => {
+  const occupancy = searchParamsOccupancyFromParty(
+    [
+      { dateOfBirth: null, roomIndex: 0 },
+      { dateOfBirth: null, roomIndex: 0 },
+    ],
+    1,
+    TODAY,
+  );
+  assert.equal(occupancy.adults, 2);
+  assert.equal(occupancy.children, 0);
+  assert.equal(occupancy.babies, 0);
+  assert.equal(occupancy.rooms, 1);
+  assert.equal(occupancy.party?.length, 2);
+});
+
+test('searchParams occupancy: 2A+1C from DOBs, not from person count', () => {
+  const occupancy = searchParamsOccupancyFromParty(TWO_ADULTS_ONE_CHILD.party ?? [], 1, TODAY);
+  assert.equal(occupancy.adults, 2);
+  assert.equal(occupancy.children, 1);
+  assert.equal(occupancy.babies, 0);
+  assert.equal(occupancy.rooms, 1);
+  assert.equal(occupancy.party?.length, 3);
+  assert.deepEqual(
+    occupancy.party?.map((traveller) => traveller.roomIndex),
+    [0, 0, 0],
+  );
+});
+
+test('searchParams occupancy: missing child DOB does not invent children=1 or adults=3', () => {
+  const occupancy = searchParamsOccupancyFromParty(
+    [
+      { dateOfBirth: '1990-01-15', roomIndex: 0 },
+      { dateOfBirth: '1988-03-03', roomIndex: 0 },
+      { dateOfBirth: null, roomIndex: 0 },
+    ],
+    1,
+    TODAY,
+  );
+  assert.equal(occupancy.adults, undefined);
+  assert.equal(occupancy.children, undefined);
+  assert.equal(occupancy.babies, undefined);
+  assert.equal(occupancy.rooms, 1);
+  assert.equal(occupancy.party?.length, 3);
+  assert.equal(occupancy.party?.[2]?.dateOfBirth, null);
 });
 
 test('presentation: multiple rooms does not relabel children as volwassenen', () => {

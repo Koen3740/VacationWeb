@@ -1,4 +1,5 @@
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
+import { canonicalizeRegionName } from '@/lib/offers/canonical-region';
 import { parseAccommodationTypesParam } from '@/lib/search/accommodation-type-filter';
 import { parseAmenitiesParam } from '@/lib/search/amenity-filters';
 import {
@@ -17,6 +18,7 @@ import {
   parseTravelersFromQuery,
   travelersStateToParty,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
+import { sanitizeDepartureSearchWindow } from '@/lib/search/departure-date';
 import type { SearchParams } from '@/types/travel';
 
 export type ResultsSearchParamsInput = Record<string, string | string[] | undefined>;
@@ -53,7 +55,9 @@ export function parseSearchParams(searchParams: ResultsSearchParamsInput): Searc
   return {
     country: countries?.length === 1 ? countries[0] : undefined,
     countries: countries?.length ? countries : undefined,
-    region: typeof searchParams.region === 'string' ? searchParams.region : undefined,
+    region: typeof searchParams.region === 'string'
+      ? canonicalizeRegionName(searchParams.region) || undefined
+      : undefined,
     city: typeof searchParams.city === 'string' ? searchParams.city : undefined,
     budgetMin: typeof searchParams.budgetMin === 'string' ? Number(searchParams.budgetMin) : undefined,
     budgetMax: typeof searchParams.budgetMax === 'string' ? Number(searchParams.budgetMax) : undefined,
@@ -89,8 +93,20 @@ export function parseSearchParams(searchParams: ResultsSearchParamsInput): Searc
       }
       return travelersStateToParty(parsed);
     })(),
-    departureStart: typeof searchParams.departureStart === 'string' ? searchParams.departureStart : undefined,
-    departureEnd: typeof searchParams.departureEnd === 'string' ? searchParams.departureEnd : undefined,
+    ...(() => {
+      const rawStart =
+        typeof searchParams.departureStart === 'string' ? searchParams.departureStart : undefined;
+      const rawEnd =
+        typeof searchParams.departureEnd === 'string' ? searchParams.departureEnd : undefined;
+      if (!rawStart && !rawEnd) {
+        return { departureStart: undefined, departureEnd: undefined };
+      }
+      const window = sanitizeDepartureSearchWindow(rawStart, rawEnd);
+      return {
+        departureStart: window.departureStart,
+        departureEnd: window.departureEnd,
+      };
+    })(),
     flexibilityDays: (() => {
       if (typeof searchParams.flexibilityDays !== 'string') {
         return undefined;

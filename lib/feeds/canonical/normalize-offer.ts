@@ -29,6 +29,7 @@ export function normalizeOffer(offer: StoredOffer): TravelOffer {
   return {
     id: offer.externalId,
     provider: offer.provider,
+    canonicalOfferIdentity: offer.canonicalOfferIdentity,
 
     hotelName: decodeHtmlEntities(String(offer.hotelName ?? '')),
     accommodation: offer.accommodation,

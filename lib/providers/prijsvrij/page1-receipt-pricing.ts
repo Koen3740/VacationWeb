@@ -11,19 +11,24 @@ import {
   getResultsLivePriceOverlay,
   hasResultsLivePriceOverlay,
   livePriceCacheKey,
+  RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS,
   setResultsLivePriceOverlay,
 } from '../../search/results-live-price-cache';
 import {
   filterToResultsVisibleOffers,
+  hasProvenLiveDisplayPrice,
   hasValidPresentablePrice,
   isResultsVisibleOffer,
   isUnpricedResultsOffer,
+  isValidLiveTotalAmount,
+  type LiveTotalPriceField,
 } from '../../search/presentable-price';
 import { recordResultsPriceEligibility } from '../../search/results-price-eligibility';
 import {
   LIVE_PRICE_ATTEMPT_REASON,
   LIVE_PRICE_ATTEMPT_STATUS,
   classifyLivePriceFailure,
+  isRetryableTechnicalLivePriceFailure,
   recordOfferLivePriceAttempt,
   type LivePriceFailureInput,
 } from '../../search/live-price-observability';
@@ -60,6 +65,7 @@ import {
   fetchSunwebPromotedPrice,
   isSunweb,
   isSunwebFourTravellerTwoRoomSearch,
+  requiresSunwebResultsLivePrice,
   resolveSunwebLiveOccupancy,
 } from '../sunweb';
 
@@ -109,7 +115,9 @@ export type Page1ReceiptPricingOptions = {
   stats?: Page1ReceiptPricingStats;
   /**
    * Already-ranked user-pagination pool. Defaults to the first 150 of sortedOffers.
-   * Live pricing still runs over the full sortedOffers matchset.
+   * Page-1 live pricing examines selected slots plus enough following
+   * live-selectable candidates to fill the page. It does not price the
+   * full ranked matchset.
    */
   paginationPool?: TravelOffer[];
   userPaginationCap?: number;
@@ -147,11 +155,28 @@ function isPrijsvrij(offer: TravelOffer): boolean {
   return offer.provider === PRIJSVRIJ_PROVIDER_NAME;
 }
 
-function withCatalogPriceHidden(offer: TravelOffer): TravelOffer {
+function withLiveTotal(
+  total: number | undefined,
+  field: LiveTotalPriceField | undefined,
+): Pick<TravelOffer, 'liveTotalPrice' | 'liveTotalPriceField'> {
+  if (isValidLiveTotalAmount(total) && field) {
+    return { liveTotalPrice: total, liveTotalPriceField: field };
+  }
+  return { liveTotalPrice: undefined, liveTotalPriceField: undefined };
+}
+
+function withCatalogPriceHidden(
+  offer: TravelOffer,
+  failure?: LivePriceFailureInput,
+): TravelOffer {
+  const classified = failure ? classifyLivePriceFailure(failure) : undefined;
   return {
     ...offer,
     livePriceStatus: 'unavailable',
     livePriceSource: undefined,
+    liveTotalPrice: undefined,
+    liveTotalPriceField: undefined,
+    livePriceFailureReason: classified?.reason,
   };
 }
 
@@ -160,10 +185,17 @@ function withUnpricedOffer(offer: TravelOffer): TravelOffer {
     ...offer,
     livePriceStatus: 'unpriced',
     livePriceSource: undefined,
+    liveTotalPrice: undefined,
+    liveTotalPriceField: undefined,
+    livePriceFailureReason: undefined,
   };
 }
 
-function withReceiptPrice(offer: TravelOffer, pricePerPerson: number): TravelOffer {
+function withReceiptPrice(
+  offer: TravelOffer,
+  pricePerPerson: number,
+  totalInclLocal?: number,
+): TravelOffer {
   const nights = offer.nights > 0 ? offer.nights : 0;
   return {
     ...offer,
@@ -171,6 +203,8 @@ function withReceiptPrice(offer: TravelOffer, pricePerPerson: number): TravelOff
     pricePerDay: nights > 0 ? Math.round(pricePerPerson / nights) : pricePerPerson,
     livePriceStatus: 'proven',
     livePriceSource: 'receipt',
+    livePriceFailureReason: undefined,
+    ...withLiveTotal(totalInclLocal, 'receipt.TotalInclLocal'),
   };
 }
 
@@ -179,6 +213,7 @@ function withCorendonLivePrice(
   pricePerPerson: number,
   listing: { deepLink: string; host: string; feedId: string; campaignId?: string } | undefined,
   source: 'lowestpricesacco' | 'upsales',
+  total?: { amount: number; field: Extract<LiveTotalPriceField, 'upsales.totalPrice' | 'upsales.realTimeBlankPrice'> },
 ): TravelOffer {
   const nights = offer.nights > 0 ? offer.nights : 0;
   const priced: TravelOffer = {
@@ -187,11 +222,20 @@ function withCorendonLivePrice(
     pricePerDay: nights > 0 ? Math.round(pricePerPerson / nights) : pricePerPerson,
     livePriceStatus: 'proven',
     livePriceSource: source,
+    livePriceFailureReason: undefined,
+    ...withLiveTotal(
+      source === 'upsales' ? total?.amount : undefined,
+      source === 'upsales' ? total?.field : undefined,
+    ),
   };
   return listing ? bindCorendonListing(priced, listing) : priced;
 }
 
-function withElizaLivePrice(offer: TravelOffer, pricePerPerson: number): TravelOffer {
+function withElizaLivePrice(
+  offer: TravelOffer,
+  pricePerPerson: number,
+  totalPrice?: number,
+): TravelOffer {
   const nights = offer.nights > 0 ? offer.nights : 0;
   return {
     ...offer,
@@ -199,10 +243,16 @@ function withElizaLivePrice(offer: TravelOffer, pricePerPerson: number): TravelO
     pricePerDay: nights > 0 ? Math.round(pricePerPerson / nights) : pricePerPerson,
     livePriceStatus: 'proven',
     livePriceSource: 'getPromotedPrice',
+    livePriceFailureReason: undefined,
+    ...withLiveTotal(totalPrice, 'getPromotedPrice.totalPrice'),
   };
 }
 
-function withSunwebLivePrice(offer: TravelOffer, pricePerPerson: number): TravelOffer {
+function withSunwebLivePrice(
+  offer: TravelOffer,
+  pricePerPerson: number,
+  totalPrice?: number,
+): TravelOffer {
   const nights = offer.nights > 0 ? offer.nights : 0;
   return {
     ...offer,
@@ -210,6 +260,8 @@ function withSunwebLivePrice(offer: TravelOffer, pricePerPerson: number): Travel
     pricePerDay: nights > 0 ? Math.round(pricePerPerson / nights) : pricePerPerson,
     livePriceStatus: 'proven',
     livePriceSource: 'getPromotedPrice',
+    livePriceFailureReason: undefined,
+    ...withLiveTotal(totalPrice, 'getPromotedPrice.totalPrice'),
   };
 }
 
@@ -217,7 +269,7 @@ function requiresPage1LivePrice(offer: TravelOffer, params?: SearchParams): bool
   if (isPrijsvrij(offer) || isCorendon(offer) || isEliza(offer)) {
     return true;
   }
-  return Boolean(isSunweb(offer) && params && isSunwebFourTravellerTwoRoomSearch(params));
+  return Boolean(isSunweb(offer) && params && requiresSunwebResultsLivePrice(params));
 }
 
 function isLivePriceOccupancySupported(offer: TravelOffer, params: SearchParams): boolean {
@@ -285,6 +337,46 @@ async function joinOrStartInflight(
   return 'started';
 }
 
+type LivePriceAttemptResult = {
+  ok: boolean;
+  reason?: string;
+  httpStatus?: number;
+};
+
+/**
+ * At most two attempts. Attempt 2 runs immediately only for retryable C failures.
+ * No cooldown. In-flight coalescing remains the duplicate-call guard.
+ */
+async function fetchLivePriceWithImmediateRetry<T extends LivePriceAttemptResult>(
+  fetchOnce: () => Promise<T>,
+): Promise<T> {
+  const toException = (): T => ({ ok: false, reason: 'exception' }) as T;
+  let first: T;
+  try {
+    first = await fetchOnce();
+  } catch {
+    try {
+      return await fetchOnce();
+    } catch {
+      return toException();
+    }
+  }
+  if (
+    first.ok ||
+    !isRetryableTechnicalLivePriceFailure({
+      reason: first.reason ?? 'exception',
+      httpStatus: first.httpStatus,
+    })
+  ) {
+    return first;
+  }
+  try {
+    return await fetchOnce();
+  } catch {
+    return toException();
+  }
+}
+
 async function runPrijsvrijReceiptIntoCache(
   offer: TravelOffer,
   params: SearchParams,
@@ -312,7 +404,10 @@ async function runPrijsvrijReceiptIntoCache(
     try {
       const result = await fetchPrijsvrijReceiptPrice(ctx, { fetchImpl });
       if (result.ok) {
-        cacheLiveOverlay(withReceiptPrice(offer, result.price.pricePerPerson), params);
+        cacheLiveOverlay(
+          withReceiptPrice(offer, result.price.pricePerPerson, result.price.totalInclLocal),
+          params,
+        );
       } else {
         cacheUnavailableLivePrice(offer, params, result);
       }
@@ -372,17 +467,24 @@ async function runCorendonLiveIntoCache(
       if (hasResultsLivePriceOverlay(offer.id, listingParams)) {
         return;
       }
-      try {
-        const result = await fetchCorendonLivePrice(ctx, { fetchImpl });
-        if (result.ok) {
-          cacheLiveOverlay(withCorendonLivePrice(offer, result.pricePerPerson, listing, result.source), listingParams);
-        } else {
-          cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, result);
-        }
-      } catch {
-        cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, {
-          reason: 'exception',
-        });
+      const result = await fetchLivePriceWithImmediateRetry(() =>
+        fetchCorendonLivePrice(ctx, { fetchImpl }),
+      );
+      if (result.ok) {
+        cacheLiveOverlay(
+          withCorendonLivePrice(
+            offer,
+            result.pricePerPerson,
+            listing,
+            result.source,
+            result.totalPrice != null && result.totalPriceField
+              ? { amount: result.totalPrice, field: result.totalPriceField }
+              : undefined,
+          ),
+          listingParams,
+        );
+      } else {
+        cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, result);
       }
     });
 
@@ -415,15 +517,13 @@ async function runElizaLiveIntoCache(
       cacheUnavailableLivePrice(offer, params, { reason: 'missing_context' });
       return;
     }
-    try {
-      const result = await fetchElizaPromotedPrice(ctx, { fetchImpl });
-      if (result.ok) {
-        cacheLiveOverlay(withElizaLivePrice(offer, result.pricePerPerson), params);
-      } else {
-        cacheUnavailableLivePrice(offer, params, result);
-      }
-    } catch {
-      cacheUnavailableLivePrice(offer, params, { reason: 'exception' });
+    const result = await fetchLivePriceWithImmediateRetry(() =>
+      fetchElizaPromotedPrice(ctx, { fetchImpl }),
+    );
+    if (result.ok) {
+      cacheLiveOverlay(withElizaLivePrice(offer, result.pricePerPerson, result.totalPrice), params);
+    } else {
+      cacheUnavailableLivePrice(offer, params, result);
     }
   });
 }
@@ -450,31 +550,41 @@ async function runSunwebLiveIntoCache(
       cacheUnavailableLivePrice(offer, params, { reason: 'missing_context' });
       return;
     }
-    try {
-      const result = await fetchSunwebPromotedPrice(ctx, { fetchImpl });
-      if (result.ok) {
-        cacheLiveOverlay(withSunwebLivePrice(offer, result.pricePerPerson), params);
-      } else {
-        cacheUnavailableLivePrice(offer, params, result);
-      }
-    } catch {
-      cacheUnavailableLivePrice(offer, params, { reason: 'exception' });
+    const result = await fetchLivePriceWithImmediateRetry(() =>
+      fetchSunwebPromotedPrice(ctx, { fetchImpl }),
+    );
+    if (result.ok) {
+      cacheLiveOverlay(withSunwebLivePrice(offer, result.pricePerPerson, result.totalPrice), params);
+    } else {
+      cacheUnavailableLivePrice(offer, params, result);
     }
   });
 }
 
-function cacheLiveOverlay(offer: TravelOffer, params: SearchParams & { listingKey?: string }): void {
+function cacheLiveOverlay(
+  offer: TravelOffer,
+  params: SearchParams & { listingKey?: string },
+  options?: { ttlMs?: number },
+): void {
   const existing = getResultsLivePriceOverlay(offer.id, params);
-  setResultsLivePriceOverlay(offer.id, params, {
-    price: offer.price,
-    pricePerDay: offer.pricePerDay,
-    livePriceStatus: offer.livePriceStatus,
-    livePriceSource: offer.livePriceSource,
-    deepLink: offer.deepLink,
-    listingHost: offer.listingHost,
-    feedSourceId: offer.feedSourceId,
-    affiliateCampaignId: offer.affiliateCampaignId,
-  });
+  setResultsLivePriceOverlay(
+    offer.id,
+    params,
+    {
+      price: offer.price,
+      pricePerDay: offer.pricePerDay,
+      livePriceStatus: offer.livePriceStatus,
+      livePriceSource: offer.livePriceSource,
+      liveTotalPrice: offer.liveTotalPrice,
+      liveTotalPriceField: offer.liveTotalPriceField,
+      livePriceFailureReason: offer.livePriceFailureReason,
+      deepLink: offer.deepLink,
+      listingHost: offer.listingHost,
+      feedSourceId: offer.feedSourceId,
+      affiliateCampaignId: offer.affiliateCampaignId,
+    },
+    options?.ttlMs != null ? { ttlMs: options.ttlMs } : undefined,
+  );
   if (!existing && offer.livePriceStatus === 'proven') {
     recordOfferLivePriceAttempt(offer, params, {
       status: LIVE_PRICE_ATTEMPT_STATUS.SUCCESS,
@@ -489,10 +599,16 @@ function cacheUnavailableLivePrice(
   failure: LivePriceFailureInput,
 ): TravelOffer {
   const existing = getResultsLivePriceOverlay(offer.id, params);
-  const hidden = withCatalogPriceHidden(offer);
-  cacheLiveOverlay(hidden, params);
+  const classified = classifyLivePriceFailure(failure);
+  const hidden = withCatalogPriceHidden(offer, failure);
+  // C (ERROR): short TTL — not an 8h unavailable blacklist. A / context: default 8h.
+  const ttlMs =
+    classified.status === LIVE_PRICE_ATTEMPT_STATUS.ERROR
+      ? RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS
+      : undefined;
+  cacheLiveOverlay(hidden, params, ttlMs != null ? { ttlMs } : undefined);
   if (!existing) {
-    recordOfferLivePriceAttempt(offer, params, classifyLivePriceFailure(failure));
+    recordOfferLivePriceAttempt(offer, params, classified);
   }
   return hidden;
 }
@@ -550,7 +666,7 @@ function cachedLivePriceResult(
 ): TravelOffer | null | undefined {
   if (isCorendon(offer)) {
     const merged = applyResultsLivePriceOverlay(offer, params);
-    if (hasValidPresentablePrice(merged) || isUnpricedResultsOffer(merged)) {
+    if (hasProvenLiveDisplayPrice(merged) || isUnpricedResultsOffer(merged)) {
       return merged;
     }
     const listings = rankCorendonListings(offer, params);
@@ -575,7 +691,7 @@ function cachedLivePriceResult(
     return undefined;
   }
   const merged = applyResultsLivePriceOverlay(offer, params);
-  if (hasValidPresentablePrice(merged) || isUnpricedResultsOffer(merged)) {
+  if (hasProvenLiveDisplayPrice(merged) || isUnpricedResultsOffer(merged)) {
     return merged;
   }
   return null;
@@ -939,7 +1055,9 @@ export function getResultsPageOffers(
  * backfill — page1Ids must be read from there, never earlier.
  *
  * Page-1 display still uses max 3 Prijsvrij + slot-fill safety cap ≤10.
- * Full-matchset live pricing is launched separately and is not awaited here.
+ * Failed live slots may examine the next live-selectable candidates in the
+ * pagination pool until the page is filled. This function does not start
+ * full-matchset live pricing.
  */
 export function startPage1ReceiptStream(
   sortedOffers: TravelOffer[],
@@ -1351,6 +1469,73 @@ export function startPage1ReceiptStream(
       }
     }
 
+    // Failed Corendon/Eliza slots: examine the next live-selectable candidates
+    // in the pagination pool until the page is filled. Skip Corendon when the
+    // occupancy cannot produce a proven total (lowest-only). Cap extra attempts
+    // so first paint cannot walk the whole 150-pool.
+    if (finalOffers.length < pageSize) {
+      const occupancy = resolveCorendonLiveOccupancy(params);
+      const attemptedIds = new Set(selected.map((offer) => offer.id));
+      const extras = liveSelectable.filter((offer) => {
+        if (filledIds.has(offer.id) || attemptedIds.has(offer.id)) {
+          return false;
+        }
+        if (isCorendon(offer)) {
+          return occupancy.ok && occupancy.pricingRoute === 'upsales';
+        }
+        if (isEliza(offer)) {
+          return resolveElizaLiveOccupancy(params).ok;
+        }
+        return false;
+      });
+
+      const extraAttemptCap = Math.min(
+        pageSize,
+        Math.max(pageSize - finalOffers.length, 1) * 2,
+      );
+      let extraIndex = 0;
+      let extraAttempts = 0;
+      while (
+        finalOffers.length < pageSize &&
+        extraIndex < extras.length &&
+        extraAttempts < extraAttemptCap
+      ) {
+        const batch = extras.slice(
+          extraIndex,
+          extraIndex + Math.min(
+            CORENDON_LIVE_PAGE1_CONCURRENCY,
+            extraAttemptCap - extraAttempts,
+            extras.length - extraIndex,
+          ),
+        );
+        extraIndex += batch.length;
+        extraAttempts += batch.length;
+        const pricedBatch = await mapWithConcurrency(
+          batch,
+          CORENDON_LIVE_PAGE1_CONCURRENCY,
+          async (offer) => {
+            if (isCorendon(offer)) {
+              return priceCorendonSlot(offer);
+            }
+            if (isEliza(offer)) {
+              return priceElizaSlot(offer);
+            }
+            return null;
+          },
+        );
+        for (const priced of pricedBatch) {
+          if (finalOffers.length >= pageSize) {
+            break;
+          }
+          if (!priced || filledIds.has(priced.id) || !isResultsVisibleOffer(priced)) {
+            continue;
+          }
+          finalOffers.push(priced);
+          filledIds.add(priced.id);
+        }
+      }
+    }
+
     // If page under-filled after PV/Corendon failures, add remaining presentable non-PV.
     if (finalOffers.length < pageSize) {
       for (const offer of paginationPool) {
@@ -1409,6 +1594,88 @@ export function startPage1ReceiptStream(
   })();
 
   return { slots, presented };
+}
+
+export type CatalogPageLiveOverlay = {
+  catalog: TravelOffer;
+  live: Promise<TravelOffer>;
+  /** True only while a live HTTP/cache join may still replace the price area. */
+  pending: boolean;
+};
+
+/**
+ * Per-request limiter so catalog overlays start immediately (promises exist)
+ * but Corendon/Eliza/Sunweb HTTP stays at the existing page-1 ceilings.
+ * Must not await the whole page before returning overlays.
+ */
+function createPage1LiveLimiter(concurrency: number) {
+  let active = 0;
+  const waiting: Array<() => void> = [];
+  return async function runLimited<T>(work: () => Promise<T>): Promise<T> {
+    if (active >= concurrency) {
+      await new Promise<void>((resolve) => {
+        waiting.push(resolve);
+      });
+    }
+    active += 1;
+    try {
+      return await work();
+    } finally {
+      active -= 1;
+      waiting.shift()?.();
+    }
+  };
+}
+
+/**
+ * Live-price overlay for an already-chosen catalog Results page.
+ * Returns immediately. Each `live` promise settles independently.
+ * Failed/timeout/empty live results keep the catalog card (no proven €).
+ */
+export function startCatalogPageLiveOverlays(
+  catalogPage: readonly TravelOffer[],
+  params: SearchParams,
+  options: Pick<Page1ReceiptPricingOptions, 'fetchImpl'> = {},
+): CatalogPageLiveOverlay[] {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  stampUnpricedWhenLiveOccupancyUnsupported(catalogPage as TravelOffer[], params);
+  const limitCorendon = createPage1LiveLimiter(CORENDON_LIVE_PAGE1_CONCURRENCY);
+  const limitEliza = createPage1LiveLimiter(ELIZA_LIVE_PAGE1_CONCURRENCY);
+  const limitSunweb = createPage1LiveLimiter(SUNWEB_LIVE_PAGE1_CONCURRENCY);
+
+  return catalogPage.map((offer) => {
+    const catalog = applyResultsLivePriceOverlay(offer, params);
+    if (hasValidPresentablePrice(catalog) || !canEnterResultsLivePipeline(catalog, params)) {
+      return { catalog, live: Promise.resolve(catalog), pending: false };
+    }
+
+    const live = (async (): Promise<TravelOffer> => {
+      if (isCorendon(catalog)) {
+        await limitCorendon(() => runCorendonLiveIntoCache(catalog, params, fetchImpl));
+      } else if (isEliza(catalog)) {
+        await limitEliza(() => runElizaLiveIntoCache(catalog, params, fetchImpl));
+      } else if (isSunweb(catalog) && requiresPage1LivePrice(catalog, params)) {
+        await limitSunweb(() => runSunwebLiveIntoCache(catalog, params, fetchImpl));
+      } else if (isPrijsvrij(catalog)) {
+        await runPrijsvrijReceiptIntoCache(catalog, params, fetchImpl);
+      }
+
+      const after = applyResultsLivePriceOverlay(catalog, params);
+      if (hasValidPresentablePrice(after)) {
+        return after;
+      }
+      if (after.livePriceStatus === 'unavailable' || isUnpricedResultsOffer(after)) {
+        return after;
+      }
+      const cached = cachedLivePriceResult(catalog, params);
+      if (cached) {
+        return cached;
+      }
+      return withCatalogPriceHidden(catalog);
+    })();
+
+    return { catalog, live, pending: true };
+  });
 }
 
 /**

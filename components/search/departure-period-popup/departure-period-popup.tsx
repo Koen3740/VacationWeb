@@ -4,6 +4,7 @@ import { DeparturePeriodCalendar } from '@/components/search/departure-period-po
 import '@/components/search/departure-period-popup/departure-period-popup.css';
 import { isSameDay, parseIsoDate } from '@/components/search/departure-period-popup/departure-period-popup-utils';
 import { destinationPopupPoppins } from '@/components/search/destination-popup/destination-popup-font';
+import { isSelectableDepartureIso } from '@/lib/search/departure-date';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -259,6 +260,10 @@ export function DeparturePeriodPopup({
   };
 
   const handleSelectDate = (isoDate: string) => {
+    if (!isSelectableDepartureIso(isoDate)) {
+      return;
+    }
+
     if (activeTab === 'kalender') {
       if (!kalenderStart || (kalenderStart && kalenderEnd)) {
         setKalenderStart(isoDate);

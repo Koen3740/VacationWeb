@@ -37,6 +37,27 @@ function okLowestBody(price = 876): string {
         trip: {
           price,
           tripCode: '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U.BRUCFU4C.CFU',
+          tripUrlHash:
+            '[filters]BEL/BRU.*.*.*.0|||9514.COSPY.BRUCFU.270826.3-4-3.SZ-U.BRUCFU4C.CFU|||true',
+          priceTableDate: '20260827',
+          durationInDays: 5,
+        },
+      },
+    },
+  });
+}
+
+function okUpsalesBody(pricePerPerson = 876, totalPrice = 1752): string {
+  return JSON.stringify({
+    result: {
+      extendedTripCode: '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U.BRUCFU4C.CFU',
+      prices: {
+        totalPrice,
+        priceTableCalculatedPricePerPerson: pricePerPerson,
+      },
+      selectedTripCudl: {
+        selectedTrip: {
+          system: { request: { departureDate: '2026-08-27' } },
         },
       },
     },
@@ -65,8 +86,9 @@ test('Sunweb catalog price is not a bookable Detail candidate without proven liv
   assert.notEqual(resultsPricePresentation(priced), 'amount');
 });
 
-test('Corendon Detail uses live lowestpricesacco, not feed €', async () => {
+test('Corendon Detail uses live upsales for default 2A, not feed €', async () => {
   let lowestCalls = 0;
+  let upsalesCalls = 0;
   const priced = await priceOfferForDetail(
     makeOffer({ id: 'corendon-9514', provider: 'Corendon', price: 458 }),
     { adults: 2 },
@@ -77,16 +99,22 @@ test('Corendon Detail uses live lowestpricesacco, not feed €', async () => {
           lowestCalls += 1;
           return new Response(okLowestBody(), { status: 200 });
         }
+        if (url.includes('/upsales')) {
+          upsalesCalls += 1;
+          return new Response(okUpsalesBody(876, 1752), { status: 200 });
+        }
         throw new Error(`unexpected fetch ${url}`);
       },
     },
   );
 
   assert.equal(lowestCalls, 1);
+  assert.equal(upsalesCalls, 1);
   assert.equal(priced.livePriceStatus, 'proven');
-  assert.equal(priced.livePriceSource, 'lowestpricesacco');
+  assert.equal(priced.livePriceSource, 'upsales');
   assert.equal(priced.price, 876);
-  assert.ok(hasValidPresentablePrice(priced));
+  assert.equal(priced.liveTotalPrice, 1752);
+  assert.equal(hasValidPresentablePrice(priced), true);
 });
 
 test('Prijsvrij Detail does not call Receipt and does not show feed as live', async () => {
@@ -124,6 +152,8 @@ test('Prijsvrij Detail reuses a proven Results Receipt overlay', async () => {
     pricePerDay: 128,
     livePriceStatus: 'proven',
     livePriceSource: 'receipt',
+    liveTotalPrice: 1023.5,
+    liveTotalPriceField: 'receipt.TotalInclLocal',
   });
 
   const priced = await priceOfferForDetail(offer, { adults: 2 }, {

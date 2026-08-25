@@ -13,6 +13,7 @@ import {
 } from '@/components/search/shared-search-state';
 import { FilterOptions } from '@/types/travel';
 import { formatDepartureAirportLabel } from '@/lib/search/departure-airports';
+import { earliestSelectableDepartureIso } from '@/lib/search/departure-date';
 
 type IncomingSearchParams = Record<string, string | string[] | undefined>;
 
@@ -191,12 +192,14 @@ export function SearchForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <input
               type="date"
+              min={earliestSelectableDepartureIso()}
               value={form.departureStart}
               onChange={(event) => setForm({ ...form, departureStart: event.target.value })}
               className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
             />
             <input
               type="date"
+              min={earliestSelectableDepartureIso()}
               value={form.departureEnd}
               onChange={(event) => setForm({ ...form, departureEnd: event.target.value })}
               className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"

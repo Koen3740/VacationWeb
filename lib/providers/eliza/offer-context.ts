@@ -29,6 +29,7 @@ export type ElizaLiveContext = {
 export type ElizaLiveOccupancy =
   | { ok: false; reason: 'invalid_occupancy' }
   | { ok: true; mode: 'feed-two-adults' }
+  | { ok: true; mode: 'party'; participants: ElizaParticipant[] }
   | { ok: true; mode: 'four-travellers-two-rooms'; participants: ElizaParticipant[] };
 
 const PARTICIPANT_KEY = /^Participants\[(\d+)\]\[(\d+)\]$/;
@@ -133,10 +134,46 @@ function resolveElizaFourTravellerTwoRoomOccupancy(
   return { ok: true, mode: 'four-travellers-two-rooms', participants };
 }
 
+function resolveElizaSameRoomPartyOccupancy(
+  params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
+): ElizaLiveOccupancy {
+  const party = params.party;
+  if (!party || party.length !== 3) {
+    return { ok: false, reason: 'invalid_occupancy' };
+  }
+  if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
+    return { ok: false, reason: 'invalid_occupancy' };
+  }
+  const adults = params.adults ?? 2;
+  const children = params.children ?? 0;
+  const babies = params.babies ?? 0;
+  const rooms = params.rooms ?? 1;
+  if (adults !== 2 || children !== 1 || babies !== 0 || rooms !== 1) {
+    return { ok: false, reason: 'invalid_occupancy' };
+  }
+  const roomIndexes = new Set(party.map((traveller) => traveller.roomIndex));
+  if (roomIndexes.size !== 1) {
+    return { ok: false, reason: 'invalid_occupancy' };
+  }
+  const roomIndex = party[0]?.roomIndex;
+  if (roomIndex !== 0 && roomIndex !== 1) {
+    return { ok: false, reason: 'invalid_occupancy' };
+  }
+  return {
+    ok: true,
+    mode: 'party',
+    participants: party.map((traveller, personIndex) => ({
+      key: `Participants[${roomIndex}][${personIndex}]`,
+      value: traveller.dateOfBirth as string,
+    })),
+  };
+}
+
 /**
  * Proven live occupancies for Eliza:
  * - Package 1: 2A / 0C / 0B / 1 room uses feed Participants (no invented DOBs)
- * - This gap: 4 travellers / 2 rooms with party ISO DOBs encoded as
+ * - 2A+1C / 1 room with party ISO DOBs (Bijbel §6; case 133863)
+ * - 4 travellers / 2 rooms with party ISO DOBs encoded as
  *   `Participants[roomIndex][personIndex]=YYYY-MM-DD`
  *   (Bijbel §5–6; 22_closure_multiroom.json 2A1C_2rooms + 2A_2rooms_split)
  *
@@ -161,6 +198,10 @@ export function resolveElizaLiveOccupancy(
     !Number.isFinite(rooms)
   ) {
     return { ok: false, reason: 'invalid_occupancy' };
+  }
+
+  if (adults === 2 && children === 1 && babies === 0 && rooms === 1) {
+    return resolveElizaSameRoomPartyOccupancy(params);
   }
 
   if (adults !== 2 || children !== 0 || babies !== 0 || rooms !== 1) {
@@ -311,7 +352,7 @@ export function buildElizaLiveContext(
     return null;
   }
 
-  if (occupancy.mode === 'four-travellers-two-rooms') {
+  if (occupancy.mode === 'four-travellers-two-rooms' || occupancy.mode === 'party') {
     const trip = parseElizaTripQuery(offer.deepLink, accoId);
     if (!trip) {
       return null;
@@ -426,7 +467,7 @@ export function buildElizaOccupancyClickOutHref(
   params: SearchParams,
 ): string | null {
   const occupancy = resolveElizaLiveOccupancy(params);
-  if (!occupancy.ok || occupancy.mode !== 'four-travellers-two-rooms') {
+  if (!occupancy.ok || (occupancy.mode !== 'four-travellers-two-rooms' && occupancy.mode !== 'party')) {
     return null;
   }
   const ctx = buildElizaLiveContext(offer, params);

@@ -2,15 +2,13 @@ import { FilterSidebar } from '@/components/results/filter-sidebar';
 import { NoResults } from '@/components/results/no-results';
 import { ResultsPagination } from '@/components/results/results-pagination';
 import { SortSelector } from '@/components/results/sort-selector';
-import { TravelCard } from '@/components/results/travel-card';
 import { ResultsPageClient } from '@/components/results-v2/results-page-client';
-import { SearchProgressFeedback } from '@/components/search/search-progress-feedback';
 import { getDepartureDisplay } from '@/components/search/departure-display';
 import {
   expandDurationRange,
   formatSelectedDurationsLabel,
 } from '@/components/search/duration-popup/duration-popup-utils';
-import { loadFilterOptions } from '@/lib/offers/load-filter-options';
+import { loadPresentedFilterOptions } from '@/lib/offers/present-active-filter-options';
 import { loadOffers } from '@/lib/offers/load-offers';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 import {
@@ -18,25 +16,21 @@ import {
   Page1ResultsStream,
 } from '@/components/results/page1-receipt-stream';
 import {
-  resolveResultsPageSlice,
   RESULTS_PRODUCT_PAGE_SIZE,
-  startPage1ReceiptStream,
-  tryCatalogRefinePage1,
+  startCatalogPageLiveOverlays,
 } from '@/lib/providers/prijsvrij';
+import { sliceRankedCatalogResultsPage } from '@/lib/search/results-catalog-page';
+import '@/lib/http/prefer-ipv4';
 import { countCarRentalFacet } from '@/lib/search/filtering';
+import { excludeParkedResultsProviders } from '@/lib/search/presentable-price';
 import { isPriceDependentSort, prepareResultsOffers } from '@/lib/search/prepare-results-offers';
 import { PriceSortResultsStream } from '@/components/results/price-sort-live-stream';
-import {
-  buildResultsPageHref,
-  limitRankedResultsForPagination,
-} from '@/lib/search/pagination';
+import { limitRankedResultsForPagination } from '@/lib/search/pagination';
 import { parseSearchParams } from '@/lib/search/parse-search-params';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
 import { attachSiteMarket } from '@/lib/search/site-market';
 import { SearchParams } from '@/types/travel';
-import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
-import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,8 +83,8 @@ export default async function ResultsPage({
     parseSearchParams(searchParams),
     headers().get('x-forwarded-host') ?? headers().get('host'),
   );
-  const offers = await loadOffers();
-  const filterOptions = loadFilterOptions();
+  const offers = excludeParkedResultsProviders(await loadOffers());
+  const filterOptions = await loadPresentedFilterOptions();
   const citiesByCountry = filterOptions.citiesByCountry ?? {};
   const accommodationTypes = filterOptions.accommodationTypes ?? [];
   const countryCounts = filterOptions.countryCounts ?? {};
@@ -155,111 +149,47 @@ export default async function ResultsPage({
     );
   }
 
-  // Page 1: stream non-Receipt cards immediately; PV slots resolve independently.
-  // Full-matchset live pricing is scheduled above and is not awaited here.
-  if (isPage1) {
-    if (filtered.length === 0) {
-      return (
-        <ResultsPageClient
-          {...pageShell}
-          results={<NoResults />}
-          pagination={
-            <ResultsPagination
-              params={{ ...params, pageSize }}
-              totalResults={0}
-            />
-          }
-        />
-      );
-    }
-
-    const catalogPage1 = tryCatalogRefinePage1(filtered, params, {
-      pageSize,
-      paginationPool: userPool,
-    });
-    if (catalogPage1) {
-      return (
-        <ResultsPageClient
-          {...pageShell}
-          results={
-            <div className="space-y-3.5">
-              {catalogPage1.visibleOffers.map((offer) => (
-                <TravelCard key={offer.id} offer={offer} searchParams={params} />
-              ))}
-            </div>
-          }
-          pagination={
-            <ResultsPagination
-              params={{ ...params, pageSize, page1Ids: catalogPage1.page1Ids }}
-              totalResults={catalogPage1.paginationTotal}
-            />
-          }
-        />
-      );
-    }
-
-    const stream = startPage1ReceiptStream(filtered, params, {
-      pageSize,
-      paginationPool: userPool,
-    });
+  // Catalog first-paint. Full-matchset live pricing was scheduled in
+  // prepareResultsOffers (not awaited). Page overlays join cache / in-flight.
+  if (filtered.length === 0) {
     return (
       <ResultsPageClient
         {...pageShell}
-        results={<Page1ResultsStream stream={stream} searchParams={{ ...params, pageSize }} />}
+        results={<NoResults />}
         pagination={
-          <Page1PaginationStream
-            stream={stream}
+          <ResultsPagination
             params={{ ...params, pageSize }}
-            replaceExistingPage1Ids={Boolean(params.page1Ids?.length)}
+            totalResults={0}
           />
         }
       />
     );
   }
 
-  // Page 2+: remaining from page1Ids; cold page 2 runs page-1 pipeline once.
-  const { visibleOffers, page1Ids, needsPage1IdsRedirect, paginationTotal } = await resolveResultsPageSlice(
-    filtered,
-    params,
-    { pageSize, paginationPool: userPool },
-  );
+  const catalogPage = sliceRankedCatalogResultsPage(userPool, isPage1 ? 1 : page, pageSize);
+  const overlays = startCatalogPageLiveOverlays(catalogPage.offers, params);
 
-  if (needsPage1IdsRedirect && page1Ids?.length) {
-    redirect(
-      buildResultsPageHref(
-        { ...params, pageSize, page1Ids },
-        params.page ?? 2,
-      ),
-    );
-  }
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center bg-[#F3F5F8]">
-          <SearchProgressFeedback />
-        </main>
+    <ResultsPageClient
+      {...pageShell}
+      results={
+        catalogPage.offers.length > 0 ? (
+          <Page1ResultsStream
+            catalogOffers={catalogPage.offers}
+            overlays={overlays}
+            searchParams={{ ...params, pageSize }}
+          />
+        ) : (
+          <NoResults />
+        )
       }
-    >
-      <ResultsPageClient
-        {...pageShell}
-        results={
-          visibleOffers.length > 0 ? (
-            <div className="space-y-3.5">
-              {visibleOffers.map((offer) => (
-                <TravelCard key={offer.id} offer={offer} searchParams={params} />
-              ))}
-            </div>
-          ) : (
-            <NoResults />
-          )
-        }
-        pagination={
-            <ResultsPagination
-              params={{ ...params, pageSize, page1Ids }}
-              totalResults={paginationTotal}
-            />
-        }
-      />
-    </Suspense>
+      pagination={
+        <Page1PaginationStream
+          params={{ ...params, pageSize }}
+          page1Ids={catalogPage.page1Ids}
+          paginationTotal={catalogPage.paginationTotal}
+        />
+      }
+    />
   );
 }

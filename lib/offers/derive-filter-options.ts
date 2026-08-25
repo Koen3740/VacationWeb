@@ -5,6 +5,7 @@ import {
   canonicalizeBoardType,
 } from './canonicalize-board-type';
 import { canonicalizeCountryName } from './canonical-country';
+import { canonicalizeRegionName } from './canonical-region';
 import { resolveOfferIataAirportCode } from '../search/departure-airports';
 import {
   deriveDestinationCountryCounts,
@@ -57,14 +58,17 @@ export function deriveFilterOptions(offers: TravelOffer[]): FilterOptions {
   const airportSet = new Set<string>();
 
   for (const offer of offers) {
-    const country = offer.destinationCountry;
+    const country = canonicalizeCountryName(offer.destinationCountry);
     if (country) {
       countrySet.add(country);
 
       if (offer.destinationRegion) {
-        const regions = regionsByCountryMap.get(country) ?? new Set<string>();
-        regions.add(offer.destinationRegion);
-        regionsByCountryMap.set(country, regions);
+        const region = canonicalizeRegionName(offer.destinationRegion);
+        if (region) {
+          const regions = regionsByCountryMap.get(country) ?? new Set<string>();
+          regions.add(region);
+          regionsByCountryMap.set(country, regions);
+        }
       }
     }
 

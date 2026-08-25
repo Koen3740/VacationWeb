@@ -1,5 +1,6 @@
 import { canonicalizeBoardType } from '@/lib/offers/canonicalize-board-type';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
+import { canonicalizeRegionName } from '@/lib/offers/canonical-region';
 import { isVacationWebFlightPackage } from '@/lib/offers/flight-package-eligibility';
 import {
   offerMatchesAccommodationType,
@@ -23,7 +24,11 @@ import {
   offerMatchesDepartureAirports,
   parseDepartureAirportsParam,
 } from '@/lib/search/departure-airports';
-import { normalizeDepartureDateToIso } from '@/lib/search/departure-date';
+import {
+  earliestSelectableDepartureIso,
+  normalizeDepartureDateToIso,
+  sanitizeDepartureSearchWindow,
+} from '@/lib/search/departure-date';
 import { SearchParams, TravelOffer } from '@/types/travel';
 
 function shiftIsoDate(isoDate: string, days: number): string {
@@ -57,13 +62,29 @@ export function filterOffers(
   params: SearchParams
 ): TravelOffer[] {
   const countryFilters = resolveCountryFilters(params);
+  const bookableWindow = sanitizeDepartureSearchWindow(
+    params.departureStart,
+    params.departureEnd,
+  );
+  if ((params.departureStart || params.departureEnd) && !bookableWindow.valid) {
+    return [];
+  }
+
   const flexibilityDays = params.flexibilityDays ?? 0;
-  const effectiveDepartureStart = params.departureStart && flexibilityDays > 0
-    ? shiftIsoDate(params.departureStart, -flexibilityDays)
-    : params.departureStart;
-  const effectiveDepartureEnd = params.departureEnd && flexibilityDays > 0
-    ? shiftIsoDate(params.departureEnd, flexibilityDays)
-    : params.departureEnd;
+  const minBookable = earliestSelectableDepartureIso();
+  const windowStart = bookableWindow.departureStart;
+  const windowEnd = bookableWindow.departureEnd;
+  const flexedStart =
+    windowStart && flexibilityDays > 0
+      ? shiftIsoDate(windowStart, -flexibilityDays)
+      : windowStart;
+  const flexedEnd =
+    windowEnd && flexibilityDays > 0
+      ? shiftIsoDate(windowEnd, flexibilityDays)
+      : windowEnd;
+  const effectiveDepartureStart =
+    flexedStart && flexedStart < minBookable ? minBookable : flexedStart;
+  const effectiveDepartureEnd = flexedEnd;
 
   return offers.filter((offer) => {
     if (!isVacationWebFlightPackage(offer)) {
@@ -80,7 +101,7 @@ export function filterOffers(
 
     if (
       params.region &&
-      offer.destinationRegion !== params.region
+      canonicalizeRegionName(offer.destinationRegion) !== canonicalizeRegionName(params.region)
     ) {
       return false;
     }

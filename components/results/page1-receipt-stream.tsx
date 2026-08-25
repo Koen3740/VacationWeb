@@ -1,112 +1,98 @@
 import { ResultsPagination } from '@/components/results/results-pagination';
 import { SyncPage1IdsToUrl } from '@/components/results/sync-page1-ids-to-url';
 import { TravelCard } from '@/components/results/travel-card';
-import { TravelCardReceiptFallback } from '@/components/results/travel-card-receipt-fallback';
-import type { Page1PresentedSlice, Page1ReceiptStream } from '@/lib/providers/prijsvrij';
+import type { CatalogPageLiveOverlay } from '@/lib/providers/prijsvrij';
 import { RESULTS_PRODUCT_PAGE_SIZE } from '@/lib/providers/prijsvrij';
-import { isResultsVisibleOffer } from '@/lib/search/presentable-price';
+import { isResultsListableOffer } from '@/lib/search/presentable-price';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 import { Suspense } from 'react';
 
-async function StreamedTravelCard({
-  offerPromise,
+async function OverlayTravelCard({
+  live,
   searchParams,
 }: {
-  offerPromise: Promise<TravelOffer | null>;
+  catalog: TravelOffer;
+  live: Promise<TravelOffer>;
   searchParams?: SearchParams;
 }) {
-  const offer = await offerPromise;
-  if (!offer) {
-    return null;
-  }
-  return <TravelCard offer={offer} searchParams={searchParams} />;
-}
-
-async function Page1TrailingCards({
-  presented,
-  searchParams,
-}: {
-  presented: Promise<Page1PresentedSlice>;
-  searchParams?: SearchParams;
-}) {
-  const { trailingOffers } = await presented;
-  if (trailingOffers.length === 0) {
+  const priced = await live;
+  if (!isResultsListableOffer(priced)) {
     return null;
   }
   return (
-    <>
-      {trailingOffers.map((offer) => (
-        <TravelCard key={offer.id} offer={offer} searchParams={searchParams} />
-      ))}
-    </>
-  );
-}
-
-async function Page1PaginationFromPresented({
-  presented,
-  params,
-  replaceExistingPage1Ids = false,
-}: {
-  presented: Promise<Page1PresentedSlice>;
-  params: SearchParams;
-  replaceExistingPage1Ids?: boolean;
-}) {
-  const { page1Ids, paginationTotal } = await presented;
-  return (
-    <>
-      <SyncPage1IdsToUrl page1Ids={page1Ids} replaceExisting={replaceExistingPage1Ids} />
-      <ResultsPagination
-        params={{ ...params, pageSize: RESULTS_PRODUCT_PAGE_SIZE, page1Ids }}
-        totalResults={paginationTotal}
-      />
-    </>
+    <TravelCard
+      offer={priced}
+      provisional={false}
+      searchParams={searchParams}
+    />
   );
 }
 
 export function Page1ResultsStream({
-  stream,
+  catalogOffers,
+  overlays,
   searchParams,
 }: {
-  stream: Page1ReceiptStream;
+  catalogOffers: TravelOffer[];
+  overlays: CatalogPageLiveOverlay[];
   searchParams?: SearchParams;
 }) {
+  const overlayById = new Map(overlays.map((overlay) => [overlay.catalog.id, overlay]));
+
   return (
     <div className="space-y-3.5">
-      {stream.slots.map((slot) =>
-        slot.kind === 'immediate' && isResultsVisibleOffer(slot.offer) ? (
-          <TravelCard key={slot.offer.id} offer={slot.offer} searchParams={searchParams} />
-        ) : slot.kind === 'immediate' ? null : (
+      {catalogOffers.filter(isResultsListableOffer).map((offer) => {
+        const overlay = overlayById.get(offer.id);
+        if (!overlay || !overlay.pending) {
+          const settled = overlay?.catalog ?? offer;
+          return (
+            <TravelCard
+              key={offer.id}
+              offer={settled}
+              provisional={false}
+              searchParams={searchParams}
+            />
+          );
+        }
+        return (
           <Suspense
-            key={`pv-slot-${slot.selectedIndex}`}
-            fallback={<TravelCardReceiptFallback />}
+            key={offer.id}
+            fallback={
+              <TravelCard
+                offer={overlay.catalog}
+                provisional
+                searchParams={searchParams}
+              />
+            }
           >
-            <StreamedTravelCard offerPromise={slot.offer} searchParams={searchParams} />
+            <OverlayTravelCard
+              catalog={overlay.catalog}
+              live={overlay.live}
+              searchParams={searchParams}
+            />
           </Suspense>
-        ),
-      )}
-      <Suspense fallback={null}>
-        <Page1TrailingCards presented={stream.presented} searchParams={searchParams} />
-      </Suspense>
+        );
+      })}
     </div>
   );
 }
 
 export function Page1PaginationStream({
-  stream,
   params,
-  replaceExistingPage1Ids = false,
+  page1Ids,
+  paginationTotal,
 }: {
-  stream: Page1ReceiptStream;
   params: SearchParams;
-  replaceExistingPage1Ids?: boolean;
+  page1Ids: string[];
+  paginationTotal: number;
 }) {
   return (
-    <Suspense fallback={null}>
-      <Page1PaginationFromPresented
-        presented={stream.presented}
-        params={params}
-        replaceExistingPage1Ids={replaceExistingPage1Ids}
+    <>
+      <SyncPage1IdsToUrl page1Ids={page1Ids} replaceExisting={Boolean(params.page1Ids?.length)} />
+      <ResultsPagination
+        params={{ ...params, pageSize: RESULTS_PRODUCT_PAGE_SIZE, page1Ids }}
+        totalResults={paginationTotal}
       />
-    </Suspense>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { TravelOffer } from '../../types/travel';
+import { canonicalizeCountryName } from './canonical-country';
 
 export type DestinationCountryCount = {
   name: string;
@@ -26,7 +27,7 @@ export function deriveDestinationCountryCounts(offers: TravelOffer[]): Destinati
   const counts = new Map<string, number>();
 
   for (const offer of offers) {
-    const country = offer.destinationCountry;
+    const country = canonicalizeCountryName(offer.destinationCountry);
     if (!country) {
       continue;
     }
@@ -43,7 +44,7 @@ export function derivePopularDestinations(offers: TravelOffer[]): PopularDestina
   const counts = new Map<string, number>();
 
   for (const offer of offers) {
-    const country = offer.destinationCountry;
+    const country = canonicalizeCountryName(offer.destinationCountry);
     if (!country) {
       continue;
     }
@@ -62,7 +63,7 @@ export function derivePopularCountries(offers: TravelOffer[]): DestinationCountr
   const counts = new Map<string, number>();
 
   for (const offer of offers) {
-    const country = offer.destinationCountry;
+    const country = canonicalizeCountryName(offer.destinationCountry);
     if (!country) {
       continue;
     }

@@ -6,6 +6,7 @@ import {
   serializeTravelersToQuery,
   type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
+import { sanitizeDepartureSearchWindow } from '@/lib/search/departure-date';
 
 export type SharedSearchState = {
   selectedCountries: string[];
@@ -100,8 +101,14 @@ export function buildResultsHref(state: SharedSearchState): string {
   }
 
   if (state.departureStart) {
-    params.set('departureStart', state.departureStart);
-    params.set('departureEnd', state.departureEnd ?? state.departureStart);
+    const window = sanitizeDepartureSearchWindow(
+      state.departureStart,
+      state.departureEnd ?? state.departureStart,
+    );
+    if (window.valid && window.departureStart && window.departureEnd) {
+      params.set('departureStart', window.departureStart);
+      params.set('departureEnd', window.departureEnd);
+    }
   }
 
   if (state.flexibilityDays > 0) {

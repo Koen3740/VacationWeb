@@ -8,11 +8,12 @@ import {
   pricePage1WithPrijsvrijReceipts,
   resolveResultsPageSlice,
   startPage1ReceiptStream,
+  startCatalogPageLiveOverlays,
   clearLivePriceInflightForTests,
 } from '../prijsvrij/page1-receipt-pricing';
 import { clearPrijsvrijReceiptTokenCache } from '../prijsvrij/receipt-auth';
 import { clearResultsLivePriceCache } from '../../search/results-live-price-cache';
-import { hasValidPresentablePrice, isResultsVisibleOffer, resultsPricePresentation } from '../../search/presentable-price';
+import { hasValidPresentablePrice } from '../../search/presentable-price';
 import { priceOfferForDetail } from '../../search/price-offer-for-detail';
 import { SUNWEB_PRODUCT_URL } from './offer-context.test';
 import {
@@ -152,7 +153,7 @@ test('page1: 4 pax / 2 rooms uses proven GetPromotedPrice, not feed €', async 
   assert.ok(!page.some((offer) => offer.provider === 'Eliza was here'));
 });
 
-test('page1: 2A does not call GetPromotedPrice and is not shown without a proven live €', async () => {
+test('page1: 2A uses GetPromotedPrice and is presentable on success', async () => {
   let promotedCalls = 0;
   const page = await pricePage1WithPrijsvrijReceipts(
     [makeOffer({ id: 'sunweb-84012', provider: 'Sunweb', price: 427 })],
@@ -165,8 +166,10 @@ test('page1: 2A does not call GetPromotedPrice and is not shown without a proven
       }),
     },
   );
-  assert.equal(promotedCalls, 0);
-  assert.equal(page.length, 0);
+  assert.equal(promotedCalls, 1);
+  assert.equal(page.length, 1);
+  assert.equal(page[0].livePriceSource, 'getPromotedPrice');
+  assert.ok(hasValidPresentablePrice(page[0]));
 });
 
 test('page1: 4 pax / 2 rooms without party DOBs is not shown', async () => {
@@ -209,7 +212,7 @@ test('page1: mismatch does not present Sunweb', async () => {
   assert.equal(page.length, 0);
 });
 
-test('stream: valid Sunweb 4p/2r is pending; 2A Sunweb is immediate catalog', async () => {
+test('stream: valid Sunweb 4p/2r is pending; invalid-context Sunweb stays immediate unavailable', async () => {
   const stream = startPage1ReceiptStream(
     [
       makeOffer({ id: 'sunweb-84012', provider: 'Sunweb' }),
@@ -309,7 +312,7 @@ test('landing URL used for bootstrap carries occupancy Participants, not feed 2A
   assert.ok(!landingUrl.includes('1996-07-30'));
 });
 
-test('Detail: 4 pax / 2 rooms uses GetPromotedPrice; 2A catalog is not shown as live €', async () => {
+test('Detail: 4 pax / 2 rooms and proven 2A both use GetPromotedPrice', async () => {
   const live = await priceOfferForDetail(
     makeOffer({ id: 'sunweb-84012', provider: 'Sunweb', price: 427 }),
     FOUR_PAX_TWO_ROOMS,
@@ -317,14 +320,21 @@ test('Detail: 4 pax / 2 rooms uses GetPromotedPrice; 2A catalog is not shown as 
   );
   assert.equal(live.livePriceSource, 'getPromotedPrice');
   assert.equal(live.price, 558);
+  assert.equal(live.liveTotalPrice, 1674);
 
-  const catalog = await priceOfferForDetail(
+  const twoAdults = await priceOfferForDetail(
     makeOffer({ id: 'sunweb-84012', provider: 'Sunweb', price: 427 }),
     { adults: 2 },
+    {
+      fetchImpl: makeLiveFetch({
+        priceBody: okPromotedBody({ averagePrice: 505, totalPrice: 1010 }),
+      }),
+    },
   );
-  assert.equal(catalog.price, 427);
-  assert.equal(hasValidPresentablePrice(catalog), false);
-  assert.notEqual(resultsPricePresentation(catalog), 'amount');
+  assert.equal(twoAdults.livePriceSource, 'getPromotedPrice');
+  assert.equal(twoAdults.price, 505);
+  assert.equal(twoAdults.liveTotalPrice, 1010);
+  assert.ok(hasValidPresentablePrice(twoAdults));
 });
 
 test('page1: 4p/2r Sunweb outside the 150-cap rank still gets a GetPromotedPrice card', async () => {
@@ -395,7 +405,20 @@ test('page1: 4p/2r Sunweb is not crowded out of Results by 10 other live-require
   assert.ok(hasValidPresentablePrice(sun));
 });
 
-test('page1: 2A Sunweb stays catalog when 10 other offers fill page-1 rank', async () => {
+test('catalog overlay: 2A Sunweb pending resolves to proven GetPromotedPrice', async () => {
+  const overlays = startCatalogPageLiveOverlays(
+    [makeOffer({ id: 'sunweb-84012', provider: 'Sunweb', price: 427 })],
+    { adults: 2 },
+    { fetchImpl: makeLiveFetch({}) },
+  );
+  assert.equal(overlays.length, 1);
+  assert.equal(overlays[0]?.pending, true);
+  const priced = await overlays[0]!.live;
+  assert.equal(priced.livePriceSource, 'getPromotedPrice');
+  assert.ok(hasValidPresentablePrice(priced));
+});
+
+test('page1: 2A Sunweb stays off page-1 when 10 other live offers fill the rank', async () => {
   const corendonUrl = 'https://www.corendon.be/vakantie#9514.COSPY.BRUCFU.270826.3-4-3.SZ-U';
   let promotedCalls = 0;
   const page = await pricePage1WithPrijsvrijReceipts(
@@ -629,7 +652,7 @@ test('page1: Aquamarina 2026-10-06 NRN 8 HP available → Results card with prov
   assert.equal(page[0].livePriceSource, 'getPromotedPrice');
 });
 
-test('page1: 2A Sunweb still does not call grouped or GPP', async () => {
+test('page1: 2A Sunweb calls grouped gate and GetPromotedPrice', async () => {
   let groupedCalls = 0;
   let promotedCalls = 0;
   const page = await pricePage1WithPrijsvrijReceipts(
@@ -646,7 +669,8 @@ test('page1: 2A Sunweb still does not call grouped or GPP', async () => {
       }),
     },
   );
-  assert.equal(groupedCalls, 0);
-  assert.equal(promotedCalls, 0);
-  assert.equal(page.length, 0);
+  assert.equal(groupedCalls, 1);
+  assert.equal(promotedCalls, 1);
+  assert.equal(page.length, 1);
+  assert.equal(page[0].livePriceSource, 'getPromotedPrice');
 });

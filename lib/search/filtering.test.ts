@@ -75,8 +75,8 @@ test('Corendon DD/MM/YYYY is excluded when the ISO date does not match', () => {
   ];
 
   const matched = filterOffers(offers, {
-    departureStart: '2026-08-20',
-    departureEnd: '2026-08-27',
+    departureStart: '2026-09-20',
+    departureEnd: '2026-09-27',
   });
   assert.equal(matched.length, 0);
 });
@@ -86,26 +86,26 @@ test('ISO departure dates keep matching for other providers', () => {
     makeOffer({
       id: 'sunweb-1',
       provider: 'Sunweb',
-      departureDate: '2026-08-20',
+      departureDate: '2026-09-20',
     }),
     makeOffer({
       id: 'eliza-1',
       provider: 'Eliza was here',
-      departureDate: '2026-08-27',
+      departureDate: '2026-09-27',
     }),
     makeOffer({
-      id: 'prijsvrij-1',
-      provider: 'Prijsvrij',
+      id: 'corendon-1',
+      provider: 'Corendon',
       departureDate: '2026-09-28',
     }),
   ];
 
-  const august = filterOffers(offers, {
-    departureStart: '2026-08-20',
-    departureEnd: '2026-08-27',
+  const midSeptember = filterOffers(offers, {
+    departureStart: '2026-09-20',
+    departureEnd: '2026-09-27',
   });
   assert.deepEqual(
-    august.map((offer) => offer.id),
+    midSeptember.map((offer) => offer.id),
     ['sunweb-1', 'eliza-1'],
   );
 
@@ -115,37 +115,58 @@ test('ISO departure dates keep matching for other providers', () => {
   });
   assert.deepEqual(
     september.map((offer) => offer.id),
-    ['prijsvrij-1'],
+    ['corendon-1'],
   );
 });
 
 test('departureStart / departureEnd range includes Corendon and ISO offers on the same day', () => {
   const offers = [
     makeOffer({
-      id: 'corendon-aug',
-      provider: 'Corendon',
-      departureDate: '20/08/2026',
-    }),
-    makeOffer({
-      id: 'sunweb-aug',
-      provider: 'Sunweb',
-      departureDate: '2026-08-20',
-    }),
-    makeOffer({
       id: 'corendon-sep',
+      provider: 'Corendon',
+      departureDate: '20/09/2026',
+    }),
+    makeOffer({
+      id: 'sunweb-sep',
+      provider: 'Sunweb',
+      departureDate: '2026-09-20',
+    }),
+    makeOffer({
+      id: 'corendon-late',
       provider: 'Corendon',
       departureDate: '28/09/2026',
     }),
   ];
 
   const matched = filterOffers(offers, {
-    departureStart: '2026-08-20',
-    departureEnd: '2026-08-27',
+    departureStart: '2026-09-20',
+    departureEnd: '2026-09-27',
   });
   assert.deepEqual(
     matched.map((offer) => offer.id),
-    ['corendon-aug', 'sunweb-aug'],
+    ['corendon-sep', 'sunweb-sep'],
   );
+});
+
+test('past-only departure window yields no Results matches', () => {
+  const offers = [
+    makeOffer({
+      id: 'past-offer',
+      provider: 'Sunweb',
+      departureDate: '2020-01-15',
+    }),
+    makeOffer({
+      id: 'future-offer',
+      provider: 'Sunweb',
+      departureDate: '2026-09-20',
+    }),
+  ];
+
+  const matched = filterOffers(offers, {
+    departureStart: '2020-01-01',
+    departureEnd: '2020-01-31',
+  });
+  assert.equal(matched.length, 0);
 });
 
 test('flexibilityDays still widens an ISO search window around Corendon DMY dates', () => {
@@ -276,4 +297,34 @@ test('K. hasCarRental is not a sort key', () => {
     sortOffers(withoutFlag, 'price').map((offer) => offer.id),
   );
   assert.deepEqual(sortOffers(mixed, 'price').map((offer) => offer.id), ['a', 'c', 'b']);
+});
+
+test('region filter matches French alias onto canonical Dutch region', () => {
+  const egeische = makeOffer({
+    id: 'egeische',
+    provider: 'Corendon',
+    destinationCountry: 'Turkije',
+    destinationRegion: 'Côte Égéenne',
+  });
+  const riviera = makeOffer({
+    id: 'riviera',
+    provider: 'Corendon',
+    destinationCountry: 'Turkije',
+    destinationRegion: 'Turkse Riviera',
+  });
+  const andalusie = makeOffer({
+    id: 'andalusie',
+    provider: 'Corendon',
+    destinationCountry: 'Spanje',
+    destinationRegion: 'Andalusie',
+  });
+
+  assert.deepEqual(
+    filterOffers([egeische, riviera, andalusie], { country: 'Turkije', region: 'Egeïsche Kust' }).map((offer) => offer.id),
+    ['egeische'],
+  );
+  assert.deepEqual(
+    filterOffers([egeische, riviera, andalusie], { country: 'Spanje', region: 'Andalusië' }).map((offer) => offer.id),
+    ['andalusie'],
+  );
 });

@@ -78,3 +78,38 @@ test('hasCarRental=1 parses as true; absent or 0 is off', () => {
   assert.equal(parseSearchParams({ hasCarRental: 'true' }).hasCarRental, undefined);
   assert.equal(parseSearchParams({ country: 'Spanje' }).hasCarRental, undefined);
 });
+
+test('past-only departure window is retained as unbookable for Results filter rejection', () => {
+  const params = parseSearchParams({
+    departureStart: '2020-01-01',
+    departureEnd: '2020-01-15',
+    country: 'Spanje',
+  });
+  assert.equal(params.departureStart, '2020-01-01');
+  assert.equal(params.departureEnd, '2020-01-15');
+});
+
+test('departure window that includes tomorrow+ is clamped when start is in the past', () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const y = tomorrow.getFullYear();
+  const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const d = String(tomorrow.getDate()).padStart(2, '0');
+  const minIso = `${y}-${m}-${d}`;
+
+  const end = new Date(tomorrow);
+  end.setDate(end.getDate() + 10);
+  const endIso = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+
+  const params = parseSearchParams({
+    departureStart: '2020-01-01',
+    departureEnd: endIso,
+  });
+  assert.equal(params.departureStart, minIso);
+  assert.equal(params.departureEnd, endIso);
+});
+
+test('region query aliases canonicalize onto existing Dutch labels', () => {
+  assert.equal(parseSearchParams({ region: 'Côte Égéenne' }).region, 'Egeïsche Kust');
+  assert.equal(parseSearchParams({ region: 'Andalusie' }).region, 'Andalusië');
+});

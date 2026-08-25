@@ -28,7 +28,8 @@ export type SunwebLiveContext = {
 
 export type SunwebLiveOccupancy =
   | { ok: false; reason: 'invalid_occupancy' }
-  | { ok: true; participants: SunwebParticipant[] };
+  | { ok: true; mode: 'feed-two-adults' }
+  | { ok: true; mode: 'party'; participants: SunwebParticipant[] };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const IATA = /^[A-Z]{3}$/;
@@ -96,47 +97,120 @@ export function isSunwebFourTravellerTwoRoomSearch(
   return rooms === 2 && adults + children + babies === 4;
 }
 
+function participantsFromSameRoomParty(
+  party: Array<{ dateOfBirth: string | null; roomIndex: number }>,
+): SunwebParticipant[] | null {
+  if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
+    return null;
+  }
+  const rooms = new Set(party.map((traveller) => traveller.roomIndex));
+  if (rooms.size !== 1) {
+    return null;
+  }
+  const roomIndex = party[0]?.roomIndex;
+  if (roomIndex !== 0 && roomIndex !== 1) {
+    return null;
+  }
+  return party.map((traveller, personIndex) => ({
+    key: `Participants[${roomIndex}][${personIndex}]`,
+    value: traveller.dateOfBirth as string,
+  }));
+}
+
 /**
- * Proven live occupancy for this gap:
- * 4 travellers / 2 rooms with party ISO DOBs encoded as
- * `Participants[roomIndex][personIndex]=YYYY-MM-DD`
- * (Bijbel §6 / §7; Fase 3 evidence `13`–`15`).
+ * Proven live occupancies (Bijbel §6 / §7; Fase 3 evidence `13`–`15`):
+ * - 2A / 1 room: feed Participants or party ISO DOBs
+ * - 2A+1C / 1 room and 2A+1B / 1 room with party ISO DOBs
+ * - 4 travellers / 2 rooms with party ISO DOBs
  *
  * Real ISO DOBs are never replaced with feed or placeholder birthdates.
+ * Results live-prices all proven occupancies below (same contract as Detail).
  */
 export function resolveSunwebLiveOccupancy(
   params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
 ): SunwebLiveOccupancy {
   const party = params.party;
-  if (!party || party.length !== 4) {
-    return { ok: false, reason: 'invalid_occupancy' };
-  }
-  if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
-    return { ok: false, reason: 'invalid_occupancy' };
-  }
-
-  const rooms: string[][] = [[], []];
-  for (const traveller of party) {
-    if (traveller.roomIndex !== 0 && traveller.roomIndex !== 1) {
+  if (party && party.length === 4) {
+    if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
       return { ok: false, reason: 'invalid_occupancy' };
     }
-    rooms[traveller.roomIndex].push(traveller.dateOfBirth as string);
+
+    const rooms: string[][] = [[], []];
+    for (const traveller of party) {
+      if (traveller.roomIndex !== 0 && traveller.roomIndex !== 1) {
+        return { ok: false, reason: 'invalid_occupancy' };
+      }
+      rooms[traveller.roomIndex].push(traveller.dateOfBirth as string);
+    }
+    if (rooms[0].length < 1 || rooms[1].length < 1) {
+      return { ok: false, reason: 'invalid_occupancy' };
+    }
+
+    const participants: SunwebParticipant[] = [];
+    rooms.forEach((birthdates, roomIndex) => {
+      birthdates.forEach((birthDate, personIndex) => {
+        participants.push({
+          key: `Participants[${roomIndex}][${personIndex}]`,
+          value: birthDate,
+        });
+      });
+    });
+
+    return { ok: true, mode: 'party', participants };
   }
-  if (rooms[0].length < 1 || rooms[1].length < 1) {
+
+  if (party && party.length === 3) {
+    const adults = params.adults ?? 2;
+    const children = params.children ?? 0;
+    const babies = params.babies ?? 0;
+    const rooms = params.rooms ?? 1;
+    const provenChildOrBaby =
+      adults === 2 && rooms === 1 && ((children === 1 && babies === 0) || (children === 0 && babies === 1));
+    if (!provenChildOrBaby) {
+      return { ok: false, reason: 'invalid_occupancy' };
+    }
+    const participants = participantsFromSameRoomParty(party);
+    if (!participants) {
+      return { ok: false, reason: 'invalid_occupancy' };
+    }
+    return { ok: true, mode: 'party', participants };
+  }
+
+  if (party && party.length === 2) {
+    const adults = params.adults ?? 2;
+    const children = params.children ?? 0;
+    const babies = params.babies ?? 0;
+    const rooms = params.rooms ?? 1;
+    if (adults !== 2 || children !== 0 || babies !== 0 || rooms !== 1) {
+      return { ok: false, reason: 'invalid_occupancy' };
+    }
+    const participants = participantsFromSameRoomParty(party);
+    if (!participants) {
+      return { ok: false, reason: 'invalid_occupancy' };
+    }
+    return { ok: true, mode: 'party', participants };
+  }
+
+  if (party && party.length > 0) {
     return { ok: false, reason: 'invalid_occupancy' };
   }
 
-  const participants: SunwebParticipant[] = [];
-  rooms.forEach((birthdates, roomIndex) => {
-    birthdates.forEach((birthDate, personIndex) => {
-      participants.push({
-        key: `Participants[${roomIndex}][${personIndex}]`,
-        value: birthDate,
-      });
-    });
-  });
+  const adults = params.adults ?? 2;
+  const children = params.children ?? 0;
+  const babies = params.babies ?? 0;
+  const rooms = params.rooms ?? 1;
+  if (adults === 2 && children === 0 && babies === 0 && rooms === 1) {
+    return { ok: true, mode: 'feed-two-adults' };
+  }
 
-  return { ok: true, participants };
+  return { ok: false, reason: 'invalid_occupancy' };
+}
+
+/** Proven Sunweb occupancies that Results may live-price (matches Detail). */
+export function requiresSunwebResultsLivePrice(
+  params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
+): boolean {
+  return resolveSunwebLiveOccupancy(params).ok;
 }
 
 function readParam(url: URL, indexed: string, plain: string): string {
@@ -235,6 +309,34 @@ export function buildSunwebLiveContext(
   }
 
   const unwrapped = unwrapSunwebProductUrl(offer.deepLink);
+  if (occupancy.mode === 'feed-two-adults') {
+    let landing: URL;
+    try {
+      landing = new URL(unwrapped);
+    } catch {
+      return null;
+    }
+    const participants: SunwebParticipant[] = [];
+    for (const [key, value] of landing.searchParams.entries()) {
+      if (/^Participants\[\d+\]\[\d+\]$/.test(key) && ISO_DATE.test(value)) {
+        participants.push({ key, value });
+      }
+    }
+    if (
+      participants.length !== 2 ||
+      participants[0]?.key !== 'Participants[0][0]' ||
+      participants[1]?.key !== 'Participants[0][1]'
+    ) {
+      return null;
+    }
+    return {
+      accoId,
+      landingUrl: unwrapped,
+      feHost,
+      query: { ...trip, participants },
+    };
+  }
+
   const landingUrl = applySunwebOccupancyToLandingUrl(unwrapped, occupancy.participants);
   if (!landingUrl) {
     return null;
@@ -333,6 +435,10 @@ export function buildSunwebOccupancyClickOutHref(
   offer: TravelOffer,
   params: SearchParams,
 ): string | null {
+  const occupancy = resolveSunwebLiveOccupancy(params);
+  if (!occupancy.ok || occupancy.mode !== 'party') {
+    return null;
+  }
   const ctx = buildSunwebLiveContext(offer, params);
   if (!ctx || !offer.deepLink) {
     return null;

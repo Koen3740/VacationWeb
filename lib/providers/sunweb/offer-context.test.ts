@@ -89,15 +89,20 @@ test('parseSunwebLandingQuery: airport/date/duration/meal from productURL, not f
   assert.equal(parseSunwebLandingQuery(noAirport, '84012'), null);
 });
 
-test('occupancy: 4 travellers / 2 rooms with party DOBs; 2A and missing DOBs invalid', () => {
-  assert.equal(resolveSunwebLiveOccupancy({ adults: 2 }).ok, false);
+test('occupancy: proven 2A / 2A+1C / 4p-2r; unproven shapes stay invalid', () => {
+  const twoAdults = resolveSunwebLiveOccupancy({ adults: 2 });
+  assert.equal(twoAdults.ok, true);
+  if (twoAdults.ok) {
+    assert.equal(twoAdults.mode, 'feed-two-adults');
+  }
   assert.equal(resolveSunwebLiveOccupancy({ adults: 2, rooms: 2 }).ok, false);
   assert.equal(resolveSunwebLiveOccupancy({ adults: 2, children: 2, rooms: 2 }).ok, false);
   assert.equal(resolveSunwebLiveOccupancy({ adults: 4, rooms: 2 }).ok, false);
+  assert.equal(resolveSunwebLiveOccupancy({ adults: 2, children: 1 }).ok, false);
 
   const occupancy = resolveSunwebLiveOccupancy(FOUR_PAX_TWO_ROOMS);
   assert.equal(occupancy.ok, true);
-  if (!occupancy.ok) {
+  if (!occupancy.ok || occupancy.mode !== 'party') {
     return;
   }
   assert.deepEqual(occupancy.participants, [
@@ -143,8 +148,8 @@ test('isSunwebFourTravellerTwoRoomSearch: live-required shape without inventing 
 
 test('applySunwebOccupancyToLandingUrl replaces feed 2A Participants', () => {
   const occupancy = resolveSunwebLiveOccupancy(FOUR_PAX_TWO_ROOMS);
-  assert.ok(occupancy.ok);
-  if (!occupancy.ok) {
+  assert.ok(occupancy.ok && occupancy.mode === 'party');
+  if (!occupancy.ok || occupancy.mode !== 'party') {
     return;
   }
   const landing = applySunwebOccupancyToLandingUrl(SUNWEB_LANDING, occupancy.participants);
@@ -172,7 +177,10 @@ test('buildSunwebLiveContext: mapping + occupancy gate uses party DOBs not feed 
   assert.equal(landing.searchParams.get('Participants[0][1]'), '1988-03-03');
   assert.ok(!ok.landingUrl.includes('1996-07-30'));
 
-  assert.equal(buildSunwebLiveContext(makeOffer(), { adults: 2 }), null);
+  const twoAdults = buildSunwebLiveContext(makeOffer(), { adults: 2 });
+  assert.ok(twoAdults);
+  assert.equal(twoAdults.query.participants[0]?.value, '1996-07-30');
+  assert.equal(twoAdults.query.participants[1]?.value, '1996-07-30');
   assert.equal(
     buildSunwebLiveContext(makeOffer({ deepLink: 'https://www.sunweb.be/x' }), FOUR_PAX_TWO_ROOMS),
     null,

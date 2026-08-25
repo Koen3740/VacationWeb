@@ -205,6 +205,25 @@ export function classifyLivePriceFailure(
   }
 }
 
+/**
+ * Technical (C) failures eligible for one immediate second attempt.
+ * Confirmed unavailable (A) and mapping/context misses are not retried.
+ * Client 4xx (except 408/429) is treated as non-retryable http_error.
+ */
+export function isRetryableTechnicalLivePriceFailure(input: LivePriceFailureInput): boolean {
+  const classified = classifyLivePriceFailure(input);
+  if (classified.status !== LIVE_PRICE_ATTEMPT_STATUS.ERROR) {
+    return false;
+  }
+  if (classified.reason === LIVE_PRICE_ATTEMPT_REASON.http_error) {
+    const code = input.httpStatus;
+    if (code != null && code >= 400 && code < 500 && code !== 408 && code !== 429) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function occupancyRooms(params: SearchParams): number {
   const fromParty = params.party?.length
     ? Math.max(...params.party.map((traveller) => traveller.roomIndex + 1))

@@ -16,6 +16,7 @@ export {
   isSunweb,
   isSunwebFourTravellerTwoRoomSearch,
   parseSunwebLandingQuery,
+  requiresSunwebResultsLivePrice,
   resolveSunwebFeHost,
   resolveSunwebLiveOccupancy,
   unwrapSunwebProductUrl,

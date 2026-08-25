@@ -80,6 +80,42 @@ export function occupancyAgeCountsFromSearchParams(
 }
 
 /**
+ * SearchParams occupancy fields from party DOBs.
+ * Uses occupancyAgeCountsFromSearchParams as the only classifier.
+ * Unclassified 2 travellers / 1 room stays the existing 2A contract.
+ * Other unclassified parties keep party/rooms and do not invent A/C/B.
+ */
+export function searchParamsOccupancyFromParty(
+  party: NonNullable<SearchParams['party']>,
+  rooms: number,
+  today: Date = new Date(),
+): Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'> {
+  const counts = occupancyAgeCountsFromSearchParams({ party, rooms }, today);
+  if (counts.classified) {
+    return {
+      party,
+      rooms: counts.rooms,
+      adults: counts.adults,
+      children: counts.children,
+      babies: counts.babies,
+    };
+  }
+  if (counts.persons === 2 && counts.rooms === 1) {
+    return {
+      party,
+      rooms: 1,
+      adults: 2,
+      children: 0,
+      babies: 0,
+    };
+  }
+  return {
+    party,
+    rooms: counts.rooms,
+  };
+}
+
+/**
  * Compact occupancy category for telemetry, e.g. `2A / 1R`, `2A+2C / 2R`, `4P / 2R`.
  * Never includes dates of birth.
  */

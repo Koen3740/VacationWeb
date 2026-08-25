@@ -32,13 +32,24 @@ function normalizedSearchWindow(params?: Pick<SearchParams, 'departureStart' | '
 
 /**
  * One presentation rule for Results cards and Detail.
- * Search window decides "op" vs "tussen". Catalog date is fallback when the
- * user did not choose dates. Flexibility ±days is still an exact date.
+ *
+ * Offer-specific departure date always wins when present (ResultCard / Detail).
+ * The search window (departureStart/End) is only used when the offer has no
+ * concrete date — e.g. summary copy without an offer. A flexible search range
+ * must never replace a catalog trip's own departure date on a card.
  */
 export function formatDeparturePresentation(
   params?: Pick<SearchParams, 'departureStart' | 'departureEnd'> | null,
   offerDepartureDate?: string | null,
 ): DeparturePresentation {
+  const offer = formatDateDdMmYyyy(offerDepartureDate);
+  if (offer) {
+    return {
+      mode: 'exact',
+      phrase: `Vertrek op ${offer}`,
+    };
+  }
+
   const { start, end } = normalizedSearchWindow(params);
 
   if (start && end && start !== end) {
@@ -52,14 +63,6 @@ export function formatDeparturePresentation(
     return {
       mode: 'exact',
       phrase: `Vertrek op ${formatDdMmYyyy(start)}`,
-    };
-  }
-
-  const offer = formatDateDdMmYyyy(offerDepartureDate);
-  if (offer) {
-    return {
-      mode: 'exact',
-      phrase: `Vertrek op ${offer}`,
     };
   }
 

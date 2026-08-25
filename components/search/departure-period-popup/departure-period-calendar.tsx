@@ -9,6 +9,7 @@ import {
   isSameDay,
   parseIsoDate,
 } from '@/components/search/departure-period-popup/departure-period-popup-utils';
+import { earliestSelectableDepartureIso } from '@/lib/search/departure-date';
 import { Fragment, useMemo, useState } from 'react';
 
 const WEEKDAY_LABELS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
@@ -80,6 +81,8 @@ export function DeparturePeriodCalendar({
     [viewMonth, viewYear],
   );
 
+  const minSelectableIso = useMemo(() => earliestSelectableDepartureIso(), []);
+
   const { orderedStart, orderedEnd } = getOrderedRange(startDate, endDate);
   const hoverParsed = hoverDate ? parseIsoDate(hoverDate) : null;
 
@@ -142,50 +145,53 @@ export function DeparturePeriodCalendar({
             </div>
             {week.days.map((day) => {
               const dayDate = day.date;
+              const isDisabled = day.isoDate < minSelectableIso;
 
-              const isCenter = isKalenderSingleDate && orderedStart
+              const isCenter = !isDisabled && isKalenderSingleDate && orderedStart
                 ? isSameDay(dayDate, orderedStart)
                 : false;
 
-              const inFlexBuffer = flexWindowStart && flexWindowEnd && orderedStart
+              const inFlexBuffer = !isDisabled && flexWindowStart && flexWindowEnd && orderedStart
                 ? isBetween(dayDate, flexWindowStart, flexWindowEnd)
                 : false;
 
-              const isFlexStart = flexWindowStart
+              const isFlexStart = !isDisabled && flexWindowStart
                 ? isSameDay(dayDate, flexWindowStart) && !isCenter
                 : false;
-              const isFlexEnd = flexWindowEnd
+              const isFlexEnd = !isDisabled && flexWindowEnd
                 ? isSameDay(dayDate, flexWindowEnd) && !isCenter
                 : false;
 
-              const isStart = (mode === 'range' || isKalenderRange) && orderedStart
+              const isStart = !isDisabled && (mode === 'range' || isKalenderRange) && orderedStart
                 ? isSameDay(dayDate, orderedStart)
                 : false;
-              const isEnd = (mode === 'range' || isKalenderRange) && orderedEnd
+              const isEnd = !isDisabled && (mode === 'range' || isKalenderRange) && orderedEnd
                 ? isSameDay(dayDate, orderedEnd)
                 : false;
-              const inRange = (mode === 'range' || isKalenderRange) && orderedStart && orderedEnd
+              const inRange = !isDisabled && (mode === 'range' || isKalenderRange) && orderedStart && orderedEnd
                 ? isBetween(dayDate, orderedStart, orderedEnd)
                 : false;
 
-              const isPreviewStart = previewStart ? isSameDay(dayDate, previewStart) : false;
-              const isPreviewEnd = previewEnd ? isSameDay(dayDate, previewEnd) : false;
-              const inPreviewRange = previewStart && previewEnd
+              const isPreviewStart = !isDisabled && previewStart ? isSameDay(dayDate, previewStart) : false;
+              const isPreviewEnd = !isDisabled && previewEnd ? isSameDay(dayDate, previewEnd) : false;
+              const inPreviewRange = !isDisabled && previewStart && previewEnd
                 ? isBetween(dayDate, previewStart, previewEnd)
                 : false;
 
-              const isHovered = hoverDate === day.isoDate;
+              const isHovered = !isDisabled && hoverDate === day.isoDate;
               const usePreview = (mode === 'range' || mode === 'kalender') && !orderedEnd && previewStart && previewEnd;
 
               const classNames = ['departure-period-calendar__day'];
 
-              if (!day.isCurrentMonth) {
+              if (isDisabled) {
+                classNames.push('departure-period-calendar__day--disabled');
+              } else if (!day.isCurrentMonth) {
                 classNames.push('departure-period-calendar__day--outside');
               } else {
                 classNames.push('departure-period-calendar__day--default');
               }
 
-              if (isKalenderSingleDate) {
+              if (!isDisabled && isKalenderSingleDate) {
                 if (isFlexStart) {
                   classNames.push('departure-period-calendar__day--range-start');
                 }
@@ -198,7 +204,7 @@ export function DeparturePeriodCalendar({
                 if (isCenter) {
                   classNames.push('departure-period-calendar__day--selected');
                 }
-              } else if (usePreview) {
+              } else if (!isDisabled && usePreview) {
                 if (isPreviewStart) {
                   classNames.push('departure-period-calendar__day--preview-start');
                 }
@@ -211,7 +217,7 @@ export function DeparturePeriodCalendar({
                 if (isPreviewStart || isPreviewEnd) {
                   classNames.push('departure-period-calendar__day--preview-selected');
                 }
-              } else {
+              } else if (!isDisabled) {
                 if (isStart) {
                   classNames.push('departure-period-calendar__day--range-start');
                 }
@@ -235,11 +241,20 @@ export function DeparturePeriodCalendar({
                 <div key={day.isoDate} className="departure-period-calendar__day-cell">
                   <button
                     type="button"
+                    disabled={isDisabled}
+                    aria-disabled={isDisabled}
                     onClick={(event) => {
                       event.stopPropagation();
+                      if (isDisabled) {
+                        return;
+                      }
                       onSelectDate(day.isoDate);
                     }}
-                    onMouseEnter={() => setHoverDate(day.isoDate)}
+                    onMouseEnter={() => {
+                      if (!isDisabled) {
+                        setHoverDate(day.isoDate);
+                      }
+                    }}
                     onMouseLeave={() => setHoverDate(null)}
                     className={classNames.join(' ')}
                   >
