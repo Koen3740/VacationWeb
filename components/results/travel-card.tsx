@@ -9,13 +9,16 @@ import {
   RESULTS_STAR_GOLD,
 } from '@/components/results-v2/results-design-tokens';
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
+import { collectCardHighlights } from '@/lib/offers/card-highlights';
 import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { displayHotelName } from '@/lib/offers/display-hotel-name';
-import { carRentalIncludedLabel } from '@/lib/offers/has-car-rental';
+import { offerHasCarRental } from '@/lib/offers/has-car-rental';
 import { formatNightsLabel } from '@/lib/offers/offer-detail-view';
 import { buildOfferDetailHref } from '@/lib/search/pagination';
+import { displayAccommodationTypeForCard } from '@/lib/search/accommodation-type-filter';
 import { formatOfferDepartureAirportLabel } from '@/lib/search/departure-airports';
-import { formatDeparturePresentation } from '@/lib/search/departure-presentation';
+import { normalizeDepartureDateToIso } from '@/lib/search/departure-date';
+import { occupancyAgeCountsFromSearchParams } from '@/lib/search/occupancy-category';
 import {
   RESULTS_PRICE_COPY,
   hasValidPresentablePrice,
@@ -23,12 +26,7 @@ import {
   isUnpricedResultsOffer,
   resultsPricePresentation,
 } from '@/lib/search/presentable-price';
-import {
-  boardTypeLabelForDutchUi,
-  cardBlurbForDutchUi,
-  extraInfoLabelForDutchUi,
-  preferredDutchLocalizedText,
-} from '@/lib/offers/ui-locale';
+import { boardTypeLabelForDutchUi } from '@/lib/offers/ui-locale';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { canonicalizeRegionName } from '@/lib/offers/canonical-region';
 import type { SearchParams, TravelOffer } from '@/types/travel';
@@ -54,25 +52,6 @@ function collectImages(offer: TravelOffer): string[] {
   return collectOrderedOfferImages(offer);
 }
 
-/** Plain-text snippet from feed text fields (no descriptionLong). */
-function plainTextSnippet(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-
-  const text = trimmed
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&apos;/gi, "'")
-    .replace(/&#0?39;/g, "'")
-    .replace(/&quot;/gi, '"')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return text || undefined;
-}
-
 function flightIncludedLabel(value: string | undefined): string | undefined {
   const normalized = value?.trim().toLowerCase();
   if (!normalized) return undefined;
@@ -80,22 +59,6 @@ function flightIncludedLabel(value: string | undefined): string | undefined {
     return 'Inclusief vlucht';
   }
   return undefined;
-}
-
-function subcategoryLabels(value: string | undefined): string[] {
-  if (!value?.trim()) return [];
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const part of value.split(',')) {
-    const label = part.trim();
-    if (!label) continue;
-    const key = label.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(label);
-    if (out.length >= 3) break;
-  }
-  return out;
 }
 
 function HeartButton() {
@@ -116,12 +79,12 @@ function HeartButton() {
   );
 }
 
-/** Prefer island/province over broad archipelago region labels (e.g. Balearen → Mallorca). */
-function formatCardLocation(offer: TravelOffer): string {
+/** Land → Regio → Plaats (e.g. Spanje · Costa Brava · Santa Susanna). */
+function formatCardLocationHierarchy(offer: TravelOffer): string {
+  const country = canonicalizeCountryName(offer.destinationCountry?.trim() || '');
   const region = canonicalizeRegionName(offer.destinationRegion);
   const province = offer.destinationProvince?.trim() || '';
   const city = offer.destinationCity?.trim() || '';
-  const country = canonicalizeCountryName(offer.destinationCountry?.trim() || '');
 
   const ARCHIPELAGO_REGIONS = new Set([
     'balearen',
@@ -131,20 +94,45 @@ function formatCardLocation(offer: TravelOffer): string {
   ]);
 
   const regionIsArchipelago = ARCHIPELAGO_REGIONS.has(region.toLowerCase());
-  const primary =
-    regionIsArchipelago && province
-      ? province
-      : region || city;
+  const regionLabel = regionIsArchipelago && province ? province : region;
 
-  return [primary, country].filter(Boolean).join(', ');
+  return [country, regionLabel, city].filter(Boolean).join(' · ');
 }
 
-function isCardBlurbUseful(value: string | undefined): boolean {
-  const trimmed = value?.trim();
-  if (!trimmed) return false;
-  // Bare occupancy / room codes must not appear as description lines.
-  if (/^\d{1,3}$/.test(trimmed)) return false;
-  return trimmed.length >= 3;
+function resolveCardDepartureIso(
+  params: Pick<SearchParams, 'departureStart' | 'departureEnd'> | undefined,
+  offerDepartureDate: string | undefined,
+): string | undefined {
+  const offerIso = normalizeDepartureDateToIso(offerDepartureDate);
+  if (offerIso) {
+    return offerIso;
+  }
+  const start = normalizeDepartureDateToIso(params?.departureStart);
+  const end = normalizeDepartureDateToIso(params?.departureEnd) ?? start;
+  return start ?? end ?? undefined;
+}
+
+function formatCardDepartureDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.toLocaleDateString('nl-NL', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+function formatCardPartySummary(params: SearchParams | undefined): string | undefined {
+  if (!params) {
+    return undefined;
+  }
+  const counts = occupancyAgeCountsFromSearchParams(params);
+  if (counts.persons <= 0) {
+    return undefined;
+  }
+  return counts.persons === 1 ? '1 persoon' : `${counts.persons} personen`;
 }
 
 export function TravelCard({
@@ -184,45 +172,35 @@ export function TravelCard({
     return 'unavailable' as const;
   })();
 
-  const location = formatCardLocation(offer);
+  const location = formatCardLocationHierarchy(offer);
   const stars = offer.stars && offer.stars > 0 ? offer.stars : 0;
   const isLastMinute = offer.lastMinute === 'true' || offer.lastMinute === '1' || offer.lastMinute === 'yes';
   const ratingText = ratingLabel(offer.rating);
   const airport = formatOfferDepartureAirportLabel(offer);
   const images = collectImages(offer);
-  const departurePhrase = formatDeparturePresentation(searchParams, offer.departureDate).phrase;
-  const localizedDutch = preferredDutchLocalizedText(offer.localizedDescriptions);
-  const shortDescriptionRaw = cardBlurbForDutchUi(
-    offer,
-    plainTextSnippet(localizedDutch || offer.descriptionShort),
-    { allowLocalizedFallback: true },
-  );
-  const extraInfoRaw = extraInfoLabelForDutchUi(offer, plainTextSnippet(offer.extraInfo));
-  const shortDescription = isCardBlurbUseful(shortDescriptionRaw) ? shortDescriptionRaw : undefined;
-  const extraInfo =
-    isCardBlurbUseful(extraInfoRaw) &&
-    extraInfoRaw?.trim().toLowerCase() !== shortDescription?.trim().toLowerCase()
-      ? extraInfoRaw
-      : undefined;
-  const accommodationType = offer.accommodationType?.trim() || undefined;
+  const accommodationType = displayAccommodationTypeForCard(offer.accommodationType);
   const flightLabel = flightIncludedLabel(offer.flightIncluded);
-  const carRentalLabel = carRentalIncludedLabel(offer);
-  const themes = subcategoryLabels(offer.subcategories);
+  const hasCarRental = offerHasCarRental(offer);
+  const highlights = collectCardHighlights(offer);
   const publicHotelName = displayHotelName(offer);
   const boardLabel = boardTypeLabelForDutchUi(offer.boardType);
   const detailHref = searchParams
     ? buildOfferDetailHref(offer.id, searchParams)
     : `/offers/${encodeURIComponent(offer.id)}`;
 
+  const departureIso = resolveCardDepartureIso(searchParams, offer.departureDate);
+  const departureDateLabel = departureIso ? formatCardDepartureDate(departureIso) : undefined;
+  const partySummary = formatCardPartySummary(searchParams);
+  const airportLabel = airport ? `vanaf ${airport}` : undefined;
+
   const metaLine = [
     accommodationType,
     formatNightsLabel(offer.nights, offer.durationType, offer.provider),
     boardLabel,
     flightLabel,
-    airport,
   ]
     .filter(Boolean)
-    .join(' • ');
+    .join(' · ');
 
   return (
     <article
@@ -242,8 +220,8 @@ export function TravelCard({
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-4 sm:px-5 sm:py-4 md:flex-row md:gap-6">
-          <div className="min-w-0 flex-1 py-0.5">
+        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:gap-5 lg:gap-6">
+          <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-4 md:pr-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
                 {publicHotelName}
@@ -258,63 +236,68 @@ export function TravelCard({
                 </span>
               ) : null}
             </div>
-            <p className="mt-0.5 text-[13px] text-[#64748B]">{location}</p>
 
-            {shortDescription ? (
-              <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-[#64748B]">
-                {shortDescription}
-              </p>
+            {location ? (
+              <p className="mt-0.5 text-[13px] text-[#64748B]">{location}</p>
             ) : null}
 
-            {extraInfo ? (
-              <p className="mt-1 line-clamp-1 text-[12.5px] leading-snug text-[#64748B]">
-                {extraInfo}
-              </p>
+            {metaLine ? (
+              <p className="mt-2 text-[13px] leading-relaxed text-[#475569]">{metaLine}</p>
             ) : null}
 
-            {offer.rating != null ? (
-              <div className="mt-2.5 flex items-center gap-2">
-                <span
-                  className="inline-flex h-6 min-w-[1.85rem] items-center justify-center rounded-[5px] px-1.5 text-[12px] font-bold text-white"
-                  style={{ backgroundColor: RESULTS_RATING_GREEN }}
-                >
-                  {String(offer.rating).replace('.', ',')}
-                </span>
-                <span className="text-[13px] font-semibold" style={{ color: RESULTS_RATING_GREEN }}>
-                  {ratingText}
-                </span>
-              </div>
+            {highlights.length > 0 ? (
+              <ul className="mt-2.5 grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2">
+                {highlights.map((label) => (
+                  <li
+                    key={label}
+                    className="flex items-start gap-1.5 text-[12.5px] leading-snug text-[#475569]"
+                  >
+                    <span className="mt-px shrink-0 font-semibold text-[#2F8F78]" aria-hidden>
+                      ✓
+                    </span>
+                    <span>{label}</span>
+                  </li>
+                ))}
+              </ul>
             ) : null}
 
-            {carRentalLabel ? (
+            {hasCarRental ? (
               <p className="mt-2.5">
                 <span
                   className="inline-flex items-center rounded-[8px] border border-[#C5D6EA] bg-[#EFF5FB] px-2.5 py-1 text-[12.5px] font-semibold text-[#0A2D62]"
                   title="Transport: huurauto inbegrepen bij dit pakket"
                 >
-                  {carRentalLabel}
+                  🚗 Huurauto inclusief
                 </span>
               </p>
             ) : null}
-
-            {metaLine ? (
-              <p className="mt-2.5 text-[13px] leading-relaxed text-[#475569]">{metaLine}</p>
-            ) : null}
-
-            {themes.length > 0 ? (
-              <p className="mt-1 text-[12.5px] leading-snug text-[#64748B]">{themes.join(' • ')}</p>
-            ) : null}
-
-            {departurePhrase ? (
-              <p className="mt-1 text-[12.5px] text-[#64748B]">{departurePhrase}</p>
-            ) : null}
           </div>
 
-          <div className="flex w-full shrink-0 flex-col items-end justify-between border-t border-[#EDE8E0] pt-3 md:w-[158px] md:border-l md:border-t-0 md:pl-5 md:pt-0">
-            <div className="flex w-full items-start justify-end">
+          <div className="flex w-full shrink-0 flex-col border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[172px] md:border-l md:border-t-0 md:px-4 lg:w-[190px]">
+            <div className="flex items-start justify-end gap-2">
+              {offer.rating != null ? (
+                <div className="min-w-0 text-right">
+                  <p
+                    className="text-[22px] font-bold leading-none tracking-tight"
+                    style={{ color: RESULTS_RATING_GREEN }}
+                  >
+                    {String(offer.rating).replace('.', ',')}
+                  </p>
+                  <p className="mt-1 text-[12.5px] font-semibold leading-snug" style={{ color: RESULTS_RATING_GREEN }}>
+                    {ratingText}
+                  </p>
+                </div>
+              ) : null}
               <HeartButton />
             </div>
-            <div className="mt-1 flex w-full flex-1 flex-col items-end justify-center text-right">
+
+            <div className="mt-3 space-y-1 text-right text-[12.5px] leading-snug text-[#64748B]">
+              {departureDateLabel ? <p>{departureDateLabel}</p> : null}
+              {airportLabel ? <p>{airportLabel}</p> : null}
+              {partySummary ? <p>{partySummary}</p> : null}
+            </div>
+
+            <div className="mt-4 flex flex-1 flex-col items-end justify-center text-right">
               {priceKind === 'pending' ? (
                 <p className="text-[13px] font-medium leading-snug text-[#64748B]">
                   {RESULTS_PRICE_COPY.pending}
@@ -339,6 +322,7 @@ export function TravelCard({
                 </>
               )}
             </div>
+
             <div className="mt-3 w-full">
               <Link
                 href={detailHref}

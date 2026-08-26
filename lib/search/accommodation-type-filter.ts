@@ -109,3 +109,13 @@ export function offerMatchesAccommodationType(
   }
   return selected.some((type) => canonical === type);
 }
+
+/** NL card label; maps BE-FR feed values (e.g. Hôtel) to canonical sidebar labels. */
+export function displayAccommodationTypeForCard(raw: string | undefined): string | undefined {
+  const canonical = canonicalizeAccommodationType(raw);
+  if (canonical) {
+    return canonical;
+  }
+  const trimmed = raw?.trim();
+  return trimmed || undefined;
+}
