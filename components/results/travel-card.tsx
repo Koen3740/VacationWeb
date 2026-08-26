@@ -10,6 +10,7 @@ import {
 } from '@/components/results-v2/results-design-tokens';
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
 import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
+import { displayHotelName } from '@/lib/offers/display-hotel-name';
 import { carRentalIncludedLabel } from '@/lib/offers/has-car-rental';
 import { formatNightsLabel } from '@/lib/offers/offer-detail-view';
 import { buildOfferDetailHref } from '@/lib/search/pagination';
@@ -184,6 +185,7 @@ export function TravelCard({
   const flightLabel = flightIncludedLabel(offer.flightIncluded);
   const carRentalLabel = carRentalIncludedLabel(offer);
   const themes = subcategoryLabels(offer.subcategories);
+  const publicHotelName = displayHotelName(offer);
   const detailHref = searchParams
     ? buildOfferDetailHref(offer.id, searchParams)
     : `/offers/${encodeURIComponent(offer.id)}`;
@@ -193,7 +195,6 @@ export function TravelCard({
     formatNightsLabel(offer.nights, offer.durationType, offer.provider),
     offer.boardType,
     flightLabel,
-    carRentalLabel,
     airport,
   ]
     .filter(Boolean)
@@ -212,7 +213,7 @@ export function TravelCard({
         <div className="relative w-full shrink-0 md:w-[320px] lg:w-[340px]">
           <TravelCardGallery
             images={images}
-            alt={offer.hotelName}
+            alt={publicHotelName}
             isLastMinute={isLastMinute}
           />
         </div>
@@ -221,7 +222,7 @@ export function TravelCard({
           <div className="min-w-0 flex-1 py-0.5">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
-                {offer.hotelName}
+                {publicHotelName}
               </h3>
               {stars > 0 ? (
                 <span
@@ -259,6 +260,17 @@ export function TravelCard({
                   {ratingText}
                 </span>
               </div>
+            ) : null}
+
+            {carRentalLabel ? (
+              <p className="mt-2.5">
+                <span
+                  className="inline-flex items-center rounded-[8px] border border-[#C5D6EA] bg-[#EFF5FB] px-2.5 py-1 text-[12.5px] font-semibold text-[#0A2D62]"
+                  title="Transport: huurauto inbegrepen bij dit pakket"
+                >
+                  {carRentalLabel}
+                </span>
+              </p>
             ) : null}
 
             {metaLine ? (

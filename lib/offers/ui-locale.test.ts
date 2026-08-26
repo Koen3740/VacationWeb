@@ -69,7 +69,7 @@ test('Dutch listing without Dutch source copy hides French Sol Puerto Marina blu
   assert.equal(cardBlurbForDutchUi(offer, offer.descriptionShort), undefined);
 });
 
-test('unique BE-FR-only offer may keep French source copy', () => {
+test('unique BE-FR-only offer does not show French copy in NL Results', () => {
   const offer = makeOffer({
     feedSourceId: 'corendon-befr',
     listingHost: 'fr.corendon.be',
@@ -78,7 +78,7 @@ test('unique BE-FR-only offer may keep French source copy', () => {
       "L'hôtel Linda Sunny Beach est un établissement tout compris situé à seulement 300 mètres de la plage.",
   });
   assert.equal(hasDutchProviderListing(offer), false);
-  assert.equal(cardBlurbForDutchUi(offer, offer.descriptionShort), offer.descriptionShort);
+  assert.equal(cardBlurbForDutchUi(offer, offer.descriptionShort), undefined);
 });
 
 test('Detail catalog copy prefers stored nl-BE / nl-NL localized text', () => {

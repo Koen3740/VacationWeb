@@ -62,7 +62,7 @@ export const AMENITY_GROUPS: { id: string; label: string; items: AmenityValue[] 
 const KEYWORDS: Record<AmenityValue, string[]> = {
   pool_indoor: ['binnenzwembad', 'indoor pool', 'overdekt zwembad', 'binnenbad'],
   pool_outdoor: ['buitenzwembad', 'outdoor pool', 'buitenbad'],
-  aquapark: ['aquapark', 'aqua park', 'waterpark', 'water park', 'waterglijbaan'],
+  aquapark: ['aquapark', 'aqua park', 'waterpark', 'water park'],
   pool_kids: ['kinderbad', 'kinderzwembad', 'kids pool', 'children pool', 'peuterbad'],
   sauna: ['sauna'],
   hammam: ['hammam', 'hamam'],
@@ -75,16 +75,33 @@ const KEYWORDS: Record<AmenityValue, string[]> = {
   airco: ['airconditioning', 'airco', 'air-conditioning'],
 };
 
-export function offerMatchesAmenity(offer: TravelOffer, amenity: AmenityValue): boolean {
-  return offerMatchesAnyKeyword(offerSearchText(offer), KEYWORDS[amenity]);
+/** Amenities that must come from structured facility/taxonomy fields — not free copy or photos. */
+const STRUCTURED_ONLY_AMENITIES = new Set<AmenityValue>(['aquapark']);
+
+/** Categories / USP / facilities tags only (no descriptionLong / image-derived copy). */
+export function offerStructuredFacilityText(offer: TravelOffer): string {
+  return [offer.categories?.join(' '), offer.subcategories]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
 }
 
-/** OR across selected amenities. */
+export function offerMatchesAmenity(offer: TravelOffer, amenity: AmenityValue): boolean {
+  const text = STRUCTURED_ONLY_AMENITIES.has(amenity)
+    ? offerStructuredFacilityText(offer)
+    : offerSearchText(offer);
+  return offerMatchesAnyKeyword(text, KEYWORDS[amenity]);
+}
+
+/**
+ * AND across selected amenities: every chosen facility must match.
+ * OR previously allowed "sauna" to enlarge a set that already had other amenities.
+ */
 export function offerMatchesAnyAmenity(offer: TravelOffer, amenities: AmenityValue[]): boolean {
   if (amenities.length === 0) {
     return true;
   }
-  return amenities.some((amenity) => offerMatchesAmenity(offer, amenity));
+  return amenities.every((amenity) => offerMatchesAmenity(offer, amenity));
 }
 
 export function parseAmenitiesParam(value: string | null | undefined): AmenityValue[] {

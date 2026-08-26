@@ -28,13 +28,24 @@ const KEYWORDS: Record<VacationType, string[]> = {
     'kids club',
     'kidsclub',
   ],
-  Aquapark: ['aquapark', 'aqua park', 'waterpark', 'water park', 'waterglijbaan'],
+  // Structured taxonomy / USP tags only — not free description or photo captions.
+  Aquapark: ['aquapark', 'aqua park', 'waterpark', 'water park'],
   Romantisch: ['romantisch', 'ideaal voor stellen'],
   'Fly & Drive': ['fly-drive', 'fly drive', 'fly & drive', 'fly&drive'],
 };
 
+function vacationTypeSearchText(offer: TravelOffer, type: VacationType): string {
+  if (type === 'Aquapark') {
+    return [offer.categories?.join(' '), offer.subcategories]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+  }
+  return offerSearchText(offer);
+}
+
 export function offerMatchesVacationType(offer: TravelOffer, type: VacationType): boolean {
-  return offerMatchesAnyKeyword(offerSearchText(offer), KEYWORDS[type]);
+  return offerMatchesAnyKeyword(vacationTypeSearchText(offer, type), KEYWORDS[type]);
 }
 
 export function offerMatchesAnyVacationType(

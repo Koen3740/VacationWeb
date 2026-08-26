@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { OfferImageGallery } from '@/components/offers/offer-image-gallery';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import type { CatalogRoomType, CatalogSection } from '@/lib/offers/catalog-content';
+import { displayHotelName } from '@/lib/offers/display-hotel-name';
 import {
   affiliateHref,
   formatAdditionalAirport,
@@ -105,7 +106,7 @@ export function OfferDetailContent({
             <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <h1 className="break-words text-3xl font-semibold text-slate-950 sm:text-4xl">
-                  {offer.hotelName}
+                  {displayHotelName(offer)}
                 </h1>
                 {destination ? <p className="mt-2 text-slate-600">{destination}</p> : null}
               </div>
@@ -116,7 +117,7 @@ export function OfferDetailContent({
               ) : null}
             </div>
 
-            <OfferImageGallery images={galleryImages} alt={offer.hotelName} />
+            <OfferImageGallery images={galleryImages} alt={displayHotelName(offer)} />
 
             <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-700">

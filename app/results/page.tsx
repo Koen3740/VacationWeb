@@ -22,7 +22,7 @@ import {
 import { sliceRankedCatalogResultsPage } from '@/lib/search/results-catalog-page';
 import '@/lib/http/prefer-ipv4';
 import { countCarRentalFacet } from '@/lib/search/filtering';
-import { excludeParkedResultsProviders } from '@/lib/search/presentable-price';
+import { excludeParkedResultsProviders, filterToResultsListableOffers } from '@/lib/search/presentable-price';
 import { isPriceDependentSort, prepareResultsOffers } from '@/lib/search/prepare-results-offers';
 import { PriceSortResultsStream } from '@/components/results/price-sort-live-stream';
 import { limitRankedResultsForPagination } from '@/lib/search/pagination';
@@ -91,7 +91,8 @@ export default async function ResultsPage({
   const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? offers.length);
   const prepared = await prepareResultsOffers(offers, params);
   const filtered = prepared.offers;
-  const matchCount = filtered.length;
+  // Count must match the filterable/listable Results set (not parked / confirmed-unavailable).
+  const matchCount = filterToResultsListableOffers(filtered).length;
   const carRentalCount = countCarRentalFacet(offers, params);
   const userPool = limitRankedResultsForPagination(filtered);
   const pageSize = RESULTS_PRODUCT_PAGE_SIZE;

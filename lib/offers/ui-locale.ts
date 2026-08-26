@@ -41,7 +41,11 @@ export function isLikelyFrenchCopy(value: string | undefined): boolean {
   return FRENCH_COPY_MARKERS.test(trimmed);
 }
 
-/** Results/Detail short copy: never invent a translation; hide FR when a Dutch listing exists. */
+/**
+ * Results/Detail short copy for the NL UI.
+ * Prefer stored Dutch locale text; never show raw BE-FR / French marketing copy.
+ * No external translator — hide FR when no Dutch source text exists.
+ */
 export function cardBlurbForDutchUi(
   offer: TravelOffer,
   shortText: string | undefined,
@@ -51,26 +55,29 @@ export function cardBlurbForDutchUi(
   if (!trimmed) {
     return undefined;
   }
-  if (hasDutchProviderListing(offer) && isLikelyFrenchCopy(trimmed)) {
-    if (options?.allowLocalizedFallback) {
-      const dutch = preferredDutchLocalizedText(offer.localizedDescriptions);
-      if (dutch && !isLikelyFrenchCopy(dutch)) {
-        return dutch;
-      }
+
+  if (options?.allowLocalizedFallback !== false) {
+    const dutch = preferredDutchLocalizedText(offer.localizedDescriptions);
+    if (dutch && !isLikelyFrenchCopy(dutch)) {
+      return dutch;
     }
+  }
+
+  if (isLikelyFrenchCopy(trimmed)) {
     return undefined;
   }
+
   return trimmed;
 }
 
 /** Detail catalog copy: use stored Dutch locale text when the union kept it. */
 export function preferredDutchCatalogCopy(offer: TravelOffer): string | undefined {
   const localized = preferredDutchLocalizedText(offer.localizedDescriptions);
-  if (localized) {
+  if (localized && !isLikelyFrenchCopy(localized)) {
     return localized;
   }
   const longCopy = offer.descriptionLong?.trim() || offer.feedDescription?.trim();
-  if (hasDutchProviderListing(offer) && isLikelyFrenchCopy(longCopy)) {
+  if (isLikelyFrenchCopy(longCopy)) {
     return undefined;
   }
   return longCopy;
