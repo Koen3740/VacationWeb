@@ -112,18 +112,12 @@ function resolveCardDepartureIso(
   return start ?? end ?? undefined;
 }
 
-function formatCardDateLong(iso: string): string {
-  const [year, month, day] = iso.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.toLocaleDateString('nl-NL', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
+function formatCardDateCompact(iso: string): string {
+  const [year, month, day] = iso.split('-');
+  return `${day}/${month}/${year}`;
 }
 
-/** Full stay period using catalog return-date offset (same semantics as Detail). */
+/** Stay period using catalog return-date offset (same semantics as Detail). */
 function formatCardStayPeriodLabel(
   offer: TravelOffer,
   searchParams: SearchParams | undefined,
@@ -134,14 +128,14 @@ function formatCardStayPeriodLabel(
   }
   const offsetDays = catalogReturnDateOffsetDays(offer);
   if (!offsetDays) {
-    return formatCardDateLong(startIso);
+    return formatCardDateCompact(startIso);
   }
   const [year, month, day] = startIso.split('-').map(Number);
   const endDate = new Date(Date.UTC(year, month - 1, day));
   endDate.setUTCDate(endDate.getUTCDate() + offsetDays);
   const endIso = endDate.toISOString().slice(0, 10);
-  const startLabel = formatCardDateLong(startIso);
-  const endLabel = formatCardDateLong(endIso);
+  const startLabel = formatCardDateCompact(startIso);
+  const endLabel = formatCardDateCompact(endIso);
   if (startLabel === endLabel) {
     return startLabel;
   }
@@ -253,39 +247,41 @@ export function TravelCard({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-start md:gap-4 lg:gap-5">
-          <div className="min-w-0 flex-1 px-4 py-3 sm:px-5 sm:py-3 md:pr-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
-                {publicHotelName}
-              </h3>
-              {stars > 0 ? (
-                <span
-                  className="text-[16px] leading-none tracking-tight"
-                  style={{ color: RESULTS_STAR_GOLD }}
-                  aria-label={`${stars} sterren`}
-                >
-                  {'★'.repeat(stars)}
-                </span>
+        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-stretch md:gap-5 lg:gap-6">
+          <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-4 md:flex md:min-h-[255px] md:flex-col md:justify-between md:pr-0">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
+                  {publicHotelName}
+                </h3>
+                {stars > 0 ? (
+                  <span
+                    className="text-[16px] leading-none tracking-tight"
+                    style={{ color: RESULTS_STAR_GOLD }}
+                    aria-label={`${stars} sterren`}
+                  >
+                    {'★'.repeat(stars)}
+                  </span>
+                ) : null}
+              </div>
+
+              {location ? (
+                <p className="mt-0.5 text-[13px] text-[#64748B]">{location}</p>
+              ) : null}
+
+              {metaLine ? (
+                <p className="mt-2 text-[13px] leading-relaxed text-[#475569]">{metaLine}</p>
               ) : null}
             </div>
 
-            {location ? (
-              <p className="mt-0.5 text-[13px] text-[#64748B]">{location}</p>
-            ) : null}
-
-            {metaLine ? (
-              <p className="mt-1.5 text-[13px] leading-snug text-[#475569]">{metaLine}</p>
-            ) : null}
-
             {highlights.length > 0 ? (
-              <ul className="mt-2 grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-2">
+              <ul className="mt-4 flex flex-wrap items-start gap-x-5 gap-y-2 md:mt-0">
                 {highlights.map((label) => (
                   <li
                     key={label}
-                    className="flex items-start gap-1.5 text-[12.5px] leading-tight text-[#475569]"
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap text-[12.5px] leading-snug text-[#475569]"
                   >
-                    <span className="mt-px shrink-0 font-semibold text-[#2F8F78]" aria-hidden>
+                    <span className="shrink-0 font-semibold text-[#2F8F78]" aria-hidden>
                       ✓
                     </span>
                     <span>{label}</span>
@@ -295,51 +291,53 @@ export function TravelCard({
             ) : null}
 
             {stayPeriodLabel || tripSummary ? (
-              <div className="mt-2.5 space-y-0.5 text-[12.5px] leading-tight text-[#64748B]">
+              <div className="mt-4 space-y-0.5 text-[12.5px] leading-snug text-[#64748B] md:mt-0">
                 {stayPeriodLabel ? <p>{stayPeriodLabel}</p> : null}
                 {tripSummary ? <p>{tripSummary}</p> : null}
               </div>
             ) : null}
           </div>
 
-          <div className="flex w-full shrink-0 flex-col self-start border-t border-[#EDE8E0] px-4 py-3 sm:px-5 md:w-[152px] md:border-l md:border-t-0 md:px-3.5 lg:w-[168px]">
-            {offer.rating != null ? (
-              <p
-                className="text-right text-[13px] font-medium leading-tight"
-                style={{ color: RESULTS_RATING_GREEN }}
-              >
-                <span className="font-semibold">{String(offer.rating).replace('.', ',')}</span>
-                {ratingText ? ` ${ratingText}` : ''}
-              </p>
-            ) : null}
+          <div className="flex w-full shrink-0 flex-col border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[158px] md:justify-between md:border-l md:border-t-0 md:px-4 lg:w-[172px]">
+            <div className="text-right">
+              {offer.rating != null ? (
+                <p
+                  className="text-[13px] font-medium leading-tight"
+                  style={{ color: RESULTS_RATING_GREEN }}
+                >
+                  <span className="font-semibold">{String(offer.rating).replace('.', ',')}</span>
+                  {ratingText ? ` ${ratingText}` : ''}
+                </p>
+              ) : null}
 
-            <div className={`text-right ${offer.rating != null ? 'mt-2' : ''}`}>
-              {priceKind === 'pending' ? (
-                <p className="text-[13px] font-medium leading-snug text-[#64748B]">
-                  {RESULTS_PRICE_COPY.pending}
-                </p>
-              ) : priceKind === 'unpriced' ? (
-                <p className="text-[13px] font-medium leading-snug text-[#64748B]">
-                  {RESULTS_PRICE_COPY.unpriced}
-                </p>
-              ) : priceKind !== 'amount' ? (
-                <p className="text-[13px] font-medium leading-snug text-[#64748B]">
-                  {RESULTS_PRICE_COPY.unavailable}
-                </p>
-              ) : (
-                <>
-                  <p className="text-[28px] font-bold leading-none tracking-tight" style={{ color: RESULTS_NAVY }}>
-                    €&nbsp;{formatPrice(offer.price)}
+              <div className={offer.rating != null ? 'mt-3' : ''}>
+                {priceKind === 'pending' ? (
+                  <p className="text-[13px] font-medium leading-snug text-[#64748B]">
+                    {RESULTS_PRICE_COPY.pending}
                   </p>
-                  <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
-                  <p className="mt-2 text-[11px] font-normal text-[#A39A8C]">
-                    € {formatPrice(offer.pricePerDay)} p.p. / dag
+                ) : priceKind === 'unpriced' ? (
+                  <p className="text-[13px] font-medium leading-snug text-[#64748B]">
+                    {RESULTS_PRICE_COPY.unpriced}
                   </p>
-                </>
-              )}
+                ) : priceKind !== 'amount' ? (
+                  <p className="text-[13px] font-medium leading-snug text-[#64748B]">
+                    {RESULTS_PRICE_COPY.unavailable}
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-[28px] font-bold leading-none tracking-tight" style={{ color: RESULTS_NAVY }}>
+                      €&nbsp;{formatPrice(offer.price)}
+                    </p>
+                    <p className="mt-1.5 text-[12px] font-medium text-[#94A3B8]">p.p.</p>
+                    <p className="mt-2 text-[11px] font-normal text-[#A39A8C]">
+                      € {formatPrice(offer.pricePerDay)} p.p. / dag
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="mt-2.5 w-full">
+            <div className="mt-3 w-full md:mt-0">
               <Link
                 href={detailHref}
                 className="inline-flex h-10 w-full items-center justify-center rounded-[11px] text-[13px] font-semibold text-white transition"

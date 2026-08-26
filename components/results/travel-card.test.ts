@@ -68,7 +68,7 @@ test('Variant B places trip info in middle column', () => {
     departureAirport: 'EIN',
   });
   const html = cardHtml(offer, { adults: 2 });
-  assert.match(html, /12 september 2026 – 19 september 2026/);
+  assert.match(html, /12\/09\/2026 – 19\/09\/2026/);
   assert.match(html, /vanaf Eindhoven · 2 personen/);
   assert.doesNotMatch(html, /Bekijk bij Corendon/);
   assert.match(html, /Aangeboden door Corendon/);
@@ -107,6 +107,20 @@ test('Variant B card with zero highlights omits highlight grid', () => {
   assert.doesNotMatch(html, />✓</);
 });
 
+test('Variant B middle column uses three spaced blocks with flex-wrap highlights', () => {
+  const offer = makeOffer({
+    feedDescription:
+      'Buitenzwembad, airconditioning, gratis wifi. Openbaar strand op circa 200 meter.',
+    departureDate: '2026-09-12',
+    nights: 8,
+    departureAirport: 'EIN',
+  });
+  const html = cardHtml(offer, { adults: 2 });
+  assert.match(html, /md:min-h-\[255px\]/);
+  assert.match(html, /md:justify-between/);
+  assert.match(html, /flex flex-wrap items-start gap-x-5 gap-y-2/);
+  assert.match(html, /whitespace-nowrap/);
+});
 test('Variant B card shows up to six highlights in grid', () => {
   const offer = makeOffer({
     feedDescription:

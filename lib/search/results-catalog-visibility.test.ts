@@ -129,7 +129,7 @@ test('flexible search window does not replace concrete offer departure on the ca
     departureEnd: '2026-09-02',
     adults: 2,
   });
-  assert.match(html, /29 augustus 2026 – 5 september 2026/);
+  assert.match(html, /29\/08\/2026 – 05\/09\/2026/);
   assert.match(html, /2 personen/);
   assert.doesNotMatch(html, /Vertrek op/);
   assert.doesNotMatch(html, /Vertrek tussen/);
