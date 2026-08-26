@@ -2,13 +2,20 @@ import type { TravelOffer } from '@/types/travel';
 import { AMENITY_LABELS, offerMatchesAmenity, type AmenityValue } from '@/lib/search/amenity-filters';
 import { offerMatchesAnyBeachLocation } from '@/lib/search/location-filters';
 
-const CARD_AMENITY_ORDER: AmenityValue[] = ['pool_outdoor', 'pool_kids', 'pool_indoor', 'airco'];
+const CARD_AMENITY_ORDER: AmenityValue[] = [
+  'pool_outdoor',
+  'pool_kids',
+  'pool_indoor',
+  'airco',
+  'wifi',
+];
 
 const CARD_AMENITY_DISPLAY: Partial<Record<AmenityValue, string>> = {
   pool_outdoor: 'Zwembad buiten',
   pool_indoor: 'Zwembad binnen',
   pool_kids: 'Kinderzwembad',
   airco: 'Airco',
+  wifi: 'WiFi',
 };
 
 const WELLNESS_AMENITIES: AmenityValue[] = ['sauna', 'hammam', 'jacuzzi'];
@@ -44,7 +51,7 @@ export function collectCardHighlights(offer: TravelOffer): string[] {
   }
 
   if (WELLNESS_AMENITIES.some((amenity) => offerMatchesAmenity(offer, amenity))) {
-    push('Relax / Ontspanning');
+    push('Spa');
   }
 
   return out;

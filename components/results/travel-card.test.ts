@@ -31,7 +31,10 @@ function makeOffer(overrides: Partial<TravelOffer> = {}): TravelOffer {
   };
 }
 
-function cardHtml(offer: TravelOffer, searchParams?: { adults?: number }): string {
+function cardHtml(
+  offer: TravelOffer,
+  searchParams?: { adults?: number; departureStart?: string; departureEnd?: string },
+): string {
   return renderToStaticMarkup(createElement(TravelCard, { offer, searchParams }));
 }
 
@@ -40,7 +43,7 @@ test('displayAccommodationTypeForCard maps BE-FR Hôtel to Hotel', () => {
   assert.equal(displayAccommodationTypeForCard('hotel'), 'Hotel');
 });
 
-test('Variant A card shows location hierarchy and canonical accommodation type', () => {
+test('Variant B card shows location hierarchy and canonical accommodation type', () => {
   const offer = makeOffer({
     accommodationType: 'Hôtel',
     rating: 9.7,
@@ -54,11 +57,24 @@ test('Variant A card shows location hierarchy and canonical accommodation type',
   assert.doesNotMatch(html, /Hôtel/);
   assert.match(html, /9,7/);
   assert.match(html, /Fantastisch/);
-  assert.match(html, /2 personen/);
   assert.match(html, /Inclusief vlucht/);
 });
 
-test('Variant A card omits truncated marketing descriptions', () => {
+test('Variant B places trip info in middle column', () => {
+  const offer = makeOffer({
+    departureDate: '2026-09-12',
+    nights: 8,
+    provider: 'Corendon',
+    departureAirport: 'EIN',
+  });
+  const html = cardHtml(offer, { adults: 2 });
+  assert.match(html, /12 september 2026 – 19 september 2026/);
+  assert.match(html, /vanaf Eindhoven · 2 personen/);
+  assert.doesNotMatch(html, /Bekijk bij Corendon/);
+  assert.match(html, /Aangeboden door Corendon/);
+});
+
+test('Variant B card omits truncated marketing descriptions', () => {
   const offer = makeOffer({
     descriptionShort:
       'Dit hotel ligt op loopafstand van het strand en het levendige centrum van Santa Susanna met vele restaurants.',
@@ -68,6 +84,34 @@ test('Variant A card omits truncated marketing descriptions', () => {
   assert.doesNotMatch(html, /line-clamp/);
   assert.doesNotMatch(html, /loopafstand van het strand/);
   assert.doesNotMatch(html, /Extra marketing copy/);
+});
+
+test('Variant B card without rating leaves no rating block text', () => {
+  const offer = makeOffer({ rating: null });
+  const html = cardHtml(offer, { adults: 2 });
+  assert.doesNotMatch(html, /Fantastisch/);
+  assert.doesNotMatch(html, /Uitstekend/);
+});
+
+test('Variant B card with zero highlights omits highlight grid', () => {
+  const offer = makeOffer({ provider: 'Sunweb', feedDescription: undefined, searchText: undefined });
+  const html = cardHtml(offer, { adults: 2 });
+  assert.doesNotMatch(html, />✓</);
+});
+
+test('Variant B card shows up to six highlights in grid', () => {
+  const offer = makeOffer({
+    feedDescription:
+      'Buitenzwembad, binnenzwembad, kinderzwembad, airconditioning, gratis wifi, sauna, hammam. Openbaar strand op circa 200 meter.',
+    subcategories: 'Aquapark',
+  });
+  const highlights = collectCardHighlights(offer);
+  assert.ok(highlights.length >= 4);
+  assert.ok(highlights.length <= 6);
+  const html = cardHtml(offer);
+  for (const label of highlights) {
+    assert.match(html, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
 });
 
 test('Huurauto inclusief badge uses canonical hasCarRental', () => {
@@ -87,4 +131,24 @@ test('collectCardHighlights only includes proven structured amenities', () => {
   assert.ok(highlights.includes('Zwembad buiten'));
   assert.ok(highlights.includes('Airco'));
   assert.ok(highlights.includes('Nabij strand'));
+});
+
+test('Variant B gallery uses stable 3:2 aspect ratio on desktop', () => {
+  const html = cardHtml(makeOffer());
+  assert.match(html, /md:aspect-\[3\/2\]/);
+  assert.doesNotMatch(html, /md:aspect-auto/);
+});
+
+test('Variant B Sunweb card uses provider attribution', () => {
+  const offer = makeOffer({
+    id: 'sunweb-test',
+    provider: 'Sunweb',
+    livePriceStatus: 'proven',
+    livePriceSource: 'getPromotedPrice',
+    liveTotalPrice: 978,
+    liveTotalPriceField: 'getPromotedPrice.totalPrice',
+  });
+  const html = cardHtml(offer, { adults: 2 });
+  assert.match(html, /Aangeboden door Sunweb/);
+  assert.match(html, /€/);
 });

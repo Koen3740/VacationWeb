@@ -3,13 +3,14 @@ import {
   RESULTS_CARD_BG,
   RESULTS_CARD_SHADOW,
   RESULTS_CTA,
-  RESULTS_CTA_HOVER,
+  RESULTS_MUTED,
   RESULTS_NAVY,
   RESULTS_RATING_GREEN,
   RESULTS_STAR_GOLD,
 } from '@/components/results-v2/results-design-tokens';
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
 import { collectCardHighlights } from '@/lib/offers/card-highlights';
+import { catalogReturnDateOffsetDays } from '@/lib/offers/duration-semantics';
 import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { displayHotelName } from '@/lib/offers/display-hotel-name';
 import { offerHasCarRental } from '@/lib/offers/has-car-rental';
@@ -112,16 +113,40 @@ function resolveCardDepartureIso(
   return start ?? end ?? undefined;
 }
 
-function formatCardDepartureDate(iso: string): string {
+function formatCardDateLong(iso: string): string {
   const [year, month, day] = iso.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.toLocaleDateString('nl-NL', {
-    weekday: 'short',
     day: 'numeric',
-    month: 'short',
+    month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
   });
+}
+
+/** Full stay period using catalog return-date offset (same semantics as Detail). */
+function formatCardStayPeriodLabel(
+  offer: TravelOffer,
+  searchParams: SearchParams | undefined,
+): string | undefined {
+  const startIso = resolveCardDepartureIso(searchParams, offer.departureDate);
+  if (!startIso) {
+    return undefined;
+  }
+  const offsetDays = catalogReturnDateOffsetDays(offer);
+  if (!offsetDays) {
+    return formatCardDateLong(startIso);
+  }
+  const [year, month, day] = startIso.split('-').map(Number);
+  const endDate = new Date(Date.UTC(year, month - 1, day));
+  endDate.setUTCDate(endDate.getUTCDate() + offsetDays);
+  const endIso = endDate.toISOString().slice(0, 10);
+  const startLabel = formatCardDateLong(startIso);
+  const endLabel = formatCardDateLong(endIso);
+  if (startLabel === endLabel) {
+    return startLabel;
+  }
+  return `${startLabel} – ${endLabel}`;
 }
 
 function formatCardPartySummary(params: SearchParams | undefined): string | undefined {
@@ -133,6 +158,14 @@ function formatCardPartySummary(params: SearchParams | undefined): string | unde
     return undefined;
   }
   return counts.persons === 1 ? '1 persoon' : `${counts.persons} personen`;
+}
+
+function formatCardTripSummary(
+  airport: string | undefined,
+  partySummary: string | undefined,
+): string | undefined {
+  const airportPart = airport ? `vanaf ${airport}` : undefined;
+  return [airportPart, partySummary].filter(Boolean).join(' · ') || undefined;
 }
 
 export function TravelCard({
@@ -188,10 +221,9 @@ export function TravelCard({
     ? buildOfferDetailHref(offer.id, searchParams)
     : `/offers/${encodeURIComponent(offer.id)}`;
 
-  const departureIso = resolveCardDepartureIso(searchParams, offer.departureDate);
-  const departureDateLabel = departureIso ? formatCardDepartureDate(departureIso) : undefined;
+  const stayPeriodLabel = formatCardStayPeriodLabel(offer, searchParams);
   const partySummary = formatCardPartySummary(searchParams);
-  const airportLabel = airport ? `vanaf ${airport}` : undefined;
+  const tripSummary = formatCardTripSummary(airport, partySummary);
 
   const metaLine = [
     accommodationType,
@@ -211,8 +243,8 @@ export function TravelCard({
         boxShadow: RESULTS_CARD_SHADOW,
       }}
     >
-      <div className="flex flex-col md:flex-row">
-        <div className="relative w-full shrink-0 md:w-[320px] lg:w-[340px]">
+      <div className="flex flex-col md:flex-row md:items-start">
+        <div className="relative w-full shrink-0 self-start md:w-[320px] lg:w-[340px]">
           <TravelCardGallery
             images={images}
             alt={publicHotelName}
@@ -220,7 +252,7 @@ export function TravelCard({
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:gap-5 lg:gap-6">
+        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-start md:gap-5 lg:gap-6">
           <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-4 md:pr-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
@@ -271,9 +303,16 @@ export function TravelCard({
                 </span>
               </p>
             ) : null}
+
+            {stayPeriodLabel || tripSummary ? (
+              <div className="mt-3 space-y-0.5 text-[12.5px] leading-snug text-[#64748B]">
+                {stayPeriodLabel ? <p>{stayPeriodLabel}</p> : null}
+                {tripSummary ? <p>{tripSummary}</p> : null}
+              </div>
+            ) : null}
           </div>
 
-          <div className="flex w-full shrink-0 flex-col border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[172px] md:border-l md:border-t-0 md:px-4 lg:w-[190px]">
+          <div className="flex w-full shrink-0 flex-col self-start border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[158px] md:border-l md:border-t-0 md:px-4 lg:w-[172px]">
             <div className="flex items-start justify-end gap-2">
               {offer.rating != null ? (
                 <div className="min-w-0 text-right">
@@ -291,13 +330,7 @@ export function TravelCard({
               <HeartButton />
             </div>
 
-            <div className="mt-3 space-y-1 text-right text-[12.5px] leading-snug text-[#64748B]">
-              {departureDateLabel ? <p>{departureDateLabel}</p> : null}
-              {airportLabel ? <p>{airportLabel}</p> : null}
-              {partySummary ? <p>{partySummary}</p> : null}
-            </div>
-
-            <div className="mt-4 flex flex-1 flex-col items-end justify-center text-right">
+            <div className="mt-3 text-right">
               {priceKind === 'pending' ? (
                 <p className="text-[13px] font-medium leading-snug text-[#64748B]">
                   {RESULTS_PRICE_COPY.pending}
@@ -331,8 +364,8 @@ export function TravelCard({
               >
                 Bekijk aanbieding
               </Link>
-              <p className="mt-1.5 text-center text-[11.5px] font-medium" style={{ color: RESULTS_CTA_HOVER }}>
-                Bekijk bij {offer.provider}
+              <p className="mt-1.5 text-center text-[11.5px] font-medium" style={{ color: RESULTS_MUTED }}>
+                Aangeboden door {offer.provider}
               </p>
             </div>
           </div>

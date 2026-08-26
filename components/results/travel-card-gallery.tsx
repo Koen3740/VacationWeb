@@ -65,7 +65,7 @@ export function TravelCardGallery({
   const src = usable[safeIndex] || OFFER_IMAGE_PLACEHOLDER;
 
   return (
-    <div className="relative aspect-[16/11] h-full min-h-[170px] w-full md:aspect-auto md:min-h-[190px]">
+    <div className="relative aspect-[16/11] w-full md:aspect-[3/2]">
       <Image
         src={src}
         alt={alt}
