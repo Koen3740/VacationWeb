@@ -12,6 +12,38 @@ export const ACCOMMODATION_TYPE_FILTER_VALUES = [
 
 export type AccommodationTypeFilter = (typeof ACCOMMODATION_TYPE_FILTER_VALUES)[number];
 
+/** Feed synonyms → canonical sidebar value (case-insensitive). */
+const ACCOMMODATION_TYPE_SYNONYMS: ReadonlyArray<[RegExp, AccommodationTypeFilter]> = [
+  [/^hotel(?:kamer| room)?$/i, 'Hotel'],
+  [/^studio$/i, 'Appartement'],
+  [/^appartement$/i, 'Appartement'],
+  [/^apartment$/i, 'Appartement'],
+  [/^aparthotel$/i, 'Aparthotel'],
+  [/^resort$/i, 'Resort'],
+  [/^villa$/i, 'Villa'],
+];
+
+export function canonicalizeAccommodationType(
+  raw: string | undefined,
+): AccommodationTypeFilter | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const direct = ACCOMMODATION_TYPE_FILTER_VALUES.find(
+    (item) => item.toLowerCase() === trimmed.toLowerCase(),
+  );
+  if (direct) {
+    return direct;
+  }
+  for (const [pattern, canonical] of ACCOMMODATION_TYPE_SYNONYMS) {
+    if (pattern.test(trimmed)) {
+      return canonical;
+    }
+  }
+  return undefined;
+}
+
 export function parseAccommodationTypesParam(
   value: string | null | undefined,
 ): AccommodationTypeFilter[] {
@@ -41,6 +73,28 @@ export function serializeAccommodationTypesParam(
   return normalized.length > 0 ? normalized.join(',') : undefined;
 }
 
+/**
+ * Full canonical selection (or every type available in the current catalog scope)
+ * is equivalent to no accommodation-type restriction.
+ */
+export function effectiveAccommodationTypesForFilter(
+  selected: AccommodationTypeFilter[],
+  scope: readonly AccommodationTypeFilter[] = ACCOMMODATION_TYPE_FILTER_VALUES,
+): AccommodationTypeFilter[] {
+  if (selected.length === 0 || scope.length === 0) {
+    return [];
+  }
+  const scopeSet = new Set(scope);
+  const selectedInScope = selected.filter((type) => scopeSet.has(type));
+  if (selectedInScope.length === 0) {
+    return [];
+  }
+  if (scope.every((type) => selectedInScope.includes(type))) {
+    return [];
+  }
+  return selectedInScope;
+}
+
 export function offerMatchesAccommodationType(
   offerType: string | undefined,
   selected: AccommodationTypeFilter[],
@@ -48,9 +102,9 @@ export function offerMatchesAccommodationType(
   if (selected.length === 0) {
     return true;
   }
-  const normalized = (offerType || '').trim().toLowerCase();
-  if (!normalized) {
+  const canonical = canonicalizeAccommodationType(offerType);
+  if (!canonical) {
     return false;
   }
-  return selected.some((type) => normalized === type.toLowerCase());
+  return selected.some((type) => canonical === type);
 }

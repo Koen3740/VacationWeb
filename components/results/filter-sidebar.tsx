@@ -18,6 +18,7 @@ import {
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import {
   ACCOMMODATION_TYPE_FILTER_VALUES,
+  effectiveAccommodationTypesForFilter,
   parseAccommodationTypesParam,
   serializeAccommodationTypesParam,
   type AccommodationTypeFilter,
@@ -423,11 +424,12 @@ export function FilterSidebar({
   };
 
   const toggleAccommodationType = (value: AccommodationTypeFilter) => {
+    const nextSelected = filters.accommodationTypes.includes(value)
+      ? filters.accommodationTypes.filter((item) => item !== value)
+      : [...filters.accommodationTypes, value];
     updateFilters({
       ...filters,
-      accommodationTypes: filters.accommodationTypes.includes(value)
-        ? filters.accommodationTypes.filter((item) => item !== value)
-        : [...filters.accommodationTypes, value],
+      accommodationTypes: effectiveAccommodationTypesForFilter(nextSelected, visibleAccommodationTypes),
     });
   };
 

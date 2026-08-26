@@ -20,6 +20,8 @@ export const AMENITY_VALUES = [
 
 export type AmenityValue = (typeof AMENITY_VALUES)[number];
 
+export type AmenityPresence = 'present' | 'absent' | 'unknown';
+
 export const AMENITY_LABELS: Record<AmenityValue, string> = {
   pool_indoor: 'Binnenzwembad',
   pool_outdoor: 'Buitenzwembad',
@@ -71,12 +73,29 @@ const KEYWORDS: Record<AmenityValue, string[]> = {
   tennis: ['tennis'],
   golf: ['golfbaan', 'golf course', 'golfhotel'],
   watersport: ['watersport', 'watersports', 'kitesurf', 'windsurf', 'duiken', 'snorkel'],
-  wifi: ['gratis wifi', 'free wifi', 'free wi-fi', 'wifi inbegrepen'],
-  airco: ['airconditioning', 'airco', 'air-conditioning'],
+  wifi: ['wifi', 'wi-fi', 'gratis wifi', 'free wifi', 'free wi-fi', 'wifi inbegrepen'],
+  airco: ['airconditioning', 'airco', 'air-conditioning', 'climatisation'],
+};
+
+const ABSENCE_PHRASES: Partial<Record<AmenityValue, string[]>> = {
+  wifi: ['geen wifi', 'zonder wifi', 'no wifi', 'without wifi', 'sans wifi'],
+  airco: [
+    'geen airconditioning',
+    'geen airco',
+    'zonder airconditioning',
+    'zonder airco',
+    'no air conditioning',
+    'without air conditioning',
+  ],
 };
 
 /** Amenities that must come from structured facility/taxonomy fields — not free copy or photos. */
 const STRUCTURED_ONLY_AMENITIES = new Set<AmenityValue>(['aquapark']);
+
+/** WiFi/Airco need explicit evidence; missing provider data is unknown, not absent. */
+const EVIDENCE_BASED_AMENITIES = new Set<AmenityValue>(['wifi', 'airco']);
+
+const NEGATION_BEFORE_KEYWORD = /(?:geen|zonder|no |not |without |sans )/;
 
 /** Categories / USP / facilities tags only (no descriptionLong / image-derived copy). */
 export function offerStructuredFacilityText(offer: TravelOffer): string {
@@ -86,11 +105,61 @@ export function offerStructuredFacilityText(offer: TravelOffer): string {
     .toLowerCase();
 }
 
+function keywordPresentWithoutNegation(text: string, keyword: string): boolean {
+  let searchFrom = 0;
+  while (searchFrom < text.length) {
+    const idx = text.indexOf(keyword, searchFrom);
+    if (idx === -1) {
+      return false;
+    }
+    const before = text.slice(Math.max(0, idx - 16), idx);
+    if (!NEGATION_BEFORE_KEYWORD.test(before)) {
+      return true;
+    }
+    searchFrom = idx + keyword.length;
+  }
+  return false;
+}
+
+function textHasAnyKeyword(text: string, keywords: string[]): boolean {
+  return keywords.some((keyword) => keywordPresentWithoutNegation(text, keyword));
+}
+
+function textHasAnyPhrase(text: string, phrases: string[]): boolean {
+  return phrases.some((phrase) => text.includes(phrase));
+}
+
+function amenitySearchText(offer: TravelOffer, amenity: AmenityValue): string {
+  if (STRUCTURED_ONLY_AMENITIES.has(amenity)) {
+    return offerStructuredFacilityText(offer);
+  }
+  if (EVIDENCE_BASED_AMENITIES.has(amenity)) {
+    return [offerStructuredFacilityText(offer), offerSearchText(offer)].filter(Boolean).join(' ');
+  }
+  return offerSearchText(offer);
+}
+
+export function getAmenityPresence(offer: TravelOffer, amenity: AmenityValue): AmenityPresence {
+  const text = amenitySearchText(offer, amenity);
+  if (!text.trim()) {
+    return 'unknown';
+  }
+  const absence = ABSENCE_PHRASES[amenity];
+  if (absence && textHasAnyPhrase(text, absence)) {
+    return 'absent';
+  }
+  if (textHasAnyKeyword(text, KEYWORDS[amenity])) {
+    return 'present';
+  }
+  return 'unknown';
+}
+
 export function offerMatchesAmenity(offer: TravelOffer, amenity: AmenityValue): boolean {
-  const text = STRUCTURED_ONLY_AMENITIES.has(amenity)
-    ? offerStructuredFacilityText(offer)
-    : offerSearchText(offer);
-  return offerMatchesAnyKeyword(text, KEYWORDS[amenity]);
+  if (EVIDENCE_BASED_AMENITIES.has(amenity)) {
+    return getAmenityPresence(offer, amenity) === 'present';
+  }
+  const text = amenitySearchText(offer, amenity);
+  return textHasAnyKeyword(text, KEYWORDS[amenity]);
 }
 
 /**

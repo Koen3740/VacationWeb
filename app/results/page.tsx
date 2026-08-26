@@ -22,6 +22,11 @@ import {
 import { sliceRankedCatalogResultsPage } from '@/lib/search/results-catalog-page';
 import '@/lib/http/prefer-ipv4';
 import { countCarRentalFacet } from '@/lib/search/filtering';
+import {
+  ACCOMMODATION_TYPE_FILTER_VALUES,
+  effectiveAccommodationTypesForFilter,
+  parseAccommodationTypesParam,
+} from '@/lib/search/accommodation-type-filter';
 import { excludeParkedResultsProviders, filterToResultsListableOffers } from '@/lib/search/presentable-price';
 import { isPriceDependentSort, prepareResultsOffers } from '@/lib/search/prepare-results-offers';
 import { PriceSortResultsStream } from '@/components/results/price-sort-live-stream';
@@ -87,13 +92,31 @@ export default async function ResultsPage({
   const filterOptions = await loadPresentedFilterOptions();
   const citiesByCountry = filterOptions.citiesByCountry ?? {};
   const accommodationTypes = filterOptions.accommodationTypes ?? [];
+  const visibleAccommodationTypes = ACCOMMODATION_TYPE_FILTER_VALUES.filter((type) =>
+    accommodationTypes.some((item) => item.toLowerCase() === type.toLowerCase()),
+  );
+  const filteringParams: SearchParams = {
+    ...params,
+    accommodationTypes: (() => {
+      if (!params.accommodationTypes?.length) {
+        return undefined;
+      }
+      const effective = effectiveAccommodationTypesForFilter(
+        parseAccommodationTypesParam(params.accommodationTypes.join(',')),
+        visibleAccommodationTypes.length > 0
+          ? visibleAccommodationTypes
+          : ACCOMMODATION_TYPE_FILTER_VALUES,
+      );
+      return effective.length > 0 ? effective : undefined;
+    })(),
+  };
   const countryCounts = filterOptions.countryCounts ?? {};
   const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? offers.length);
-  const prepared = await prepareResultsOffers(offers, params);
+  const prepared = await prepareResultsOffers(offers, filteringParams);
   const filtered = prepared.offers;
   // Count must match the filterable/listable Results set (not parked / confirmed-unavailable).
   const matchCount = filterToResultsListableOffers(filtered).length;
-  const carRentalCount = countCarRentalFacet(offers, params);
+  const carRentalCount = countCarRentalFacet(filtered, filteringParams);
   const userPool = limitRankedResultsForPagination(filtered);
   const pageSize = RESULTS_PRODUCT_PAGE_SIZE;
   const page = params.page ?? 1;

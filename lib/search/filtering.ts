@@ -3,13 +3,18 @@ import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { canonicalizeRegionName } from '@/lib/offers/canonical-region';
 import { isVacationWebFlightPackage } from '@/lib/offers/flight-package-eligibility';
 import {
+  ACCOMMODATION_TYPE_FILTER_VALUES,
+  effectiveAccommodationTypesForFilter,
   offerMatchesAccommodationType,
   parseAccommodationTypesParam,
 } from '@/lib/search/accommodation-type-filter';
 import {
   offerMatchesAnyAmenity,
+  offerMatchesAmenity,
   parseAmenitiesParam,
+  type AmenityValue,
 } from '@/lib/search/amenity-filters';
+import { filterToResultsListableOffers } from '@/lib/search/presentable-price';
 import {
   offerMatchesAnyBeachLocation,
   offerMatchesAnyCenterLocation,
@@ -171,7 +176,10 @@ export function filterOffers(
     }
 
     if (params.accommodationTypes?.length) {
-      const selected = parseAccommodationTypesParam(params.accommodationTypes.join(','));
+      const selected = effectiveAccommodationTypesForFilter(
+        parseAccommodationTypesParam(params.accommodationTypes.join(',')),
+        ACCOMMODATION_TYPE_FILTER_VALUES,
+      );
       if (selected.length > 0 && !offerMatchesAccommodationType(offer.accommodationType, selected)) {
         return false;
       }
@@ -228,10 +236,35 @@ export function filterOffers(
   });
 }
 
-/** Faceted count: current search/filters without the hasCarRental constraint. */
+function countFacetMatches(
+  offers: TravelOffer[],
+  params: SearchParams,
+  omitParam: Partial<SearchParams>,
+  predicate: (offer: TravelOffer) => boolean,
+): number {
+  const context = filterOffers(offers, { ...params, ...omitParam });
+  return filterToResultsListableOffers(context.filter(predicate)).length;
+}
+
+/** Faceted count: current search/filters without the hasCarRental constraint, listable only. */
 export function countCarRentalFacet(offers: TravelOffer[], params: SearchParams): number {
-  const context = filterOffers(offers, { ...params, hasCarRental: undefined });
-  return context.filter((offer) => offer.hasCarRental === true).length;
+  return countFacetMatches(offers, params, { hasCarRental: undefined }, (offer) => offer.hasCarRental === true);
+}
+
+/** Faceted count: current search/filters without the given amenity, listable only. */
+export function countAmenityFacet(
+  offers: TravelOffer[],
+  params: SearchParams,
+  amenity: AmenityValue,
+): number {
+  const active = parseAmenitiesParam(params.amenities?.join(','));
+  const withoutAmenity = active.filter((item) => item !== amenity);
+  return countFacetMatches(
+    offers,
+    params,
+    { amenities: withoutAmenity.length > 0 ? withoutAmenity : undefined },
+    (offer) => offerMatchesAmenity(offer, amenity),
+  );
 }
 
 export function sortOffers(
