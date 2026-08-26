@@ -100,6 +100,7 @@ test('accommodation: all visible canonical types = equivalent to no type filter'
 
 test('accommodation: feed synonyms canonicalize to sidebar values', () => {
   assert.equal(canonicalizeAccommodationType('Hotelkamer'), 'Hotel');
+  assert.equal(canonicalizeAccommodationType('Hôtel'), 'Hotel');
   assert.equal(canonicalizeAccommodationType('Studio'), 'Appartement');
   assert.equal(offerMatchesAccommodationType('Hotelkamer', ['Hotel']), true);
 });

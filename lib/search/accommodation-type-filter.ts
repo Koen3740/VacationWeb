@@ -14,6 +14,7 @@ export type AccommodationTypeFilter = (typeof ACCOMMODATION_TYPE_FILTER_VALUES)[
 
 /** Feed synonyms → canonical sidebar value (case-insensitive). */
 const ACCOMMODATION_TYPE_SYNONYMS: ReadonlyArray<[RegExp, AccommodationTypeFilter]> = [
+  [/^hôtel$/i, 'Hotel'],
   [/^hotel(?:kamer| room)?$/i, 'Hotel'],
   [/^studio$/i, 'Appartement'],
   [/^appartement$/i, 'Appartement'],
