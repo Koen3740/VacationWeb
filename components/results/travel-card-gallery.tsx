@@ -6,7 +6,7 @@ import {
   OFFER_IMAGE_PLACEHOLDER,
 } from '@/lib/offers/is-valid-offer-image-url';
 import Image from 'next/image';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 type TravelCardGalleryProps = {
   images: string[];

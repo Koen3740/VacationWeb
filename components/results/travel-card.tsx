@@ -159,6 +159,10 @@ export function TravelCard({
   if (!isResultsListableOffer(offer)) {
     return null;
   }
+  // Settled paint: only B. Catalog/provisional may show pending; never catalog €.
+  if (!provisional && !hasValidPresentablePrice(offer)) {
+    return null;
+  }
   const priceKind = (() => {
     if (hasValidPresentablePrice(offer)) {
       return 'amount' as const;

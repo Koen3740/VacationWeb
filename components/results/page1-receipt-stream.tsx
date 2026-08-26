@@ -4,7 +4,10 @@ import { TravelCard } from '@/components/results/travel-card';
 import type { CatalogPageLiveOverlay } from '@/lib/providers/prijsvrij';
 import { RESULTS_PRODUCT_PAGE_SIZE } from '@/lib/providers/prijsvrij';
 import { offerMatchesBudget } from '@/lib/search/filtering';
-import { isResultsListableOffer } from '@/lib/search/presentable-price';
+import {
+  hasValidPresentablePrice,
+  isResultsListableOffer,
+} from '@/lib/search/presentable-price';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 import { Suspense } from 'react';
 
@@ -17,7 +20,8 @@ async function OverlayTravelCard({
   searchParams?: SearchParams;
 }) {
   const priced = await live;
-  if (!isResultsListableOffer(priced)) {
+  // Settled Results cards require B (proven presentable). A/C/unpriced → hidden.
+  if (!hasValidPresentablePrice(priced)) {
     return null;
   }
   // Live overlay may raise `price` above the budget slider; drop those cards.
@@ -50,6 +54,10 @@ export function Page1ResultsStream({
         const overlay = overlayById.get(offer.id);
         if (!overlay || !overlay.pending) {
           const settled = overlay?.catalog ?? offer;
+          // Non-provisional paint: only B. Catalog without proven live price is not a card.
+          if (!hasValidPresentablePrice(settled)) {
+            return null;
+          }
           if (searchParams && !offerMatchesBudget(settled, searchParams)) {
             return null;
           }

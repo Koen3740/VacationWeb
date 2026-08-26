@@ -168,8 +168,9 @@ export function classifyLivePriceFailure(
     case 'missing_page_context':
     case 'missing_context':
     case 'no_listings':
+      // C: no usable live context — short TTL, not a provider "trip unavailable" (A).
       return {
-        status: LIVE_PRICE_ATTEMPT_STATUS.UNAVAILABLE,
+        status: LIVE_PRICE_ATTEMPT_STATUS.ERROR,
         reason: LIVE_PRICE_ATTEMPT_REASON.missing_context,
       };
     case 'timeout':
@@ -207,12 +208,16 @@ export function classifyLivePriceFailure(
 
 /**
  * Technical (C) failures eligible for one immediate second attempt.
- * Confirmed unavailable (A) and mapping/context misses are not retried.
+ * Confirmed unavailable (A) is not retried.
+ * Missing mapping/context is C (short TTL) but not retried — retry cannot invent context.
  * Client 4xx (except 408/429) is treated as non-retryable http_error.
  */
 export function isRetryableTechnicalLivePriceFailure(input: LivePriceFailureInput): boolean {
   const classified = classifyLivePriceFailure(input);
   if (classified.status !== LIVE_PRICE_ATTEMPT_STATUS.ERROR) {
+    return false;
+  }
+  if (classified.reason === LIVE_PRICE_ATTEMPT_REASON.missing_context) {
     return false;
   }
   if (classified.reason === LIVE_PRICE_ATTEMPT_REASON.http_error) {

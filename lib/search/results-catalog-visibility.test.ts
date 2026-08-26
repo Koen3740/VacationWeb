@@ -117,9 +117,13 @@ test('TEST 1: catalog offer without proven live price still renders a Result car
 test('flexible search window does not replace concrete offer departure on the card', () => {
   const offer = makeCorendon({
     departureDate: '2026-08-29',
-    livePriceStatus: 'unavailable',
-    livePriceFailureReason: 'timeout',
+    livePriceStatus: 'proven',
+    livePriceSource: 'upsales',
+    liveTotalPrice: 1200,
+    liveTotalPriceField: 'upsales.totalPrice',
+    price: 600,
   });
+  assert.equal(isResultsListableOffer(offer), true);
   const html = cardHtml(offer, false, {
     departureStart: '2026-08-26',
     departureEnd: '2026-09-02',
@@ -127,8 +131,7 @@ test('flexible search window does not replace concrete offer departure on the ca
   });
   assert.match(html, /Vertrek op 29\/08\/2026/);
   assert.doesNotMatch(html, /Vertrek tussen/);
-  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable));
-  assert.equal(isResultsListableOffer(offer), true);
+  assert.match(html, /€/);
 });
 
 test('Sunweb unavailable_trip catalog offer is not a Results card', () => {
@@ -153,7 +156,7 @@ test('Sunweb unavailable_trip catalog offer is not a Results card', () => {
   assert.equal(html, '');
 });
 
-test('TEST 2: live-price timeout keeps the Result card visible', async () => {
+test('TEST 2: live-price timeout (C) is not a Results card after settle', async () => {
   const offer = makeCorendon();
   const overlays = startCatalogPageLiveOverlays([offer], { adults: 2 }, {
     fetchImpl: async () => {
@@ -165,11 +168,9 @@ test('TEST 2: live-price timeout keeps the Result card visible', async () => {
   assert.equal(overlays[0].pending, true);
   assert.equal(isResultsListableOffer(overlays[0].catalog), true);
   const settled = await overlays[0].live;
-  assert.equal(isResultsListableOffer(settled), true);
+  assert.equal(isResultsListableOffer(settled), false);
   assert.equal(hasValidPresentablePrice(settled), false);
-  const html = cardHtml(settled, false);
-  assert.match(html, /Test Hotel/);
-  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable));
+  assert.equal(cardHtml(settled, false), '');
 });
 
 test('TEST 3: HTTP 204 provider-unavailable is not a Results card', async () => {
@@ -242,7 +243,7 @@ test('TEST 6: proven live total stays on the existing upsales total mapping', as
   assert.equal(settled.livePriceSource, 'upsales');
 });
 
-test('TEST 7: catalog feed € is never presented as a live amount', () => {
+test('TEST 7: catalog feed € is never a settled Results card (no live fallback)', () => {
   const offer = makeCorendon({
     livePriceStatus: 'catalog',
     livePriceSource: 'feed',
@@ -250,12 +251,13 @@ test('TEST 7: catalog feed € is never presented as a live amount', () => {
   });
   assert.equal(resultsPricePresentation(offer), 'unavailable');
   assert.equal(hasValidPresentablePrice(offer), false);
-  const html = cardHtml(offer, false);
-  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable));
-  assert.doesNotMatch(html, />€/);
+  // Provisional only: catalog may render pending. Settled catalog without B is not a card.
+  assert.equal(isResultsListableOffer(offer), true);
+  assert.match(cardHtml(offer, true), new RegExp(RESULTS_PRICE_COPY.pending));
+  assert.equal(cardHtml(offer, false), '');
 });
 
-test('TEST 8: pp × pax is not a live total', () => {
+test('TEST 8: pp × pax is not a live total and is not listable', () => {
   const derived = makeCorendon({
     livePriceStatus: 'proven',
     livePriceSource: 'upsales',
@@ -265,9 +267,8 @@ test('TEST 8: pp × pax is not a live total', () => {
   });
   assert.equal(hasProvenLiveTotalPrice(derived), false);
   assert.equal(hasValidPresentablePrice(derived), false);
-  const html = cardHtml(derived, false);
-  assert.match(html, /Test Hotel/);
-  assert.doesNotMatch(html, />€/);
+  assert.equal(isResultsListableOffer(derived), false);
+  assert.equal(cardHtml(derived, false), '');
 });
 
 test('TEST 9: first page uses the normal catalog page-size', () => {

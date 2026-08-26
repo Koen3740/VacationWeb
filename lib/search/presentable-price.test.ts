@@ -677,7 +677,7 @@ test('3. UNAVAILABLE → kaart niet zichtbaar', () => {
   assert.equal(resultsPricePresentation(offer), 'unavailable');
 });
 
-test('3b. provider-confirmed unavailable is not Results-listable; timeout still is', () => {
+test('3b. A and C settled failures are not Results-listable', () => {
   const confirmed = makeCorendonOffer({
     livePriceStatus: 'unavailable',
     livePriceFailureReason: 'no_trip',
@@ -690,8 +690,15 @@ test('3b. provider-confirmed unavailable is not Results-listable; timeout still 
     livePriceFailureReason: 'timeout',
     price: 458,
   });
-  assert.equal(isResultsListableOffer(timedOut), true);
+  assert.equal(isResultsListableOffer(timedOut), false);
   assert.equal(resultsPricePresentation(timedOut), 'unavailable');
+
+  const stale = makeCorendonOffer({
+    livePriceStatus: 'unavailable',
+    livePriceFailureReason: 'stale_context',
+    price: 458,
+  });
+  assert.equal(isResultsListableOffer(stale), false);
 });
 
 test('4. ERROR → kaart niet zichtbaar', () => {

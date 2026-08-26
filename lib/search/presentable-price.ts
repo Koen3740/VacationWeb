@@ -159,12 +159,31 @@ export function filterToResultsVisibleOffers(offers: TravelOffer[]): TravelOffer
   return offers.filter(isResultsVisibleOffer);
 }
 
-/** Parked Prijsvrij is not a Results card. Provider-confirmed unavailable is not either. */
+/**
+ * Results list admission (A/B/C):
+ * - B (proven presentable live price) → listable
+ * - catalog / unset → listable only so overlays can run (provisional UI)
+ * - A (provider-confirmed unavailable) → not listable
+ * - C (technical / no usable live price after attempts) → not listable
+ * - unpriced / proven-without-total → not listable
+ * Catalog € is never a Results fallback.
+ */
 export function isResultsListableOffer(offer: TravelOffer): boolean {
   if (isParkedResultsProvider(offer.provider)) {
     return false;
   }
-  return !isProviderConfirmedUnavailable(offer);
+  if (hasValidPresentablePrice(offer)) {
+    return true;
+  }
+  // Settled live outcomes without a presentable price leave Results.
+  if (offer.livePriceStatus === 'unavailable' || isUnpricedResultsOffer(offer)) {
+    return false;
+  }
+  if (offer.livePriceStatus === 'proven') {
+    return false;
+  }
+  // catalog / undefined: admitted for provisional overlay only.
+  return true;
 }
 
 export function filterToResultsListableOffers(offers: TravelOffer[]): TravelOffer[] {
