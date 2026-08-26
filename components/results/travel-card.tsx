@@ -21,8 +21,14 @@ import {
   hasValidPresentablePrice,
   isResultsListableOffer,
   isUnpricedResultsOffer,
+  resultsPricePresentation,
 } from '@/lib/search/presentable-price';
-import { cardBlurbForDutchUi, preferredDutchLocalizedText } from '@/lib/offers/ui-locale';
+import {
+  boardTypeLabelForDutchUi,
+  cardBlurbForDutchUi,
+  extraInfoLabelForDutchUi,
+  preferredDutchLocalizedText,
+} from '@/lib/offers/ui-locale';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { canonicalizeRegionName } from '@/lib/offers/canonical-region';
 import type { SearchParams, TravelOffer } from '@/types/travel';
@@ -153,13 +159,26 @@ export function TravelCard({
   if (!isResultsListableOffer(offer)) {
     return null;
   }
-  const priceKind = hasValidPresentablePrice(offer)
-    ? 'amount'
-    : provisional && offer.livePriceStatus !== 'unpriced' && offer.livePriceStatus !== 'unavailable'
-      ? 'pending'
-      : isUnpricedResultsOffer(offer)
-        ? 'unpriced'
-        : 'unavailable';
+  const priceKind = (() => {
+    if (hasValidPresentablePrice(offer)) {
+      return 'amount' as const;
+    }
+    if (
+      provisional &&
+      offer.livePriceStatus !== 'unpriced' &&
+      offer.livePriceStatus !== 'unavailable'
+    ) {
+      return 'pending' as const;
+    }
+    const presentation = resultsPricePresentation(offer, { provisional });
+    if (presentation === 'unpriced' || isUnpricedResultsOffer(offer)) {
+      return 'unpriced' as const;
+    }
+    if (presentation === 'pending') {
+      return 'pending' as const;
+    }
+    return 'unavailable' as const;
+  })();
 
   const location = formatCardLocation(offer);
   const stars = offer.stars && offer.stars > 0 ? offer.stars : 0;
@@ -174,7 +193,7 @@ export function TravelCard({
     plainTextSnippet(localizedDutch || offer.descriptionShort),
     { allowLocalizedFallback: true },
   );
-  const extraInfoRaw = cardBlurbForDutchUi(offer, plainTextSnippet(offer.extraInfo));
+  const extraInfoRaw = extraInfoLabelForDutchUi(offer, plainTextSnippet(offer.extraInfo));
   const shortDescription = isCardBlurbUseful(shortDescriptionRaw) ? shortDescriptionRaw : undefined;
   const extraInfo =
     isCardBlurbUseful(extraInfoRaw) &&
@@ -186,6 +205,7 @@ export function TravelCard({
   const carRentalLabel = carRentalIncludedLabel(offer);
   const themes = subcategoryLabels(offer.subcategories);
   const publicHotelName = displayHotelName(offer);
+  const boardLabel = boardTypeLabelForDutchUi(offer.boardType);
   const detailHref = searchParams
     ? buildOfferDetailHref(offer.id, searchParams)
     : `/offers/${encodeURIComponent(offer.id)}`;
@@ -193,7 +213,7 @@ export function TravelCard({
   const metaLine = [
     accommodationType,
     formatNightsLabel(offer.nights, offer.durationType, offer.provider),
-    offer.boardType,
+    boardLabel,
     flightLabel,
     airport,
   ]

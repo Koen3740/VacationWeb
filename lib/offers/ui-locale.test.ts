@@ -2,10 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TravelOffer } from '@/types/travel';
 import {
+  boardTypeLabelForDutchUi,
   cardBlurbForDutchUi,
+  extraInfoLabelForDutchUi,
   hasDutchProviderListing,
   isLikelyFrenchCopy,
   preferredDutchCatalogCopy,
+  translateFrenchCatalogPhraseToDutch,
 } from './ui-locale';
 
 function makeOffer(overrides: Partial<TravelOffer> = {}): TravelOffer {
@@ -59,7 +62,25 @@ test('Dutch listing with Dutch localized text uses that copy instead of French s
   );
 });
 
-test('Dutch listing without Dutch source copy hides French Sol Puerto Marina blurb', () => {
+test('known BE-FR room enrichment is translated to Dutch, not hidden', () => {
+  const phrase = 'Chambre 2 personnes + extra bed (Classe Enfant 2)';
+  assert.equal(
+    translateFrenchCatalogPhraseToDutch(phrase),
+    '2-persoonskamer + extra bed (Kinderklasse 2)',
+  );
+
+  const offer = makeOffer({
+    listingHost: 'www.corendon.be',
+    feedSourceId: 'corendon-benl',
+    extraInfo: phrase,
+  });
+  assert.equal(
+    extraInfoLabelForDutchUi(offer, offer.extraInfo),
+    '2-persoonskamer + extra bed (Kinderklasse 2)',
+  );
+});
+
+test('unmapped French marketing copy stays out of NL Results', () => {
   const offer = makeOffer({
     listingHost: 'www.corendon.be',
     feedSourceId: 'corendon-benl',
@@ -69,16 +90,23 @@ test('Dutch listing without Dutch source copy hides French Sol Puerto Marina blu
   assert.equal(cardBlurbForDutchUi(offer, offer.descriptionShort), undefined);
 });
 
-test('unique BE-FR-only offer does not show French copy in NL Results', () => {
+test('unique BE-FR-only offer translates known phrases; hides unmapped French', () => {
   const offer = makeOffer({
     feedSourceId: 'corendon-befr',
     listingHost: 'fr.corendon.be',
     providerListings: [{ provider: 'Corendon', feedId: 'corendon-befr', host: 'fr.corendon.be', locale: 'fr-BE', deepLink: 'https://fr.corendon.be/x' }],
     descriptionShort:
       "L'hôtel Linda Sunny Beach est un établissement tout compris situé à seulement 300 mètres de la plage.",
+    extraInfo: 'Chambre double standard',
   });
   assert.equal(hasDutchProviderListing(offer), false);
   assert.equal(cardBlurbForDutchUi(offer, offer.descriptionShort), undefined);
+  assert.equal(extraInfoLabelForDutchUi(offer, offer.extraInfo), '2-persoonskamer Standaard');
+});
+
+test('French board labels canonicalize to Dutch', () => {
+  assert.equal(boardTypeLabelForDutchUi('Chambre et petit déjeuner'), 'Logies & ontbijt');
+  assert.equal(boardTypeLabelForDutchUi('Logies en ontbijt'), 'Logies & ontbijt');
 });
 
 test('Detail catalog copy prefers stored nl-BE / nl-NL localized text', () => {

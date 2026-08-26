@@ -46,6 +46,7 @@ export function isProviderConfirmedUnavailable(offer: TravelOffer): boolean {
     isProviderConfirmedUnavailableReason(offer.livePriceFailureReason)
   );
 }
+
 /**
  * Product rule: only a valid allowed price may be shown.
  * No "Prijs op aanvraag", €0, feed-as-live, Search, or Matrix fallback.
@@ -123,13 +124,27 @@ export function hasValidPresentablePrice(offer: TravelOffer): boolean {
   return hasProvenLiveDisplayPrice(offer) && hasProvenLiveTotalPrice(offer);
 }
 
+/**
+ * Corendon proven live hop without a provider total is outside the proven
+ * Results price route (needs occupancy that yields an upsales total).
+ * Show as unpriced — not as a hard "niet beschikbaar" failure.
+ */
+export function isCorendonLiveWithoutPresentableTotal(offer: TravelOffer): boolean {
+  return (
+    offer.provider === CORENDON_PROVIDER_NAME &&
+    offer.livePriceStatus === 'proven' &&
+    (offer.livePriceSource === 'lowestpricesacco' || offer.livePriceSource === 'upsales') &&
+    !hasProvenLiveTotalPrice(offer)
+  );
+}
+
 export function filterToPresentableOffers(offers: TravelOffer[]): TravelOffer[] {
   return offers.filter(hasValidPresentablePrice);
 }
 
 /** Occupancy is outside the current proven live-price route. Not the same as unavailable. */
 export function isUnpricedResultsOffer(offer: TravelOffer): boolean {
-  return offer.livePriceStatus === 'unpriced';
+  return offer.livePriceStatus === 'unpriced' || isCorendonLiveWithoutPresentableTotal(offer);
 }
 
 /**
@@ -164,7 +179,7 @@ export function resultsPricePresentation(
   offer: TravelOffer,
   options: { provisional?: boolean } = {},
 ): ResultsPricePresentationKind {
-  if (hasProvenLiveDisplayPrice(offer)) {
+  if (hasValidPresentablePrice(offer)) {
     return 'amount';
   }
   if (options.provisional) {

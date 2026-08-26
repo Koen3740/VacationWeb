@@ -909,7 +909,7 @@ test('16. Results → Detail → Results behoudt dezelfde eligibility', async ()
   assert.notEqual(resultsPricePresentation(detail), 'amount');
 });
 
-test('9. Corendon proven live price blijft zichtbaar', () => {
+test('9. Corendon proven live price blijft zichtbaar alleen met provider-total', () => {
   assert.equal(
     resultsPricePresentation(
       makeCorendonOffer({
@@ -918,7 +918,7 @@ test('9. Corendon proven live price blijft zichtbaar', () => {
         price: 876,
       }),
     ),
-    'amount',
+    'unpriced',
   );
   assert.equal(
     resultsPricePresentation(
@@ -926,6 +926,8 @@ test('9. Corendon proven live price blijft zichtbaar', () => {
         livePriceStatus: 'proven',
         livePriceSource: 'upsales',
         price: 600,
+        liveTotalPrice: 1200,
+        liveTotalPriceField: 'upsales.totalPrice',
       }),
     ),
     'amount',

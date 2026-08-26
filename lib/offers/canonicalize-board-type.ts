@@ -37,6 +37,10 @@ export const BOARD_TYPE_NORMALIZATION_MAP: Record<string, CanonicalBoardType> = 
   'logies / ontbijt': 'Logies & ontbijt',
   'logies-ontbijt': 'Logies & ontbijt',
   lo: 'Logies & ontbijt',
+  'chambre et petit dejeuner': 'Logies & ontbijt',
+  'chambre et petit déjeuner': 'Logies & ontbijt',
+  'petit dejeuner': 'Logies & ontbijt',
+  'petit déjeuner': 'Logies & ontbijt',
 
   'half pension': 'Halfpension',
   halfpension: 'Halfpension',
