@@ -77,6 +77,14 @@ function parseMeterToken(raw: string): number | undefined {
   return value;
 }
 
+function toMeters(value: number, unit: string): number {
+  const normalized = unit.toLowerCase();
+  if (normalized.startsWith('km') || normalized.startsWith('kilometer') || normalized.startsWith('kilometre')) {
+    return Math.round(value * 1000);
+  }
+  return value;
+}
+
 /** Extract distances in meters that appear near the given terms in offer text. */
 function extractDistancesNearTerms(text: string, terms: string[]): number[] {
   const lower = text.toLowerCase();
@@ -113,9 +121,57 @@ function extractDistancesNearTerms(text: string, terms: string[]): number[] {
   return distances;
 }
 
+/**
+ * Extract beach distances only from phrases that explicitly link a distance
+ * to the beach. Nearby amenity distances ("winkel op circa 100 meter" next to
+ * "aan het strand") must not become beach distance.
+ */
 export function extractBeachDistanceMeters(offer: TravelOffer): number | undefined {
   const text = offerSearchText(offer);
-  const distances = extractDistancesNearTerms(text, ['strand', 'beach']);
+  if (!text) {
+    return undefined;
+  }
+
+  const distances: number[] = [];
+
+  // "openbaar strand op circa 250 meter" / "openbaar strand tsilivi beach op circa 300 meter"
+  // Do not cross amenity clauses ("...strand * winkel op circa 100 meter").
+  const afterBeach =
+    /(?:strand|beach)((?:\s+[a-z0-9][\w'&-]*){0,8})\s+op\s+(?:circa|ca\.?|ongeveer)?\s*(\d+(?:[.,]\d+)?)\s*(km|kilometer|kilometers|kilometre|kilometres|meter|meters|metres|mtr|m)\b/gi;
+  let match: RegExpExecArray | null;
+  while ((match = afterBeach.exec(text))) {
+    const bridge = match[1] ?? '';
+    if (/(?:winkel|restaurant|bar|centrum|shop|dichtstbijzijnde)/i.test(bridge)) {
+      continue;
+    }
+    const raw = parseMeterToken(match[2]);
+    if (raw === undefined) {
+      continue;
+    }
+    const unit = match[3];
+    const after = text.slice(match.index + match[0].length, match.index + match[0].length + 2);
+    if (/^m$/i.test(unit) && /^[²2]/.test(after.trimStart())) {
+      continue;
+    }
+    distances.push(toMeters(raw, unit));
+  }
+
+  // "circa 100 meter van het strand"
+  const beforeBeach =
+    /(\d+(?:[.,]\d+)?)\s*(km|kilometer|kilometers|kilometre|kilometres|meter|meters|metres|mtr|m)\s*(?:van|vanaf|tot|naar)\s+(?:het\s+|de\s+|een\s+)?(?:strand|beach)\b/gi;
+  while ((match = beforeBeach.exec(text))) {
+    const raw = parseMeterToken(match[1]);
+    if (raw === undefined) {
+      continue;
+    }
+    const unit = match[2];
+    const after = text.slice(match.index + match[0].length, match.index + match[0].length + 2);
+    if (/^m$/i.test(unit) && /^[²2]/.test(after.trimStart())) {
+      continue;
+    }
+    distances.push(toMeters(raw, unit));
+  }
+
   if (distances.length === 0) {
     return undefined;
   }

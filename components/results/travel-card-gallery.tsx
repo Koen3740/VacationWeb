@@ -59,8 +59,10 @@ export function TravelCardGallery({
   const displayCount = previewPhotoCount && previewPhotoCount > 1 ? previewPhotoCount : urls.length;
   const showControls = displayCount > 1;
   const [index, setIndex] = useState(0);
-  const safeIndex = urls.length > 0 ? index % urls.length : 0;
-  const src = urls[safeIndex] || OFFER_IMAGE_PLACEHOLDER;
+  const [failed, setFailed] = useState<Set<string>>(() => new Set());
+  const usable = urls.filter((url) => !failed.has(url));
+  const safeIndex = usable.length > 0 ? index % usable.length : 0;
+  const src = usable[safeIndex] || OFFER_IMAGE_PLACEHOLDER;
 
   return (
     <div className="relative aspect-[16/11] h-full min-h-[170px] w-full md:aspect-auto md:min-h-[190px]">
@@ -70,6 +72,16 @@ export function TravelCardGallery({
         fill
         className="object-cover object-center"
         sizes="(max-width: 768px) 100vw, 340px"
+        onError={() => {
+          if (src === OFFER_IMAGE_PLACEHOLDER) {
+            return;
+          }
+          setFailed((prev) => {
+            const next = new Set(prev);
+            next.add(src);
+            return next;
+          });
+        }}
       />
 
       {isLastMinute ? (
@@ -81,18 +93,18 @@ export function TravelCardGallery({
         </span>
       ) : null}
 
-      {showControls ? (
+      {showControls && usable.length > 1 ? (
         <>
           <ArrowButton
             direction="left"
-            onClick={() => setIndex((prev) => (prev - 1 + displayCount) % displayCount)}
+            onClick={() => setIndex((prev) => (prev - 1 + usable.length) % usable.length)}
           />
           <ArrowButton
             direction="right"
-            onClick={() => setIndex((prev) => (prev + 1) % displayCount)}
+            onClick={() => setIndex((prev) => (prev + 1) % usable.length)}
           />
           <span className="absolute bottom-2.5 right-2.5 z-[2] rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
-            {(index % displayCount) + 1} / {displayCount}
+            {(index % usable.length) + 1} / {usable.length}
           </span>
         </>
       ) : null}

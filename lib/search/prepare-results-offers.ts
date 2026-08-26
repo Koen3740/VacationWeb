@@ -1,7 +1,7 @@
 import type { FetchLike } from '../providers/prijsvrij/auth';
 import { priceLiveRequiredMatchset, stampUnpricedWhenLiveOccupancyUnsupported } from '../providers/prijsvrij/page1-receipt-pricing';
 import type { SearchParams, TravelOffer } from '../../types/travel';
-import { filterOffers, sortOffers } from './filtering';
+import { filterOffers, offerMatchesBudget, sortOffers } from './filtering';
 import { limitRankedResultsForPagination, paginateResults } from './pagination';
 import { requiresSunwebResultsLivePrice } from '../providers/sunweb';
 import {
@@ -50,7 +50,9 @@ export function rankLivePricedCandidatePool(
   pool: readonly TravelOffer[],
   params: SearchParams,
 ): TravelOffer[] {
-  const overlaid = applyResultsLivePriceOverlays(pool, params);
+  const overlaid = applyResultsLivePriceOverlays(pool, params).filter((offer) =>
+    offerMatchesBudget(offer, params),
+  );
   const presentable = sortOffers(overlaid.filter(hasValidPresentablePrice), params.sort);
   const notPresentable = overlaid.filter((offer) => !hasValidPresentablePrice(offer));
   return [...presentable, ...notPresentable];

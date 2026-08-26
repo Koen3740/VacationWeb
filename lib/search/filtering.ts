@@ -49,6 +49,17 @@ function resolveCountryFilters(params: SearchParams): string[] {
   return [];
 }
 
+/** Budget uses the offer's current `price` (catalog or live overlay). */
+export function offerMatchesBudget(offer: TravelOffer, params: SearchParams): boolean {
+  if (params.budgetMin !== undefined && offer.price < params.budgetMin) {
+    return false;
+  }
+  if (params.budgetMax !== undefined && offer.price > params.budgetMax) {
+    return false;
+  }
+  return true;
+}
+
 function computeValueScore(offer: TravelOffer) {
   const priceScore = Math.max(0, 100 - offer.pricePerDay * 0.6);
   const ratingScore = (offer.rating ?? 4) * 10;
@@ -110,17 +121,7 @@ export function filterOffers(
       return false;
     }
 
-    if (
-      params.budgetMin !== undefined &&
-      offer.price < params.budgetMin
-    ) {
-      return false;
-    }
-
-    if (
-      params.budgetMax !== undefined &&
-      offer.price > params.budgetMax
-    ) {
+    if (!offerMatchesBudget(offer, params)) {
       return false;
     }
 

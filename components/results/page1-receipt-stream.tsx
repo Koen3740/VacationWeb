@@ -3,6 +3,7 @@ import { SyncPage1IdsToUrl } from '@/components/results/sync-page1-ids-to-url';
 import { TravelCard } from '@/components/results/travel-card';
 import type { CatalogPageLiveOverlay } from '@/lib/providers/prijsvrij';
 import { RESULTS_PRODUCT_PAGE_SIZE } from '@/lib/providers/prijsvrij';
+import { offerMatchesBudget } from '@/lib/search/filtering';
 import { isResultsListableOffer } from '@/lib/search/presentable-price';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 import { Suspense } from 'react';
@@ -17,6 +18,10 @@ async function OverlayTravelCard({
 }) {
   const priced = await live;
   if (!isResultsListableOffer(priced)) {
+    return null;
+  }
+  // Live overlay may raise `price` above the budget slider; drop those cards.
+  if (searchParams && !offerMatchesBudget(priced, searchParams)) {
     return null;
   }
   return (
@@ -45,6 +50,9 @@ export function Page1ResultsStream({
         const overlay = overlayById.get(offer.id);
         if (!overlay || !overlay.pending) {
           const settled = overlay?.catalog ?? offer;
+          if (searchParams && !offerMatchesBudget(settled, searchParams)) {
+            return null;
+          }
           return (
             <TravelCard
               key={offer.id}
