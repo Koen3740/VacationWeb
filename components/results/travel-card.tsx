@@ -13,7 +13,6 @@ import { collectCardHighlights } from '@/lib/offers/card-highlights';
 import { catalogReturnDateOffsetDays } from '@/lib/offers/duration-semantics';
 import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { displayHotelName } from '@/lib/offers/display-hotel-name';
-import { offerHasCarRental } from '@/lib/offers/has-car-rental';
 import { formatNightsLabel } from '@/lib/offers/offer-detail-view';
 import { buildOfferDetailHref } from '@/lib/search/pagination';
 import { displayAccommodationTypeForCard } from '@/lib/search/accommodation-type-filter';
@@ -66,9 +65,9 @@ function HeartButton() {
   return (
     <span
       aria-hidden
-      className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#94A3B8] transition hover:bg-[#F1F5F9] hover:text-[#0A2D62]"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#64748B] shadow-sm backdrop-blur-sm transition hover:bg-white hover:text-[#0A2D62]"
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path
           d="M12 20.5 5.5 13.8a4.7 4.7 0 0 1 0-6.6 4.5 4.5 0 0 1 6.4 0L12 7.1l.1-.1a4.5 4.5 0 0 1 6.4 0 4.7 4.7 0 0 1 0 6.6L12 20.5Z"
           stroke="currentColor"
@@ -213,7 +212,6 @@ export function TravelCard({
   const images = collectImages(offer);
   const accommodationType = displayAccommodationTypeForCard(offer.accommodationType);
   const flightLabel = flightIncludedLabel(offer.flightIncluded);
-  const hasCarRental = offerHasCarRental(offer);
   const highlights = collectCardHighlights(offer);
   const publicHotelName = displayHotelName(offer);
   const boardLabel = boardTypeLabelForDutchUi(offer.boardType);
@@ -250,10 +248,13 @@ export function TravelCard({
             alt={publicHotelName}
             isLastMinute={isLastMinute}
           />
+          <div className="absolute right-2.5 top-2.5 z-[3]">
+            <HeartButton />
+          </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-start md:gap-5 lg:gap-6">
-          <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-4 md:pr-0">
+        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-start md:gap-4 lg:gap-5">
+          <div className="min-w-0 flex-1 px-4 py-3 sm:px-5 sm:py-3 md:pr-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
                 {publicHotelName}
@@ -274,15 +275,15 @@ export function TravelCard({
             ) : null}
 
             {metaLine ? (
-              <p className="mt-2 text-[13px] leading-relaxed text-[#475569]">{metaLine}</p>
+              <p className="mt-1.5 text-[13px] leading-snug text-[#475569]">{metaLine}</p>
             ) : null}
 
             {highlights.length > 0 ? (
-              <ul className="mt-2.5 grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2">
+              <ul className="mt-2 grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-2">
                 {highlights.map((label) => (
                   <li
                     key={label}
-                    className="flex items-start gap-1.5 text-[12.5px] leading-snug text-[#475569]"
+                    className="flex items-start gap-1.5 text-[12.5px] leading-tight text-[#475569]"
                   >
                     <span className="mt-px shrink-0 font-semibold text-[#2F8F78]" aria-hidden>
                       ✓
@@ -293,44 +294,26 @@ export function TravelCard({
               </ul>
             ) : null}
 
-            {hasCarRental ? (
-              <p className="mt-2.5">
-                <span
-                  className="inline-flex items-center rounded-[8px] border border-[#C5D6EA] bg-[#EFF5FB] px-2.5 py-1 text-[12.5px] font-semibold text-[#0A2D62]"
-                  title="Transport: huurauto inbegrepen bij dit pakket"
-                >
-                  🚗 Huurauto inclusief
-                </span>
-              </p>
-            ) : null}
-
             {stayPeriodLabel || tripSummary ? (
-              <div className="mt-3 space-y-0.5 text-[12.5px] leading-snug text-[#64748B]">
+              <div className="mt-2.5 space-y-0.5 text-[12.5px] leading-tight text-[#64748B]">
                 {stayPeriodLabel ? <p>{stayPeriodLabel}</p> : null}
                 {tripSummary ? <p>{tripSummary}</p> : null}
               </div>
             ) : null}
           </div>
 
-          <div className="flex w-full shrink-0 flex-col self-start border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[158px] md:border-l md:border-t-0 md:px-4 lg:w-[172px]">
-            <div className="flex items-start justify-end gap-2">
-              {offer.rating != null ? (
-                <div className="min-w-0 text-right">
-                  <p
-                    className="text-[22px] font-bold leading-none tracking-tight"
-                    style={{ color: RESULTS_RATING_GREEN }}
-                  >
-                    {String(offer.rating).replace('.', ',')}
-                  </p>
-                  <p className="mt-1 text-[12.5px] font-semibold leading-snug" style={{ color: RESULTS_RATING_GREEN }}>
-                    {ratingText}
-                  </p>
-                </div>
-              ) : null}
-              <HeartButton />
-            </div>
+          <div className="flex w-full shrink-0 flex-col self-start border-t border-[#EDE8E0] px-4 py-3 sm:px-5 md:w-[152px] md:border-l md:border-t-0 md:px-3.5 lg:w-[168px]">
+            {offer.rating != null ? (
+              <p
+                className="text-right text-[13px] font-medium leading-tight"
+                style={{ color: RESULTS_RATING_GREEN }}
+              >
+                <span className="font-semibold">{String(offer.rating).replace('.', ',')}</span>
+                {ratingText ? ` ${ratingText}` : ''}
+              </p>
+            ) : null}
 
-            <div className="mt-3 text-right">
+            <div className={`text-right ${offer.rating != null ? 'mt-2' : ''}`}>
               {priceKind === 'pending' ? (
                 <p className="text-[13px] font-medium leading-snug text-[#64748B]">
                   {RESULTS_PRICE_COPY.pending}
@@ -356,7 +339,7 @@ export function TravelCard({
               )}
             </div>
 
-            <div className="mt-3 w-full">
+            <div className="mt-2.5 w-full">
               <Link
                 href={detailHref}
                 className="inline-flex h-10 w-full items-center justify-center rounded-[11px] text-[13px] font-semibold text-white transition"

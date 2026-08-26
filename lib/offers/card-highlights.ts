@@ -1,4 +1,5 @@
 import type { TravelOffer } from '@/types/travel';
+import { offerHasCarRental } from '@/lib/offers/has-car-rental';
 import { AMENITY_LABELS, offerMatchesAmenity, type AmenityValue } from '@/lib/search/amenity-filters';
 import { offerMatchesAnyBeachLocation } from '@/lib/search/location-filters';
 
@@ -52,6 +53,14 @@ export function collectCardHighlights(offer: TravelOffer): string[] {
 
   if (WELLNESS_AMENITIES.some((amenity) => offerMatchesAmenity(offer, amenity))) {
     push('Spa');
+  }
+
+  if (offerHasCarRental(offer)) {
+    if (out.length >= MAX_CARD_HIGHLIGHTS) {
+      out[MAX_CARD_HIGHLIGHTS - 1] = 'Huurauto inclusief';
+    } else {
+      push('Huurauto inclusief');
+    }
   }
 
   return out;

@@ -91,6 +91,14 @@ test('Variant B card without rating leaves no rating block text', () => {
   const html = cardHtml(offer, { adults: 2 });
   assert.doesNotMatch(html, /Fantastisch/);
   assert.doesNotMatch(html, /Uitstekend/);
+  assert.doesNotMatch(html, /text-\[22px\]/);
+});
+
+test('Variant B rating renders on one compact line', () => {
+  const offer = makeOffer({ rating: 9.5 });
+  const html = cardHtml(offer, { adults: 2 });
+  assert.match(html, />9,5<\/span> Fantastisch/);
+  assert.doesNotMatch(html, /text-\[22px\]/);
 });
 
 test('Variant B card with zero highlights omits highlight grid', () => {
@@ -114,12 +122,31 @@ test('Variant B card shows up to six highlights in grid', () => {
   }
 });
 
-test('Huurauto inclusief badge uses canonical hasCarRental', () => {
-  const withCar = makeOffer({ hasCarRental: true });
+test('Huurauto inclusief appears in highlights grid without emoji or badge', () => {
+  const withCar = makeOffer({
+    hasCarRental: true,
+    feedDescription:
+      'Buitenzwembad, airconditioning, gratis wifi. Openbaar strand op circa 200 meter.',
+  });
   const withoutCar = makeOffer({ hasCarRental: false });
 
-  assert.match(cardHtml(withCar), /Huurauto inclusief/);
+  const highlights = collectCardHighlights(withCar);
+  assert.ok(highlights.includes('Huurauto inclusief'));
+  assert.ok(highlights.length <= 6);
+
+  const html = cardHtml(withCar);
+  assert.match(html, />Huurauto inclusief</);
+  assert.doesNotMatch(html, /🚗/);
+  assert.doesNotMatch(html, /EFF5FB/);
   assert.doesNotMatch(cardHtml(withoutCar), /Huurauto inclusief/);
+});
+
+test('Variant B heart sits over the gallery photo', () => {
+  const html = cardHtml(makeOffer(), { adults: 2 });
+  assert.match(html, /absolute right-2\.5 top-2\.5 z-\[3\]/);
+  const galleryIndex = html.indexOf('md:aspect-[3/2]');
+  const heartIndex = html.indexOf('absolute right-2.5 top-2.5');
+  assert.ok(galleryIndex >= 0 && heartIndex > galleryIndex);
 });
 
 test('collectCardHighlights only includes proven structured amenities', () => {
@@ -131,6 +158,17 @@ test('collectCardHighlights only includes proven structured amenities', () => {
   assert.ok(highlights.includes('Zwembad buiten'));
   assert.ok(highlights.includes('Airco'));
   assert.ok(highlights.includes('Nabij strand'));
+});
+
+test('collectCardHighlights caps car rental within six-item grid', () => {
+  const offer = makeOffer({
+    hasCarRental: true,
+    feedDescription:
+      'Buitenzwembad, binnenzwembad, kinderzwembad, airconditioning, gratis wifi, sauna, hammam. Openbaar strand op circa 200 meter.',
+  });
+  const highlights = collectCardHighlights(offer);
+  assert.equal(highlights.length, 6);
+  assert.ok(highlights.includes('Huurauto inclusief'));
 });
 
 test('Variant B gallery uses stable 3:2 aspect ratio on desktop', () => {
