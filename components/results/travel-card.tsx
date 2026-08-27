@@ -50,7 +50,8 @@ function formatPrice(value: number): string {
 }
 
 function collectImages(offer: TravelOffer): string[] {
-  return collectOrderedOfferImages(offer);
+  // Catalog already caps Results galleries; slice again so UI never exceeds 5.
+  return collectOrderedOfferImages(offer).slice(0, 5);
 }
 
 function flightIncludedLabel(value: string | undefined): string | undefined {

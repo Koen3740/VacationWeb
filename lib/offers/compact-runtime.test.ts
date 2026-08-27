@@ -3,8 +3,11 @@ import test from 'node:test';
 import { normalizeOffer } from '@/lib/feeds/canonical/normalize-offer';
 import type { StoredOffer } from '@/lib/feeds/types/stored-offer';
 import {
+  attachResultsCardGalleriesFromDetails,
   compactStoredOffer,
   mergeOfferDetail,
+  RESULTS_CARD_GALLERY_MAX,
+  selectResultsCardGalleryImages,
 } from '@/lib/offers/compact-runtime';
 import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { offerMatchesAmenity } from '@/lib/search/amenity-filters';
@@ -321,4 +324,63 @@ test('G. compact/normalize keeps Eliza Flight hasCarRental=true', () => {
   );
   assert.equal(compacted.runtime.hasCarRental, true);
   assert.equal(normalizeOffer(compacted.runtime).hasCarRental, true);
+});
+
+test('selectResultsCardGalleryImages caps at RESULTS_CARD_GALLERY_MAX', () => {
+  const urls = Array.from(
+    { length: 8 },
+    (_, index) => `https://example.com/${index + 1}.jpg`,
+  );
+  assert.equal(RESULTS_CARD_GALLERY_MAX, 5);
+  assert.deepEqual(selectResultsCardGalleryImages({ images: urls }), urls.slice(0, 5));
+  assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 3) }), urls.slice(0, 3));
+  assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 1) }), urls.slice(0, 1));
+  assert.deepEqual(selectResultsCardGalleryImages({ images: [] }), []);
+});
+
+test('attachResultsCardGalleriesFromDetails restores card galleries from sidecar', () => {
+  const runtime = [
+    makeStored({
+      externalId: 'a',
+      images: undefined,
+      imageLarge: undefined,
+      imageSmall: undefined,
+    }),
+    makeStored({
+      externalId: 'b',
+      images: undefined,
+      imageLarge: undefined,
+      imageSmall: undefined,
+    }),
+  ].map((stored) => compactStoredOffer(stored).runtime);
+
+  assert.equal(runtime[0].images, undefined);
+
+  const details = {
+    a: {
+      images: [
+        'https://example.com/a1.jpg',
+        'https://example.com/a2.jpg',
+        'https://example.com/a3.jpg',
+        'https://example.com/a4.jpg',
+        'https://example.com/a5.jpg',
+        'https://example.com/a6.jpg',
+      ],
+    },
+    b: {
+      images: ['https://example.com/b1.jpg'],
+    },
+  };
+
+  const enriched = attachResultsCardGalleriesFromDetails(runtime, details);
+  assert.equal(enriched[0].images?.length, 5);
+  // Existing Results hero stays first; sidecar URLs fill the remaining slots.
+  assert.equal(enriched[0].imageUrl, runtime[0].imageUrl);
+  assert.equal(enriched[0].images?.[0], runtime[0].imageUrl);
+  assert.ok(enriched[0].images?.includes('https://example.com/a1.jpg'));
+  // Offer B: hero + one distinct sidecar URL → multi gallery (single-only stays undefined).
+  assert.deepEqual(enriched[1].images, [
+    runtime[1].imageUrl,
+    'https://example.com/b1.jpg',
+  ]);
 });

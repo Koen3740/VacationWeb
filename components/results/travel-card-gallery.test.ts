@@ -44,4 +44,33 @@ test('gallery arrow clicks stop propagation and only change the photo', () => {
   assert.match(gallerySource, /safeIndex < count - 1/);
   assert.match(gallerySource, /Math\.max\(0, prev - 1\)/);
   assert.match(gallerySource, /Math\.min\(count - 1, prev \+ 1\)/);
+  assert.match(gallerySource, /onKeyDown/);
+  assert.match(gallerySource, /Vorige foto/);
+  assert.match(gallerySource, /Volgende foto/);
+});
+
+test('gallery keeps fixed 3:2 desktop container (no height shift by photo count)', () => {
+  const one = renderToStaticMarkup(
+    createElement(TravelCardGallery, {
+      images: ['/images/results-card-placeholder.png'],
+      alt: 'Hotel',
+    }),
+  );
+  const five = renderToStaticMarkup(
+    createElement(TravelCardGallery, {
+      images: [
+        '/images/results-card-placeholder.png',
+        '/images/logo.png',
+        '/images/results-preview-hero.png',
+        '/images/logo.png',
+        '/images/results-card-placeholder.png',
+      ],
+      alt: 'Hotel',
+    }),
+  );
+  assert.match(one, /md:aspect-\[3\/2\]/);
+  assert.match(five, /md:aspect-\[3\/2\]/);
+  assert.match(one, /object-cover/);
+  assert.match(five, /object-cover/);
+  assert.match(five, /data-gallery-count="5"/);
 });

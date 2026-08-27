@@ -31,7 +31,14 @@ function ArrowButton({
         event.stopPropagation();
         onClick();
       }}
-      className={`absolute top-1/2 z-[2] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#0A2D62] shadow-sm backdrop-blur-sm transition hover:bg-white ${
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          event.stopPropagation();
+          onClick();
+        }
+      }}
+      className={`absolute top-1/2 z-[2] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#0A2D62] shadow-sm backdrop-blur-sm transition hover:bg-white ${
         direction === 'left' ? 'left-2' : 'right-2'
       }`}
       aria-label={direction === 'left' ? 'Vorige foto' : 'Volgende foto'}
@@ -62,13 +69,18 @@ export function TravelCardGallery({
   const [failed, setFailed] = useState<Set<string>>(() => new Set());
   const usable = urls.filter((url) => !failed.has(url));
   const count = usable.length;
-  const safeIndex = count > 0 ? ((index % count) + count) % count : 0;
+  const safeIndex = count > 0 ? Math.min(Math.max(index, 0), count - 1) : 0;
   const src = usable[safeIndex] || OFFER_IMAGE_PLACEHOLDER;
   const showPrev = showControls && count > 1 && safeIndex > 0;
   const showNext = showControls && count > 1 && safeIndex < count - 1;
 
   return (
-    <div className="relative aspect-[16/11] w-full md:aspect-[3/2]">
+    <div
+      className="relative aspect-[16/11] w-full md:aspect-[3/2]"
+      data-testid="travel-card-gallery"
+      data-gallery-count={count}
+      data-gallery-index={safeIndex}
+    >
       <Image
         src={src}
         alt={alt}

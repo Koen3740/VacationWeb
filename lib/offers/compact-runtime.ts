@@ -125,7 +125,13 @@ export function compactStoredOffer(stored: StoredOffer): {
   assignIfPresent(detail, 'accommodation', stored.accommodation);
   if (gallery.length > 1) {
     // Keep a short card gallery on Results runtime; full set stays in detail.
-    runtime.images = gallery.slice(0, RESULTS_CARD_GALLERY_MAX);
+    runtime.images = selectResultsCardGalleryImages({
+      provider: stored.provider,
+      imageUrl: runtime.imageUrl,
+      imageLarge: stored.imageLarge,
+      imageSmall: stored.imageSmall,
+      images: gallery,
+    });
     // Eliza sidecar keeps XML/feed order so Detail can apply the hero rule
     // once. Display order is [images[3], ...rest] via collectOrderedOfferImages.
     const elizaFeedGallery =
@@ -171,6 +177,48 @@ export function splitStoredCatalog(offers: StoredOffer[]): {
   }
 
   return { runtime, details };
+}
+
+/**
+ * Card gallery for Results: ordered catalog URLs, capped at RESULTS_CARD_GALLERY_MAX.
+ * Never invents URLs and never fetches from providers.
+ */
+export function selectResultsCardGalleryImages(fields: {
+  provider?: string;
+  imageUrl?: string;
+  imageLarge?: string;
+  imageSmall?: string;
+  images?: string[];
+}): string[] {
+  return collectOrderedOfferImages(fields).slice(0, RESULTS_CARD_GALLERY_MAX);
+}
+
+/**
+ * Backfill `runtime.images` from an existing detail sidecar (legacy catalogs
+ * published before card galleries were kept on the runtime file).
+ */
+export function attachResultsCardGalleriesFromDetails(
+  runtime: readonly StoredOffer[],
+  details: Record<string, OfferDetailRecord>,
+): StoredOffer[] {
+  return runtime.map((offer) => {
+    const detail = details[offer.externalId];
+    const gallery = selectResultsCardGalleryImages({
+      provider: offer.provider,
+      imageUrl: offer.imageUrl,
+      imageLarge: detail?.imageLarge ?? offer.imageLarge,
+      imageSmall: detail?.imageSmall ?? offer.imageSmall,
+      images: detail?.images ?? offer.images,
+    });
+    if (gallery.length <= 1) {
+      return offer;
+    }
+    return {
+      ...offer,
+      imageUrl: gallery[0] ?? offer.imageUrl,
+      images: gallery,
+    };
+  });
 }
 
 export function mergeOfferDetail(
