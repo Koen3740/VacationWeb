@@ -24,8 +24,12 @@ type FavoritesContextValue = {
 const FavoritesContext = createContext<FavoritesContextValue | null>(null);
 
 const listeners = new Set<() => void>();
+const EMPTY_FAVORITES: FavoriteEntry[] = [];
+let cachedSnapshot: FavoriteEntry[] = EMPTY_FAVORITES;
+let cachedRaw: string | null = null;
 
 function emitFavoritesChange() {
+  cachedRaw = null;
   for (const listener of listeners) {
     listener();
   }
@@ -36,6 +40,7 @@ function subscribeFavorites(listener: () => void) {
   if (typeof window !== 'undefined') {
     const onStorage = (event: StorageEvent) => {
       if (event.key === null || event.key === 'vacationweb.favorites.v1') {
+        cachedRaw = null;
         listener();
       }
     };
@@ -50,12 +55,22 @@ function subscribeFavorites(listener: () => void) {
   };
 }
 
+/** Stable snapshot reference unless localStorage contents change. */
 function getFavoritesSnapshot(): FavoriteEntry[] {
-  return readFavorites();
+  const raw =
+    typeof window !== 'undefined'
+      ? window.localStorage.getItem('vacationweb.favorites.v1')
+      : null;
+  if (raw === cachedRaw) {
+    return cachedSnapshot;
+  }
+  cachedRaw = raw;
+  cachedSnapshot = raw ? readFavorites() : EMPTY_FAVORITES;
+  return cachedSnapshot;
 }
 
 function getServerFavoritesSnapshot(): FavoriteEntry[] {
-  return [];
+  return EMPTY_FAVORITES;
 }
 
 export function useFavoritesStore(): FavoritesContextValue {
