@@ -7,6 +7,7 @@
  *   npx tsx scripts/enrich-generation-card-galleries.ts --write
  */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { FEED_PATHS } from '../lib/feeds/feed-paths';
 import type { StoredOffer } from '../lib/feeds/types/stored-offer';
@@ -17,7 +18,7 @@ import {
 } from '../lib/offers/compact-runtime';
 import {
   getStorageObject,
-  putStorageBytes,
+  putStorageObject,
   headStorageObject,
 } from '../lib/storage/object-storage-client';
 import { CURRENT_POINTER_KEY, type CurrentPointer } from '../lib/offers/generation-types';
@@ -91,22 +92,31 @@ async function main() {
     return;
   }
 
-  const body = Buffer.from(JSON.stringify(enriched), 'utf8');
-  const result = await putStorageBytes(pointer.catalogKey, body, 'application/json');
-  const verify = JSON.parse(await getStorageObject(pointer.catalogKey)) as StoredOffer[];
-  const verifySummary = summarize(verify);
-  const head = await headStorageObject(pointer.catalogKey);
-  console.log(
-    JSON.stringify(
-      {
-        uploaded: result,
-        head,
-        verify: verifySummary,
-      },
-      null,
-      2,
-    ),
+  // HEAD storage API writes from a local file path (same as upload-offers.ts).
+  const tmpPath = path.join(
+    os.tmpdir(),
+    `vacationweb-enriched-catalog-${Date.now()}.json`,
   );
+  fs.writeFileSync(tmpPath, JSON.stringify(enriched), 'utf8');
+  try {
+    const result = await putStorageObject(pointer.catalogKey, tmpPath);
+    const verify = JSON.parse(await getStorageObject(pointer.catalogKey)) as StoredOffer[];
+    const verifySummary = summarize(verify);
+    const head = await headStorageObject(pointer.catalogKey);
+    console.log(
+      JSON.stringify(
+        {
+          uploaded: result,
+          head,
+          verify: verifySummary,
+        },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    fs.unlinkSync(tmpPath);
+  }
 }
 
 main().catch((error) => {
