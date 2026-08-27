@@ -86,18 +86,26 @@ test('Variant B card omits truncated marketing descriptions', () => {
   assert.doesNotMatch(html, /Extra marketing copy/);
 });
 
-test('Variant B card without rating leaves no rating block text', () => {
+test('Variant B card without rating keeps reserved rating zone and fixed price spacing', () => {
   const offer = makeOffer({ rating: null });
   const html = cardHtml(offer, { adults: 2 });
+  assert.match(html, /data-testid="travel-card-rating-zone"/);
+  assert.match(html, /min-h-\[28px\]/);
+  assert.doesNotMatch(html, /data-testid="travel-card-rating"/);
   assert.doesNotMatch(html, /Fantastisch/);
   assert.doesNotMatch(html, /Uitstekend/);
-  assert.doesNotMatch(html, /text-\[22px\]/);
+  assert.match(html, /data-testid="travel-card-price-block"/);
+  assert.match(html, /mt-2\.5/);
 });
 
-test('Variant B rating renders on one compact line', () => {
+test('Variant B rating renders badge + label on one compact line', () => {
   const offer = makeOffer({ rating: 9.5 });
   const html = cardHtml(offer, { adults: 2 });
-  assert.match(html, />9,5<\/span> Fantastisch/);
+  assert.match(html, /data-testid="travel-card-rating"/);
+  assert.match(html, /9,5/);
+  assert.match(html, /Fantastisch/);
+  assert.match(html, /rounded-md/);
+  assert.match(html, /text-\[14px\]/);
   assert.doesNotMatch(html, /text-\[22px\]/);
 });
 
@@ -130,15 +138,23 @@ test('Variant B keeps hotel name and stars inline in title', () => {
   assert.doesNotMatch(html, /flex flex-wrap items-center gap-2/);
 });
 
-test('rating sits at top of right column on one line; absent rating leaves no block', () => {
+test('rating zone is always reserved; price block spacing identical with/without rating', () => {
   const withRating = cardHtml(makeOffer({ rating: 8.6 }), { adults: 2 });
+  assert.match(withRating, /data-testid="travel-card-rating-zone"/);
   assert.match(withRating, /data-testid="travel-card-rating"/);
-  assert.match(withRating, />8,6<\/span> Uitstekend/);
+  assert.match(withRating, /8,6/);
+  assert.match(withRating, /Uitstekend/);
+  assert.match(withRating, /data-testid="travel-card-price-block"/);
+  assert.match(withRating, /mt-2\.5/);
   assert.doesNotMatch(withRating, /text-\[22px\]/);
 
   const withoutRating = cardHtml(makeOffer({ rating: null }), { adults: 2 });
+  assert.match(withoutRating, /data-testid="travel-card-rating-zone"/);
+  assert.match(withoutRating, /min-h-\[28px\]/);
   assert.doesNotMatch(withoutRating, /data-testid="travel-card-rating"/);
   assert.doesNotMatch(withoutRating, /Fantastisch|Uitstekend|Zeer goed/);
+  assert.match(withoutRating, /data-testid="travel-card-price-block"/);
+  assert.match(withoutRating, /mt-2\.5/);
 });
 test('Variant B card shows up to six highlights in grid', () => {
   const offer = makeOffer({

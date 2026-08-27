@@ -294,18 +294,34 @@ export function TravelCard({
 
           <div className="flex w-full shrink-0 flex-col border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[158px] md:justify-between md:border-l md:border-t-0 md:px-4 lg:w-[172px]">
             <div className="text-right">
-              {hasRating ? (
-                <p
-                  className="whitespace-nowrap text-[12.5px] font-medium leading-tight"
-                  style={{ color: RESULTS_RATING_GREEN }}
-                  data-testid="travel-card-rating"
-                >
-                  <span className="font-semibold">{String(offer.rating).replace('.', ',')}</span>
-                  {ratingText ? ` ${ratingText}` : ''}
-                </p>
-              ) : null}
+              <div
+                className="flex min-h-[28px] items-center justify-end"
+                data-testid="travel-card-rating-zone"
+              >
+                {hasRating ? (
+                  <div
+                    className="inline-flex max-w-full items-center gap-1.5 whitespace-nowrap"
+                    data-testid="travel-card-rating"
+                  >
+                    <span
+                      className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-md px-1.5 text-[14px] font-bold leading-none text-white"
+                      style={{ backgroundColor: RESULTS_RATING_GREEN }}
+                    >
+                      {String(offer.rating).replace('.', ',')}
+                    </span>
+                    {ratingText ? (
+                      <span
+                        className="truncate text-[12px] font-medium leading-none"
+                        style={{ color: RESULTS_RATING_GREEN }}
+                      >
+                        {ratingText}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
 
-              <div className={hasRating ? 'mt-2.5' : ''}>
+              <div className="mt-2.5" data-testid="travel-card-price-block">
                 {priceKind === 'pending' ? (
                   <p className="text-[13px] font-medium leading-snug text-[#64748B]">
                     {RESULTS_PRICE_COPY.pending}

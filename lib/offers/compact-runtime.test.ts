@@ -8,6 +8,7 @@ import {
   mergeOfferDetail,
   RESULTS_CARD_GALLERY_MAX,
   selectResultsCardGalleryImages,
+  splitStoredCatalog,
 } from '@/lib/offers/compact-runtime';
 import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { offerMatchesAmenity } from '@/lib/search/amenity-filters';
@@ -383,4 +384,50 @@ test('attachResultsCardGalleriesFromDetails restores card galleries from sidecar
     runtime[1].imageUrl,
     'https://example.com/b1.jpg',
   ]);
+});
+
+test('splitStoredCatalog keeps ≤5 card images on runtime from detail gallery', () => {
+  const urls = Array.from(
+    { length: 12 },
+    (_, index) => `https://example.com/g${index + 1}.jpg`,
+  );
+  const { runtime, details } = splitStoredCatalog([
+    makeStored({
+      externalId: 'multi',
+      imageUrl: urls[0],
+      imageLarge: urls[0],
+      imageSmall: urls[1],
+      images: urls,
+    }),
+    makeStored({
+      externalId: 'single',
+      imageUrl: 'https://example.com/only.jpg',
+      imageLarge: 'https://example.com/only.jpg',
+      imageSmall: undefined,
+      images: ['https://example.com/only.jpg'],
+    }),
+  ]);
+
+  assert.equal(runtime[0].images?.length, 5);
+  assert.ok((details.multi?.images?.length ?? 0) >= 5);
+  assert.equal(runtime[1].images, undefined);
+  assert.equal(details.single?.images, undefined);
+});
+test('attachResultsCardGalleriesFromDetails leaves true single-image offers unchanged', () => {
+  const runtime = [
+    compactStoredOffer(
+      makeStored({
+        externalId: 'solo',
+        images: ['https://example.com/solo.jpg'],
+        imageUrl: 'https://example.com/solo.jpg',
+        imageLarge: 'https://example.com/solo.jpg',
+        imageSmall: undefined,
+      }),
+    ).runtime,
+  ];
+  const enriched = attachResultsCardGalleriesFromDetails(runtime, {
+    solo: { images: ['https://example.com/solo.jpg'] },
+  });
+  assert.equal(enriched[0].images, undefined);
+  assert.equal(enriched[0].imageUrl, 'https://example.com/solo.jpg');
 });

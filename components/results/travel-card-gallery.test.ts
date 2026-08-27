@@ -47,6 +47,9 @@ test('gallery arrow clicks stop propagation and only change the photo', () => {
   assert.match(gallerySource, /onKeyDown/);
   assert.match(gallerySource, /Vorige foto/);
   assert.match(gallerySource, /Volgende foto/);
+  // Gallery navigation only mutates local index — no provider fetch helpers.
+  assert.doesNotMatch(gallerySource, /fetch\(/);
+  assert.doesNotMatch(gallerySource, /getStorageObject|axios|http\.get/);
 });
 
 test('gallery keeps fixed 3:2 desktop container (no height shift by photo count)', () => {

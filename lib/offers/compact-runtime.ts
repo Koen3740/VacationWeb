@@ -176,7 +176,12 @@ export function splitStoredCatalog(offers: StoredOffer[]): {
     }
   }
 
-  return { runtime, details };
+  // Guarantee Results card galleries (≤5) stay on runtime whenever the detail
+  // sidecar already holds a multi-image gallery (legacy/generation publish).
+  return {
+    runtime: attachResultsCardGalleriesFromDetails(runtime, details),
+    details,
+  };
 }
 
 /**
