@@ -109,13 +109,21 @@ test('Variant B rating renders badge + label on one compact line', () => {
   assert.doesNotMatch(html, /text-\[22px\]/);
 });
 
-test('Variant B card with zero highlights omits highlight grid', () => {
-  const offer = makeOffer({ provider: 'Sunweb', feedDescription: undefined, searchText: undefined });
+test('Variant B card without matched highlights still reserves empty 3×2 grid', () => {
+  const offer = makeOffer({
+    feedDescription: undefined,
+    searchText: undefined,
+    hasCarRental: false,
+    subcategories: undefined,
+  });
   const html = cardHtml(offer, { adults: 2 });
+  assert.match(html, /data-testid="travel-card"/);
+  assert.match(html, /data-testid="travel-card-highlights"/);
+  assert.match(html, /grid-cols-3 grid-rows-2/);
   assert.doesNotMatch(html, />✓</);
 });
 
-test('Variant B middle column uses three natural blocks without stretch; right column may justify-between', () => {
+test('Variant B middle column uses fixed 3×2 highlight grid without stretch; right column may justify-between', () => {
   const offer = makeOffer({
     feedDescription:
       'Buitenzwembad, airconditioning, gratis wifi. Openbaar strand op circa 200 meter.',
@@ -125,9 +133,10 @@ test('Variant B middle column uses three natural blocks without stretch; right c
   });
   const html = cardHtml(offer, { adults: 2 });
   assert.doesNotMatch(html, /md:min-h-\[255px\]/);
-  assert.doesNotMatch(html, /md:flex md:min-h-\[255px\] md:flex-col md:justify-between/);
+  assert.match(html, /md:min-h-\[268px\]/);
   assert.match(html, /md:justify-between md:border-l/);
-  assert.match(html, /mt-5 grid grid-cols-3 gap-x-3 gap-y-2/);
+  assert.match(html, /data-testid="travel-card-highlights"/);
+  assert.match(html, /grid grid-cols-3 grid-rows-2/);
 });
 
 test('Variant B keeps hotel name and stars inline in title', () => {
@@ -194,7 +203,7 @@ test('Variant B heart sits over the gallery photo as a favorites control', () =>
   const html = cardHtml(makeOffer(), { adults: 2 });
   assert.match(html, /absolute right-2\.5 top-2\.5 z-\[3\]/);
   assert.match(html, /Toevoegen aan favorieten|Verwijder uit favorieten/);
-  const galleryIndex = html.indexOf('md:aspect-[3/2]');
+  const galleryIndex = html.indexOf('data-testid="travel-card-gallery"');
   const heartIndex = html.indexOf('absolute right-2.5 top-2.5');
   assert.ok(galleryIndex >= 0 && heartIndex > galleryIndex);
 });
@@ -221,10 +230,35 @@ test('collectCardHighlights caps car rental within six-item grid', () => {
   assert.ok(highlights.includes('Huurauto inclusief'));
 });
 
-test('Variant B gallery uses stable 3:2 aspect ratio on desktop', () => {
+test('Variant B gallery fills card height on desktop (no fixed 3:2 lock)', () => {
   const html = cardHtml(makeOffer());
-  assert.match(html, /md:aspect-\[3\/2\]/);
-  assert.doesNotMatch(html, /md:aspect-auto/);
+  assert.match(html, /md:absolute md:inset-0/);
+  assert.match(html, /object-cover/);
+  assert.doesNotMatch(html, /md:aspect-\[3\/2\]/);
+});
+
+test('highlight grid reserves 3×2 slots for 1 and 6 highlights', () => {
+  const one = cardHtml(
+    makeOffer({
+      feedDescription: 'Gratis wifi.',
+      hasCarRental: false,
+    }),
+  );
+  const six = cardHtml(
+    makeOffer({
+      hasCarRental: true,
+      feedDescription:
+        'Buitenzwembad, binnenzwembad, kinderzwembad, airconditioning, gratis wifi, sauna. Openbaar strand op circa 200 meter.',
+    }),
+  );
+  assert.match(one, /data-testid="travel-card-highlights"/);
+  assert.match(six, /data-testid="travel-card-highlights"/);
+  assert.match(one, /grid-cols-3 grid-rows-2/);
+  assert.match(six, /grid-cols-3 grid-rows-2/);
+  assert.match(one, /whitespace-nowrap/);
+  assert.match(six, /whitespace-nowrap/);
+  assert.match(six, /Huurauto inclusief/);
+  assert.equal((one.match(/aria-hidden/g) || []).length >= 1, true);
 });
 
 test('Variant B Sunweb card uses provider attribution', () => {

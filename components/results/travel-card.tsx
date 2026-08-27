@@ -10,7 +10,7 @@ import {
   RESULTS_STAR_GOLD,
 } from '@/components/results-v2/results-design-tokens';
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
-import { collectCardHighlights } from '@/lib/offers/card-highlights';
+import { collectCardHighlights, layoutCardHighlightSlots } from '@/lib/offers/card-highlights';
 import { catalogReturnDateOffsetDays } from '@/lib/offers/duration-semantics';
 import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { displayHotelName } from '@/lib/offers/display-hotel-name';
@@ -50,8 +50,8 @@ function formatPrice(value: number): string {
 }
 
 function collectImages(offer: TravelOffer): string[] {
-  // Catalog already caps Results galleries; slice again so UI never exceeds 5.
-  return collectOrderedOfferImages(offer).slice(0, 5);
+  // Use every catalog URL already on the TravelOffer — no arbitrary Results cap.
+  return collectOrderedOfferImages(offer);
 }
 
 function flightIncludedLabel(value: string | undefined): string | undefined {
@@ -192,6 +192,7 @@ export function TravelCard({
   const accommodationType = displayAccommodationTypeForCard(offer.accommodationType);
   const flightLabel = flightIncludedLabel(offer.flightIncluded);
   const highlights = collectCardHighlights(offer);
+  const highlightSlots = layoutCardHighlightSlots(highlights);
   const publicHotelName = displayHotelName(offer);
   const boardLabel = boardTypeLabelForDutchUi(offer.boardType);
   const detailHref = searchParams
@@ -219,13 +220,15 @@ export function TravelCard({
         borderColor: RESULTS_BORDER,
         boxShadow: RESULTS_CARD_SHADOW,
       }}
+      data-testid="travel-card"
     >
-      <div className="flex flex-col md:flex-row md:items-start">
-        <div className="relative w-full shrink-0 self-start md:w-[320px] lg:w-[340px]">
+      <div className="flex flex-col md:min-h-[268px] md:flex-row md:items-stretch">
+        <div className="relative w-full shrink-0 self-stretch md:w-[320px] lg:w-[340px]">
           <TravelCardGallery
             images={images}
             alt={publicHotelName}
             isLastMinute={isLastMinute}
+            fillCardHeight
           />
           <div className="absolute right-2.5 top-2.5 z-[3]">
             <FavoriteHeartButton
@@ -244,7 +247,7 @@ export function TravelCard({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-stretch md:gap-5 lg:gap-6">
-          <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-4 md:pr-0">
+          <div className="flex min-w-0 flex-1 flex-col px-4 py-4 sm:px-5 sm:py-4 md:pr-0">
             <div>
               <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
                 {publicHotelName}
@@ -268,21 +271,27 @@ export function TravelCard({
               ) : null}
             </div>
 
-            {highlights.length > 0 ? (
-              <ul className="mt-5 grid grid-cols-3 gap-x-3 gap-y-2">
-                {highlights.map((label) => (
-                  <li
-                    key={label}
-                    className="flex min-w-0 items-start gap-1.5 text-[12.5px] leading-snug text-[#475569]"
-                  >
-                    <span className="shrink-0 font-semibold text-[#2F8F78]" aria-hidden>
-                      ✓
-                    </span>
-                    <span className="min-w-0">{label}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            <ul
+              className="mt-5 grid grid-cols-3 grid-rows-2 gap-x-3 gap-y-2"
+              data-testid="travel-card-highlights"
+            >
+              {highlightSlots.map((label, slotIndex) => (
+                <li
+                  key={label ? `${slotIndex}-${label}` : `empty-${slotIndex}`}
+                  className="flex min-h-[20px] min-w-0 items-start gap-1.5 text-[12.5px] leading-none text-[#475569]"
+                  aria-hidden={label ? undefined : true}
+                >
+                  {label ? (
+                    <>
+                      <span className="shrink-0 font-semibold text-[#2F8F78]" aria-hidden>
+                        ✓
+                      </span>
+                      <span className="min-w-0 whitespace-nowrap">{label}</span>
+                    </>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
 
             {stayPeriodLabel || tripSummary ? (
               <div className="mt-5 space-y-0.5 text-[12.5px] leading-snug text-[#64748B]">

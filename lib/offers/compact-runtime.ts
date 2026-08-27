@@ -5,8 +5,10 @@ import { collectFeedGalleryImages, collectOrderedOfferImages } from './offer-ima
 import { buildCompactSearchText } from '../search/offer-text';
 import type { TravelOffer } from '../../types/travel';
 
-/** Max photos kept on the Results runtime catalog for the card mini-gallery. */
-export const RESULTS_CARD_GALLERY_MAX = 5;
+/** Max photos kept on the Results runtime catalog for the card gallery.
+ * Soft technical ceiling for catalog payload — not a product “show only 5” rule.
+ * Detail sidecars may still hold larger galleries; Results uses whatever is on runtime. */
+export const RESULTS_CARD_GALLERY_MAX = 40;
 
 /** Fields required only by offer-detail (and preserved in the sidecar). */
 export type OfferDetailRecord = {
@@ -58,10 +60,8 @@ function assignIfPresent<T extends object>(
 export function isCompactStoredOffer(offer: StoredOffer): boolean {
   const hasSearchText = hasText(offer.searchText);
   const hasLongCopy = hasText(offer.descriptionLong) || hasText(offer.feedDescription);
-  // Card galleries (≤ RESULTS_CARD_GALLERY_MAX) stay on runtime; larger galleries are detail-only.
-  const hasFullGallery = (offer.images?.length ?? 0) > RESULTS_CARD_GALLERY_MAX;
-
-  return hasSearchText && !hasLongCopy && !hasFullGallery;
+  // Card galleries stay on runtime (capped for payload). Long marketing copy is detail-only.
+  return hasSearchText && !hasLongCopy;
 }
 
 export function compactStoredOffer(stored: StoredOffer): {

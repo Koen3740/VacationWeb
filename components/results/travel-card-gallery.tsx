@@ -14,7 +14,20 @@ type TravelCardGalleryProps = {
   isLastMinute?: boolean;
   /** Preview-only: force multi-photo UI even with one real src */
   previewPhotoCount?: number;
+  /** Stretch to parent height on desktop (card row stretch). */
+  fillCardHeight?: boolean;
 };
+
+/** Pure index step — one click must advance exactly one photo. */
+export function nextGalleryIndex(index: number, count: number): number {
+  if (count <= 0) return 0;
+  return Math.min(count - 1, Math.max(0, index) + 1);
+}
+
+export function previousGalleryIndex(index: number, count: number): number {
+  if (count <= 0) return 0;
+  return Math.max(0, Math.min(count - 1, index) - 1);
+}
 
 function ArrowButton({
   direction,
@@ -61,6 +74,7 @@ export function TravelCardGallery({
   alt,
   isLastMinute,
   previewPhotoCount,
+  fillCardHeight = false,
 }: TravelCardGalleryProps) {
   const urls = images.filter(isValidOfferImageUrl);
   const displayCount = previewPhotoCount && previewPhotoCount > 1 ? previewPhotoCount : urls.length;
@@ -76,12 +90,17 @@ export function TravelCardGallery({
 
   return (
     <div
-      className="relative aspect-[16/11] w-full md:aspect-[3/2]"
+      className={
+        fillCardHeight
+          ? 'relative h-full min-h-[220px] w-full md:absolute md:inset-0 md:min-h-0'
+          : 'relative aspect-[16/11] w-full md:aspect-[3/2]'
+      }
       data-testid="travel-card-gallery"
       data-gallery-count={count}
       data-gallery-index={safeIndex}
     >
       <Image
+        key={src}
         src={src}
         alt={alt}
         fill
@@ -109,12 +128,15 @@ export function TravelCardGallery({
       ) : null}
 
       {showPrev ? (
-        <ArrowButton direction="left" onClick={() => setIndex((prev) => Math.max(0, prev - 1))} />
+        <ArrowButton
+          direction="left"
+          onClick={() => setIndex((prev) => previousGalleryIndex(prev, count))}
+        />
       ) : null}
       {showNext ? (
         <ArrowButton
           direction="right"
-          onClick={() => setIndex((prev) => Math.min(count - 1, prev + 1))}
+          onClick={() => setIndex((prev) => nextGalleryIndex(prev, count))}
         />
       ) : null}
     </div>

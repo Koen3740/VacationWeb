@@ -327,13 +327,14 @@ test('G. compact/normalize keeps Eliza Flight hasCarRental=true', () => {
   assert.equal(normalizeOffer(compacted.runtime).hasCarRental, true);
 });
 
-test('selectResultsCardGalleryImages caps at RESULTS_CARD_GALLERY_MAX', () => {
+test('selectResultsCardGalleryImages keeps ordered catalog photos up to RESULTS_CARD_GALLERY_MAX', () => {
   const urls = Array.from(
-    { length: 8 },
+    { length: 50 },
     (_, index) => `https://example.com/${index + 1}.jpg`,
   );
-  assert.equal(RESULTS_CARD_GALLERY_MAX, 5);
-  assert.deepEqual(selectResultsCardGalleryImages({ images: urls }), urls.slice(0, 5));
+  assert.equal(RESULTS_CARD_GALLERY_MAX, 40);
+  assert.deepEqual(selectResultsCardGalleryImages({ images: urls }), urls.slice(0, 40));
+  assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 10) }), urls.slice(0, 10));
   assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 3) }), urls.slice(0, 3));
   assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 1) }), urls.slice(0, 1));
   assert.deepEqual(selectResultsCardGalleryImages({ images: [] }), []);
@@ -374,8 +375,9 @@ test('attachResultsCardGalleriesFromDetails restores card galleries from sidecar
   };
 
   const enriched = attachResultsCardGalleriesFromDetails(runtime, details);
-  assert.equal(enriched[0].images?.length, 5);
-  // Existing Results hero stays first; sidecar URLs fill the remaining slots.
+  assert.ok((enriched[0].images?.length ?? 0) >= 5);
+  assert.ok((enriched[0].images?.length ?? 0) <= RESULTS_CARD_GALLERY_MAX);
+  // Existing Results hero stays first; sidecar URLs fill remaining slots.
   assert.equal(enriched[0].imageUrl, runtime[0].imageUrl);
   assert.equal(enriched[0].images?.[0], runtime[0].imageUrl);
   assert.ok(enriched[0].images?.includes('https://example.com/a1.jpg'));
@@ -386,7 +388,7 @@ test('attachResultsCardGalleriesFromDetails restores card galleries from sidecar
   ]);
 });
 
-test('splitStoredCatalog keeps ≤5 card images on runtime from detail gallery', () => {
+test('splitStoredCatalog keeps ≤RESULTS_CARD_GALLERY_MAX card images on runtime from detail gallery', () => {
   const urls = Array.from(
     { length: 12 },
     (_, index) => `https://example.com/g${index + 1}.jpg`,
@@ -408,7 +410,7 @@ test('splitStoredCatalog keeps ≤5 card images on runtime from detail gallery',
     }),
   ]);
 
-  assert.equal(runtime[0].images?.length, 5);
+  assert.equal(runtime[0].images?.length, 12);
   assert.ok((details.multi?.images?.length ?? 0) >= 5);
   assert.equal(runtime[1].images, undefined);
   assert.equal(details.single?.images, undefined);
