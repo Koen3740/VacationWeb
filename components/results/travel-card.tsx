@@ -295,8 +295,9 @@ export function TravelCard({
           <div className="flex w-full shrink-0 flex-col border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[158px] md:justify-between md:border-l md:border-t-0 md:px-4 lg:w-[172px]">
             <div className="text-right">
               <div
-                className="flex min-h-[28px] items-center justify-end"
+                className="flex h-7 shrink-0 items-center justify-end"
                 data-testid="travel-card-rating-zone"
+                aria-hidden={!hasRating}
               >
                 {hasRating ? (
                   <div

@@ -90,7 +90,7 @@ test('Variant B card without rating keeps reserved rating zone and fixed price s
   const offer = makeOffer({ rating: null });
   const html = cardHtml(offer, { adults: 2 });
   assert.match(html, /data-testid="travel-card-rating-zone"/);
-  assert.match(html, /min-h-\[28px\]/);
+  assert.match(html, /\bh-7\b/);
   assert.doesNotMatch(html, /data-testid="travel-card-rating"/);
   assert.doesNotMatch(html, /Fantastisch/);
   assert.doesNotMatch(html, /Uitstekend/);
@@ -150,7 +150,7 @@ test('rating zone is always reserved; price block spacing identical with/without
 
   const withoutRating = cardHtml(makeOffer({ rating: null }), { adults: 2 });
   assert.match(withoutRating, /data-testid="travel-card-rating-zone"/);
-  assert.match(withoutRating, /min-h-\[28px\]/);
+  assert.match(withoutRating, /\bh-7\b/);
   assert.doesNotMatch(withoutRating, /data-testid="travel-card-rating"/);
   assert.doesNotMatch(withoutRating, /Fantastisch|Uitstekend|Zeer goed/);
   assert.match(withoutRating, /data-testid="travel-card-price-block"/);
