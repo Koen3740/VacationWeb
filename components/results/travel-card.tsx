@@ -272,13 +272,13 @@ export function TravelCard({
             </div>
 
             <ul
-              className="mt-5 grid grid-cols-3 grid-rows-2 gap-x-3 gap-y-2"
+              className="mt-5 grid grid-rows-2 gap-x-5 gap-y-2 [grid-template-columns:minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)]"
               data-testid="travel-card-highlights"
             >
               {highlightSlots.map((label, slotIndex) => (
                 <li
                   key={label ? `${slotIndex}-${label}` : `empty-${slotIndex}`}
-                  className="flex min-h-[20px] min-w-0 items-start gap-1.5 text-[12.5px] leading-none text-[#475569]"
+                  className="flex min-h-[20px] items-start gap-1.5 text-[12.5px] leading-none text-[#475569]"
                   aria-hidden={label ? undefined : true}
                 >
                   {label ? (
@@ -286,7 +286,7 @@ export function TravelCard({
                       <span className="shrink-0 font-semibold text-[#2F8F78]" aria-hidden>
                         ✓
                       </span>
-                      <span className="min-w-0 whitespace-nowrap">{label}</span>
+                      <span className="whitespace-nowrap">{label}</span>
                     </>
                   ) : null}
                 </li>

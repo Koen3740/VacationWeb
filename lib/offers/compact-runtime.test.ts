@@ -299,8 +299,9 @@ test('compact runtime hero prefers split imageURL_large over tagged thumbnail', 
     }),
   );
   assert.equal(runtime.imageUrl, a1);
-  assert.ok(detail?.images?.includes(thumb));
+  // A2 thumb + A2 large collapse to one shot; keep the larger CDN URL.
   assert.ok(detail?.images?.includes(a2));
+  assert.equal(detail?.images?.includes(thumb), false);
   assert.equal(detail?.images?.[0], a1);
 });
 

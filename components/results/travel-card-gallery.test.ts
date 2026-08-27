@@ -10,6 +10,7 @@ import {
   previousGalleryIndex,
   TravelCardGallery,
 } from '@/components/results/travel-card-gallery';
+import { dedupeOfferGalleryUrls } from '@/lib/offers/offer-images';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const gallerySource = readFileSync(join(ROOT, 'components/results/travel-card-gallery.tsx'), 'utf8');
@@ -70,9 +71,17 @@ test('gallery arrow clicks stop propagation and only change the photo', () => {
   assert.match(gallerySource, /event\.stopPropagation\(\)/);
   assert.match(gallerySource, /nextGalleryIndex/);
   assert.match(gallerySource, /previousGalleryIndex/);
-  assert.match(gallerySource, /key=\{src\}/);
+  assert.match(gallerySource, /key=\{`\$\{safeIndex\}:\$\{src\}`\}/);
+  assert.match(gallerySource, /dedupeOfferGalleryUrls/);
   assert.doesNotMatch(gallerySource, /fetch\(/);
   assert.doesNotMatch(gallerySource, /getStorageObject|axios|http\.get/);
+});
+
+test('gallery collapses Corendon A1 size variants so next is a different shot', () => {
+  const a1Large = 'https://images.corendonresources.com/L1E11446A1W1600H1066.jpg?v=1';
+  const a1Medium = 'https://images.corendonresources.com/L1E11446A1W1024H684.jpg?v=1';
+  const a2 = 'https://images.corendonresources.com/L1E11446A2W1600H1066.jpg?v=2';
+  assert.deepEqual(dedupeOfferGalleryUrls([a1Large, a1Medium, a2]), [a1Large, a2]);
 });
 
 test('fillCardHeight gallery stretches without aspect lock on desktop', () => {

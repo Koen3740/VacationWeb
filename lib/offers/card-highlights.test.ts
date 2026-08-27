@@ -44,3 +44,12 @@ test('layoutCardHighlightSlots keeps full labels intact (no split words)', () =>
     0,
   );
 });
+
+test('layoutCardHighlightSlots uses fixed 3×2 slot indices (row-major)', () => {
+  const slots = layoutCardHighlightSlots(['Huurauto inclusief', 'WiFi', 'Airco']);
+  assert.equal(slots.length, 6);
+  assert.equal(slots[0], 'Huurauto inclusief');
+  assert.ok(slots[1] === 'WiFi' || slots[1] === 'Airco');
+  assert.ok(slots[2] === 'WiFi' || slots[2] === 'Airco' || slots[2] === null);
+  assert.equal(slots.filter(Boolean).length, 3);
+});

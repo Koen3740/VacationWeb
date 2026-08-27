@@ -53,6 +53,61 @@ function isZeroDimensionCdnUrl(url: string): boolean {
   return /W0H0\.(?:jpe?g|png|webp)(?:[?#]|$)/i.test(url);
 }
 
+/** Corendon CDN WxH area; higher prefers better resolution of the same shot. */
+export function offerImagePixelArea(url: string): number {
+  const match = url.match(/W(\d+)H(\d+)/i);
+  if (!match) {
+    return 0;
+  }
+  return Number(match[1]) * Number(match[2]);
+}
+
+/**
+ * Identity for visually-same gallery shots that differ only by CDN size.
+ * Corendon: L1E11446A1W1600H1066 and L1E11446A1W1024H684 → same A1 photo.
+ */
+export function offerGalleryImageIdentity(url: string): string {
+  try {
+    const parsed = new URL(url.trim());
+    const corendon = parsed.pathname.match(/(L1E\d+A\d+)W\d+H\d+/i);
+    if (corendon) {
+      return `${parsed.hostname.toLowerCase()}:${corendon[1].toUpperCase()}`;
+    }
+    const stripped = parsed.pathname.replace(/W\d+H\d+(?=\.(?:jpe?g|png|webp)$)/i, '');
+    return `${parsed.hostname.toLowerCase()}:${stripped}${parsed.search}`;
+  } catch {
+    return url.trim();
+  }
+}
+
+/**
+ * Keep one URL per visual shot. Prefer the highest WxH variant; preserve first-seen order.
+ * Fixes Results galleries where index advanced but A1@1600 → A1@1024 looked identical.
+ */
+export function dedupeOfferGalleryUrls(urls: readonly string[]): string[] {
+  const bestByIdentity = new Map<string, string>();
+  const order: string[] = [];
+
+  for (const raw of urls) {
+    const url = raw.trim();
+    if (!url || !isValidOfferImageUrl(url)) {
+      continue;
+    }
+    const identity = offerGalleryImageIdentity(url);
+    const existing = bestByIdentity.get(identity);
+    if (!existing) {
+      bestByIdentity.set(identity, url);
+      order.push(identity);
+      continue;
+    }
+    if (offerImagePixelArea(url) > offerImagePixelArea(existing)) {
+      bestByIdentity.set(identity, url);
+    }
+  }
+
+  return order.map((identity) => bestByIdentity.get(identity)!);
+}
+
 function pushUniqueValidUrl(out: string[], seen: Set<string>, url: string): void {
   const trimmed = url.trim();
   if (!trimmed || seen.has(trimmed) || !isValidOfferImageUrl(trimmed)) {
@@ -153,5 +208,5 @@ export function collectOrderedOfferImages(offer: OfferImageFields): string[] {
   }
 
   promoteElizaXmlHero(out, offer);
-  return out;
+  return dedupeOfferGalleryUrls(out);
 }

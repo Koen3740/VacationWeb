@@ -34,8 +34,10 @@ test('hero prefers imageURL_large / imageLarge over tagged gallery thumbnail', (
     images: [a2Thumb, a2Large],
   });
   assert.equal(ordered[0], a1);
-  assert.ok(ordered.includes(a2Thumb));
-  assert.ok(ordered.includes(a2Large));
+  // Same Corendon shot A2: keep the largest WxH URL only (not thumb + large).
+  assert.equal(ordered.filter((url) => /L1E2208A2/i.test(url)).length, 1);
+  assert.equal(ordered.includes(a2Large), true);
+  assert.equal(ordered.includes(a2Thumb), false);
 });
 
 test('Sunweb-style galleries without a distinct imageLarge keep feed order', () => {
@@ -60,6 +62,21 @@ test('zero-dimension Corendon thumbnail is not hero when a sized gallery URL exi
   });
   assert.equal(ordered[0], a1Small);
   assert.ok(ordered.includes(thumb));
+});
+
+test('Corendon size variants of the same shot collapse to one gallery URL', () => {
+  const a1Large = 'https://images.corendonresources.com/L1E11446A1W1600H1066.jpg?v=1';
+  const a1Medium = 'https://images.corendonresources.com/L1E11446A1W1024H684.jpg?v=1';
+  const a2 = 'https://images.corendonresources.com/L1E11446A2W1600H1066.jpg?v=2';
+  const a3 = 'https://images.corendonresources.com/L1E11446A3W1600H1066.jpg?v=3';
+  const ordered = collectOrderedOfferImages({
+    provider: PROVIDERS.corendon.name,
+    imageLarge: a1Large,
+    images: [a1Large, a1Medium, a2, a3],
+  });
+  assert.deepEqual(ordered, [a1Large, a2, a3]);
+  assert.equal(ordered[0], a1Large);
+  assert.equal(ordered[1], a2);
 });
 
 const EKIES_XML = [

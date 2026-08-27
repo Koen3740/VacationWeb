@@ -5,6 +5,7 @@ import {
   isValidOfferImageUrl,
   OFFER_IMAGE_PLACEHOLDER,
 } from '@/lib/offers/is-valid-offer-image-url';
+import { dedupeOfferGalleryUrls } from '@/lib/offers/offer-images';
 import Image from 'next/image';
 import React, { useState } from 'react';
 
@@ -76,7 +77,9 @@ export function TravelCardGallery({
   previewPhotoCount,
   fillCardHeight = false,
 }: TravelCardGalleryProps) {
-  const urls = images.filter(isValidOfferImageUrl);
+  // Collapse CDN size-variants of the same shot (A1@1600 vs A1@1024) so one click
+  // always lands on a visually different photo — including old catalog payloads.
+  const urls = dedupeOfferGalleryUrls(images.filter(isValidOfferImageUrl));
   const displayCount = previewPhotoCount && previewPhotoCount > 1 ? previewPhotoCount : urls.length;
   const showControls = displayCount > 1;
   const [index, setIndex] = useState(0);
@@ -98,9 +101,10 @@ export function TravelCardGallery({
       data-testid="travel-card-gallery"
       data-gallery-count={count}
       data-gallery-index={safeIndex}
+      data-gallery-src={src}
     >
       <Image
-        key={src}
+        key={`${safeIndex}:${src}`}
         src={src}
         alt={alt}
         fill
