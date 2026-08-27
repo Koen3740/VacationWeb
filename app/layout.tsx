@@ -1,4 +1,5 @@
 import './globals.css';
+import { FavoritesProvider } from '@/components/favorites/favorites-provider';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -15,7 +16,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="nl">
-      <body>{children}</body>
+      <body>
+        <FavoritesProvider>{children}</FavoritesProvider>
+      </body>
     </html>
   );
 }

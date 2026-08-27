@@ -31,12 +31,12 @@ function ArrowButton({
         event.stopPropagation();
         onClick();
       }}
-      className={`absolute top-1/2 z-[2] flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#0A2D62] shadow-md backdrop-blur-sm transition hover:bg-white ${
-        direction === 'left' ? 'left-2.5' : 'right-2.5'
+      className={`absolute top-1/2 z-[2] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#0A2D62] shadow-sm backdrop-blur-sm transition hover:bg-white ${
+        direction === 'left' ? 'left-2' : 'right-2'
       }`}
       aria-label={direction === 'left' ? 'Vorige foto' : 'Volgende foto'}
     >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
         <path
           d={direction === 'left' ? 'M10 3.5 5.5 8 10 12.5' : 'M6 3.5 10.5 8 6 12.5'}
           stroke="currentColor"
@@ -61,8 +61,11 @@ export function TravelCardGallery({
   const [index, setIndex] = useState(0);
   const [failed, setFailed] = useState<Set<string>>(() => new Set());
   const usable = urls.filter((url) => !failed.has(url));
-  const safeIndex = usable.length > 0 ? index % usable.length : 0;
+  const count = usable.length;
+  const safeIndex = count > 0 ? ((index % count) + count) % count : 0;
   const src = usable[safeIndex] || OFFER_IMAGE_PLACEHOLDER;
+  const showPrev = showControls && count > 1 && safeIndex > 0;
+  const showNext = showControls && count > 1 && safeIndex < count - 1;
 
   return (
     <div className="relative aspect-[16/11] w-full md:aspect-[3/2]">
@@ -93,20 +96,14 @@ export function TravelCardGallery({
         </span>
       ) : null}
 
-      {showControls && usable.length > 1 ? (
-        <>
-          <ArrowButton
-            direction="left"
-            onClick={() => setIndex((prev) => (prev - 1 + usable.length) % usable.length)}
-          />
-          <ArrowButton
-            direction="right"
-            onClick={() => setIndex((prev) => (prev + 1) % usable.length)}
-          />
-          <span className="absolute bottom-2.5 right-2.5 z-[2] rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
-            {(index % usable.length) + 1} / {usable.length}
-          </span>
-        </>
+      {showPrev ? (
+        <ArrowButton direction="left" onClick={() => setIndex((prev) => Math.max(0, prev - 1))} />
+      ) : null}
+      {showNext ? (
+        <ArrowButton
+          direction="right"
+          onClick={() => setIndex((prev) => Math.min(count - 1, prev + 1))}
+        />
       ) : null}
     </div>
   );

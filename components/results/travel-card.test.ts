@@ -107,7 +107,7 @@ test('Variant B card with zero highlights omits highlight grid', () => {
   assert.doesNotMatch(html, />✓</);
 });
 
-test('Variant B middle column uses three natural blocks without justify-between stretch', () => {
+test('Variant B middle column uses three natural blocks without stretch; right column may justify-between', () => {
   const offer = makeOffer({
     feedDescription:
       'Buitenzwembad, airconditioning, gratis wifi. Openbaar strand op circa 200 meter.',
@@ -117,7 +117,8 @@ test('Variant B middle column uses three natural blocks without justify-between 
   });
   const html = cardHtml(offer, { adults: 2 });
   assert.doesNotMatch(html, /md:min-h-\[255px\]/);
-  assert.doesNotMatch(html, /md:justify-between/);
+  assert.doesNotMatch(html, /md:flex md:min-h-\[255px\] md:flex-col md:justify-between/);
+  assert.match(html, /md:justify-between md:border-l/);
   assert.match(html, /mt-5 grid grid-cols-3 gap-x-3 gap-y-2/);
 });
 
@@ -127,6 +128,17 @@ test('Variant B keeps hotel name and stars inline in title', () => {
   assert.match(html, />Reymar Hotel/);
   assert.match(html, /★★★/);
   assert.doesNotMatch(html, /flex flex-wrap items-center gap-2/);
+});
+
+test('rating sits at top of right column on one line; absent rating leaves no block', () => {
+  const withRating = cardHtml(makeOffer({ rating: 8.6 }), { adults: 2 });
+  assert.match(withRating, /data-testid="travel-card-rating"/);
+  assert.match(withRating, />8,6<\/span> Uitstekend/);
+  assert.doesNotMatch(withRating, /text-\[22px\]/);
+
+  const withoutRating = cardHtml(makeOffer({ rating: null }), { adults: 2 });
+  assert.doesNotMatch(withoutRating, /data-testid="travel-card-rating"/);
+  assert.doesNotMatch(withoutRating, /Fantastisch|Uitstekend|Zeer goed/);
 });
 test('Variant B card shows up to six highlights in grid', () => {
   const offer = makeOffer({
@@ -162,9 +174,10 @@ test('Huurauto inclusief appears in highlights grid without emoji or badge', () 
   assert.doesNotMatch(cardHtml(withoutCar), /Huurauto inclusief/);
 });
 
-test('Variant B heart sits over the gallery photo', () => {
+test('Variant B heart sits over the gallery photo as a favorites control', () => {
   const html = cardHtml(makeOffer(), { adults: 2 });
   assert.match(html, /absolute right-2\.5 top-2\.5 z-\[3\]/);
+  assert.match(html, /Toevoegen aan favorieten|Verwijder uit favorieten/);
   const galleryIndex = html.indexOf('md:aspect-[3/2]');
   const heartIndex = html.indexOf('absolute right-2.5 top-2.5');
   assert.ok(galleryIndex >= 0 && heartIndex > galleryIndex);

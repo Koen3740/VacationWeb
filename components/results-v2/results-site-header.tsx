@@ -1,3 +1,4 @@
+import { FavoritesNavLink } from '@/components/favorites/favorites-nav-link';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -8,19 +9,6 @@ const NAV_LINKS = [
   { label: 'Aanbiedingen', href: '/results' },
   { label: 'Over ons', href: '/search' },
 ] as const;
-
-function HeartIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
-      <path
-        d="M12 20.5 5.5 13.8a4.7 4.7 0 0 1 0-6.6 4.5 4.5 0 0 1 6.4 0L12 7.1l.1-.1a4.5 4.5 0 0 1 6.4 0 4.7 4.7 0 0 1 0 6.6L12 20.5Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 function NavChevron() {
   return (
@@ -56,10 +44,7 @@ export function ResultsSiteHeader() {
               {'hasChevron' in link && link.hasChevron ? <NavChevron /> : null}
             </Link>
           ))}
-          <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#334155]">
-            <HeartIcon />
-            Favorieten
-          </span>
+          <FavoritesNavLink />
         </nav>
       </div>
     </header>

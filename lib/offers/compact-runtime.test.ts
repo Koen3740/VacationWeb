@@ -70,10 +70,14 @@ test('compact runtime keeps filter/sort/card/live-pricing fields and strips deta
   assert.equal(runtime.descriptionShort, 'Zonnige vakantie aan zee');
   assert.equal(runtime.extraInfo, '2-persoonskamer');
   assert.equal(runtime.imageUrl, 'https://example.com/a.jpg');
+  assert.deepEqual(runtime.images, [
+    'https://example.com/a.jpg',
+    'https://example.com/b.jpg',
+    'https://example.com/c.jpg',
+  ]);
   assert.equal(runtime.descriptionLong, undefined);
   assert.equal(runtime.feedDescription, undefined);
   assert.equal(runtime.accommodation, undefined);
-  assert.equal(runtime.images, undefined);
   assert.equal(runtime.durationType, undefined);
   assert.ok(runtime.searchText?.includes('buitenzwembad'));
 

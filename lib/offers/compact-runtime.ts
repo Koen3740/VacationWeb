@@ -5,6 +5,9 @@ import { collectFeedGalleryImages, collectOrderedOfferImages } from './offer-ima
 import { buildCompactSearchText } from '../search/offer-text';
 import type { TravelOffer } from '../../types/travel';
 
+/** Max photos kept on the Results runtime catalog for the card mini-gallery. */
+export const RESULTS_CARD_GALLERY_MAX = 5;
+
 /** Fields required only by offer-detail (and preserved in the sidecar). */
 export type OfferDetailRecord = {
   descriptionLong?: string;
@@ -55,9 +58,10 @@ function assignIfPresent<T extends object>(
 export function isCompactStoredOffer(offer: StoredOffer): boolean {
   const hasSearchText = hasText(offer.searchText);
   const hasLongCopy = hasText(offer.descriptionLong) || hasText(offer.feedDescription);
-  const hasGallery = (offer.images?.length ?? 0) > 1;
+  // Card galleries (≤ RESULTS_CARD_GALLERY_MAX) stay on runtime; larger galleries are detail-only.
+  const hasFullGallery = (offer.images?.length ?? 0) > RESULTS_CARD_GALLERY_MAX;
 
-  return hasSearchText && !hasLongCopy && !hasGallery;
+  return hasSearchText && !hasLongCopy && !hasFullGallery;
 }
 
 export function compactStoredOffer(stored: StoredOffer): {
@@ -85,6 +89,7 @@ export function compactStoredOffer(stored: StoredOffer): {
     deepLink: stored.deepLink,
   };
 
+  assignIfPresent(runtime, 'canonicalOfferIdentity', stored.canonicalOfferIdentity);
   assignIfPresent(runtime, 'accommodationType', stored.accommodationType);
   assignIfPresent(runtime, 'province', stored.province);
   assignIfPresent(runtime, 'region', stored.region);
@@ -119,6 +124,8 @@ export function compactStoredOffer(stored: StoredOffer): {
   assignIfPresent(detail, 'localizedDescriptions', stored.localizedDescriptions);
   assignIfPresent(detail, 'accommodation', stored.accommodation);
   if (gallery.length > 1) {
+    // Keep a short card gallery on Results runtime; full set stays in detail.
+    runtime.images = gallery.slice(0, RESULTS_CARD_GALLERY_MAX);
     // Eliza sidecar keeps XML/feed order so Detail can apply the hero rule
     // once. Display order is [images[3], ...rest] via collectOrderedOfferImages.
     const elizaFeedGallery =

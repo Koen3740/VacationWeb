@@ -1,3 +1,4 @@
+import { FavoriteHeartButton } from '@/components/favorites/favorite-heart-button';
 import {
   RESULTS_BORDER,
   RESULTS_CARD_BG,
@@ -59,24 +60,6 @@ function flightIncludedLabel(value: string | undefined): string | undefined {
     return 'Inclusief vlucht';
   }
   return undefined;
-}
-
-function HeartButton() {
-  return (
-    <span
-      aria-hidden
-      className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#64748B] shadow-sm backdrop-blur-sm transition hover:bg-white hover:text-[#0A2D62]"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M12 20.5 5.5 13.8a4.7 4.7 0 0 1 0-6.6 4.5 4.5 0 0 1 6.4 0L12 7.1l.1-.1a4.5 4.5 0 0 1 6.4 0 4.7 4.7 0 0 1 0 6.6L12 20.5Z"
-          stroke="currentColor"
-          strokeWidth="1.7"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
-  );
 }
 
 /** Land → Regio → Plaats (e.g. Spanje · Costa Brava · Santa Susanna). */
@@ -202,6 +185,7 @@ export function TravelCard({
   const stars = offer.stars && offer.stars > 0 ? offer.stars : 0;
   const isLastMinute = offer.lastMinute === 'true' || offer.lastMinute === '1' || offer.lastMinute === 'yes';
   const ratingText = ratingLabel(offer.rating);
+  const hasRating = offer.rating != null && Number.isFinite(offer.rating);
   const airport = formatOfferDepartureAirportLabel(offer);
   const images = collectImages(offer);
   const accommodationType = displayAccommodationTypeForCard(offer.accommodationType);
@@ -243,11 +227,22 @@ export function TravelCard({
             isLastMinute={isLastMinute}
           />
           <div className="absolute right-2.5 top-2.5 z-[3]">
-            <HeartButton />
+            <FavoriteHeartButton
+              offer={{
+                id: offer.id,
+                hotelName: publicHotelName,
+                imageUrl: images[0] || offer.imageUrl,
+                provider: offer.provider,
+                price: hasValidPresentablePrice(offer) ? offer.price : undefined,
+                destinationCountry: offer.destinationCountry,
+                destinationRegion: offer.destinationRegion,
+                destinationCity: offer.destinationCity,
+              }}
+            />
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-start md:gap-5 lg:gap-6">
+        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-stretch md:gap-5 lg:gap-6">
           <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-4 md:pr-0">
             <div>
               <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
@@ -296,19 +291,20 @@ export function TravelCard({
             ) : null}
           </div>
 
-          <div className="flex w-full shrink-0 flex-col border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[158px] md:border-l md:border-t-0 md:px-4 lg:w-[172px]">
+          <div className="flex w-full shrink-0 flex-col border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[158px] md:justify-between md:border-l md:border-t-0 md:px-4 lg:w-[172px]">
             <div className="text-right">
-              {offer.rating != null ? (
+              {hasRating ? (
                 <p
-                  className="text-[13px] font-medium leading-tight"
+                  className="whitespace-nowrap text-[12.5px] font-medium leading-tight"
                   style={{ color: RESULTS_RATING_GREEN }}
+                  data-testid="travel-card-rating"
                 >
                   <span className="font-semibold">{String(offer.rating).replace('.', ',')}</span>
                   {ratingText ? ` ${ratingText}` : ''}
                 </p>
               ) : null}
 
-              <div className={offer.rating != null ? 'mt-3' : ''}>
+              <div className={hasRating ? 'mt-2.5' : ''}>
                 {priceKind === 'pending' ? (
                   <p className="text-[13px] font-medium leading-snug text-[#64748B]">
                     {RESULTS_PRICE_COPY.pending}
@@ -335,7 +331,7 @@ export function TravelCard({
               </div>
             </div>
 
-            <div className="mt-3 w-full md:mt-0">
+            <div className="mt-4 w-full md:mt-0">
               <Link
                 href={detailHref}
                 className="inline-flex h-10 w-full items-center justify-center rounded-[11px] text-[13px] font-semibold text-white transition"
