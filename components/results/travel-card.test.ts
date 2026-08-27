@@ -107,7 +107,7 @@ test('Variant B card with zero highlights omits highlight grid', () => {
   assert.doesNotMatch(html, />✓</);
 });
 
-test('Variant B middle column uses three spaced blocks with flex-wrap highlights', () => {
+test('Variant B middle column uses three natural blocks without justify-between stretch', () => {
   const offer = makeOffer({
     feedDescription:
       'Buitenzwembad, airconditioning, gratis wifi. Openbaar strand op circa 200 meter.',
@@ -116,10 +116,17 @@ test('Variant B middle column uses three spaced blocks with flex-wrap highlights
     departureAirport: 'EIN',
   });
   const html = cardHtml(offer, { adults: 2 });
-  assert.match(html, /md:min-h-\[255px\]/);
-  assert.match(html, /md:justify-between/);
-  assert.match(html, /flex flex-wrap items-start gap-x-5 gap-y-2/);
-  assert.match(html, /whitespace-nowrap/);
+  assert.doesNotMatch(html, /md:min-h-\[255px\]/);
+  assert.doesNotMatch(html, /md:justify-between/);
+  assert.match(html, /mt-5 grid grid-cols-3 gap-x-3 gap-y-2/);
+});
+
+test('Variant B keeps hotel name and stars inline in title', () => {
+  const offer = makeOffer({ hotelName: 'Reymar Hotel', stars: 3 });
+  const html = cardHtml(offer, { adults: 2 });
+  assert.match(html, />Reymar Hotel/);
+  assert.match(html, /★★★/);
+  assert.doesNotMatch(html, /flex flex-wrap items-center gap-2/);
 });
 test('Variant B card shows up to six highlights in grid', () => {
   const offer = makeOffer({

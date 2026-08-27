@@ -19,7 +19,11 @@ import {
   RESULTS_PRODUCT_PAGE_SIZE,
   startCatalogPageLiveOverlays,
 } from '@/lib/providers/prijsvrij';
-import { sliceRankedCatalogResultsPage } from '@/lib/search/results-catalog-page';
+import {
+  orderCatalogPageCandidates,
+  selectPage1OverlayCandidates,
+  sliceRankedCatalogResultsPage,
+} from '@/lib/search/results-catalog-page';
 import '@/lib/http/prefer-ipv4';
 import { countCarRentalFacet } from '@/lib/search/filtering';
 import {
@@ -27,7 +31,7 @@ import {
   effectiveAccommodationTypesForFilter,
   parseAccommodationTypesParam,
 } from '@/lib/search/accommodation-type-filter';
-import { excludeParkedResultsProviders, filterToResultsListableOffers } from '@/lib/search/presentable-price';
+import { excludeParkedResultsProviders } from '@/lib/search/presentable-price';
 import { isPriceDependentSort, prepareResultsOffers } from '@/lib/search/prepare-results-offers';
 import { PriceSortResultsStream } from '@/components/results/price-sort-live-stream';
 import { limitRankedResultsForPagination } from '@/lib/search/pagination';
@@ -114,10 +118,11 @@ export default async function ResultsPage({
   const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? offers.length);
   const prepared = await prepareResultsOffers(offers, filteringParams);
   const filtered = prepared.offers;
-  // Count must match the filterable/listable Results set (not parked / confirmed-unavailable).
-  const matchCount = filterToResultsListableOffers(filtered).length;
-  const carRentalCount = countCarRentalFacet(filtered, filteringParams);
   const userPool = limitRankedResultsForPagination(filtered);
+  // Count matches pagination pool: presentable first, pending listable, excludes settled A/C.
+  const orderedPool = orderCatalogPageCandidates(userPool, filteringParams);
+  const matchCount = orderedPool.length;
+  const carRentalCount = countCarRentalFacet(filtered, filteringParams);
   const pageSize = RESULTS_PRODUCT_PAGE_SIZE;
   const page = params.page ?? 1;
   const isPage1 = !Number.isFinite(page) || Math.floor(page) <= 1;
@@ -190,8 +195,16 @@ export default async function ResultsPage({
     );
   }
 
-  const catalogPage = sliceRankedCatalogResultsPage(userPool, isPage1 ? 1 : page, pageSize);
-  const overlays = startCatalogPageLiveOverlays(catalogPage.offers, params);
+  const catalogPage = sliceRankedCatalogResultsPage(
+    userPool,
+    isPage1 ? 1 : page,
+    pageSize,
+    filteringParams,
+  );
+  const overlayCandidates = isPage1
+    ? selectPage1OverlayCandidates(orderedPool, pageSize)
+    : catalogPage.offers;
+  const overlays = startCatalogPageLiveOverlays(overlayCandidates, params);
 
   return (
     <ResultsPageClient
@@ -200,6 +213,8 @@ export default async function ResultsPage({
         catalogPage.offers.length > 0 ? (
           <Page1ResultsStream
             catalogOffers={catalogPage.offers}
+            candidateOffers={isPage1 ? overlayCandidates : undefined}
+            displayLimit={pageSize}
             overlays={overlays}
             searchParams={{ ...params, pageSize }}
           />

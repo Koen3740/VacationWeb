@@ -13,7 +13,11 @@ import {
 } from '@/lib/providers/prijsvrij';
 import { CORENDON_FE_HOST } from '@/lib/providers/corendon/constants';
 import { clearResultsLivePriceCache } from '@/lib/search/results-live-price-cache';
-import { sliceRankedCatalogResultsPage } from '@/lib/search/results-catalog-page';
+import {
+  measureResultsPipelineCounts,
+  orderCatalogPageCandidates,
+  sliceRankedCatalogResultsPage,
+} from '@/lib/search/results-catalog-page';
 import {
   hasProvenLiveTotalPrice,
   hasValidPresentablePrice,
@@ -351,4 +355,71 @@ test('TEST 13: catalog Corendon overlays keep existing page-1 concurrency of 5',
   await Promise.all(overlays.map((overlay) => overlay.live));
   assert.ok(maxInFlight <= 5, `Corendon catalog overlay concurrency was ${maxInFlight}`);
   assert.ok(maxInFlight >= 2, `expected parallel Corendon work, got ${maxInFlight}`);
+});
+
+test('presentable offers are prioritized before catalog-pending on page 1', () => {
+  const provenFields = {
+    livePriceStatus: 'proven' as const,
+    livePriceSource: 'upsales' as const,
+    liveTotalPrice: 1078,
+    liveTotalPriceField: 'upsales.totalPrice' as const,
+    price: 539,
+  };
+  const ranked = [
+    makeCorendon({ id: 'catalog-a', livePriceStatus: 'catalog', price: 400 }),
+    makeCorendon({ id: 'catalog-b', livePriceStatus: 'catalog', price: 410 }),
+    makeCorendon({ id: 'proven-z', ...provenFields }),
+    makeCorendon({ id: 'catalog-c', livePriceStatus: 'catalog', price: 420 }),
+  ];
+  const ordered = orderCatalogPageCandidates(ranked, { adults: 2 });
+  assert.equal(ordered[0].id, 'proven-z');
+  const page = sliceRankedCatalogResultsPage(ranked, 1, 3, { adults: 2 });
+  assert.deepEqual(
+    page.offers.map((offer) => offer.id),
+    ['proven-z', 'catalog-a', 'catalog-b'],
+  );
+});
+
+test('settled unavailable offers are excluded from pagination pool', () => {
+  const ranked = [
+    makeCorendon({ id: 'visible', livePriceStatus: 'catalog' }),
+    makeCorendon({
+      id: 'hidden',
+      livePriceStatus: 'unavailable',
+      livePriceFailureReason: 'http_204',
+    }),
+  ];
+  const ordered = orderCatalogPageCandidates(ranked, { adults: 2 });
+  assert.equal(ordered.length, 1);
+  assert.equal(ordered[0].id, 'visible');
+});
+
+test('pipeline counts distinguish catalog, listable, and presentable stages', () => {
+  const provenFields = {
+    livePriceStatus: 'proven' as const,
+    livePriceSource: 'upsales' as const,
+    liveTotalPrice: 1078,
+    liveTotalPriceField: 'upsales.totalPrice' as const,
+    price: 539,
+  };
+  const ranked = Array.from({ length: 12 }, (_, index) => {
+    if (index === 11) {
+      return makeCorendon({ id: `offer-${index + 1}`, ...provenFields });
+    }
+    return makeCorendon({ id: `offer-${index + 1}`, livePriceStatus: 'catalog' });
+  });
+  ranked.push(
+    makeCorendon({
+      id: 'settled-unavailable',
+      livePriceStatus: 'unavailable',
+      livePriceFailureReason: 'http_204',
+    }),
+  );
+
+  const counts = measureResultsPipelineCounts(ranked, { adults: 2 }, 1, 10);
+  assert.equal(counts.afterCatalogFilter, 13);
+  assert.equal(counts.afterListabilityFilter, 12);
+  assert.equal(counts.afterPresentableFilter, 1);
+  assert.equal(counts.afterPaginationOrder, 12);
+  assert.equal(counts.pageSliceSize, 10);
 });

@@ -247,23 +247,21 @@ export function TravelCard({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-stretch md:gap-5 lg:gap-6">
-          <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-4 md:flex md:min-h-[255px] md:flex-col md:justify-between md:pr-0">
+        <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-start md:gap-5 lg:gap-6">
+          <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-4 md:pr-0">
             <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
-                  {publicHotelName}
-                </h3>
+              <h3 className="text-[18.5px] font-bold leading-snug text-[#0A2D62] sm:text-[19.5px]">
+                {publicHotelName}
                 {stars > 0 ? (
                   <span
-                    className="text-[16px] leading-none tracking-tight"
+                    className="ml-1.5 inline whitespace-nowrap align-baseline text-[16px] leading-none tracking-tight"
                     style={{ color: RESULTS_STAR_GOLD }}
                     aria-label={`${stars} sterren`}
                   >
                     {'★'.repeat(stars)}
                   </span>
                 ) : null}
-              </div>
+              </h3>
 
               {location ? (
                 <p className="mt-0.5 text-[13px] text-[#64748B]">{location}</p>
@@ -275,30 +273,30 @@ export function TravelCard({
             </div>
 
             {highlights.length > 0 ? (
-              <ul className="mt-4 flex flex-wrap items-start gap-x-5 gap-y-2 md:mt-0">
+              <ul className="mt-5 grid grid-cols-3 gap-x-3 gap-y-2">
                 {highlights.map((label) => (
                   <li
                     key={label}
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap text-[12.5px] leading-snug text-[#475569]"
+                    className="flex min-w-0 items-start gap-1.5 text-[12.5px] leading-snug text-[#475569]"
                   >
                     <span className="shrink-0 font-semibold text-[#2F8F78]" aria-hidden>
                       ✓
                     </span>
-                    <span>{label}</span>
+                    <span className="min-w-0">{label}</span>
                   </li>
                 ))}
               </ul>
             ) : null}
 
             {stayPeriodLabel || tripSummary ? (
-              <div className="mt-4 space-y-0.5 text-[12.5px] leading-snug text-[#64748B] md:mt-0">
+              <div className="mt-5 space-y-0.5 text-[12.5px] leading-snug text-[#64748B]">
                 {stayPeriodLabel ? <p>{stayPeriodLabel}</p> : null}
                 {tripSummary ? <p>{tripSummary}</p> : null}
               </div>
             ) : null}
           </div>
 
-          <div className="flex w-full shrink-0 flex-col border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[158px] md:justify-between md:border-l md:border-t-0 md:px-4 lg:w-[172px]">
+          <div className="flex w-full shrink-0 flex-col border-t border-[#EDE8E0] px-4 py-4 sm:px-5 md:w-[158px] md:border-l md:border-t-0 md:px-4 lg:w-[172px]">
             <div className="text-right">
               {offer.rating != null ? (
                 <p

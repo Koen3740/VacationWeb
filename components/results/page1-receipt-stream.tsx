@@ -1,3 +1,4 @@
+import { Page1ResultsCap } from '@/components/results/page1-results-cap';
 import { ResultsPagination } from '@/components/results/results-pagination';
 import { SyncPage1IdsToUrl } from '@/components/results/sync-page1-ids-to-url';
 import { TravelCard } from '@/components/results/travel-card';
@@ -37,60 +38,81 @@ async function OverlayTravelCard({
   );
 }
 
+function renderCatalogOfferSlot(
+  offer: TravelOffer,
+  overlay: CatalogPageLiveOverlay | undefined,
+  searchParams?: SearchParams,
+) {
+  if (!overlay || !overlay.pending) {
+    const settled = overlay?.catalog ?? offer;
+    // Non-provisional paint: only B. Catalog without proven live price is not a card.
+    if (!hasValidPresentablePrice(settled)) {
+      return null;
+    }
+    if (searchParams && !offerMatchesBudget(settled, searchParams)) {
+      return null;
+    }
+    return (
+      <TravelCard
+        offer={settled}
+        provisional={false}
+        searchParams={searchParams}
+      />
+    );
+  }
+
+  return (
+    <Suspense
+      fallback={
+        <TravelCard
+          offer={overlay.catalog}
+          provisional
+          searchParams={searchParams}
+        />
+      }
+    >
+      <OverlayTravelCard
+        catalog={overlay.catalog}
+        live={overlay.live}
+        searchParams={searchParams}
+      />
+    </Suspense>
+  );
+}
+
 export function Page1ResultsStream({
   catalogOffers,
+  candidateOffers,
+  displayLimit = RESULTS_PRODUCT_PAGE_SIZE,
   overlays,
   searchParams,
 }: {
   catalogOffers: TravelOffer[];
+  /** When set (page 1), reserve candidates may backfill failed primary slots. */
+  candidateOffers?: TravelOffer[];
+  displayLimit?: number;
   overlays: CatalogPageLiveOverlay[];
   searchParams?: SearchParams;
 }) {
   const overlayById = new Map(overlays.map((overlay) => [overlay.catalog.id, overlay]));
+  const renderOffers = candidateOffers ?? catalogOffers;
+  const useCap = Boolean(candidateOffers && candidateOffers.length > catalogOffers.length);
 
-  return (
-    <div className="space-y-3.5">
-      {catalogOffers.filter(isResultsListableOffer).map((offer) => {
-        const overlay = overlayById.get(offer.id);
-        if (!overlay || !overlay.pending) {
-          const settled = overlay?.catalog ?? offer;
-          // Non-provisional paint: only B. Catalog without proven live price is not a card.
-          if (!hasValidPresentablePrice(settled)) {
-            return null;
-          }
-          if (searchParams && !offerMatchesBudget(settled, searchParams)) {
-            return null;
-          }
-          return (
-            <TravelCard
-              key={offer.id}
-              offer={settled}
-              provisional={false}
-              searchParams={searchParams}
-            />
-          );
-        }
-        return (
-          <Suspense
-            key={offer.id}
-            fallback={
-              <TravelCard
-                offer={overlay.catalog}
-                provisional
-                searchParams={searchParams}
-              />
-            }
-          >
-            <OverlayTravelCard
-              catalog={overlay.catalog}
-              live={overlay.live}
-              searchParams={searchParams}
-            />
-          </Suspense>
-        );
-      })}
-    </div>
-  );
+  const slots = renderOffers.filter(isResultsListableOffer).map((offer) => {
+    const overlay = overlayById.get(offer.id);
+    const card = renderCatalogOfferSlot(offer, overlay, searchParams);
+    return (
+      <div key={offer.id} data-page1-slot>
+        {card}
+      </div>
+    );
+  });
+
+  if (useCap) {
+    return <Page1ResultsCap limit={displayLimit}>{slots}</Page1ResultsCap>;
+  }
+
+  return <div className="space-y-3.5">{slots}</div>;
 }
 
 export function Page1PaginationStream({
