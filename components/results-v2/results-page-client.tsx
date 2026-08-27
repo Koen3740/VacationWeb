@@ -56,11 +56,11 @@ export function ResultsPageClient({
         searchBar={<ResultsSearchBar departureAirports={departureAirports} />}
       />
 
-      <main className="mx-auto max-w-[1280px] px-6 pb-10 pt-10 lg:px-8 lg:pt-12">
+      <main className="mx-auto max-w-[1600px] px-6 pb-10 pt-10 lg:px-8 lg:pt-12">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[270px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
           {filters}
 
-          <section>
+          <section className="mx-auto min-w-0 w-full max-w-[904px]">
             <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <h2 className="text-[22px] font-bold tracking-tight text-[#0A2D62]">
