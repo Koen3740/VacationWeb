@@ -115,12 +115,16 @@ async function main() {
   const runtime = JSON.parse(catalogRaw) as StoredOffer[];
   const before = summarize(runtime);
 
-  const needsBackfill = runtime.filter((offer) => (offer.images?.length ?? 0) <= 1);
+  const candidates = runtime.filter(
+    (offer) =>
+      Boolean(offer.canonicalOfferIdentity?.trim())
+      && Boolean(detailProviderSlug(offer.provider)),
+  );
   console.log(
     JSON.stringify(
       {
         RESULTS_CARD_GALLERY_MAX,
-        needsBackfill: needsBackfill.length,
+        candidates: candidates.length,
         before,
       },
       null,
@@ -130,7 +134,7 @@ async function main() {
 
   const { details, fetched, missing, errors } = await loadGenerationDetailsForOffers(
     pointer,
-    needsBackfill,
+    candidates,
   );
   const enriched = attachResultsCardGalleriesFromDetails(runtime, details);
   const after = summarize(enriched);
@@ -161,7 +165,7 @@ async function main() {
   console.log(
     JSON.stringify(
       {
-        detailFetch: { fetched, missing, errors, candidates: needsBackfill.length },
+        detailFetch: { fetched, missing, errors, candidates: candidates.length },
         after,
         corendonChecks,
         write,

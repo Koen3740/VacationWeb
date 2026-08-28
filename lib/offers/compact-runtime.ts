@@ -5,10 +5,9 @@ import { collectFeedGalleryImages, collectOrderedOfferImages } from './offer-ima
 import { buildCompactSearchText } from '../search/offer-text';
 import type { TravelOffer } from '../../types/travel';
 
-/** Max photos kept on the Results runtime catalog for the card gallery.
- * Soft technical ceiling for catalog payload — not a product “show only 5” rule.
- * Detail sidecars may still hold larger galleries; Results uses whatever is on runtime. */
-export const RESULTS_CARD_GALLERY_MAX = 40;
+/** Max unique photos on the Results runtime catalog for TravelCardGallery.
+ * Detail sidecars keep the full gallery; only Results card metadata is capped here. */
+export const RESULTS_CARD_GALLERY_MAX = 10;
 
 /** Fields required only by offer-detail (and preserved in the sidecar). */
 export type OfferDetailRecord = {
@@ -176,7 +175,7 @@ export function splitStoredCatalog(offers: StoredOffer[]): {
     }
   }
 
-  // Guarantee Results card galleries (≤5) stay on runtime whenever the detail
+  // Guarantee Results card galleries stay on runtime whenever the detail
   // sidecar already holds a multi-image gallery (legacy/generation publish).
   return {
     runtime: attachResultsCardGalleriesFromDetails(runtime, details),

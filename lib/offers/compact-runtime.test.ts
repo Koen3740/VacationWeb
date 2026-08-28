@@ -333,12 +333,51 @@ test('selectResultsCardGalleryImages keeps ordered catalog photos up to RESULTS_
     { length: 50 },
     (_, index) => `https://example.com/${index + 1}.jpg`,
   );
-  assert.equal(RESULTS_CARD_GALLERY_MAX, 40);
-  assert.deepEqual(selectResultsCardGalleryImages({ images: urls }), urls.slice(0, 40));
+  assert.equal(RESULTS_CARD_GALLERY_MAX, 10);
+  assert.deepEqual(selectResultsCardGalleryImages({ images: urls }), urls.slice(0, 10));
   assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 10) }), urls.slice(0, 10));
+  assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 11) }), urls.slice(0, 10));
+  assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 20) }), urls.slice(0, 10));
+  assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 5) }), urls.slice(0, 5));
   assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 3) }), urls.slice(0, 3));
   assert.deepEqual(selectResultsCardGalleryImages({ images: urls.slice(0, 1) }), urls.slice(0, 1));
   assert.deepEqual(selectResultsCardGalleryImages({ images: [] }), []);
+});
+
+test('selectResultsCardGalleryImages collapses resolution duplicates before cap', () => {
+  const a1Large = 'https://images.corendonresources.com/L1E11446A1W1600H1066.jpg?v=1';
+  const a1Medium = 'https://images.corendonresources.com/L1E11446A1W1024H684.jpg?v=1';
+  const shots = Array.from(
+    { length: 12 },
+    (_, index) => `https://images.corendonresources.com/L1E11446A${index + 2}W1600H1066.jpg?v=${index}`,
+  );
+  const selected = selectResultsCardGalleryImages({
+    provider: 'Corendon',
+    images: [a1Large, a1Medium, ...shots],
+  });
+  assert.equal(selected.length, 10);
+  assert.equal(selected[0], a1Large);
+  assert.equal(selected.includes(a1Medium), false);
+});
+
+test('Results cap does not limit detail merge gallery', () => {
+  const detailUrls = Array.from(
+    { length: 57 },
+    (_, index) => `https://example.com/detail-${index + 1}.jpg`,
+  );
+  const runtime = compactStoredOffer(
+    makeStored({
+      externalId: 'gallery-split',
+      images: detailUrls.slice(0, 10),
+      imageUrl: detailUrls[0],
+      imageLarge: detailUrls[0],
+    }),
+  ).runtime;
+  assert.equal(runtime.images?.length, 10);
+
+  const merged = mergeOfferDetail(normalizeOffer(runtime), { images: detailUrls });
+  assert.equal(merged.images?.length, 57);
+  assert.deepEqual(collectOrderedOfferImages(merged), detailUrls);
 });
 
 test('attachResultsCardGalleriesFromDetails restores card galleries from sidecar', () => {
@@ -411,7 +450,7 @@ test('splitStoredCatalog keeps ≤RESULTS_CARD_GALLERY_MAX card images on runtim
     }),
   ]);
 
-  assert.equal(runtime[0].images?.length, 12);
+  assert.equal(runtime[0].images?.length, 10);
   assert.ok((details.multi?.images?.length ?? 0) >= 5);
   assert.equal(runtime[1].images, undefined);
   assert.equal(details.single?.images, undefined);

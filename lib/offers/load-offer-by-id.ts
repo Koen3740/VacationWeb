@@ -5,7 +5,11 @@ import {
   mergeOfferDetail,
   type OfferDetailRecord,
 } from '@/lib/offers/compact-runtime';
-import { loadOffers } from '@/lib/offers/load-offers';
+import {
+  loadRuntimeDataset,
+  readGenerationDetailObject,
+  resetRuntimeDatasetCacheForTests,
+} from '@/lib/offers/load-runtime-dataset';
 import { getStorageObject } from '@/lib/storage/object-storage-client';
 import type { TravelOffer } from '@/types/travel';
 
@@ -13,6 +17,7 @@ let cachedDetails: Record<string, OfferDetailRecord> | null = null;
 
 export function resetOfferDetailCacheForTests(): void {
   cachedDetails = null;
+  resetRuntimeDatasetCacheForTests();
 }
 
 function resolveLocalDetailsPath(): string {
@@ -33,10 +38,18 @@ function parseDetailMap(raw: string): Record<string, OfferDetailRecord> {
   return parsed as Record<string, OfferDetailRecord>;
 }
 
+function parseDetailRecord(raw: string, offerId: string): OfferDetailRecord {
+  const parsed: unknown = JSON.parse(raw);
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`Offer detail object for ${offerId} is not a JSON object`);
+  }
+  return parsed as OfferDetailRecord;
+}
+
 /**
- * Compact catalog omits long copy / extra gallery (sidecar ~300MB).
- * JSON.parse of that map after loadOffers exceeds Vercel's default 1024MB heap.
- * Local disk sidecar is still used; Vercel must not fetch the remote object.
+ * Legacy two-file sidecar loader. Not used for versioned generations.
+ * Compact catalog omits long copy / extra gallery. Local disk sidecar is used
+ * when present; Vercel must not fetch the remote mega-object.
  */
 export async function loadOfferDetailMap(): Promise<Record<string, OfferDetailRecord>> {
   if (cachedDetails !== null) {
@@ -68,23 +81,29 @@ export async function loadOfferDetailMap(): Promise<Record<string, OfferDetailRe
 }
 
 function offerAlreadyHasDetailFields(offer: TravelOffer): boolean {
+  // Runtime card galleries are capped for Results; never skip the detail sidecar merge
+  // just because `offer.images` already has multiple URLs.
   return Boolean(
     offer.descriptionLong?.trim()
     || offer.feedDescription?.trim()
-    || offer.accommodation?.trim()
-    || (offer.images && offer.images.length > 1),
+    || offer.accommodation?.trim(),
   );
 }
 
 export async function loadOfferById(offerId: string): Promise<TravelOffer | undefined> {
-  const offers = await loadOffers();
-  const offer = offers.find((item) => item.id === offerId);
+  const dataset = await loadRuntimeDataset();
+  const offer = dataset.offers.find((item) => item.id === offerId);
   if (!offer) {
     return undefined;
   }
 
   if (offerAlreadyHasDetailFields(offer)) {
     return offer;
+  }
+
+  if (dataset.mode === 'generation') {
+    const raw = await readGenerationDetailObject(dataset, offer);
+    return mergeOfferDetail(offer, parseDetailRecord(raw, offerId));
   }
 
   const details = await loadOfferDetailMap();
