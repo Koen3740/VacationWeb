@@ -599,10 +599,10 @@ test('O. initial page-1 path does not await the full matchset; source keeps that
   assert.ok(!/await\s+priceLiveRequiredMatchset/.test(pricing));
   assert.ok(prepare.includes('isPriceDependentSort'));
   assert.ok(prepare.includes('rankCatalogOffers'));
-  assert.ok(prepare.includes('limitRankedResultsForPagination'));
+  assert.ok(prepare.includes('limitLivePricingCandidatePool'));
   assert.ok(prepare.includes('scheduleResultsMatchsetLivePricing'));
-  assert.ok(prepare.includes('priceLiveRequiredMatchset(pool'));
-  assert.ok(!prepare.includes('await priceLiveRequiredMatchset(pool'));
+  assert.ok(prepare.includes('priceLiveRequiredMatchset(liveWindow'));
+  assert.ok(!prepare.includes('await priceLiveRequiredMatchset(liveWindow'));
   assert.ok(prepare.includes('priceLiveRequiredMatchset(ranked'));
   assert.ok(!prepare.includes('await priceLiveRequiredMatchset(ranked'));
   assert.ok(prepare.includes('rankLivePricedCandidatePool'));

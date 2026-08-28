@@ -16,9 +16,20 @@ type ResultsPageClientProps = {
   filters: ReactNode;
   results: ReactNode;
   pagination: ReactNode;
+  /** When the matchset exceeds the product limit, hide counts and use refinement copy. */
+  refinementRequired?: boolean;
 };
 
-function buildHeroTitle(resultCount: number, summaryLine: string): string {
+const REFINEMENT_HEADING = 'Maak je zoekopdracht iets specifieker';
+
+function buildHeroTitle(
+  resultCount: number,
+  summaryLine: string,
+  refinementRequired?: boolean,
+): string {
+  if (refinementRequired) {
+    return REFINEMENT_HEADING;
+  }
   const first = summaryLine.split(' • ')[0]?.trim() ?? '';
   const looksLikeDestination =
     first.length > 0 && !/\d/.test(first) && !/volwassene/i.test(first);
@@ -42,8 +53,9 @@ export function ResultsPageClient({
   filters,
   results,
   pagination,
+  refinementRequired = false,
 }: ResultsPageClientProps) {
-  const heroTitle = buildHeroTitle(resultCount, summaryLine);
+  const heroTitle = buildHeroTitle(resultCount, summaryLine, refinementRequired);
 
   return (
     <div className="min-h-screen bg-[#F3F5F8] text-slate-900">
@@ -64,7 +76,9 @@ export function ResultsPageClient({
             <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <h2 className="text-[22px] font-bold tracking-tight text-[#0A2D62]">
-                  {resultCount} vakanties gevonden
+                  {refinementRequired
+                    ? REFINEMENT_HEADING
+                    : `${resultCount} vakanties gevonden`}
                 </h2>
                 {summaryLine ? (
                   <p className="mt-1.5 text-[13px] text-[#64748B]">{summaryLine}</p>

@@ -114,10 +114,9 @@ export type Page1ReceiptPricingOptions = {
   matchsetConcurrency?: number;
   stats?: Page1ReceiptPricingStats;
   /**
-   * Already-ranked user-pagination pool. Defaults to the first 150 of sortedOffers.
-   * Page-1 live pricing examines selected slots plus enough following
-   * live-selectable candidates to fill the page. It does not price the
-   * full ranked matchset.
+   * Optional live-pricing / page-1 backfill candidate pool.
+   * Defaults to the technical live-pricing window (not a user-browse cap).
+   * Pass the full ranked matchset when paginationTotal must reflect all results.
    */
   paginationPool?: TravelOffer[];
   userPaginationCap?: number;
@@ -134,7 +133,7 @@ export type Page1PresentedSlice = {
   page1Ids: string[];
   /** Non-PV backfill appended after failed PV slots were compacted — not in the original slots. */
   trailingOffers: TravelOffer[];
-  /** Visible offers in the user-pagination pool (≤150). Presentable live price or occupancy-unpriced. Not the raw match count. */
+  /** Visible offers in the pagination pool / user set after listability. Not the live-pricing window size. */
   paginationTotal: number;
 };
 

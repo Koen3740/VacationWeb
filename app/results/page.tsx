@@ -1,5 +1,6 @@
 import { FilterSidebar } from '@/components/results/filter-sidebar';
 import { NoResults } from '@/components/results/no-results';
+import { ResultsRefinementRequired } from '@/components/results/results-refinement-required';
 import { ResultsPagination } from '@/components/results/results-pagination';
 import { SortSelector } from '@/components/results/sort-selector';
 import { ResultsPageClient } from '@/components/results-v2/results-page-client';
@@ -34,8 +35,8 @@ import {
 import { excludeParkedResultsProviders } from '@/lib/search/presentable-price';
 import { isPriceDependentSort, prepareResultsOffers } from '@/lib/search/prepare-results-offers';
 import { PriceSortResultsStream } from '@/components/results/price-sort-live-stream';
-import { limitRankedResultsForPagination } from '@/lib/search/pagination';
 import { parseSearchParams } from '@/lib/search/parse-search-params';
+import { evaluateResultsResultsetLimit } from '@/lib/search/results-resultset-limit';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
 import { attachSiteMarket } from '@/lib/search/site-market';
 import { SearchParams } from '@/types/travel';
@@ -116,20 +117,14 @@ export default async function ResultsPage({
   };
   const countryCounts = filterOptions.countryCounts ?? {};
   const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? offers.length);
-  const prepared = await prepareResultsOffers(offers, filteringParams);
-  const filtered = prepared.offers;
-  const userPool = limitRankedResultsForPagination(filtered);
-  // Count matches pagination pool: presentable first, pending listable, excludes settled A/C.
-  const orderedPool = orderCatalogPageCandidates(userPool, filteringParams);
-  const matchCount = orderedPool.length;
-  const carRentalCount = countCarRentalFacet(filtered, filteringParams);
+  const resultsetLimit = evaluateResultsResultsetLimit(offers, filteringParams);
   const pageSize = RESULTS_PRODUCT_PAGE_SIZE;
   const page = params.page ?? 1;
   const isPage1 = !Number.isFinite(page) || Math.floor(page) <= 1;
+  const carRentalCount = countCarRentalFacet(resultsetLimit.ranked, filteringParams);
 
   const pageShell = {
     departureAirports: filterOptions.departureAirports,
-    resultCount: matchCount,
     summaryLine: buildSummaryLine(params),
     sortControl: <SortSelector currentSort={params.sort && params.sort !== 'value' ? params.sort : ''} />,
     filters: (
@@ -144,11 +139,31 @@ export default async function ResultsPage({
     ),
   };
 
+  if (resultsetLimit.overLimit) {
+    return (
+      <ResultsPageClient
+        {...pageShell}
+        resultCount={0}
+        refinementRequired
+        results={<ResultsRefinementRequired />}
+        pagination={null}
+      />
+    );
+  }
+
+  const prepared = await prepareResultsOffers(offers, filteringParams);
+  // Full filtered+ranked matchset is the user result set — never slice(0, 150) for browse/count.
+  const filtered = prepared.offers;
+  // Count matches listable user set: presentable first, pending listable, excludes settled A/C.
+  const orderedPool = orderCatalogPageCandidates(filtered, filteringParams);
+  const matchCount = orderedPool.length;
+
   if (isPriceDependentSort(params.sort)) {
     if (filtered.length === 0) {
       return (
         <ResultsPageClient
           {...pageShell}
+          resultCount={matchCount}
           results={<NoResults />}
           pagination={
             <ResultsPagination
@@ -163,6 +178,7 @@ export default async function ResultsPage({
     return (
       <ResultsPageClient
         {...pageShell}
+        resultCount={matchCount}
         results={
           <PriceSortResultsStream
             provisionalOffers={prepared.offers}
@@ -184,6 +200,7 @@ export default async function ResultsPage({
     return (
       <ResultsPageClient
         {...pageShell}
+        resultCount={matchCount}
         results={<NoResults />}
         pagination={
           <ResultsPagination
@@ -196,7 +213,7 @@ export default async function ResultsPage({
   }
 
   const catalogPage = sliceRankedCatalogResultsPage(
-    userPool,
+    filtered,
     isPage1 ? 1 : page,
     pageSize,
     filteringParams,
@@ -209,6 +226,7 @@ export default async function ResultsPage({
   return (
     <ResultsPageClient
       {...pageShell}
+      resultCount={matchCount}
       results={
         catalogPage.offers.length > 0 ? (
           <Page1ResultsStream

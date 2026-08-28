@@ -121,7 +121,8 @@ export function evaluateWp7RuntimeFlow(
 
   const filtered = filterOffers(offers, params);
   const ranked = sortOffers(filtered, params.sort);
-  const userPool = limitRankedResultsForPagination(ranked);
+  const userPool = ranked;
+  const livePricingWindow = limitRankedResultsForPagination(ranked);
   const page1 = paginateResults(userPool, 1, RESULTS_PAGE_SIZE_DEFAULT);
   const page1Presentable = page1.filter(hasValidPresentablePrice);
   const page1PresentableByProvider = countByProvider(page1Presentable);
@@ -131,8 +132,8 @@ export function evaluateWp7RuntimeFlow(
   if (page1.length > RESULTS_PAGE_SIZE_DEFAULT) {
     failures.push(`page 1 longer than product page size (${page1.length})`);
   }
-  if (userPool.length > RESULTS_USER_PAGINATION_CAP) {
-    failures.push(`user pool exceeds 150 (${userPool.length})`);
+  if (livePricingWindow.length > RESULTS_USER_PAGINATION_CAP) {
+    failures.push(`live-pricing window exceeds ${RESULTS_USER_PAGINATION_CAP} (${livePricingWindow.length})`);
   }
 
   const samples: Wp7Sample[] = pickFlowSamples(ranked).map((offer) => {

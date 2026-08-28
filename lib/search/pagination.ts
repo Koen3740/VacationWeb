@@ -6,20 +6,48 @@ export const RESULTS_PAGE_SIZE_DEFAULT = 10;
 export const RESULTS_PAGE_SIZE_MIN = 1;
 export const RESULTS_PAGE_SIZE_MAX = 100;
 /**
- * User-pagination pool after filter+sort. Not a cap on matches, ranking, or live pricing.
- * At pageSize 10 this is at most 15 pages.
+ * Technical live-pricing / price-sort await window after filter+sort.
+ * Never a user-browse, matchCount, or paginationTotal cap.
  */
-export const RESULTS_USER_PAGINATION_CAP = 150;
+export const RESULTS_LIVE_PRICING_CANDIDATE_CAP = 150;
 
-/** First `cap` offers of an already-ranked matchset. Never apply before sortOffers(). */
-export function limitRankedResultsForPagination<T>(
+/** Product limit for the user-facing Results result set after filter + rank. Not live-pricing. */
+export const RESULTS_USER_RESULTSET_MAX = 1000;
+
+/**
+ * @deprecated Alias of {@link RESULTS_LIVE_PRICING_CANDIDATE_CAP}.
+ * Not a user-resultset / browse limit.
+ */
+export const RESULTS_USER_PAGINATION_CAP = RESULTS_LIVE_PRICING_CANDIDATE_CAP;
+
+/** True when the ranked matchset exceeds the product user-resultset limit. */
+export function isResultsResultsetOverLimit(
+  matchCount: number,
+  max: number = RESULTS_USER_RESULTSET_MAX,
+): boolean {
+  return matchCount > max;
+}
+
+/**
+ * First `cap` offers of an already-ranked matchset for live-pricing work only.
+ * Never use this to shrink the user-facing result set, matchCount, or paginationTotal.
+ */
+export function limitLivePricingCandidatePool<T>(
   rankedOffers: readonly T[],
-  cap: number = RESULTS_USER_PAGINATION_CAP,
+  cap: number = RESULTS_LIVE_PRICING_CANDIDATE_CAP,
 ): T[] {
   if (cap <= 0) {
     return [];
   }
   return rankedOffers.slice(0, cap);
+}
+
+/** @deprecated Use {@link limitLivePricingCandidatePool}. Live-pricing window only. */
+export function limitRankedResultsForPagination<T>(
+  rankedOffers: readonly T[],
+  cap: number = RESULTS_LIVE_PRICING_CANDIDATE_CAP,
+): T[] {
+  return limitLivePricingCandidatePool(rankedOffers, cap);
 }
 
 function parsePositiveInteger(

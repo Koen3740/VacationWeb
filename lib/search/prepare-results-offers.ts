@@ -2,7 +2,10 @@ import type { FetchLike } from '../providers/prijsvrij/auth';
 import { priceLiveRequiredMatchset, stampUnpricedWhenLiveOccupancyUnsupported } from '../providers/prijsvrij/page1-receipt-pricing';
 import type { SearchParams, TravelOffer } from '../../types/travel';
 import { filterOffers, offerMatchesBudget, sortOffers } from './filtering';
-import { limitRankedResultsForPagination, paginateResults } from './pagination';
+import {
+  limitLivePricingCandidatePool,
+  paginateResults,
+} from './pagination';
 import { requiresSunwebResultsLivePrice } from '../providers/sunweb';
 import {
   CORENDON_PROVIDER_NAME,
@@ -71,14 +74,18 @@ export function offerNeedsLivePriceWork(offer: TravelOffer, params: SearchParams
 }
 
 function assemblePriceSortRanking(
-  pool: TravelOffer[],
+  liveWindow: TravelOffer[],
   tail: TravelOffer[],
   params: SearchParams,
 ): TravelOffer[] {
-  return rankLivePricedCandidatePool([...pool, ...tail], params);
+  // Live refine applies to the technical window only; tail stays in the user set.
+  return [...rankLivePricedCandidatePool(liveWindow, params), ...tail];
 }
 
-/** Visible page of the max-150 price-sort pool. Not Package-1 diversity selection. */
+/**
+ * Paginate the full ranked user result set.
+ * Live-pricing candidate windows must not shrink paginationTotal.
+ */
 export function slicePriceSortPoolPage(
   ranked: readonly TravelOffer[],
   page: number,
@@ -89,12 +96,11 @@ export function slicePriceSortPoolPage(
   page1Ids: string[];
   paginationTotal: number;
 } {
-  const pool = limitRankedResultsForPagination(ranked as TravelOffer[]);
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
   return {
-    visibleOffers: paginateResults(pool, safePage, pageSize),
-    page1Ids: paginateResults(pool, 1, pageSize).map((offer) => offer.id),
-    paginationTotal: pool.length,
+    visibleOffers: paginateResults(ranked as TravelOffer[], safePage, pageSize),
+    page1Ids: paginateResults(ranked as TravelOffer[], 1, pageSize).map((offer) => offer.id),
+    paginationTotal: ranked.length,
   };
 }
 
@@ -106,13 +112,10 @@ export function slicePriceSortPoolPage(
  * (`startCatalogPageLiveOverlays`) still give the current page priority and
  * join the same cache / in-flight maps.
  *
- * Price-dependent sorts: from the CURRENT catalog-filtered matchset, take the
- * maximum-150 candidate pool and return that catalog ranking immediately.
- * Live pricing of that pool continues on the same request; `exactOffers`
- * resolves to the exact live ranking when every pool candidate has a terminal
- * live result. A previous request's 150 is not the next filter's universe.
- * That 150-pool is a price-sort await path; Recommended uses the full filtered
- * matchset as the background coverage set.
+ * Price-dependent sorts: catalog-rank the FULL matchset (user result set).
+ * Await live prices only for a technical candidate window; that window must
+ * never become the browse/pagination universe. OPEN: true global live-price
+ * ordering over thousands of offers without sync-awaiting all of them.
  */
 export async function prepareResultsOffers(
   offers: readonly TravelOffer[],
@@ -123,12 +126,12 @@ export async function prepareResultsOffers(
 
   if (isPriceDependentSort(params.sort)) {
     const catalogRanked = rankCatalogOffers(offers, params);
-    const pool = limitRankedResultsForPagination(catalogRanked);
-    const tail = catalogRanked.slice(pool.length);
-    const pending = pool.some((offer) => offerNeedsLivePriceWork(offer, params));
+    const liveWindow = limitLivePricingCandidatePool(catalogRanked);
+    const tail = catalogRanked.slice(liveWindow.length);
+    const pending = liveWindow.some((offer) => offerNeedsLivePriceWork(offer, params));
 
     if (!pending) {
-      const exact = assemblePriceSortRanking(pool, tail, params);
+      const exact = assemblePriceSortRanking(liveWindow, tail, params);
       return {
         offers: exact,
         exactOffers: Promise.resolve(exact),
@@ -137,13 +140,13 @@ export async function prepareResultsOffers(
     }
 
     const liveWork =
-      pool.length > 0
-        ? priceLiveRequiredMatchset(pool, params, { fetchImpl: options.fetchImpl })
-        : Promise.resolve(pool);
+      liveWindow.length > 0
+        ? priceLiveRequiredMatchset(liveWindow, params, { fetchImpl: options.fetchImpl })
+        : Promise.resolve(liveWindow);
     scheduleResultsMatchsetLivePricing(liveWork);
-    const exactOffers = liveWork.then(() => assemblePriceSortRanking(pool, tail, params));
+    const exactOffers = liveWork.then(() => assemblePriceSortRanking(liveWindow, tail, params));
     return {
-      offers: [...pool, ...tail],
+      offers: [...liveWindow, ...tail],
       exactOffers,
       priceSortPending: true,
     };

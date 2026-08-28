@@ -56,61 +56,52 @@ test('K. pagination slices ignore hasCarRental', () => {
   );
 });
 
-test('A. 921 matches: ranking stays complete; user pagination is 150 / 15 pages', () => {
+test('A. 921 matches: full user result set; live-pricing window separately capped', () => {
   const matchset = ranked921();
   const ranked = sortOffers(matchset, 'price');
   assert.equal(ranked.length, 921);
-  const userPool = limitRankedResultsForPagination(ranked);
-  assert.equal(userPool.length, RESULTS_USER_PAGINATION_CAP);
-  assert.equal(getResultsTotalPages(userPool.length, RESULTS_PAGE_SIZE_DEFAULT), 15);
-  assert.equal(paginateResults(userPool, 16, RESULTS_PAGE_SIZE_DEFAULT).length, 0);
+  const liveWindow = limitRankedResultsForPagination(ranked);
+  assert.equal(liveWindow.length, RESULTS_USER_PAGINATION_CAP);
+  assert.equal(getResultsTotalPages(ranked.length, RESULTS_PAGE_SIZE_DEFAULT), 93);
+  assert.equal(paginateResults(ranked, 16, RESULTS_PAGE_SIZE_DEFAULT).length, 10);
+  assert.equal(paginateResults(liveWindow, 16, RESULTS_PAGE_SIZE_DEFAULT).length, 0);
 });
 
-test('B. price low→high: top 150 come from the full 921', () => {
+test('B. price low→high: live window is catalog top 150; user set keeps #920', () => {
   const ranked = sortOffers(ranked921(), 'price');
-  const userPool = limitRankedResultsForPagination(ranked);
-  assert.equal(userPool[0].id, 'offer-0');
-  assert.equal(userPool[149].id, 'offer-149');
-  assert.ok(!userPool.some((offer) => offer.id === 'offer-920'));
+  const liveWindow = limitRankedResultsForPagination(ranked);
+  assert.equal(liveWindow[0].id, 'offer-0');
+  assert.equal(liveWindow[149].id, 'offer-149');
+  assert.ok(!liveWindow.some((offer) => offer.id === 'offer-920'));
   assert.equal(ranked[920].id, 'offer-920');
+  assert.ok(ranked.some((offer) => offer.id === 'offer-920'));
 });
 
-test('C. price high→low: top 150 come from the full 921', () => {
+test('C. price high→low: live window is catalog top 150; user set keeps cheapest', () => {
   const ranked = sortOffers(ranked921(), 'price-desc');
-  const userPool = limitRankedResultsForPagination(ranked);
-  assert.equal(userPool[0].id, 'offer-920');
-  assert.equal(userPool[149].id, 'offer-771');
-  assert.ok(!userPool.some((offer) => offer.id === 'offer-0'));
+  const liveWindow = limitRankedResultsForPagination(ranked);
+  assert.equal(liveWindow[0].id, 'offer-920');
+  assert.equal(liveWindow[149].id, 'offer-771');
+  assert.ok(!liveWindow.some((offer) => offer.id === 'offer-0'));
   assert.equal(ranked[920].id, 'offer-0');
 });
 
-test('D. stars: top 150 after existing ranking of all 921', () => {
+test('D. stars: live window takes top 150 after full ranking', () => {
   const ranked = sortOffers(ranked921(), 'stars');
   assert.equal(ranked.length, 921);
-  const userPool = limitRankedResultsForPagination(ranked);
-  assert.equal(userPool.length, 150);
-  assert.ok(userPool.every((offer) => (offer.stars ?? 0) === 5));
+  const liveWindow = limitRankedResultsForPagination(ranked);
+  assert.equal(liveWindow.length, 150);
+  assert.ok(liveWindow.every((offer) => (offer.stars ?? 0) === 5));
   assert.ok(ranked.slice(150).some((offer) => (offer.stars ?? 0) < 5));
 });
 
-test('M. page 16 does not exist; 150-cap is after sort', () => {
+test('M. page 16 exists for full user set; live window alone stops at 15 pages', () => {
   const ranked = sortOffers(ranked921(), 'price');
-  const userPool = limitRankedResultsForPagination(ranked);
-  assert.equal(getResultsTotalPages(921, 10), 93, 'raw match count must not be used as pagination');
-  assert.equal(getResultsTotalPages(userPool.length, 10), 15);
-  assert.deepEqual(paginateResults(userPool, 15, 10).map((offer) => offer.id), [
-    'offer-140',
-    'offer-141',
-    'offer-142',
-    'offer-143',
-    'offer-144',
-    'offer-145',
-    'offer-146',
-    'offer-147',
-    'offer-148',
-    'offer-149',
-  ]);
-  assert.deepEqual(paginateResults(userPool, 16, 10), []);
+  const liveWindow = limitRankedResultsForPagination(ranked);
+  assert.equal(getResultsTotalPages(ranked.length, 10), 93);
+  assert.equal(getResultsTotalPages(liveWindow.length, 10), 15);
+  assert.equal(paginateResults(ranked, 16, 10).length, 10);
+  assert.deepEqual(paginateResults(liveWindow, 16, 10), []);
 });
 
 test('offer detail href keeps occupancy and dates from Results params', () => {

@@ -13,6 +13,7 @@ import { sortOffers } from './filtering';
 import {
   buildOfferDetailHref,
   buildResultsPageHref,
+  getResultsTotalPages,
   limitRankedResultsForPagination,
   RESULTS_PAGE_SIZE_DEFAULT,
   RESULTS_USER_PAGINATION_CAP,
@@ -228,11 +229,12 @@ test('affiliate href stays the stored deepLink', () => {
   assert.equal(affiliateHref(offer), 'https://www.sunweb.nl/hotel-don-pancho?foo=1');
 });
 
-test('product page size is 10 and user pool cap is 150', () => {
+test('product page size is 10; live-pricing window is 150 (not a user browse cap)', () => {
   assert.equal(RESULTS_PAGE_SIZE_DEFAULT, 10);
   assert.equal(RESULTS_USER_PAGINATION_CAP, 150);
-  const pool = limitRankedResultsForPagination(Array.from({ length: 400 }, (_, i) => i));
-  assert.equal(pool.length, 150);
+  const liveWindow = limitRankedResultsForPagination(Array.from({ length: 400 }, (_, i) => i));
+  assert.equal(liveWindow.length, 150);
+  assert.equal(getResultsTotalPages(400, RESULTS_PAGE_SIZE_DEFAULT), 40);
 });
 
 test('Sunweb catalog is not presentable; Corendon/Eliza/Prijsvrij catalog is not', () => {
