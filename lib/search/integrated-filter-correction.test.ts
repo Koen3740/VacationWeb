@@ -50,7 +50,7 @@ function makeOffer(
   };
 }
 
-const visibleFourTypes = ['Hotel', 'Appartement', 'Aparthotel', 'Villa'] as const;
+const visibleCoreTypes = ['Hotel', 'Appartement', 'Aparthotel', 'Villa'] as const;
 
 test('accommodation: [] = no restriction', () => {
   const offers = [
@@ -85,8 +85,8 @@ test('accommodation: all visible canonical types = equivalent to no type filter'
   ];
   const none = filterOffers(offers, {});
   const effective = effectiveAccommodationTypesForFilter(
-    [...visibleFourTypes],
-    [...visibleFourTypes],
+    [...visibleCoreTypes],
+    [...visibleCoreTypes],
   );
   assert.equal(effective.length, 0);
   const allVisible = filterOffers(offers, {
@@ -250,7 +250,7 @@ test('amenities combine with AND across selected values', () => {
   assert.equal(offerMatchesAnyAmenity(offer, ['pool_outdoor', 'wifi']), false);
 });
 
-test('accommodation: all five canonical types selected clears effective filter', () => {
+test('accommodation: all canonical types selected clears effective filter', () => {
   assert.equal(
     effectiveAccommodationTypesForFilter([...ACCOMMODATION_TYPE_FILTER_VALUES]).length,
     0,

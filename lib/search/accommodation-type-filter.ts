@@ -1,13 +1,15 @@
-/**
- * High-volume accommodation types shown in Verblijf filter.
- * Camping / Vakantiepark / Bungalow omitted: combined ~0.83% and Prijsvrij-only.
- */
+/** Official VacationWeb accommodation types (provider terminology, no cross-type merging). */
 export const ACCOMMODATION_TYPE_FILTER_VALUES = [
-  'Hotel',
+  'Villa',
+  'Vakantiewoning',
+  'Bungalow',
   'Appartement',
   'Aparthotel',
+  'Hotel',
+  'Camping',
+  'Vakantiepark',
   'Resort',
-  'Villa',
+  'Hostel',
 ] as const;
 
 export type AccommodationTypeFilter = (typeof ACCOMMODATION_TYPE_FILTER_VALUES)[number];
