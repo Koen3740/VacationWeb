@@ -1,4 +1,5 @@
 import type { FetchLike } from '../prijsvrij/auth';
+import { resolveSunwebFetchImpl } from '../../http/sunweb-keepalive-agent';
 import { SUNWEB_GROUPED_PRICES_PATH, SUNWEB_LIVE_TIMEOUT_MS } from './constants';
 import type { SunwebLiveContext } from './offer-context';
 
@@ -172,7 +173,7 @@ export async function fetchSunwebExactTripAvailability(
     return { ok: false, reason: 'unavailable_trip' };
   }
 
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = resolveSunwebFetchImpl(options.fetchImpl);
   try {
     const response = await fetchImpl(buildSunwebGroupedAvailabilityUrl(ctx, guids), {
       method: 'GET',

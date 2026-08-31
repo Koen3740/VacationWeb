@@ -4,6 +4,7 @@ import { normalizeOffer } from '../feeds/canonical/normalize-offer';
 import { mergeEnabledProviderCatalog } from '../feeds/importers/merge-provider-catalog';
 import { FEED_PATHS } from '../feeds/feed-paths';
 import type { StoredOffer } from '../feeds/types/stored-offer';
+import { assertCanonicalIdentitiesAssignable } from './canonical-offer-identity';
 import { splitStoredCatalog } from './compact-runtime';
 import { deriveFilterOptions } from './derive-filter-options';
 import {
@@ -52,8 +53,9 @@ export function publishLocalRuntimeCatalog(offers: StoredOffer[]): PublishedRunt
     throw new Error('Refusing to publish a runtime catalog without VacationWeb flight packages');
   }
 
-  const filterOptions = deriveFilterOptions(catalogOffers.map(normalizeOffer));
-  const { runtime, details } = splitStoredCatalog(catalogOffers);
+  const identified = assertCanonicalIdentitiesAssignable(catalogOffers);
+  const filterOptions = deriveFilterOptions(identified.map(normalizeOffer));
+  const { runtime, details } = splitStoredCatalog(identified);
 
   writeJsonAtomic(FEED_PATHS.offers, runtime, false);
   writeJsonAtomic(FEED_PATHS.offerDetails, details, false);

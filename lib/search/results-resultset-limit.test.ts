@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   getResultsTotalPages,
   limitLivePricingCandidatePool,
   paginateResults,
   RESULTS_LIVE_PRICING_CANDIDATE_CAP,
   RESULTS_PAGE_SIZE_DEFAULT,
-  RESULTS_USER_RESULTSET_MAX,
 } from '@/lib/search/pagination';
+import { filterOffers } from '@/lib/search/filtering';
 import {
   prepareResultsOffers,
   rankCatalogOffers,
@@ -16,6 +18,7 @@ import {
 import {
   evaluateResultsResultsetLimit,
   rankResultsMatchsetForLimit,
+  resolveFilteringParamsForEarlyLimit,
 } from '@/lib/search/results-resultset-limit';
 import { orderCatalogPageCandidates } from '@/lib/search/results-catalog-page';
 import type { TravelOffer } from '@/types/travel';
@@ -57,102 +60,171 @@ function catalogOf(count: number): TravelOffer[] {
   });
 }
 
-test('9000 matches → refinement state, not a 150-result user set', () => {
+test('1. 9000 matches → no product cap; full count; not overLimit', () => {
   const catalog = catalogOf(9000);
   const evaluation = evaluateResultsResultsetLimit(catalog, { adults: 2 });
+  assert.equal(evaluation.overLimit, false);
+  assert.equal(evaluation.stoppedEarly, false);
   assert.equal(evaluation.matchCount, 9000);
-  assert.equal(evaluation.overLimit, true);
-  assert.notEqual(evaluation.matchCount, RESULTS_LIVE_PRICING_CANDIDATE_CAP);
+  assert.equal(evaluation.scannedOffers, 9000);
 });
 
-test('1001 matches → refinement state', () => {
+test('2. 1001 matches → normal Results path (not refinement)', () => {
   const evaluation = evaluateResultsResultsetLimit(catalogOf(1001), { adults: 2 });
   assert.equal(evaluation.matchCount, 1001);
-  assert.equal(evaluation.overLimit, true);
+  assert.equal(evaluation.overLimit, false);
 });
 
-test('1000 matches → normal Results flow (not over limit)', () => {
+test('3. exact 1000 → normal Results flow', () => {
   const evaluation = evaluateResultsResultsetLimit(catalogOf(1000), { adults: 2 });
-  assert.equal(evaluation.matchCount, RESULTS_USER_RESULTSET_MAX);
+  assert.equal(evaluation.matchCount, 1000);
   assert.equal(evaluation.overLimit, false);
 });
 
-test('999 matches → normal Results flow', () => {
-  const evaluation = evaluateResultsResultsetLimit(catalogOf(999), { adults: 2 });
-  assert.equal(evaluation.matchCount, 999);
-  assert.equal(evaluation.overLimit, false);
+test('4. Results page has no overLimit early-return / refinement gate', () => {
+  const pageSource = readFileSync(join(process.cwd(), 'app/results/page.tsx'), 'utf8');
+  assert.equal(pageSource.includes('resultsetLimit.overLimit'), false);
+  assert.equal(pageSource.includes('ResultsRefinementRequired'), false);
+  assert.equal(pageSource.includes('refinementRequired'), false);
+  assert.ok(pageSource.includes('await prepareResultsOffers'));
 });
 
-test('limit check uses full filter+rank before cap; price sort included', () => {
-  const catalog = catalogOf(1500);
-  const ranked = rankResultsMatchsetForLimit(catalog, { adults: 2, sort: 'price' });
-  assert.equal(ranked.length, 1500);
-  assert.equal(rankCatalogOffers(catalog, { adults: 2, sort: 'price' }).length, 1500);
-});
-
-test('9000-match refinement path must not trigger thousands of live-pricing HTTP calls', async () => {
-  const catalog = catalogOf(9000);
-  const evaluation = evaluateResultsResultsetLimit(catalog, { adults: 2, sort: 'price' });
-  assert.equal(evaluation.overLimit, true);
-
-  const http = { posts: 0, urls: [] as string[] };
-  const fetchImpl = (async () => {
-    http.posts += 1;
-    return new Response('{}', { status: 204 });
-  }) as typeof fetch;
-
-  if (!evaluation.overLimit) {
-    await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, { fetchImpl });
-  }
-
-  assert.equal(http.posts, 0, 'over-limit searches must skip prepareResultsOffers live pricing');
-});
-
-test('999 matches: pagination not capped at 150; live window stays separate', async () => {
-  const catalog = catalogOf(999);
-  const evaluation = evaluateResultsResultsetLimit(catalog, { adults: 2 });
-  assert.equal(evaluation.overLimit, false);
-
+test('5. pagination works for resultsets well above 1000', async () => {
+  const catalog = catalogOf(2500);
   const prepared = await prepareResultsOffers(catalog, { adults: 2 });
-  assert.equal(prepared.offers.length, 999);
-  assert.ok(prepared.offers.length > RESULTS_LIVE_PRICING_CANDIDATE_CAP);
+  assert.equal(prepared.offers.length, 2500);
 
-  const page = slicePriceSortPoolPage(prepared.offers, 1, RESULTS_PAGE_SIZE_DEFAULT, {
+  const page1 = slicePriceSortPoolPage(prepared.offers, 1, RESULTS_PAGE_SIZE_DEFAULT, {
     provisional: false,
     params: { adults: 2 },
   });
-  assert.equal(page.paginationTotal, 999);
-  assert.notEqual(page.paginationTotal, RESULTS_LIVE_PRICING_CANDIDATE_CAP);
-  assert.equal(getResultsTotalPages(page.paginationTotal, 10), 100);
+  assert.equal(page1.paginationTotal, 2500);
+  assert.equal(page1.visibleOffers.length, 10);
+  assert.equal(getResultsTotalPages(page1.paginationTotal, 10), 250);
+
+  const lastPage = paginateResults(prepared.offers, 250, 10);
+  assert.equal(lastPage.length, 10);
+  assert.equal(lastPage[0]?.id, prepared.offers[2490]?.id);
+
+  const deepPage = paginateResults(prepared.offers, 101, 10);
+  assert.equal(deepPage.length, 10);
+  assert.ok(deepPage.every((offer) => Boolean(offer.id)));
 });
 
-test('1000 matches: normal pagination total equals full ranked set', async () => {
-  const catalog = catalogOf(1000);
-  const prepared = await prepareResultsOffers(catalog, { adults: 2 });
-  assert.equal(prepared.offers.length, 1000);
-  const ordered = orderCatalogPageCandidates(prepared.offers, { adults: 2 });
-  assert.ok(ordered.length > RESULTS_LIVE_PRICING_CANDIDATE_CAP);
-  assert.equal(paginateResults(prepared.offers, 16, 10).length, 10);
+test('6. count path matches filterOffers for large filtered sets', () => {
+  const catalog = [
+    ...Array.from({ length: 1400 }, (_, index) =>
+      makeOffer({
+        id: `es-8-${index}`,
+        provider: 'Corendon',
+        price: 300 + (index % 100),
+        destinationCountry: 'Spanje',
+        departureDate: '2026-09-15',
+        nights: 8,
+      }),
+    ),
+    ...Array.from({ length: 600 }, (_, index) =>
+      makeOffer({
+        id: `gr-7-${index}`,
+        provider: 'Sunweb',
+        price: 400 + (index % 100),
+        destinationCountry: 'Griekenland',
+        departureDate: '2026-09-15',
+        nights: 7,
+      }),
+    ),
+  ];
+  const params = {
+    adults: 2,
+    countries: ['Spanje'],
+    departureStart: '2026-09-01',
+    departureEnd: '2026-09-30',
+    nights: [8],
+  };
+  const full = filterOffers(catalog, params);
+  const early = evaluateResultsResultsetLimit(catalog, params);
+  assert.equal(early.overLimit, false);
+  assert.equal(early.matchCount, full.length);
+  assert.equal(full.length, 1400);
+  assert.ok(full.length > 1000);
+  assert.deepEqual(
+    resolveFilteringParamsForEarlyLimit(params).accommodationTypes,
+    undefined,
+  );
 });
 
-test('price-sort live window stays ≤150 under the 1000 user limit', async () => {
-  const catalog = catalogOf(999);
+test('7. live-pricing candidate-cap remains 150 (not a user browse cap)', async () => {
+  const catalog = catalogOf(2000);
   const ranked = rankCatalogOffers(catalog, { adults: 2, sort: 'price' });
   const liveWindow = limitLivePricingCandidatePool(ranked);
   assert.equal(liveWindow.length, RESULTS_LIVE_PRICING_CANDIDATE_CAP);
+  assert.equal(RESULTS_LIVE_PRICING_CANDIDATE_CAP, 150);
 
   const prepared = await prepareResultsOffers(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: (async () => new Response('{}', { status: 204 })) as typeof fetch,
   });
-  assert.equal(prepared.offers.length, 999);
+  assert.equal(prepared.offers.length, 2000);
   assert.equal(prepared.priceSortPending, true);
 });
 
-test('provider diversity preserved below the 1000 user limit', async () => {
-  const catalog = catalogOf(999);
-  const prepared = await prepareResultsOffers(catalog, { adults: 2 });
-  const providers = new Set(prepared.offers.map((offer) => offer.provider));
-  assert.ok(providers.has('Corendon'));
-  assert.ok(providers.has('Sunweb'));
-  assert.ok(providers.has('Eliza was here'));
+test('8. orderCatalogPageCandidates keeps full >1000 pool for pagination', () => {
+  // Catalog-only ranking (no live HTTP / cache overlays) — product browse pool must not be capped at 1000.
+  const ranked = rankCatalogOffers(catalogOf(1500), { adults: 2 });
+  const ordered = orderCatalogPageCandidates(ranked);
+  assert.equal(ordered.length, 1500);
+  assert.ok(ordered.length > RESULTS_LIVE_PRICING_CANDIDATE_CAP);
+  assert.equal(paginateResults(ordered, 150, 10).length, 10);
+  assert.equal(getResultsTotalPages(ordered.length, 10), 150);
+});
+
+test('9. country / nights / budget filters stay correct without a cap', () => {
+  const catalog = [
+    ...Array.from({ length: 800 }, (_, i) =>
+      makeOffer({
+        id: `es-${i}`,
+        provider: 'Corendon',
+        price: 400,
+        destinationCountry: 'Spanje',
+        nights: 8,
+        departureDate: '2026-09-10',
+      }),
+    ),
+    ...Array.from({ length: 800 }, (_, i) =>
+      makeOffer({
+        id: `gr-${i}`,
+        provider: 'Sunweb',
+        price: 900,
+        destinationCountry: 'Griekenland',
+        nights: 8,
+        departureDate: '2026-09-10',
+      }),
+    ),
+  ];
+  const spainOnly = evaluateResultsResultsetLimit(catalog, {
+    adults: 2,
+    countries: ['Spanje'],
+  });
+  assert.equal(spainOnly.matchCount, 800);
+  assert.equal(spainOnly.overLimit, false);
+
+  const budget = evaluateResultsResultsetLimit(catalog, {
+    adults: 2,
+    budgetMax: 500,
+  });
+  assert.equal(budget.overLimit, false);
+  assert.ok(budget.matchCount >= 800);
+
+  const ranked = rankResultsMatchsetForLimit(catalog, {
+    adults: 2,
+    countries: ['Spanje'],
+    sort: 'price',
+  });
+  assert.equal(ranked.length, 800);
+});
+
+test('10. pagination.ts no longer defines RESULTS_USER_RESULTSET_MAX', () => {
+  const paginationSrc = readFileSync(join(process.cwd(), 'lib/search/pagination.ts'), 'utf8');
+  assert.equal(paginationSrc.includes('RESULTS_USER_RESULTSET_MAX'), false);
+  assert.equal(paginationSrc.includes('isResultsResultsetOverLimit'), false);
+  assert.match(paginationSrc, /RESULTS_LIVE_PRICING_CANDIDATE_CAP\s*=\s*150/);
 });

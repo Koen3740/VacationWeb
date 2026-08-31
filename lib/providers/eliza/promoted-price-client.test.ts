@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resetContextItemIdCacheForTests } from '../context-item-id-cache';
 import {
   buildElizaPromotedPriceUrl,
   extractElizaLandingGuids,
@@ -7,6 +8,10 @@ import {
 } from './promoted-price-client';
 import type { ElizaLiveContext } from './offer-context';
 import { ELIZA_FE_HOST } from './constants';
+
+test.beforeEach(() => {
+  resetContextItemIdCacheForTests();
+});
 
 const CONTEXT_ITEM_ID = '29c6d01a-70c6-4297-9422-1c3dab8c94ad';
 const PROMOTED_PRICE_ID = 'C6E4E13C-D74A-4A4D-BC6B-C151B6FF1E42';

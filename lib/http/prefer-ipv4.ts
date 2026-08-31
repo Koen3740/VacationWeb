@@ -10,6 +10,18 @@ export const CORENDON_IPV4_FETCH_HOSTS = new Set([
   CORENDON_IMAGE_HOST,
 ]);
 
+/**
+ * Shared keep-alive agent for Corendon IPv4 HTTPS (Fase B4).
+ * One TCP pool for api-fe + images hosts instead of a new connect per request.
+ */
+export const corendonIpv4HttpsAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 30_000,
+  maxSockets: 32,
+  maxFreeSockets: 8,
+  scheduling: 'lifo',
+});
+
 export function shouldPreferIpv4Fetch(hostname: string | null): boolean {
   return hostname != null && CORENDON_IPV4_FETCH_HOSTS.has(hostname);
 }
@@ -70,6 +82,7 @@ function ipv4HttpsFetch(input: RequestInfo | URL, init?: RequestInit): Promise<R
         headers,
         family: 4,
         servername: url.hostname,
+        agent: corendonIpv4HttpsAgent,
       },
       (incoming) => {
         const chunks: Buffer[] = [];
@@ -131,6 +144,7 @@ function ipv4HttpsFetch(input: RequestInfo | URL, init?: RequestInit): Promise<R
  * Native Node/undici fetch to Corendon API/image hosts times out on IPv6.
  * IPv4 HTTPS with the same hostname SNI/Host is proven. Keep existing fetch()
  * callers and URLs; only the connect family is IPv4 for those hosts.
+ * Fase B4: keep-alive agent reuses TCP sockets across Corendon calls in-process.
  */
 export function preferIpv4DnsOrder(): void {
   if (applied || typeof process === 'undefined' || !process.versions?.node) {

@@ -2,12 +2,22 @@ export {
   SUNWEB_ALLOWED_FE_HOSTS,
   SUNWEB_FE_HOST,
   SUNWEB_GROUPED_PRICES_PATH,
+  SUNWEB_KEEPALIVE_ENV,
+  SUNWEB_LIVE_MATCHSET_CONCURRENCY,
   SUNWEB_LIVE_PAGE1_CONCURRENCY,
   SUNWEB_LIVE_TIMEOUT_MS,
   SUNWEB_PROMOTED_PRICE_PATH,
   SUNWEB_PROVIDER_NAME,
   type SunwebFeHost,
 } from './constants';
+export {
+  getSunwebKeepAliveObservability,
+  getSunwebTransportFetch,
+  isSunwebKeepAliveCanaryEnabled,
+  isSunwebKeepAliveHost,
+  resolveSunwebFetchImpl,
+  resetSunwebKeepAliveForTests,
+} from '../../http/sunweb-keepalive-agent';
 export {
   applySunwebOccupancyToLandingUrl,
   buildSunwebLiveContext,

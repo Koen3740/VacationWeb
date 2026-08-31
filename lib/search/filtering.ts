@@ -73,9 +73,20 @@ function computeValueScore(offer: TravelOffer) {
   return Math.round(priceScore + ratingScore + starsScore);
 }
 
+export type FilterOffersOptions = {
+  /**
+   * Stop after this many matches. Used for the Results user-resultset limit
+   * early-check (stopAt = 1001). Same filter semantics as a full filterOffers.
+   */
+  stopAt?: number;
+  /** When set, receives the number of source offers examined (including early-stop). */
+  scannedOut?: { value: number };
+};
+
 export function filterOffers(
   offers: TravelOffer[],
-  params: SearchParams
+  params: SearchParams,
+  options: FilterOffersOptions = {},
 ): TravelOffer[] {
   const countryFilters = resolveCountryFilters(params);
   const bookableWindow = sanitizeDepartureSearchWindow(
@@ -83,6 +94,9 @@ export function filterOffers(
     params.departureEnd,
   );
   if ((params.departureStart || params.departureEnd) && !bookableWindow.valid) {
+    if (options.scannedOut) {
+      options.scannedOut.value = 0;
+    }
     return [];
   }
 
@@ -101,17 +115,24 @@ export function filterOffers(
   const effectiveDepartureStart =
     flexedStart && flexedStart < minBookable ? minBookable : flexedStart;
   const effectiveDepartureEnd = flexedEnd;
+  const stopAt =
+    typeof options.stopAt === 'number' && Number.isFinite(options.stopAt) && options.stopAt > 0
+      ? Math.floor(options.stopAt)
+      : undefined;
 
-  return offers.filter((offer) => {
+  const matches: TravelOffer[] = [];
+  let scanned = 0;
+  for (const offer of offers) {
+    scanned += 1;
     if (!isVacationWebFlightPackage(offer)) {
-      return false;
+      continue;
     }
 
     if (countryFilters.length > 0) {
       const offerCountry = canonicalizeCountryName(offer.destinationCountry);
 
       if (!countryFilters.some((country) => country === offerCountry)) {
-        return false;
+        continue;
       }
     }
 
@@ -119,34 +140,34 @@ export function filterOffers(
       params.region &&
       canonicalizeRegionName(offer.destinationRegion) !== canonicalizeRegionName(params.region)
     ) {
-      return false;
+      continue;
     }
 
     if (params.city && offer.destinationCity !== params.city) {
-      return false;
+      continue;
     }
 
     if (!offerMatchesBudget(offer, params)) {
-      return false;
+      continue;
     }
 
     if (params.nights?.length) {
       if (!params.nights.includes(offer.nights)) {
-        return false;
+        continue;
       }
     } else {
       if (
         params.nightsMin !== undefined &&
         offer.nights < params.nightsMin
       ) {
-        return false;
+        continue;
       }
 
       if (
         params.nightsMax !== undefined &&
         offer.nights > params.nightsMax
       ) {
-        return false;
+        continue;
       }
     }
 
@@ -159,19 +180,19 @@ export function filterOffers(
       const offerBoardType = canonicalizeBoardType(offer.boardType);
 
       if (selectedBoardTypes.size > 0 && (!offerBoardType || !selectedBoardTypes.has(offerBoardType))) {
-        return false;
+        continue;
       }
     }
 
     const selectedAirports = parseDepartureAirportsParam(params.departureAirport);
     if (selectedAirports.length > 0 && !offerMatchesDepartureAirports(offer, selectedAirports)) {
-      return false;
+      continue;
     }
 
     if (params.stars?.length) {
       const offerStars = offer.stars ?? 0;
       if (!params.stars.includes(offerStars)) {
-        return false;
+        continue;
       }
     }
 
@@ -181,59 +202,68 @@ export function filterOffers(
         ACCOMMODATION_TYPE_FILTER_VALUES,
       );
       if (selected.length > 0 && !offerMatchesAccommodationType(offer.accommodationType, selected)) {
-        return false;
+        continue;
       }
     }
 
     if (params.vacationTypes?.length) {
       const selectedTypes = parseVacationTypesParam(params.vacationTypes.join(','));
       if (selectedTypes.length > 0 && !offerMatchesAnyVacationType(offer, selectedTypes)) {
-        return false;
+        continue;
       }
     }
 
     if (params.beachLocation?.length) {
       const selected = parseBeachLocationsParam(params.beachLocation.join(','));
       if (selected.length > 0 && !offerMatchesAnyBeachLocation(offer, selected)) {
-        return false;
+        continue;
       }
     }
 
     if (params.centerLocation?.length) {
       const selected = parseCenterLocationsParam(params.centerLocation.join(','));
       if (selected.length > 0 && !offerMatchesAnyCenterLocation(offer, selected)) {
-        return false;
+        continue;
       }
     }
 
     if (params.amenities?.length) {
       const selectedAmenities = parseAmenitiesParam(params.amenities.join(','));
       if (selectedAmenities.length > 0 && !offerMatchesAnyAmenity(offer, selectedAmenities)) {
-        return false;
+        continue;
       }
     }
 
     if (params.hasCarRental === true && offer.hasCarRental !== true) {
-      return false;
+      continue;
     }
 
     if (effectiveDepartureStart || effectiveDepartureEnd) {
       if (offer.departureDate) {
         const departureIso = normalizeDepartureDateToIso(offer.departureDate);
         if (!departureIso) {
-          return false;
+          continue;
         }
         if (effectiveDepartureStart && departureIso < effectiveDepartureStart) {
-          return false;
+          continue;
         }
         if (effectiveDepartureEnd && departureIso > effectiveDepartureEnd) {
-          return false;
+          continue;
         }
       }
     }
 
-    return true;
-  });
+    matches.push(offer);
+    if (stopAt !== undefined && matches.length >= stopAt) {
+      break;
+    }
+  }
+
+  if (options.scannedOut) {
+    options.scannedOut.value = scanned;
+  }
+
+  return matches;
 }
 
 function countFacetMatches(

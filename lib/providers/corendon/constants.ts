@@ -19,8 +19,14 @@ export const CORENDON_LIVE_TIMEOUT_MS = 15_000;
 /**
  * Technical page-1 concurrency for lowestpricesacco.
  * Separate from Prijsvrij C=5. Not a product rule.
+ * Fase B4: raised Corendon-only (capacity audit supports c≈10–20); others stay at 5.
  */
-export const CORENDON_LIVE_PAGE1_CONCURRENCY = 5;
+export const CORENDON_LIVE_PAGE1_CONCURRENCY = 8;
+
+/**
+ * Full-matchset Corendon throttle. Same width as page-1; not a product cap.
+ */
+export const CORENDON_LIVE_MATCHSET_CONCURRENCY = 8;
 
 /**
  * Proven 2-adult / 1-room partyComposition from the Sub 17-1 coverage audit.

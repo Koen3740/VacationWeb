@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resetContextItemIdCacheForTests } from '../context-item-id-cache';
 import {
   buildSunwebPromotedPriceUrl,
   extractSunwebLandingGuids,
@@ -7,6 +8,10 @@ import {
 } from './promoted-price-client';
 import type { SunwebLiveContext } from './offer-context';
 import { SUNWEB_FE_HOST } from './constants';
+
+test.beforeEach(() => {
+  resetContextItemIdCacheForTests();
+});
 
 const CONTEXT_ITEM_ID = 'c1440175-b6ef-4dd3-b7ea-96c7143d47ea';
 const PROMOTED_PRICE_ID = 'D07B99C8-DFE0-4B7A-86C5-B4DE9A4C6077';

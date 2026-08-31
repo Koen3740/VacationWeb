@@ -17,6 +17,7 @@ import {
   setResultsLivePriceNowMsForTests,
 } from '../../search/results-live-price-cache';
 import { hasValidPresentablePrice } from '../../search/presentable-price';
+import { resetContextItemIdCacheForTests } from '../context-item-id-cache';
 
 const ELIZA_LANDING =
   'https://www.elizawashere.be/spanje/andalusie/ronda/casita-paradise-island' +
@@ -112,6 +113,7 @@ beforeEach(() => {
   clearResultsLivePriceCache();
   clearLivePriceInflightForTests();
   setResultsLivePriceNowMsForTests(null);
+  resetContextItemIdCacheForTests();
 });
 
 test('page1: Eliza success is proven getPromotedPrice, not feed price', async () => {

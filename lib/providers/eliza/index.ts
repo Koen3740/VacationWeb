@@ -1,12 +1,22 @@
 export {
   ELIZA_ALLOWED_FE_HOSTS,
   ELIZA_FE_HOST,
+  ELIZA_KEEPALIVE_ENV,
+  ELIZA_KEEPALIVE_MAX_SOCKETS_DEFAULT,
+  ELIZA_KEEPALIVE_MAX_SOCKETS_ENV,
   ELIZA_LIVE_PAGE1_CONCURRENCY,
   ELIZA_LIVE_TIMEOUT_MS,
   ELIZA_PROMOTED_PRICE_PATH,
   ELIZA_PROVIDER_NAME,
   type ElizaFeHost,
 } from './constants';
+export {
+  getElizaKeepAliveObservability,
+  getElizaTransportFetch,
+  isElizaKeepAliveCanaryEnabled,
+  resolveElizaFetchImpl,
+  resolveElizaKeepAliveMaxSockets,
+} from '../../http/eliza-keepalive-agent';
 export {
   applyElizaOccupancyToLandingUrl,
   buildElizaLiveContext,

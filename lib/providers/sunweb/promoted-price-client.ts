@@ -1,5 +1,26 @@
 import type { FetchLike } from '../prijsvrij/auth';
 import {
+  extractSunwebTransportErrorCode,
+  noteSunwebTransportFailure,
+  resolveSunwebFetchImpl,
+} from '../../http/sunweb-keepalive-agent';
+import {
+  CONTEXT_ITEM_ID_CACHE_TTL_MS,
+  getCachedContextItemId,
+  getSitecoreSiteGuidConfig,
+  invalidateCachedContextItemId,
+  recordContextItemLandingFallback,
+  setCachedContextItemId,
+  setSitecoreSiteGuidConfig,
+} from '../context-item-id-cache';
+import {
+  configureLivePriceStepTelemetryBaseline,
+  noteHttpStatus,
+  nowMs,
+  recordLivePriceStepEvent,
+} from '../live-price-step-telemetry';
+import {
+  SUNWEB_LIVE_PAGE1_CONCURRENCY,
   SUNWEB_LIVE_TIMEOUT_MS,
   SUNWEB_PROMOTED_PRICE_PATH,
 } from './constants';
@@ -8,6 +29,11 @@ import {
   isSunwebDepartureDateBeforeToday,
 } from './grouped-availability';
 import type { SunwebLiveContext } from './offer-context';
+
+configureLivePriceStepTelemetryBaseline({
+  sunwebPage1Concurrency: SUNWEB_LIVE_PAGE1_CONCURRENCY,
+  contextItemIdCacheTtlMs: CONTEXT_ITEM_ID_CACHE_TTL_MS,
+});
 
 export type SunwebLandingGuids = {
   contextItemId: string;
@@ -57,7 +83,8 @@ function isTimeoutError(error: unknown): boolean {
 
 /**
  * GUIDs from this offer's landing HTML.
- * bookingGateId is per landing/context — never a hardcoded universal id.
+ * contextItemId is per-accommodation (B1 cache).
+ * promotedPriceId / bookingGateId are site-wide Sitecore config (Fase 0).
  */
 export function extractSunwebLandingGuids(html: string): SunwebLandingGuids | null {
   const context = CONTEXT_ITEM_RE.exec(html);
@@ -148,12 +175,292 @@ function contextMatches(
   );
 }
 
+function tryCachedSunwebGuids(ctx: SunwebLiveContext): SunwebLandingGuids | null {
+  const site = getSitecoreSiteGuidConfig('sunweb');
+  if (!site?.promotedPriceId || !site.bookingGateId) {
+    return null;
+  }
+  const contextItemId = getCachedContextItemId('sunweb', ctx.feHost, ctx.accoId);
+  if (!contextItemId) {
+    return null;
+  }
+  return {
+    contextItemId,
+    promotedPriceId: site.promotedPriceId,
+    bookingGateId: site.bookingGateId,
+  };
+}
+
+type TimedLanding =
+  | { ok: true; guids: SunwebLandingGuids; landingMs: number }
+  | {
+      ok: false;
+      reason: 'http_error' | 'missing_page_context';
+      httpStatus?: number;
+      landingMs: number;
+    };
+
+async function fetchSunwebLandingGuids(
+  ctx: SunwebLiveContext,
+  fetchImpl: FetchLike,
+): Promise<TimedLanding> {
+  const t0 = nowMs();
+  const landingResponse = await fetchImpl(ctx.landingUrl, {
+    method: 'GET',
+    headers: {
+      Accept: 'text/html,application/xhtml+xml',
+      Referer: `https://${ctx.feHost}/`,
+    },
+    signal: AbortSignal.timeout(SUNWEB_LIVE_TIMEOUT_MS),
+    cache: 'no-store',
+  });
+
+  if (landingResponse.status !== 200) {
+    return {
+      ok: false,
+      reason: 'http_error',
+      httpStatus: landingResponse.status,
+      landingMs: nowMs() - t0,
+    };
+  }
+
+  let html = '';
+  try {
+    html = await landingResponse.text();
+  } catch {
+    return { ok: false, reason: 'missing_page_context', httpStatus: 200, landingMs: nowMs() - t0 };
+  }
+
+  const guids = extractSunwebLandingGuids(html);
+  if (!guids) {
+    if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
+      const missing =
+        [
+          !CONTEXT_ITEM_RE.test(html) ? 'contextItemId' : null,
+          !PROMOTED_PRICE_ID_RE.test(html) ? 'promotedPriceId' : null,
+          !BOOKING_GATE_ID_RE.test(html) ? 'bookingGateId' : null,
+        ]
+          .filter(Boolean)
+          .join(',') || 'unreadable';
+      console.info(
+        `[sunweb-availability] exact=false reason=missing_page_context missing=${missing} acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=skip`,
+      );
+    }
+    return { ok: false, reason: 'missing_page_context', httpStatus: 200, landingMs: nowMs() - t0 };
+  }
+
+  setCachedContextItemId('sunweb', ctx.feHost, ctx.accoId, guids.contextItemId);
+  setSitecoreSiteGuidConfig('sunweb', {
+    promotedPriceId: guids.promotedPriceId,
+    bookingGateId: guids.bookingGateId,
+  });
+  return { ok: true, guids, landingMs: nowMs() - t0 };
+}
+
+type ResolvedGuids =
+  | {
+      ok: true;
+      guids: SunwebLandingGuids;
+      fromCache: boolean;
+      landingMs?: number;
+      httpStatus?: number;
+    }
+  | {
+      ok: false;
+      reason: 'http_error' | 'missing_page_context';
+      httpStatus?: number;
+      landingMs?: number;
+    };
+
+async function resolveSunwebGuids(
+  ctx: SunwebLiveContext,
+  fetchImpl: FetchLike,
+  forceLanding: boolean,
+): Promise<ResolvedGuids> {
+  if (!forceLanding) {
+    const cached = tryCachedSunwebGuids(ctx);
+    if (cached) {
+      return { ok: true, guids: cached, fromCache: true };
+    }
+  } else {
+    recordContextItemLandingFallback();
+  }
+
+  const landing = await fetchSunwebLandingGuids(ctx, fetchImpl);
+  if (!landing.ok) {
+    return {
+      ok: false,
+      reason: landing.reason,
+      landingMs: landing.landingMs,
+      ...(landing.httpStatus !== undefined ? { httpStatus: landing.httpStatus } : {}),
+    };
+  }
+  return {
+    ok: true,
+    guids: landing.guids,
+    fromCache: false,
+    landingMs: landing.landingMs,
+  };
+}
+
+type PriceWithSteps = {
+  result: SunwebLivePriceResult;
+  groupedMs: number;
+  gppMs?: number;
+  http429Count: number;
+  httpErrorStatuses: number[];
+};
+
+async function fetchSunwebPriceWithGuids(
+  ctx: SunwebLiveContext,
+  guids: SunwebLandingGuids,
+  fetchImpl: FetchLike,
+  todayIso?: string,
+): Promise<PriceWithSteps> {
+  const counters = { http429Count: 0, httpErrorStatuses: [] as number[] };
+  const tGrouped = nowMs();
+  const availability = await fetchSunwebExactTripAvailability(ctx, guids, {
+    fetchImpl,
+    todayIso,
+  });
+  const groupedMs = nowMs() - tGrouped;
+  if (!availability.ok) {
+    noteHttpStatus(availability.httpStatus, counters);
+    if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
+      console.info(
+        `[sunweb-availability] exact=false reason=${availability.reason} acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=skip`,
+      );
+    }
+    return { result: availability, groupedMs, ...counters };
+  }
+  if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
+    console.info(
+      `[sunweb-availability] exact=true acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=call`,
+    );
+  }
+
+  const tGpp = nowMs();
+  const priceResponse = await fetchImpl(buildSunwebPromotedPriceUrl(ctx, guids), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json, text/plain, */*',
+      Referer: ctx.landingUrl,
+    },
+    signal: AbortSignal.timeout(SUNWEB_LIVE_TIMEOUT_MS),
+    cache: 'no-store',
+  });
+  const gppMs = nowMs() - tGpp;
+  noteHttpStatus(priceResponse.status, counters);
+
+  if (priceResponse.status === 204) {
+    return {
+      result: { ok: false, reason: 'empty', httpStatus: 204 },
+      groupedMs,
+      gppMs,
+      ...counters,
+    };
+  }
+  if (priceResponse.status !== 200) {
+    return {
+      result: { ok: false, reason: 'http_error', httpStatus: priceResponse.status },
+      groupedMs,
+      gppMs,
+      ...counters,
+    };
+  }
+
+  let json: unknown = null;
+  try {
+    json = await priceResponse.json();
+  } catch {
+    return {
+      result: { ok: false, reason: 'empty', httpStatus: 200 },
+      groupedMs,
+      gppMs,
+      ...counters,
+    };
+  }
+
+  const live = readPromotedPrice(json);
+  if (!live || !Number.isFinite(live.averagePrice) || live.averagePrice <= 0) {
+    return {
+      result: { ok: false, reason: 'invalid_price', httpStatus: 200 },
+      groupedMs,
+      gppMs,
+      ...counters,
+    };
+  }
+
+  if (!contextMatches(ctx, live)) {
+    return {
+      result: { ok: false, reason: 'stale_context', httpStatus: 200 },
+      groupedMs,
+      gppMs,
+      ...counters,
+    };
+  }
+
+  return {
+    result: {
+      ok: true,
+      pricePerPerson: live.averagePrice,
+      ...(Number.isFinite(live.totalPrice) && live.totalPrice > 0
+        ? { totalPrice: live.totalPrice }
+        : {}),
+      accoId: live.accommodationId,
+    },
+    groupedMs,
+    gppMs,
+    ...counters,
+  };
+}
+
+function shouldRetryWithFreshLanding(result: SunwebLivePriceResult, fromCache: boolean): boolean {
+  if (!fromCache || result.ok) {
+    return false;
+  }
+  // Cached contextItemId may be expired/wrong — never surface a wrong price; re-bootstrap once.
+  return result.reason === 'stale_context';
+}
+
+function emitSunwebStep(args: {
+  ok: boolean;
+  reason?: string;
+  totalMs: number;
+  landingFromCache: boolean;
+  landingMs?: number;
+  groupedMs?: number;
+  gppMs?: number;
+  http429Count: number;
+  httpErrorStatuses: number[];
+  transportErrorCode?: string;
+}): void {
+  recordLivePriceStepEvent({
+    provider: 'sunweb',
+    ok: args.ok,
+    ...(args.reason ? { reason: args.reason } : {}),
+    landingFromCache: args.landingFromCache,
+    ...(typeof args.landingMs === 'number' ? { landingMs: args.landingMs } : {}),
+    ...(typeof args.groupedMs === 'number' ? { groupedMs: args.groupedMs } : {}),
+    ...(typeof args.gppMs === 'number' ? { gppMs: args.gppMs } : {}),
+    totalMs: args.totalMs,
+    http429Count: args.http429Count,
+    httpErrorStatuses: args.httpErrorStatuses,
+    ...(args.transportErrorCode ? { transportErrorCode: args.transportErrorCode } : {}),
+  });
+}
+
 /**
  * Proven Sunweb Feed→Live hop:
  * productURL → landing HTML (contextItemId / promotedPriceId / bookingGateId)
  * → exact GetPricesGroupedByDurationApi gate
  * → GetPromotedPriceApi + contextMatches.
+ *
+ * B1: within CONTEXT_ITEM_ID_CACHE_TTL_MS, repeat acco skips landing HTML when
+ * site-wide promotedPriceId/bookingGateId config is known. Price is never cached.
  * GPP is never the availability oracle. Catalog € is never substituted.
+ *
+ * L0: records per-step timings only; does not change control flow.
  */
 export async function fetchSunwebPromotedPrice(
   ctx: SunwebLiveContext,
@@ -167,110 +474,93 @@ export async function fetchSunwebPromotedPrice(
     return { ok: false, reason: 'unavailable_trip' };
   }
 
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = resolveSunwebFetchImpl(options.fetchImpl);
+  const t0 = nowMs();
+  const http = { http429Count: 0, httpErrorStatuses: [] as number[] };
 
   try {
-    const landingResponse = await fetchImpl(ctx.landingUrl, {
-      method: 'GET',
-      headers: {
-        Accept: 'text/html,application/xhtml+xml',
-        Referer: `https://${ctx.feHost}/`,
-      },
-      signal: AbortSignal.timeout(SUNWEB_LIVE_TIMEOUT_MS),
-      cache: 'no-store',
-    });
-
-    if (landingResponse.status !== 200) {
-      return { ok: false, reason: 'http_error', httpStatus: landingResponse.status };
+    const resolved = await resolveSunwebGuids(ctx, fetchImpl, false);
+    if (!resolved.ok) {
+      noteHttpStatus(resolved.httpStatus, http);
+      emitSunwebStep({
+        ok: false,
+        reason: resolved.reason,
+        totalMs: nowMs() - t0,
+        landingFromCache: false,
+        landingMs: resolved.landingMs,
+        ...http,
+      });
+      return {
+        ok: false,
+        reason: resolved.reason,
+        ...(resolved.httpStatus !== undefined ? { httpStatus: resolved.httpStatus } : {}),
+      };
     }
 
-    let html = '';
-    try {
-      html = await landingResponse.text();
-    } catch {
-      return { ok: false, reason: 'missing_page_context', httpStatus: 200 };
-    }
-
-    const guids = extractSunwebLandingGuids(html);
-    if (!guids) {
-      if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
-        const missing = [
-          !CONTEXT_ITEM_RE.test(html) ? 'contextItemId' : null,
-          !PROMOTED_PRICE_ID_RE.test(html) ? 'promotedPriceId' : null,
-          !BOOKING_GATE_ID_RE.test(html) ? 'bookingGateId' : null,
-        ]
-          .filter(Boolean)
-          .join(',') || 'unreadable';
-        console.info(
-          `[sunweb-availability] exact=false reason=missing_page_context missing=${missing} acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=skip`,
-        );
-      }
-      return { ok: false, reason: 'missing_page_context', httpStatus: 200 };
-    }
-
-    const availability = await fetchSunwebExactTripAvailability(ctx, guids, {
+    let fromCache = resolved.fromCache;
+    let landingMs = resolved.landingMs;
+    let priced = await fetchSunwebPriceWithGuids(
+      ctx,
+      resolved.guids,
       fetchImpl,
-      todayIso: options.todayIso,
-    });
-    if (!availability.ok) {
-      if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
-        console.info(
-          `[sunweb-availability] exact=false reason=${availability.reason} acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=skip`,
-        );
+      options.todayIso,
+    );
+    http.http429Count += priced.http429Count;
+    http.httpErrorStatuses.push(...priced.httpErrorStatuses);
+
+    if (shouldRetryWithFreshLanding(priced.result, fromCache)) {
+      invalidateCachedContextItemId('sunweb', ctx.feHost, ctx.accoId);
+      const fresh = await resolveSunwebGuids(ctx, fetchImpl, true);
+      if (!fresh.ok) {
+        noteHttpStatus(fresh.httpStatus, http);
+        emitSunwebStep({
+          ok: false,
+          reason: fresh.reason,
+          totalMs: nowMs() - t0,
+          landingFromCache: false,
+          landingMs: fresh.landingMs,
+          groupedMs: priced.groupedMs,
+          gppMs: priced.gppMs,
+          ...http,
+        });
+        return {
+          ok: false,
+          reason: fresh.reason,
+          ...(fresh.httpStatus !== undefined ? { httpStatus: fresh.httpStatus } : {}),
+        };
       }
-      return availability;
-    }
-    if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
-      console.info(
-        `[sunweb-availability] exact=true acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=call`,
-      );
+      fromCache = false;
+      landingMs = fresh.landingMs;
+      priced = await fetchSunwebPriceWithGuids(ctx, fresh.guids, fetchImpl, options.todayIso);
+      http.http429Count += priced.http429Count;
+      http.httpErrorStatuses.push(...priced.httpErrorStatuses);
     }
 
-    const priceResponse = await fetchImpl(buildSunwebPromotedPriceUrl(ctx, guids), {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json, text/plain, */*',
-        Referer: ctx.landingUrl,
-      },
-      signal: AbortSignal.timeout(SUNWEB_LIVE_TIMEOUT_MS),
-      cache: 'no-store',
+    emitSunwebStep({
+      ok: priced.result.ok,
+      reason: priced.result.ok ? undefined : priced.result.reason,
+      totalMs: nowMs() - t0,
+      landingFromCache: fromCache,
+      landingMs,
+      groupedMs: priced.groupedMs,
+      gppMs: priced.gppMs,
+      ...http,
     });
-
-    if (priceResponse.status === 204) {
-      return { ok: false, reason: 'empty', httpStatus: 204 };
-    }
-    if (priceResponse.status !== 200) {
-      return { ok: false, reason: 'http_error', httpStatus: priceResponse.status };
-    }
-
-    let json: unknown = null;
-    try {
-      json = await priceResponse.json();
-    } catch {
-      return { ok: false, reason: 'empty', httpStatus: 200 };
-    }
-
-    const live = readPromotedPrice(json);
-    if (!live || !Number.isFinite(live.averagePrice) || live.averagePrice <= 0) {
-      return { ok: false, reason: 'invalid_price', httpStatus: 200 };
-    }
-
-    if (!contextMatches(ctx, live)) {
-      return { ok: false, reason: 'stale_context', httpStatus: 200 };
-    }
-
-    return {
-      ok: true,
-      pricePerPerson: live.averagePrice,
-      ...(Number.isFinite(live.totalPrice) && live.totalPrice > 0
-        ? { totalPrice: live.totalPrice }
-        : {}),
-      accoId: live.accommodationId,
-    };
+    return priced.result;
   } catch (error) {
-    if (isTimeoutError(error)) {
-      return { ok: false, reason: 'timeout' };
+    const reason = isTimeoutError(error) ? 'timeout' : 'network_error';
+    if (reason === 'network_error') {
+      noteSunwebTransportFailure(error);
     }
-    return { ok: false, reason: 'network_error' };
+    const transportErrorCode = extractSunwebTransportErrorCode(error);
+    emitSunwebStep({
+      ok: false,
+      reason,
+      totalMs: nowMs() - t0,
+      landingFromCache: false,
+      ...http,
+      ...(transportErrorCode ? { transportErrorCode } : {}),
+    });
+    return { ok: false, reason };
   }
 }

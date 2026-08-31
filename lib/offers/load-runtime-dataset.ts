@@ -14,6 +14,7 @@ import {
 } from '@/lib/offers/canonical-offer-identity';
 import {
   CURRENT_POINTER_KEY,
+  type CatalogShardPointer,
   type CurrentPointer,
 } from '@/lib/offers/generation-types';
 import type { FilterOptions } from '@/types/travel';
@@ -23,6 +24,10 @@ import {
   getStorageObject,
   headStorageObject,
 } from '@/lib/storage/object-storage-client';
+import {
+  excludeParkedProvidersFromStoredCatalog,
+  isRuntimeCatalogActiveProvider,
+} from '@/lib/offers/catalog-shards';
 
 export type RuntimeDataset = {
   mode: 'generation' | 'legacy';
@@ -34,8 +39,26 @@ export type RuntimeDataset = {
 
 let cachedDataset: RuntimeDataset | null = null;
 
+/** Test hook: inspect which storage/local keys were read during catalog load. */
+let catalogReadKeysForTests: string[] | null = null;
+
 export function resetRuntimeDatasetCacheForTests(): void {
   cachedDataset = null;
+  catalogReadKeysForTests = null;
+}
+
+export function getCatalogReadKeysForTests(): string[] | null {
+  return catalogReadKeysForTests ? [...catalogReadKeysForTests] : null;
+}
+
+export function beginCatalogReadKeyCaptureForTests(): void {
+  catalogReadKeysForTests = [];
+}
+
+function trackReadKey(key: string): void {
+  if (catalogReadKeysForTests) {
+    catalogReadKeysForTests.push(key);
+  }
 }
 
 function resolvePath(value: string): string {
@@ -100,6 +123,34 @@ function parseCatalog(raw: string, requireIdentity: boolean): StoredOffer[] {
   return parsed as StoredOffer[];
 }
 
+function parseCatalogShards(raw: unknown): CatalogShardPointer[] | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return undefined;
+  }
+  const shards: CatalogShardPointer[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== 'object' || entry === null) {
+      continue;
+    }
+    const record = entry as Record<string, unknown>;
+    if (
+      typeof record.provider === 'string' &&
+      record.provider.trim() &&
+      typeof record.slug === 'string' &&
+      record.slug.trim() &&
+      typeof record.key === 'string' &&
+      record.key.trim()
+    ) {
+      shards.push({
+        provider: record.provider.trim(),
+        slug: record.slug.trim(),
+        key: record.key.trim(),
+      });
+    }
+  }
+  return shards.length > 0 ? shards : undefined;
+}
+
 function parsePointer(raw: string): CurrentPointer {
   const parsed: unknown = JSON.parse(raw);
   if (typeof parsed !== 'object' || parsed === null) {
@@ -130,6 +181,14 @@ function parsePointer(raw: string): CurrentPointer {
   if (!record.filterOptionsKey.startsWith(`generations/${record.generationId}/`)) {
     throw new Error('current.json filterOptionsKey is not in the active generation prefix');
   }
+  const catalogShards = parseCatalogShards(record.catalogShards);
+  if (catalogShards) {
+    for (const shard of catalogShards) {
+      if (!shard.key.startsWith(`generations/${record.generationId}/`)) {
+        throw new Error('current.json catalogShards key is not in the active generation prefix');
+      }
+    }
+  }
   return {
     schemaVersion: 1,
     generationId: record.generationId,
@@ -137,10 +196,12 @@ function parsePointer(raw: string): CurrentPointer {
     detailsPrefix: record.detailsPrefix,
     filterOptionsKey: record.filterOptionsKey,
     updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : '',
+    ...(catalogShards ? { catalogShards } : {}),
   };
 }
 
 async function readObject(key: string, root: string | undefined): Promise<string> {
+  trackReadKey(key);
   if (root) {
     const filePath = path.join(root, key);
     if (!fs.existsSync(filePath)) {
@@ -162,13 +223,21 @@ async function readPointer(
     if (!fs.existsSync(currentPath)) {
       return null;
     }
+    trackReadKey(CURRENT_POINTER_KEY);
     return parsePointer(fs.readFileSync(currentPath, 'utf8'));
   }
   const head = await headStorageObject(CURRENT_POINTER_KEY);
   if (!head) {
     return null;
   }
+  trackReadKey(CURRENT_POINTER_KEY);
   return parsePointer(await getStorageObject(CURRENT_POINTER_KEY));
+}
+
+function toFlightPackageOffers(stored: StoredOffer[]): TravelOffer[] {
+  return excludeParkedProvidersFromStoredCatalog(stored)
+    .map(normalizeOffer)
+    .filter(isVacationWebFlightPackage);
 }
 
 async function loadLegacyDataset(): Promise<RuntimeDataset> {
@@ -176,8 +245,11 @@ async function loadLegacyDataset(): Promise<RuntimeDataset> {
   const raw = localPath
     ? fs.readFileSync(localPath, 'utf8')
     : await getOffersObject();
+  if (!localPath) {
+    trackReadKey('offers.json');
+  }
   const stored = parseCatalog(raw, false);
-  const offers = stored.map(normalizeOffer).filter(isVacationWebFlightPackage);
+  const offers = toFlightPackageOffers(stored);
   if (offers.length === 0) {
     throw new Error('Legacy offers dataset contains no VacationWeb flight packages');
   }
@@ -190,13 +262,65 @@ async function loadLegacyDataset(): Promise<RuntimeDataset> {
   };
 }
 
+async function loadActiveShards(
+  pointer: CurrentPointer,
+  root: string | undefined,
+): Promise<StoredOffer[]> {
+  const shards = (pointer.catalogShards ?? []).filter((shard) =>
+    isRuntimeCatalogActiveProvider(shard.provider),
+  );
+  if (shards.length === 0) {
+    throw new Error('No active catalog shards listed on current.json');
+  }
+
+  const settled = await Promise.allSettled(
+    shards.map(async (shard) => {
+      const raw = await readObject(shard.key, root);
+      return parseCatalog(raw, true);
+    }),
+  );
+
+  const offers: StoredOffer[] = [];
+  const failures: string[] = [];
+  for (let index = 0; index < settled.length; index += 1) {
+    const result = settled[index];
+    const shard = shards[index];
+    if (result.status === 'fulfilled') {
+      offers.push(...result.value);
+    } else {
+      const reason =
+        result.reason instanceof Error ? result.reason.message : String(result.reason);
+      failures.push(`${shard.provider} (${shard.key}): ${reason}`);
+    }
+  }
+
+  if (offers.length === 0) {
+    throw new Error(
+      `All active catalog shards failed to load: ${failures.join('; ') || 'unknown'}`,
+    );
+  }
+
+  if (failures.length > 0 && process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
+    console.warn(`[catalog-shards] partial load; failed shards: ${failures.join('; ')}`);
+  }
+
+  return offers;
+}
+
 async function loadGenerationDataset(
   pointer: CurrentPointer,
   root: string | undefined,
 ): Promise<RuntimeDataset> {
-  const catalogRaw = await readObject(pointer.catalogKey, root);
   const filterRaw = await readObject(pointer.filterOptionsKey, root);
-  const stored = parseCatalog(catalogRaw, true);
+
+  let stored: StoredOffer[];
+  if (pointer.catalogShards && pointer.catalogShards.length > 0) {
+    stored = await loadActiveShards(pointer, root);
+  } else {
+    const catalogRaw = await readObject(pointer.catalogKey, root);
+    stored = excludeParkedProvidersFromStoredCatalog(parseCatalog(catalogRaw, true));
+  }
+
   const offers = stored.map(normalizeOffer).filter(isVacationWebFlightPackage);
   if (offers.length === 0) {
     throw new Error('Generation catalog contains no VacationWeb flight packages');
