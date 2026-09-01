@@ -12,7 +12,7 @@ import {
   sharedStateFromSearchForm,
 } from '@/components/search/shared-search-state';
 import { FilterOptions } from '@/types/travel';
-import { formatDepartureAirportLabel } from '@/lib/search/departure-airports';
+import { formatDepartureAirportLabel, listPublicPickerIataCodes } from '@/lib/search/departure-airports';
 import { earliestSelectableDepartureIso } from '@/lib/search/departure-date';
 
 type IncomingSearchParams = Record<string, string | string[] | undefined>;
@@ -262,7 +262,7 @@ export function SearchForm({
             <label className="mb-2 block text-sm font-semibold text-slate-700">Vertrekluchthaven</label>
             <select value={form.departureAirport} onChange={(event) => setForm({ ...form, departureAirport: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none">
               <option value="">Elke luchthaven</option>
-              {departureAirports.map((airport) => (
+              {listPublicPickerIataCodes().map((airport) => (
                 <option key={airport} value={airport}>
                   {formatDepartureAirportLabel(airport)}
                 </option>

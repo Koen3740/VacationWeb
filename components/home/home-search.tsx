@@ -5,9 +5,12 @@ import {
   ChevronDownIcon,
   DurationIcon,
   LocationIcon,
+  PlaneIcon,
   SearchButtonIcon,
   TravelersIcon,
 } from '@/components/home/home-search-icons';
+import { DepartureAirportPopup } from '@/components/search/departure-airport-popup/departure-airport-popup';
+import { formatSelectedDepartureAirportsLabel } from '@/components/search/departure-airport-popup/departure-airport-popup-utils';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
 import {
@@ -73,10 +76,11 @@ function Divider() {
 
 type HomeSearchProps = {
   countryCounts: Record<string, number>;
+  departureAirports: string[];
   totalOffersLabel: string;
 };
 
-export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps) {
+export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel }: HomeSearchProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const initialState = getInitialHomeSearchState();
@@ -88,6 +92,10 @@ export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps)
   const [flexibilityDays, setFlexibilityDays] = useState<FlexibilityDays>(initialState.flexibilityDays);
   const [selectedDurations, setSelectedDurations] = useState<number[]>(initialState.selectedDurations);
   const [durationPopupOpen, setDurationPopupOpen] = useState(false);
+  const [selectedDepartureAirports, setSelectedDepartureAirports] = useState<string[]>(
+    initialState.selectedDepartureAirports,
+  );
+  const [airportPopupOpen, setAirportPopupOpen] = useState(false);
   const [travelers, setTravelers] = useState<TravelersState>(
     () => initialState.travelers ?? createDefaultTravelersState(),
   );
@@ -105,7 +113,7 @@ export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps)
       departureEnd,
       flexibilityDays,
       selectedDurations,
-      selectedDepartureAirports: [],
+      selectedDepartureAirports,
       travelers,
     });
   }, [
@@ -113,6 +121,7 @@ export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps)
     departureStart,
     flexibilityDays,
     selectedCountries,
+    selectedDepartureAirports,
     selectedDurations,
     travelers,
   ]);
@@ -126,6 +135,7 @@ export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps)
       : formatDate(departureStart)
     : 'Vertrekdatum';
   const durationText = formatSelectedDurationsLabel(selectedDurations);
+  const airportText = formatSelectedDepartureAirportsLabel(selectedDepartureAirports);
   const travelersText = formatTravelersLabel(travelers);
 
   const searchHref = useMemo(
@@ -136,13 +146,14 @@ export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps)
         departureEnd,
         flexibilityDays,
         selectedDurations,
-        selectedDepartureAirports: [],
+        selectedDepartureAirports,
         travelers,
       }),
     [
       departureEnd,
       departureStart,
       flexibilityDays,
+      selectedDepartureAirports,
       selectedDurations,
       selectedCountries,
       travelers,
@@ -215,6 +226,16 @@ export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps)
 
           <button
             type="button"
+            onClick={() => setAirportPopupOpen(true)}
+            className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
+          >
+            <SearchField displayText={airportText} icon={<PlaneIcon />} />
+          </button>
+
+          <Divider />
+
+          <button
+            type="button"
             onClick={() => setTravelersPopupOpen(true)}
             className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
           >
@@ -268,6 +289,14 @@ export function HomeSearch({ countryCounts, totalOffersLabel }: HomeSearchProps)
         selectedDurations={selectedDurations}
         onClose={() => setDurationPopupOpen(false)}
         onChange={setSelectedDurations}
+      />
+
+      <DepartureAirportPopup
+        open={airportPopupOpen}
+        airports={departureAirports}
+        selectedAirports={selectedDepartureAirports}
+        onClose={() => setAirportPopupOpen(false)}
+        onChange={setSelectedDepartureAirports}
       />
 
       <TravelersPopup

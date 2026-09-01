@@ -21,6 +21,7 @@ export default async function HomePage() {
     <main className="min-h-screen bg-[#F5F7FA]">
       <HomeHero
         countryCounts={countryCounts}
+        departureAirports={filterOptions.departureAirports}
         totalOffersLabel={totalOffersLabel}
       />
       <section className="bg-[#0A2D62] py-6">

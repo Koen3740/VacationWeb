@@ -5,10 +5,11 @@ import { StarBadgeIcon } from '@/components/home/home-search-icons';
 
 type HomeHeroProps = {
   countryCounts: Record<string, number>;
+  departureAirports: string[];
   totalOffersLabel: string;
 };
 
-export function HomeHero({ countryCounts, totalOffersLabel }: HomeHeroProps) {
+export function HomeHero({ countryCounts, departureAirports, totalOffersLabel }: HomeHeroProps) {
   return (
     <>
       <div className="border-b border-slate-200/80 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04)]">
@@ -57,6 +58,7 @@ export function HomeHero({ countryCounts, totalOffersLabel }: HomeHeroProps) {
           <div className="mx-auto mt-11 w-full max-w-[1200px] px-4 sm:px-5 lg:mt-14 lg:px-6">
             <HomeSearch
               countryCounts={countryCounts}
+              departureAirports={departureAirports}
               totalOffersLabel={totalOffersLabel}
             />
           </div>
