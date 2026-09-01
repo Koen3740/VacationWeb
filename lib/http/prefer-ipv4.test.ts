@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   CORENDON_IPV4_FETCH_HOSTS,
+  corendonIpv4HttpsAgent,
   nodeHttpToFetchResponse,
   shouldPreferIpv4Fetch,
 } from '@/lib/http/prefer-ipv4';
@@ -62,6 +63,11 @@ test('Corendon image host uses the same IPv4 fetch path as the API host', () => 
   assert.equal(shouldPreferIpv4Fetch('images.corendonresources.com'), true);
   assert.equal(shouldPreferIpv4Fetch('static.sunweb.be'), false);
   assert.equal(CORENDON_IPV4_FETCH_HOSTS.has('images.corendonresources.com'), true);
+});
+
+test('B4: Corendon IPv4 HTTPS agent keeps sockets alive', () => {
+  assert.equal(corendonIpv4HttpsAgent.options.keepAlive, true);
+  assert.ok((corendonIpv4HttpsAgent.options.maxSockets ?? 0) >= 8);
 });
 
 test('HTTP 200 JSON body is preserved', async () => {

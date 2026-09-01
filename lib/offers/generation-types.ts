@@ -2,6 +2,12 @@ export const GENERATION_SCHEMA_VERSION = 1;
 export const CURRENT_POINTER_KEY = 'current.json';
 export const GENERATION_DETAILS_LAYOUT = 'details/{provider}/{sha256}.json';
 
+export type CatalogShardPointer = {
+  provider: string;
+  slug: string;
+  key: string;
+};
+
 export type CurrentPointer = {
   schemaVersion: 1;
   generationId: string;
@@ -9,6 +15,12 @@ export type CurrentPointer = {
   detailsPrefix: string;
   filterOptionsKey: string;
   updatedAt: string;
+  /**
+   * Optional per-provider catalog shards. When present, runtime loads only
+   * active (non-parked) shards and never fetches parked provider objects.
+   * Full `catalogKey` remains for fallback / reversibility.
+   */
+  catalogShards?: CatalogShardPointer[];
 };
 
 export type GenerationFileMeta = {

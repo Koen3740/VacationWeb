@@ -41,6 +41,7 @@ import type { FetchLike } from './auth';
 import { buildPrijsvrijReceiptContext, resolvePrijsvrijReceiptOccupancy } from './receipt-context';
 import { fetchPrijsvrijReceiptPrice } from './receipt-client';
 import {
+  CORENDON_LIVE_MATCHSET_CONCURRENCY,
   CORENDON_LIVE_PAGE1_CONCURRENCY,
   buildCorendonLiveContext,
   fetchCorendonLivePrice,
@@ -60,6 +61,7 @@ import {
   resolveElizaLiveOccupancy,
 } from '../eliza';
 import {
+  SUNWEB_LIVE_MATCHSET_CONCURRENCY,
   SUNWEB_LIVE_PAGE1_CONCURRENCY,
   buildSunwebLiveContext,
   fetchSunwebPromotedPrice,
@@ -68,6 +70,13 @@ import {
   requiresSunwebResultsLivePrice,
   resolveSunwebLiveOccupancy,
 } from '../sunweb';
+import {
+  isLivePriceCircuitOpen,
+  recordLivePriceCircuitFailure,
+  recordLivePriceCircuitSuccess,
+  resetLivePriceCircuitForTests,
+  type LivePriceCircuitProvider,
+} from '../live-price-circuit';
 
 /** Product page size for Results (Master Plan §8.1a). */
 export const RESULTS_PRODUCT_PAGE_SIZE = 10;
@@ -83,9 +92,7 @@ export const PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY = 5;
  * Same width as page-1 C=5; separate binding so matchset never uses cap ≤10.
  */
 export const PRIJSVRIJ_RECEIPT_MATCHSET_CONCURRENCY = 5;
-const CORENDON_LIVE_MATCHSET_CONCURRENCY = 5;
 const ELIZA_LIVE_MATCHSET_CONCURRENCY = 5;
-const SUNWEB_LIVE_MATCHSET_CONCURRENCY = 5;
 
 export type Page1ReceiptPricingStats = {
   receiptCalls: number;
@@ -388,10 +395,18 @@ async function runPrijsvrijReceiptIntoCache(
     cacheUnpricedLivePrice(offer, params);
     return 'cached';
   }
+  if (isLivePriceCircuitOpen('prijsvrij')) {
+    cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
+    return 'unavailable';
+  }
   const key = livePriceCacheKey(offer.id, params);
   let didHttp = false;
   const mode = await joinOrStartInflight(pvReceiptInflight, key, async () => {
     if (hasResultsLivePriceOverlay(offer.id, params)) {
+      return;
+    }
+    if (isLivePriceCircuitOpen('prijsvrij')) {
+      cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
       return;
     }
     const ctx = buildPrijsvrijReceiptContext(offer, params);
@@ -403,14 +418,24 @@ async function runPrijsvrijReceiptIntoCache(
     try {
       const result = await fetchPrijsvrijReceiptPrice(ctx, { fetchImpl });
       if (result.ok) {
+        recordLivePriceCircuitSuccess('prijsvrij');
         cacheLiveOverlay(
           withReceiptPrice(offer, result.price.pricePerPerson, result.price.totalInclLocal),
           params,
         );
       } else {
+        if (isRetryableTechnicalLivePriceFailure({
+          reason: result.reason ?? 'exception',
+          httpStatus: result.httpStatus,
+        })) {
+          recordLivePriceCircuitFailure('prijsvrij');
+        } else {
+          recordLivePriceCircuitSuccess('prijsvrij');
+        }
         cacheUnavailableLivePrice(offer, params, result);
       }
     } catch {
+      recordLivePriceCircuitFailure('prijsvrij');
       cacheUnavailableLivePrice(offer, params, { reason: 'exception' });
     }
   });
@@ -427,6 +452,27 @@ function listingCacheParams(params: SearchParams, listing: { host: string; feedI
   return { ...params, listingKey: corendonListingCacheKey(listing) };
 }
 
+function noteLivePriceCircuitOutcome(
+  provider: LivePriceCircuitProvider,
+  result: LivePriceAttemptResult,
+): void {
+  if (result.ok) {
+    recordLivePriceCircuitSuccess(provider);
+    return;
+  }
+  if (
+    isRetryableTechnicalLivePriceFailure({
+      reason: result.reason ?? 'exception',
+      httpStatus: result.httpStatus,
+    })
+  ) {
+    recordLivePriceCircuitFailure(provider);
+    return;
+  }
+  // Business unavailability (empty / stale / no trip) does not open the circuit.
+  recordLivePriceCircuitSuccess(provider);
+}
+
 async function runCorendonLiveIntoCache(
   offer: TravelOffer,
   params: SearchParams,
@@ -434,6 +480,11 @@ async function runCorendonLiveIntoCache(
 ): Promise<void> {
   if (!resolveCorendonLiveOccupancy(params).ok) {
     cacheUnpricedLivePrice(offer, params);
+    return;
+  }
+
+  if (isLivePriceCircuitOpen('corendon')) {
+    cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
     return;
   }
 
@@ -466,9 +517,16 @@ async function runCorendonLiveIntoCache(
       if (hasResultsLivePriceOverlay(offer.id, listingParams)) {
         return;
       }
+      if (isLivePriceCircuitOpen('corendon')) {
+        cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, {
+          reason: 'circuit_open',
+        });
+        return;
+      }
       const result = await fetchLivePriceWithImmediateRetry(() =>
         fetchCorendonLivePrice(ctx, { fetchImpl }),
       );
+      noteLivePriceCircuitOutcome('corendon', result);
       if (result.ok) {
         cacheLiveOverlay(
           withCorendonLivePrice(
@@ -506,9 +564,17 @@ async function runElizaLiveIntoCache(
     cacheUnpricedLivePrice(offer, params);
     return;
   }
+  if (isLivePriceCircuitOpen('eliza')) {
+    cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
+    return;
+  }
   const key = livePriceCacheKey(offer.id, params);
   await joinOrStartInflight(elizaLiveInflight, key, async () => {
     if (hasResultsLivePriceOverlay(offer.id, params)) {
+      return;
+    }
+    if (isLivePriceCircuitOpen('eliza')) {
+      cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
       return;
     }
     const ctx = buildElizaLiveContext(offer, params);
@@ -519,6 +585,7 @@ async function runElizaLiveIntoCache(
     const result = await fetchLivePriceWithImmediateRetry(() =>
       fetchElizaPromotedPrice(ctx, { fetchImpl }),
     );
+    noteLivePriceCircuitOutcome('eliza', result);
     if (result.ok) {
       cacheLiveOverlay(withElizaLivePrice(offer, result.pricePerPerson, result.totalPrice), params);
     } else {
@@ -539,9 +606,17 @@ async function runSunwebLiveIntoCache(
     cacheUnpricedLivePrice(offer, params);
     return;
   }
+  if (isLivePriceCircuitOpen('sunweb')) {
+    cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
+    return;
+  }
   const key = livePriceCacheKey(offer.id, params);
   await joinOrStartInflight(sunwebLiveInflight, key, async () => {
     if (hasResultsLivePriceOverlay(offer.id, params)) {
+      return;
+    }
+    if (isLivePriceCircuitOpen('sunweb')) {
+      cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
       return;
     }
     const ctx = buildSunwebLiveContext(offer, params);
@@ -552,6 +627,7 @@ async function runSunwebLiveIntoCache(
     const result = await fetchLivePriceWithImmediateRetry(() =>
       fetchSunwebPromotedPrice(ctx, { fetchImpl }),
     );
+    noteLivePriceCircuitOutcome('sunweb', result);
     if (result.ok) {
       cacheLiveOverlay(withSunwebLivePrice(offer, result.pricePerPerson, result.totalPrice), params);
     } else {
@@ -706,6 +782,7 @@ export function clearLivePriceInflightForTests(): void {
   corendonLiveInflight.clear();
   elizaLiveInflight.clear();
   sunwebLiveInflight.clear();
+  resetLivePriceCircuitForTests();
 }
 
 export async function mapWithConcurrency<T, R>(

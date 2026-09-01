@@ -168,6 +168,11 @@ test('status definitions are strict and not interchangeable', () => {
   assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'http_error', httpStatus: 404 }), false);
   assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'empty', httpStatus: 204 }), false);
   assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'unavailable_trip' }), false);
+  assert.equal(isRetryableTechnicalLivePriceFailure({ reason: 'circuit_open' }), false);
+  assert.deepEqual(classifyLivePriceFailure({ reason: 'circuit_open' }), {
+    status: LIVE_PRICE_ATTEMPT_STATUS.ERROR,
+    reason: LIVE_PRICE_ATTEMPT_REASON.circuit_open,
+  });
   assert.notEqual(
     classifyLivePriceFailure({ reason: 'empty', httpStatus: 204 }).status,
     LIVE_PRICE_ATTEMPT_STATUS.UNPRICED,

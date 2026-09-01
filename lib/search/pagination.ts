@@ -11,22 +11,11 @@ export const RESULTS_PAGE_SIZE_MAX = 100;
  */
 export const RESULTS_LIVE_PRICING_CANDIDATE_CAP = 150;
 
-/** Product limit for the user-facing Results result set after filter + rank. Not live-pricing. */
-export const RESULTS_USER_RESULTSET_MAX = 1000;
-
 /**
  * @deprecated Alias of {@link RESULTS_LIVE_PRICING_CANDIDATE_CAP}.
  * Not a user-resultset / browse limit.
  */
 export const RESULTS_USER_PAGINATION_CAP = RESULTS_LIVE_PRICING_CANDIDATE_CAP;
-
-/** True when the ranked matchset exceeds the product user-resultset limit. */
-export function isResultsResultsetOverLimit(
-  matchCount: number,
-  max: number = RESULTS_USER_RESULTSET_MAX,
-): boolean {
-  return matchCount > max;
-}
 
 /**
  * First `cap` offers of an already-ranked matchset for live-pricing work only.

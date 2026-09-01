@@ -42,6 +42,7 @@ export const LIVE_PRICE_ATTEMPT_REASON = {
   timeout: 'timeout',
   network_error: 'network_error',
   stale_context: 'stale_context',
+  circuit_open: 'circuit_open',
   exception: 'exception',
 } as const;
 
@@ -193,6 +194,12 @@ export function classifyLivePriceFailure(
         status: LIVE_PRICE_ATTEMPT_STATUS.ERROR,
         reason: LIVE_PRICE_ATTEMPT_REASON.stale_context,
       };
+    case 'circuit_open':
+      // Technical skip while breaker is open — short TTL, not an 8h blacklist.
+      return {
+        status: LIVE_PRICE_ATTEMPT_STATUS.ERROR,
+        reason: LIVE_PRICE_ATTEMPT_REASON.circuit_open,
+      };
     case 'exception':
       return {
         status: LIVE_PRICE_ATTEMPT_STATUS.ERROR,
@@ -217,7 +224,10 @@ export function isRetryableTechnicalLivePriceFailure(input: LivePriceFailureInpu
   if (classified.status !== LIVE_PRICE_ATTEMPT_STATUS.ERROR) {
     return false;
   }
-  if (classified.reason === LIVE_PRICE_ATTEMPT_REASON.missing_context) {
+  if (
+    classified.reason === LIVE_PRICE_ATTEMPT_REASON.missing_context ||
+    classified.reason === LIVE_PRICE_ATTEMPT_REASON.circuit_open
+  ) {
     return false;
   }
   if (classified.reason === LIVE_PRICE_ATTEMPT_REASON.http_error) {

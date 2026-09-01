@@ -11,7 +11,9 @@
     "import:feeds": "tsc -p tsconfig.import.json && node dist/import/scripts/import-all-feeds.js",
     "upload:offers": "tsc -p tsconfig.import.json && node dist/import/scripts/upload-offers.js",
     "refresh:offers": "tsc -p tsconfig.import.json && node dist/import/scripts/refresh-offers.js",
-    "validate:prijsvrij": "tsc -p tsconfig.import.json && node dist/import/scripts/validate-prijsvrij-import.js"
+    "validate:prijsvrij": "tsc -p tsconfig.import.json && node dist/import/scripts/validate-prijsvrij-import.js",
+    "backup:pre-sub19": "tsc -p tsconfig.import.json && node dist/import/scripts/backup-pre-sub19.js",
+    "publish:generation": "tsc -p tsconfig.import.json && node dist/import/scripts/publish-generation.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",
