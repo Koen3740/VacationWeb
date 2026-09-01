@@ -28,3 +28,16 @@ export const SUNWEB_LIVE_MATCHSET_CONCURRENCY = SUNWEB_LIVE_PAGE1_CONCURRENCY;
  * Implemented in `lib/http/sunweb-keepalive-agent.ts`.
  */
 export const SUNWEB_KEEPALIVE_ENV = 'VACATIONWEB_SUNWEB_KEEPALIVE';
+
+/**
+ * L4: opt-in parallel grouped availability + GPP after contextItemId is known.
+ * Set env to exactly `1` to enable. Default unset/other → sequential (grouped then GPP).
+ * Fail-closed exact-trip gate is always applied before presenting a GPP price.
+ */
+export const SUNWEB_GROUPED_GPP_PARALLEL_ENV = 'VACATIONWEB_SUNWEB_GROUPED_GPP_PARALLEL';
+
+export function isSunwebGroupedGppParallelEnabled(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return (env[SUNWEB_GROUPED_GPP_PARALLEL_ENV] ?? '').trim() === '1';
+}

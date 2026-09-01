@@ -129,8 +129,8 @@ test.beforeEach(() => {
   resetContextItemIdCacheForTests();
 });
 
-test('1. TTL is exactly the proven 2s window', () => {
-  assert.equal(CONTEXT_ITEM_ID_CACHE_TTL_MS, 2_000);
+test('1. TTL is exactly the L3 10s window', () => {
+  assert.equal(CONTEXT_ITEM_ID_CACHE_TTL_MS, 10_000);
 });
 
 test('2. cache stores contextItemId per acco; site GUIDs are config not per-acco', () => {

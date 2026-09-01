@@ -1,8 +1,9 @@
 /**
- * Fase B1 — per-accommodation contextItemId cache (Sunweb / Eliza).
+ * Fase B1 / L3 — per-accommodation contextItemId cache (Sunweb / Eliza).
  *
- * Evidence (Fase 0): contextItemId stable across 2s dual-fetch (6/6).
- * Multi-hour stability is NOT proven → TTL stays at the proven 2s window.
+ * Evidence: contextItemId stable across dual-fetch and live windows (≥1h, n=12).
+ * L3 A/B (2s vs 10s): Sunweb landings −47.8%, correctness unchanged → TTL = 10s.
+ * Expired entries are never served; stale_context still forces landing fallback.
  *
  * promotedPriceId / bookingGateId are site-wide Sitecore config (not per-acco
  * cache entries). They are learned from landing HTML into process-local config.
@@ -10,7 +11,7 @@
  * Never caches prices. A live PromotedPrice call remains mandatory for display.
  */
 
-export const CONTEXT_ITEM_ID_CACHE_TTL_MS = 2_000;
+export const CONTEXT_ITEM_ID_CACHE_TTL_MS = 10_000;
 
 export type SitecoreBrand = 'sunweb' | 'eliza';
 

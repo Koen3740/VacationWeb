@@ -89,10 +89,10 @@ function urlOf(input: RequestInfo | URL): string {
   return input.url;
 }
 
-test('L0 baseline knobs remain C=5 and TTL=2s before any canary', () => {
+test('L0 baseline knobs remain C=5 and TTL=10s (L3)', () => {
   assert.equal(SUNWEB_LIVE_PAGE1_CONCURRENCY, 5);
   assert.equal(ELIZA_LIVE_PAGE1_CONCURRENCY, 5);
-  assert.equal(CONTEXT_ITEM_ID_CACHE_TTL_MS, 2_000);
+  assert.equal(CONTEXT_ITEM_ID_CACHE_TTL_MS, 10_000);
 });
 
 test('L0 Sunweb records landing+grouped+gpp timings without changing success price', async () => {
@@ -119,7 +119,7 @@ test('L0 Sunweb records landing+grouped+gpp timings without changing success pri
 
   const snap = getLivePriceStepTelemetrySnapshot();
   assert.equal(snap.baseline.sunwebPage1Concurrency, 5);
-  assert.equal(snap.baseline.contextItemIdCacheTtlMs, 2_000);
+  assert.equal(snap.baseline.contextItemIdCacheTtlMs, 10_000);
   const sun = snap.byProvider.sunweb;
   assert.equal(sun.events, 1);
   assert.equal(sun.ok, 1);

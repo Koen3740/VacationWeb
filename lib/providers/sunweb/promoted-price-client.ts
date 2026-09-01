@@ -6,6 +6,7 @@ import {
 } from '../../http/sunweb-keepalive-agent';
 import {
   CONTEXT_ITEM_ID_CACHE_TTL_MS,
+  contextItemIdCacheKey,
   getCachedContextItemId,
   getSitecoreSiteGuidConfig,
   invalidateCachedContextItemId,
@@ -23,6 +24,7 @@ import {
   SUNWEB_LIVE_PAGE1_CONCURRENCY,
   SUNWEB_LIVE_TIMEOUT_MS,
   SUNWEB_PROMOTED_PRICE_PATH,
+  isSunwebGroupedGppParallelEnabled,
 } from './constants';
 import {
   fetchSunwebExactTripAvailability,
@@ -257,6 +259,45 @@ async function fetchSunwebLandingGuids(
   return { ok: true, guids, landingMs: nowMs() - t0 };
 }
 
+/** L5 — coalesce concurrent landing HTML fetches per acco (Sunweb only). */
+const sunwebLandingInflight = new Map<string, Promise<TimedLanding>>();
+let sunwebLandingInflightJoined = 0;
+
+function sunwebLandingInflightKey(ctx: SunwebLiveContext, forceLanding: boolean): string {
+  return `${contextItemIdCacheKey('sunweb', ctx.feHost, ctx.accoId)}|${forceLanding ? 'force' : 'normal'}`;
+}
+
+async function fetchSunwebLandingGuidsCoalesced(
+  ctx: SunwebLiveContext,
+  fetchImpl: FetchLike,
+  forceLanding: boolean,
+): Promise<TimedLanding> {
+  const key = sunwebLandingInflightKey(ctx, forceLanding);
+  const existing = sunwebLandingInflight.get(key);
+  if (existing) {
+    sunwebLandingInflightJoined += 1;
+    return existing;
+  }
+  const started = fetchSunwebLandingGuids(ctx, fetchImpl).finally(() => {
+    if (sunwebLandingInflight.get(key) === started) {
+      sunwebLandingInflight.delete(key);
+    }
+  });
+  sunwebLandingInflight.set(key, started);
+  return started;
+}
+
+/** Test helper — reset L5 landing inflight coalescing state. */
+export function resetSunwebLandingInflightForTests(): void {
+  sunwebLandingInflight.clear();
+  sunwebLandingInflightJoined = 0;
+}
+
+/** Test helper — count landing HTTP calls avoided via L5 inflight join. */
+export function getSunwebLandingCoalescingStatsForTests(): { inflightJoined: number } {
+  return { inflightJoined: sunwebLandingInflightJoined };
+}
+
 type ResolvedGuids =
   | {
       ok: true;
@@ -286,7 +327,7 @@ async function resolveSunwebGuids(
     recordContextItemLandingFallback();
   }
 
-  const landing = await fetchSunwebLandingGuids(ctx, fetchImpl);
+  const landing = await fetchSunwebLandingGuidsCoalesced(ctx, fetchImpl, forceLanding);
   if (!landing.ok) {
     return {
       ok: false,
@@ -311,34 +352,38 @@ type PriceWithSteps = {
   httpErrorStatuses: number[];
 };
 
-async function fetchSunwebPriceWithGuids(
+type HttpCounters = { http429Count: number; httpErrorStatuses: number[] };
+
+type GroupedStepOutcome = {
+  availability: Awaited<ReturnType<typeof fetchSunwebExactTripAvailability>>;
+  groupedMs: number;
+};
+
+type GppStepOutcome = {
+  result: SunwebLivePriceResult;
+  gppMs: number;
+} & HttpCounters;
+
+async function fetchSunwebGroupedStep(
   ctx: SunwebLiveContext,
   guids: SunwebLandingGuids,
   fetchImpl: FetchLike,
   todayIso?: string,
-): Promise<PriceWithSteps> {
-  const counters = { http429Count: 0, httpErrorStatuses: [] as number[] };
+): Promise<GroupedStepOutcome> {
   const tGrouped = nowMs();
   const availability = await fetchSunwebExactTripAvailability(ctx, guids, {
     fetchImpl,
     todayIso,
   });
-  const groupedMs = nowMs() - tGrouped;
-  if (!availability.ok) {
-    noteHttpStatus(availability.httpStatus, counters);
-    if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
-      console.info(
-        `[sunweb-availability] exact=false reason=${availability.reason} acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=skip`,
-      );
-    }
-    return { result: availability, groupedMs, ...counters };
-  }
-  if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
-    console.info(
-      `[sunweb-availability] exact=true acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=call`,
-    );
-  }
+  return { availability, groupedMs: nowMs() - tGrouped };
+}
 
+async function fetchSunwebGppStep(
+  ctx: SunwebLiveContext,
+  guids: SunwebLandingGuids,
+  fetchImpl: FetchLike,
+): Promise<GppStepOutcome> {
+  const counters: HttpCounters = { http429Count: 0, httpErrorStatuses: [] };
   const tGpp = nowMs();
   const priceResponse = await fetchImpl(buildSunwebPromotedPriceUrl(ctx, guids), {
     method: 'GET',
@@ -355,7 +400,6 @@ async function fetchSunwebPriceWithGuids(
   if (priceResponse.status === 204) {
     return {
       result: { ok: false, reason: 'empty', httpStatus: 204 },
-      groupedMs,
       gppMs,
       ...counters,
     };
@@ -363,7 +407,6 @@ async function fetchSunwebPriceWithGuids(
   if (priceResponse.status !== 200) {
     return {
       result: { ok: false, reason: 'http_error', httpStatus: priceResponse.status },
-      groupedMs,
       gppMs,
       ...counters,
     };
@@ -375,7 +418,6 @@ async function fetchSunwebPriceWithGuids(
   } catch {
     return {
       result: { ok: false, reason: 'empty', httpStatus: 200 },
-      groupedMs,
       gppMs,
       ...counters,
     };
@@ -385,7 +427,6 @@ async function fetchSunwebPriceWithGuids(
   if (!live || !Number.isFinite(live.averagePrice) || live.averagePrice <= 0) {
     return {
       result: { ok: false, reason: 'invalid_price', httpStatus: 200 },
-      groupedMs,
       gppMs,
       ...counters,
     };
@@ -394,7 +435,6 @@ async function fetchSunwebPriceWithGuids(
   if (!contextMatches(ctx, live)) {
     return {
       result: { ok: false, reason: 'stale_context', httpStatus: 200 },
-      groupedMs,
       gppMs,
       ...counters,
     };
@@ -409,8 +449,83 @@ async function fetchSunwebPriceWithGuids(
         : {}),
       accoId: live.accommodationId,
     },
-    groupedMs,
     gppMs,
+    ...counters,
+  };
+}
+
+function mergeHttpCounters(target: HttpCounters, source: HttpCounters): void {
+  target.http429Count += source.http429Count;
+  target.httpErrorStatuses.push(...source.httpErrorStatuses);
+}
+
+function finalizeSunwebPriceFromGroupedAndGpp(
+  ctx: SunwebLiveContext,
+  grouped: GroupedStepOutcome,
+  gpp: GppStepOutcome,
+  counters: HttpCounters,
+): PriceWithSteps {
+  mergeHttpCounters(counters, gpp);
+  if (!grouped.availability.ok) {
+    noteHttpStatus(grouped.availability.httpStatus, counters);
+    if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
+      console.info(
+        `[sunweb-availability] exact=false reason=${grouped.availability.reason} acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=skip`,
+      );
+    }
+    return { result: grouped.availability, groupedMs: grouped.groupedMs, gppMs: gpp.gppMs, ...counters };
+  }
+  if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
+    console.info(
+      `[sunweb-availability] exact=true acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=call`,
+    );
+  }
+  return {
+    result: gpp.result,
+    groupedMs: grouped.groupedMs,
+    gppMs: gpp.gppMs,
+    ...counters,
+  };
+}
+
+async function fetchSunwebPriceWithGuids(
+  ctx: SunwebLiveContext,
+  guids: SunwebLandingGuids,
+  fetchImpl: FetchLike,
+  todayIso?: string,
+): Promise<PriceWithSteps> {
+  const counters: HttpCounters = { http429Count: 0, httpErrorStatuses: [] };
+
+  if (isSunwebGroupedGppParallelEnabled()) {
+    const [grouped, gpp] = await Promise.all([
+      fetchSunwebGroupedStep(ctx, guids, fetchImpl, todayIso),
+      fetchSunwebGppStep(ctx, guids, fetchImpl),
+    ]);
+    return finalizeSunwebPriceFromGroupedAndGpp(ctx, grouped, gpp, counters);
+  }
+
+  const grouped = await fetchSunwebGroupedStep(ctx, guids, fetchImpl, todayIso);
+  if (!grouped.availability.ok) {
+    noteHttpStatus(grouped.availability.httpStatus, counters);
+    if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
+      console.info(
+        `[sunweb-availability] exact=false reason=${grouped.availability.reason} acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=skip`,
+      );
+    }
+    return { result: grouped.availability, groupedMs: grouped.groupedMs, ...counters };
+  }
+  if (process.env.NODE_ENV !== 'test' && !process.env.NODE_TEST_CONTEXT) {
+    console.info(
+      `[sunweb-availability] exact=true acco=${ctx.accoId} date=${ctx.query.departureDate} airport=${ctx.query.departureAirport} duration=${ctx.query.duration} meal=${ctx.query.mealplan} gpp=call`,
+    );
+  }
+
+  const gpp = await fetchSunwebGppStep(ctx, guids, fetchImpl);
+  mergeHttpCounters(counters, gpp);
+  return {
+    result: gpp.result,
+    groupedMs: grouped.groupedMs,
+    gppMs: gpp.gppMs,
     ...counters,
   };
 }

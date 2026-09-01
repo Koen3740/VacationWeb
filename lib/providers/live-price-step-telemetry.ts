@@ -69,7 +69,7 @@ const byProviderEvents = new Map<LivePriceStepProvider, LivePriceStepEvent[]>();
 let baselineKnobs: LivePriceStepTelemetrySnapshot['baseline'] = {
   sunwebPage1Concurrency: 5,
   elizaPage1Concurrency: 5,
-  contextItemIdCacheTtlMs: 2_000,
+  contextItemIdCacheTtlMs: 10_000,
 };
 
 export function configureLivePriceStepTelemetryBaseline(
