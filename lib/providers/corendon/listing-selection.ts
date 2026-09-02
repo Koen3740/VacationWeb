@@ -2,6 +2,7 @@ import type { ProviderListing } from '../../feeds/types/stored-offer';
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import type { SearchParams } from '../../../types/travel';
 import { parseDepartureAirportsParam } from '../../search/departure-airports';
+import { mapCorendonAirportRouteInbound } from '../../search/provider-airport-mapping';
 import {
   CORENDON_FE_HOST,
   CORENDON_FE_HOST_BE_FR,
@@ -46,12 +47,11 @@ export function feedIdForCorendonHost(host: string): string {
 }
 
 export function departureIataFromAirportRoute(airportRoute: string | undefined): string | undefined {
-  const raw = airportRoute?.trim().toUpperCase() ?? '';
-  if (raw.length < 3) {
-    return undefined;
+  const mapped = mapCorendonAirportRouteInbound(airportRoute);
+  if (mapped.status === 'MAPPED' || mapped.status === 'CANONICAL_AIRPORT_MISSING') {
+    return mapped.canonicalIata;
   }
-  const iata = raw.slice(0, 3);
-  return /^[A-Z]{3}$/.test(iata) ? iata : undefined;
+  return undefined;
 }
 
 export function listingFromCorendonOffer(offer: TravelOffer): ProviderListing | null {
