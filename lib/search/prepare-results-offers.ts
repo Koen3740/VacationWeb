@@ -1,7 +1,7 @@
 import type { FetchLike } from '../providers/prijsvrij/auth';
 import { priceLiveRequiredMatchset, stampUnpricedWhenLiveOccupancyUnsupported } from '../providers/prijsvrij/page1-receipt-pricing';
 import type { SearchParams, TravelOffer } from '../../types/travel';
-import { filterOffers, offerMatchesBudget, sortOffers } from './filtering';
+import { filterOffers, sortOffers } from './filtering';
 import {
   limitLivePricingCandidatePool,
   paginateResults,
@@ -48,14 +48,15 @@ export function rankCatalogOffers(
  * Live-price ranking of an already-selected candidate pool.
  * Proven live prices sort first; catalog offers without a proven price stay
  * in the matchset (not removed) and follow in catalog order.
+ *
+ * Budget / search filters are applied when the matchset is built — live
+ * overlays must not drop members here or sort mode would change the count.
  */
 export function rankLivePricedCandidatePool(
   pool: readonly TravelOffer[],
   params: SearchParams,
 ): TravelOffer[] {
-  const overlaid = applyResultsLivePriceOverlays(pool, params).filter((offer) =>
-    offerMatchesBudget(offer, params),
-  );
+  const overlaid = applyResultsLivePriceOverlays(pool, params);
   const presentable = sortOffers(overlaid.filter(hasValidPresentablePrice), params.sort);
   const notPresentable = overlaid.filter((offer) => !hasValidPresentablePrice(offer));
   return [...presentable, ...notPresentable];

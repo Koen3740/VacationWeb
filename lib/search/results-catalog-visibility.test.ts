@@ -11,7 +11,10 @@ import {
   RESULTS_PRODUCT_PAGE_SIZE,
   startCatalogPageLiveOverlays,
 } from '@/lib/providers/prijsvrij';
-import { CORENDON_FE_HOST } from '@/lib/providers/corendon/constants';
+import {
+  CORENDON_FE_HOST,
+  CORENDON_LIVE_PAGE1_CONCURRENCY,
+} from '@/lib/providers/corendon/constants';
 import { clearResultsLivePriceCache } from '@/lib/search/results-live-price-cache';
 import {
   measureResultsPipelineCounts,
@@ -353,7 +356,10 @@ test('TEST 13: catalog Corendon overlays keep existing page-1 concurrency of 5',
   });
   assert.equal(overlays.every((overlay) => overlay.pending), true);
   await Promise.all(overlays.map((overlay) => overlay.live));
-  assert.ok(maxInFlight <= 5, `Corendon catalog overlay concurrency was ${maxInFlight}`);
+  assert.ok(
+    maxInFlight <= CORENDON_LIVE_PAGE1_CONCURRENCY,
+    `Corendon catalog overlay concurrency was ${maxInFlight}`,
+  );
   assert.ok(maxInFlight >= 2, `expected parallel Corendon work, got ${maxInFlight}`);
 });
 
@@ -380,7 +386,7 @@ test('presentable offers are prioritized before catalog-pending on page 1', () =
   );
 });
 
-test('settled unavailable offers are excluded from pagination pool', () => {
+test('settled unavailable offers stay in pagination pool after presentable/pending', () => {
   const ranked = [
     makeCorendon({ id: 'visible', livePriceStatus: 'catalog' }),
     makeCorendon({
@@ -390,8 +396,9 @@ test('settled unavailable offers are excluded from pagination pool', () => {
     }),
   ];
   const ordered = orderCatalogPageCandidates(ranked, { adults: 2 });
-  assert.equal(ordered.length, 1);
+  assert.equal(ordered.length, 2);
   assert.equal(ordered[0].id, 'visible');
+  assert.equal(ordered[1].id, 'hidden');
 });
 
 test('pipeline counts distinguish catalog, listable, and presentable stages', () => {
@@ -420,6 +427,6 @@ test('pipeline counts distinguish catalog, listable, and presentable stages', ()
   assert.equal(counts.afterCatalogFilter, 13);
   assert.equal(counts.afterListabilityFilter, 12);
   assert.equal(counts.afterPresentableFilter, 1);
-  assert.equal(counts.afterPaginationOrder, 12);
+  assert.equal(counts.afterPaginationOrder, 13);
   assert.equal(counts.pageSliceSize, 10);
 });

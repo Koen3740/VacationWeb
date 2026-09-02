@@ -122,10 +122,10 @@ export default async function ResultsPage({
 
   const prepared = await prepareResultsOffers(offers, filteringParams);
   // Full filtered+ranked matchset is the user result set — never slice(0, 150) for browse/count.
+  // Count/pagination follow this matchset; live-price admission must not shrink it.
   const filtered = prepared.offers;
-  // Count matches listable user set: presentable first, pending listable, excludes settled A/C.
   const orderedPool = orderCatalogPageCandidates(filtered, filteringParams);
-  const matchCount = orderedPool.length;
+  const matchCount = filtered.length;
   const carRentalCount = countCarRentalFacet(filtered, filteringParams);
 
   const pageShell = {

@@ -20,7 +20,7 @@ export type ResultsPipelineCounts = {
   afterListabilityFilter: number;
   /** Offers with cached proven live p.p. + total. */
   afterPresentableFilter: number;
-  /** Listable offers ordered for pagination (presentable first, then pending). */
+  /** Ordered browse pool (presentable → pending → settled); equals ranked.length. */
   afterPaginationOrder: number;
   pageSize: number;
   pageSliceSize: number;
@@ -30,17 +30,22 @@ export type ResultsPipelineCounts = {
 export const PAGE1_OVERLAY_RESERVE = 10;
 
 /**
- * Pagination pool: proven presentable offers first (stable), then catalog/pending listable.
- * Settled unavailable / unpriced offers are excluded.
+ * Pagination / browse pool for a ranked filter matchset.
+ *
+ * Presentable offers first, then other listable (catalog/pending), then
+ * settled live failures. Length always equals the ranked matchset — live
+ * pricing must not shrink result count or pagination totals.
  */
 export function orderCatalogPageCandidates(
   ranked: readonly TravelOffer[],
   params?: SearchParams,
 ): TravelOffer[] {
-  const listable = filterToResultsListableOffers(ranked as TravelOffer[]);
-  const overlaid = params ? applyResultsLivePriceOverlays(listable, params) : listable;
+  const overlaid = params
+    ? applyResultsLivePriceOverlays(ranked as TravelOffer[], params)
+    : (ranked as TravelOffer[]);
   const presentable: TravelOffer[] = [];
   const pending: TravelOffer[] = [];
+  const settled: TravelOffer[] = [];
 
   for (const offer of overlaid) {
     if (hasValidPresentablePrice(offer)) {
@@ -49,10 +54,12 @@ export function orderCatalogPageCandidates(
     }
     if (isResultsListableOffer(offer)) {
       pending.push(offer);
+      continue;
     }
+    settled.push(offer);
   }
 
-  return [...presentable, ...pending];
+  return [...presentable, ...pending, ...settled];
 }
 
 export function measureResultsPipelineCounts(
@@ -62,7 +69,7 @@ export function measureResultsPipelineCounts(
   pageSize: number,
 ): ResultsPipelineCounts {
   const listable = filterToResultsListableOffers(ranked as TravelOffer[]);
-  const overlaid = applyResultsLivePriceOverlays(listable, params);
+  const overlaid = applyResultsLivePriceOverlays(ranked as TravelOffer[], params);
   const ordered = orderCatalogPageCandidates(ranked, params);
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
 
@@ -70,6 +77,7 @@ export function measureResultsPipelineCounts(
     afterCatalogFilter: ranked.length,
     afterListabilityFilter: listable.length,
     afterPresentableFilter: overlaid.filter(hasValidPresentablePrice).length,
+    /** Always equals ranked.length — settled live failures stay in the browse pool. */
     afterPaginationOrder: ordered.length,
     pageSize,
     pageSliceSize: paginateResults(ordered, safePage, pageSize).length,
