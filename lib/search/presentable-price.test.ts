@@ -522,15 +522,15 @@ test('22. Package-2A: non-PV presentable cards stay immediate; failed live slots
   assert.ok(!presented.page1.some((offer) => offer.provider === ELIZA_PROVIDER_NAME && offer.livePriceSource === 'feed'));
 });
 
-test('23. Homepage bevat geen airport selector', () => {
+test('23. Homepage bevat airport multi-select in Hero search', () => {
   const homeSearch = readFileSync(join(ROOT, 'components/home/home-search.tsx'), 'utf8');
   const homeHero = readFileSync(join(ROOT, 'components/home/home-hero.tsx'), 'utf8');
   const homePage = readFileSync(join(ROOT, 'app/page.tsx'), 'utf8');
-  assert.ok(!homeSearch.includes('DepartureAirportPopup'));
-  assert.ok(!homeSearch.includes('airportPopupOpen'));
-  assert.ok(!homeSearch.includes('Vertrekluchthaven'));
-  assert.ok(!homeHero.includes('departureAirports'));
-  assert.ok(!homePage.includes('departureAirports'));
+  assert.ok(homeSearch.includes('DepartureAirportPopup'));
+  assert.ok(homeSearch.includes('airportPopupOpen'));
+  assert.ok(homeSearch.includes('selectedDepartureAirports'));
+  assert.ok(homeHero.includes('departureAirports'));
+  assert.ok(homePage.includes('departureAirports'));
 });
 
 test('24. Results bevat wel airport multi-select', () => {
