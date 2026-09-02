@@ -120,7 +120,7 @@ test('Variant B card without matched highlights still reserves empty 3×2 grid',
   assert.match(html, /data-testid="travel-card"/);
   assert.match(html, /data-testid="travel-card-highlights"/);
   assert.match(html, /grid-rows-2/);
-  assert.match(html, /2\.2fr/);
+  assert.match(html, /max-content/);
   assert.doesNotMatch(html, />✓</);
 });
 
@@ -138,8 +138,8 @@ test('Variant B middle column uses fixed 3×2 highlight grid without stretch; ri
   assert.match(html, /md:justify-between md:border-l/);
   assert.match(html, /data-testid="travel-card-highlights"/);
   assert.match(html, /grid-rows-2/);
-  assert.match(html, /2\.2fr/);
-  assert.match(html, /gap-x-5/);
+  assert.match(html, /max-content/);
+  assert.match(html, /gap-x-6/);
 });
 
 test('Variant B keeps hotel name and stars inline in title', () => {
@@ -258,10 +258,10 @@ test('highlight grid reserves 3×2 slots for 1 and 6 highlights', () => {
   assert.match(six, /data-testid="travel-card-highlights"/);
   assert.match(one, /grid-rows-2/);
   assert.match(six, /grid-rows-2/);
-  assert.match(one, /2\.2fr/);
-  assert.match(six, /2\.2fr/);
-  assert.match(one, /gap-x-5/);
-  assert.match(six, /gap-x-5/);
+  assert.match(one, /max-content/);
+  assert.match(six, /max-content/);
+  assert.match(one, /gap-x-6/);
+  assert.match(six, /gap-x-6/);
   assert.match(one, /whitespace-nowrap/);
   assert.match(six, /whitespace-nowrap/);
   assert.match(six, /Huurauto inclusief/);

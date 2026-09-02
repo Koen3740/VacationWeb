@@ -272,7 +272,7 @@ export function TravelCard({
             </div>
 
             <ul
-              className="mt-5 grid grid-rows-2 gap-x-5 gap-y-2 [grid-template-columns:minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)]"
+              className="mt-5 grid grid-rows-2 gap-x-6 gap-y-2 [grid-template-columns:max-content_minmax(0,1fr)_minmax(0,1fr)]"
               data-testid="travel-card-highlights"
             >
               {highlightSlots.map((label, slotIndex) => (
