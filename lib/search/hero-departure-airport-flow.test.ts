@@ -129,10 +129,11 @@ test('6. Results kan selectie wijzigen (serialize + rebuild URL)', () => {
   assert.equal(parseSearchParams(hrefQuery(cleared)).departureAirport, undefined);
 
   const resultsBar = readFileSync(join(ROOT, 'components/results-v2/results-search-bar.tsx'), 'utf8');
+  const resultsBarUtils = readFileSync(join(ROOT, 'components/results-v2/results-search-bar-utils.ts'), 'utf8');
   assert.ok(resultsBar.includes('DepartureAirportPopup'));
   assert.ok(resultsBar.includes('selectedDepartureAirports'));
-  assert.ok(resultsBar.includes("params.set('departureAirport'"));
-  assert.ok(resultsBar.includes("params.delete('departureAirport')"));
+  assert.ok(resultsBarUtils.includes("params.set('departureAirport'"));
+  assert.ok(resultsBarUtils.includes("params.delete('departureAirport')"));
 });
 
 test('7. combinatie met bestaande filters (country + nights + airport)', () => {

@@ -5,23 +5,12 @@ import {
   DurationIcon,
   TravelersIcon,
 } from '@/components/home/home-search-icons';
-import { DeparturePeriodPopup, type FlexibilityDays } from '@/components/search/departure-period-popup/departure-period-popup';
+import { DeparturePeriodPopup } from '@/components/search/departure-period-popup/departure-period-popup';
 import { DurationPopup } from '@/components/search/duration-popup/duration-popup';
 import { DepartureAirportPopup } from '@/components/search/departure-airport-popup/departure-airport-popup';
-import {
-  formatSelectedDepartureAirportsLabel,
-  parseDepartureAirportsParam,
-} from '@/components/search/departure-airport-popup/departure-airport-popup-utils';
-import {
-  formatSelectedDurationsLabel,
-  parseDurationsFromSearchParams,
-} from '@/components/search/duration-popup/duration-popup-utils';
-import {
-  buildResultsHref,
-  saveSharedSearchState,
-} from '@/components/search/shared-search-state';
-import { occupancySearchParamsChanged } from '@/lib/search/filter-classification';
-import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
+import { formatSelectedDepartureAirportsLabel } from '@/components/search/departure-airport-popup/departure-airport-popup-utils';
+import { formatSelectedDurationsLabel } from '@/components/search/duration-popup/duration-popup-utils';
+import { saveSharedSearchState } from '@/components/search/shared-search-state';
 import {
   SEARCH_PROGRESS_DELAY_MS,
   SearchProgressOverlay,
@@ -29,16 +18,25 @@ import {
 } from '@/components/search/search-progress-feedback';
 import { TravelersPopup } from '@/components/search/travelers-popup/travelers-popup';
 import {
-  createDefaultTravelersState,
   formatRoomsLabel,
   formatTravelersLabel,
-  parseTravelersFromQuery,
-  type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
-import { RESULTS_CTA, RESULTS_CTA_HOVER } from '@/components/results-v2/results-design-tokens';
 import { getDepartureDisplay } from '@/components/search/departure-display';
+import {
+  buildResultsBarHref,
+  resultsQueryEqual,
+  stateFromUrl,
+  type ResultsBarSearchState,
+} from '@/components/results-v2/results-search-bar-utils';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
+
+export {
+  buildResultsBarHref,
+  resultsQueryEqual,
+  stateFromUrl,
+  type ResultsBarSearchState,
+} from '@/components/results-v2/results-search-bar-utils';
 
 function PlaneIcon() {
   return (
@@ -89,39 +87,6 @@ function Divider() {
   return <div className="hidden w-px self-stretch bg-[#E8ECF2] lg:block" aria-hidden />;
 }
 
-/** Applied criteria from the URL only — single source of truth with summary/filters. */
-function stateFromUrl(searchParams: URLSearchParams) {
-  const country = searchParams.get('country');
-  const departureStart = searchParams.get('departureStart');
-  const departureEnd = searchParams.get('departureEnd');
-  const flexibilityRaw = Number(searchParams.get('flexibilityDays') || 0);
-  const selectedCountries = country
-    ? country.split(',').map((c) => c.trim()).filter(Boolean)
-    : [];
-
-  const selectedDurations = parseDurationsFromSearchParams(searchParams);
-
-  const travelers: TravelersState =
-    parseTravelersFromQuery({
-      dob: searchParams.get('dob') ?? undefined,
-      partyRooms: searchParams.get('partyRooms') ?? undefined,
-      adults: searchParams.get('adults') ?? undefined,
-      children: searchParams.get('children') ?? undefined,
-      babies: searchParams.get('babies') ?? undefined,
-      rooms: searchParams.get('rooms') ?? undefined,
-    }) ?? createDefaultTravelersState();
-
-  return {
-    selectedCountries,
-    departureStart: departureStart || null,
-    departureEnd: departureEnd || null,
-    flexibilityDays: (flexibilityRaw === 1 || flexibilityRaw === 2 ? flexibilityRaw : 0) as FlexibilityDays,
-    selectedDurations,
-    selectedDepartureAirports: parseDepartureAirportsParam(searchParams.get('departureAirport')),
-    travelers,
-  };
-}
-
 type ResultsSearchBarProps = {
   departureAirports: string[];
 };
@@ -137,16 +102,40 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
   const [airportOpen, setAirportOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const suppressDepartureOpenRef = useRef(false);
-  const searchStartedRef = useRef(false);
+  const navigationLockRef = useRef(false);
+  const pendingApplyRef = useRef<ResultsBarSearchState | null>(null);
+  const stateRef = useRef(state);
+
+  stateRef.current = state;
 
   const searchBusy = isSearching || isPending;
   const showProgressOverlay = useDelayedBusyOverlay(searchBusy, SEARCH_PROGRESS_DELAY_MS);
 
   useEffect(() => {
-    setState(stateFromUrl(new URLSearchParams(searchParams.toString())));
-    searchStartedRef.current = false;
+    const synced = stateFromUrl(new URLSearchParams(searchParams.toString()));
+    setState(synced);
+    stateRef.current = synced;
+    navigationLockRef.current = false;
     setIsSearching(false);
-  }, [searchParams]);
+
+    const pending = pendingApplyRef.current;
+    if (!pending) {
+      return;
+    }
+    pendingApplyRef.current = null;
+    const href = buildResultsBarHref(pending, new URLSearchParams(searchParams.toString()), {
+      liveQuery: typeof window === 'undefined' ? undefined : window.location.search,
+    });
+    const currentHref = `/results?${searchParams.toString()}`;
+    if (resultsQueryEqual(href, currentHref)) {
+      return;
+    }
+    navigationLockRef.current = true;
+    setIsSearching(true);
+    startTransition(() => {
+      router.replace(href, { scroll: false });
+    });
+  }, [searchParams, router]);
 
   useEffect(() => {
     saveSharedSearchState({
@@ -171,69 +160,32 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
   const durationLabel = formatSelectedDurationsLabel(state.selectedDurations);
   const durationValue = durationLabel;
 
-  const searchHref = useMemo(() => {
-    const href = buildResultsHref({
-      selectedCountries: state.selectedCountries,
-      departureStart: state.departureStart,
-      departureEnd: state.departureEnd,
-      flexibilityDays: state.flexibilityDays,
-      selectedDurations: state.selectedDurations,
-      selectedDepartureAirports: state.selectedDepartureAirports,
-      travelers: state.travelers,
-    });
-    const params = new URLSearchParams(href.split('?')[1] || '');
-    // Preserve non-duration filter params from current URL (no new filter logic)
-    const preserve = [
-      'budgetMin',
-      'budgetMax',
-      'region',
-      'city',
-      'boardTypes',
-      'accommodationTypes',
-      'stars',
-      'vacationTypes',
-      'beachLocation',
-      'centerLocation',
-      'amenities',
-      'sort',
-      'hasCarRental',
-    ];
-    for (const key of preserve) {
-      const value = searchParams.get(key);
-      if (value) params.set(key, value);
-    }
-    // Duration: only `nights` when consciously selected — never pollute with nightsMin/Max
-    params.delete('nightsMin');
-    params.delete('nightsMax');
-    if (state.selectedDurations.length === 0) {
-      params.delete('nights');
-    }
-    if (state.selectedDepartureAirports.length > 0) {
-      params.set('departureAirport', state.selectedDepartureAirports.join(','));
-    } else {
-      params.delete('departureAirport');
-    }
-    params.delete('page');
-    if (occupancySearchParamsChanged(searchParams, params)) {
-      params.delete('page1Ids');
-    } else {
-      applyFilterNavigationPaging(params, {
-        preservePage1Ids: true,
-        liveQuery: typeof window === 'undefined' ? undefined : window.location.search,
-      });
-    }
-    return `/results?${params.toString()}`;
-  }, [searchParams, state]);
-
-  function runSearch() {
-    if (searchStartedRef.current || searchBusy) {
+  function applyBarState(next: ResultsBarSearchState) {
+    if (navigationLockRef.current || searchBusy) {
+      // Keep the latest commit; flush after the in-flight URL update settles.
+      pendingApplyRef.current = next;
       return;
     }
-    searchStartedRef.current = true;
+
+    const href = buildResultsBarHref(next, new URLSearchParams(searchParams.toString()), {
+      liveQuery: typeof window === 'undefined' ? undefined : window.location.search,
+    });
+    const currentHref = `/results?${searchParams.toString()}`;
+    if (resultsQueryEqual(href, currentHref)) {
+      pendingApplyRef.current = null;
+      return;
+    }
+
+    navigationLockRef.current = true;
     setIsSearching(true);
     startTransition(() => {
-      router.push(searchHref);
+      router.replace(href, { scroll: false });
     });
+  }
+
+  /** Commit after a multi-step popup closes (travelers / departure). */
+  function applyAfterPopupClose() {
+    applyBarState(stateRef.current);
   }
 
   return (
@@ -279,24 +231,6 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
               onClick={() => setAirportOpen(true)}
             />
           </div>
-
-          <button
-            type="button"
-            onClick={runSearch}
-            disabled={searchBusy}
-            aria-busy={searchBusy}
-            className="mt-1 inline-flex h-11 shrink-0 items-center justify-center rounded-[12px] px-6 text-[14px] font-semibold text-white transition disabled:cursor-wait disabled:opacity-80 lg:mt-0 lg:h-auto lg:min-w-[104px] lg:self-stretch lg:rounded-[12px]"
-            style={{ backgroundColor: RESULTS_CTA }}
-            onMouseEnter={(e) => {
-              if (searchBusy) return;
-              e.currentTarget.style.backgroundColor = RESULTS_CTA_HOVER;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = RESULTS_CTA;
-            }}
-          >
-            {searchBusy ? 'Zoeken…' : 'Zoeken'}
-          </button>
         </div>
       </div>
 
@@ -312,15 +246,21 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
           setDepartureOpen(false);
           window.setTimeout(() => {
             suppressDepartureOpenRef.current = false;
+            applyAfterPopupClose();
           }, 100);
         }}
         onChange={(start, end, flexibility) => {
-          setState((prev) => ({
-            ...prev,
-            departureStart: start,
-            departureEnd: end,
-            flexibilityDays: flexibility !== undefined ? flexibility : prev.flexibilityDays,
-          }));
+          // Draft only while open — apply when the popup closes (complete selection / confirm).
+          setState((prev) => {
+            const next = {
+              ...prev,
+              departureStart: start,
+              departureEnd: end,
+              flexibilityDays: flexibility !== undefined ? flexibility : prev.flexibilityDays,
+            };
+            stateRef.current = next;
+            return next;
+          });
         }}
       />
 
@@ -329,16 +269,28 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
         selectedDurations={state.selectedDurations}
         onClose={() => setDurationOpen(false)}
         onChange={(next) => {
-          setState((prev) => ({ ...prev, selectedDurations: next }));
+          // OPSLAAN commits a complete selection — auto-apply immediately.
+          const nextState = { ...stateRef.current, selectedDurations: next };
+          stateRef.current = nextState;
+          setState(nextState);
+          applyBarState(nextState);
         }}
       />
 
       <TravelersPopup
         open={travelersOpen}
         travelers={state.travelers}
-        onClose={() => setTravelersOpen(false)}
+        onClose={() => {
+          setTravelersOpen(false);
+          // Multi-step edits apply once when the popup closes.
+          window.setTimeout(() => {
+            applyAfterPopupClose();
+          }, 0);
+        }}
         onChange={(next) => {
-          setState((prev) => ({ ...prev, travelers: next }));
+          const nextState = { ...stateRef.current, travelers: next };
+          stateRef.current = nextState;
+          setState(nextState);
         }}
       />
 
@@ -348,7 +300,11 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
         selectedAirports={state.selectedDepartureAirports}
         onClose={() => setAirportOpen(false)}
         onChange={(next) => {
-          setState((prev) => ({ ...prev, selectedDepartureAirports: next }));
+          // OPSLAAN commits a complete selection — auto-apply immediately.
+          const nextState = { ...stateRef.current, selectedDepartureAirports: next };
+          stateRef.current = nextState;
+          setState(nextState);
+          applyBarState(nextState);
         }}
       />
     </>
