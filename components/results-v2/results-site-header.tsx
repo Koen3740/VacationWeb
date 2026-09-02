@@ -21,7 +21,7 @@ function NavChevron() {
 export function ResultsSiteHeader() {
   return (
     <header className="border-b border-[#E8ECF2] bg-white">
-      <div className="mx-auto flex h-[64px] max-w-[1280px] items-center justify-between gap-6 px-6 lg:px-8">
+      <div className="mx-auto flex h-[64px] max-w-[1600px] items-center justify-between gap-6 px-6 lg:px-8">
         <Link href="/" className="inline-flex shrink-0 items-center">
           <Image
             src="/images/logo.png"

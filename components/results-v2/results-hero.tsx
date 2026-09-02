@@ -22,7 +22,7 @@ export function ResultsHero({ intro, searchBar }: ResultsHeroProps) {
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/28 to-black/12" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/42 via-transparent to-black/18" />
 
-        <div className="relative z-10 mx-auto flex h-full max-w-[1280px] flex-col justify-center px-6 pb-16 pt-8 lg:px-8">
+        <div className="relative z-10 mx-auto flex h-full max-w-[1600px] flex-col justify-center px-6 pb-16 pt-8 lg:px-8">
           <h1 className="max-w-2xl text-[2rem] font-bold leading-[1.15] tracking-tight text-white drop-shadow-sm sm:text-[2.5rem] lg:text-[2.75rem]">
             {intro.heroTitle}
           </h1>
@@ -32,7 +32,7 @@ export function ResultsHero({ intro, searchBar }: ResultsHeroProps) {
         </div>
       </div>
 
-      <div className="relative z-20 mx-auto -mt-[34px] max-w-[1280px] px-6 lg:-mt-[38px] lg:px-8">
+      <div className="relative z-20 mx-auto -mt-[34px] max-w-[1600px] px-6 lg:-mt-[38px] lg:px-8">
         {searchBar}
       </div>
     </section>

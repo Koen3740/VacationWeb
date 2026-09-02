@@ -48,7 +48,7 @@ const ITEMS = [
 export function ResultsUspBar() {
   return (
     <div className="border-t border-[#DCE4EE] bg-[#EAF1F7]">
-      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6 lg:px-8">
+      <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6 lg:px-8">
         {ITEMS.map((item) => (
           <div key={item.label} className="flex items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
