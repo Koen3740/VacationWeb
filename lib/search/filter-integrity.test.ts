@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { writeBudgetParams } from './budget-params';
 import {
   offerMatchesAmenity,
@@ -37,6 +40,24 @@ test('writeBudgetParams omits unrestricted UI defaults (500 / 2000)', () => {
   assert.equal(params.get('budgetMin'), null);
   assert.equal(params.get('budgetMax'), null);
   assert.equal(params.get('vacationTypes'), 'Adults Only');
+});
+
+test('budget slider track fill uses the same scale as range inputs', () => {
+  const filterMin = 500;
+  const filterMax = 2000;
+  const span = filterMax - filterMin;
+  // UI label €0 maps to filterMin; fill must start at 0% with the left thumb.
+  assert.equal(((filterMin - filterMin) / span) * 100, 0);
+  assert.equal(((1250 - filterMin) / span) * 100, 50);
+  assert.equal(((filterMax - filterMin) / span) * 100, 100);
+  // Old bug: 0..2000 visual scale put default min fill at 25%.
+  assert.equal(((filterMin - 0) / 2000) * 100, 25);
+
+  const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
+  const src = readFileSync(join(root, 'components/results/filter-sidebar.tsx'), 'utf8');
+  assert.equal(src.includes('BUDGET_MIN_BOUND'), false);
+  assert.ok(src.includes('draftBudget.min - BUDGET_FILTER_MIN'));
+  assert.ok(src.includes('draftBudget.max - BUDGET_FILTER_MIN'));
 });
 
 test('writeBudgetParams keeps real budget constraints', () => {

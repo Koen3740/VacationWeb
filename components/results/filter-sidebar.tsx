@@ -65,8 +65,6 @@ import { FilterOptions } from '@/types/travel';
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-const BUDGET_MIN_BOUND = 0;
-const BUDGET_MAX_BOUND = 2000;
 const BUDGET_FILTER_MIN = 500;
 const BUDGET_FILTER_MAX = 2000;
 
@@ -520,8 +518,12 @@ export function FilterSidebar({
     );
   };
 
-  const budgetMinPct = ((draftBudget.min - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
-  const budgetMaxPct = ((draftBudget.max - BUDGET_MIN_BOUND) / (BUDGET_MAX_BOUND - BUDGET_MIN_BOUND)) * 100;
+  // Track fill must use the same scale as the range inputs (FILTER_MIN..FILTER_MAX).
+  // Using a 0..2000 visual scale misaligns the fill: default min=500 rendered as €0
+  // placed the left thumb at 0% while the fill started at 25%.
+  const budgetSpan = BUDGET_FILTER_MAX - BUDGET_FILTER_MIN;
+  const budgetMinPct = ((draftBudget.min - BUDGET_FILTER_MIN) / budgetSpan) * 100;
+  const budgetMaxPct = ((draftBudget.max - BUDGET_FILTER_MIN) / budgetSpan) * 100;
 
   const budgetMinLabel =
     draftBudget.min === BUDGET_FILTER_MIN
