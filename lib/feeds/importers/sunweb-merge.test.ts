@@ -101,7 +101,7 @@ function feedXml(products: string): string {
   return `<?xml version="1.0" encoding="utf-8"?><products>${products}</products>`;
 }
 
-const ELPINIKI_DATE = '2026-08-28';
+const ELPINIKI_DATE = '2026-11-19';
 
 const ACCOMODATIE = {
   id: '38128',
@@ -142,7 +142,7 @@ test('three Elpiniki overlays share one bookable key from landing context', () =
   const acco = importAnnotated(feedXml(productXml(ACCOMODATIE)), 'sunweb-accomodatie')[0];
   const gr = importAnnotated(feedXml(productXml(GRIEKENLAND)), 'sunweb-griekenland')[0];
   const lm = importAnnotated(feedXml(productXml(LASTMINUTE)), 'sunweb-lastminute')[0];
-  assert.equal(buildSunwebBookableKey(acco), '38128|2026-08-28|bru|8|logies');
+  assert.equal(buildSunwebBookableKey(acco), `38128|${ELPINIKI_DATE}|bru|8|logies`);
   assert.equal(buildSunwebBookableKey(gr), buildSunwebBookableKey(acco));
   assert.equal(buildSunwebBookableKey(lm), buildSunwebBookableKey(acco));
   const tts = [acco, gr, lm].map((offer) => new URL(offer.deepLink ?? '').searchParams.get('tt'));
@@ -159,7 +159,7 @@ test('three Elpiniki overlays merge to one bookable offer and keep all tt listin
   assert.equal(stats.input, 3);
   assert.equal(offers.length, 1);
   assert.equal(offers[0].providerListings?.length, 3);
-  assert.equal(offers[0].externalId, 'sunweb-38128-2026-08-28-8-BRU-Logies');
+  assert.equal(offers[0].externalId, `sunweb-38128-${ELPINIKI_DATE}-8-BRU-Logies`);
   assert.equal(offers[0].departureAirport, 'BRU');
   assert.equal(offers[0].boardType, 'Logies');
 
@@ -437,7 +437,7 @@ test('H. compact runtime reconstruct + re-merge does not reintroduce Elpiniki du
   const again = mergeSunwebOffers(reconstructed).offers;
   assert.equal(again.length, 1);
   assert.equal(again[0].providerListings?.length, 3);
-  assert.equal(again[0].externalId, 'sunweb-38128-2026-08-28-8-BRU-Logies');
+  assert.equal(again[0].externalId, `sunweb-38128-${ELPINIKI_DATE}-8-BRU-Logies`);
 });
 
 test('H. unmerged compact overlays re-merge after runtime reconstruct', () => {
@@ -473,7 +473,7 @@ test('I. Elpiniki is one Results card after merge; listings are not extra holida
   ]);
   assert.equal(offers.length, 1);
   assert.equal(offers[0].providerListings?.length, 3);
-  assert.equal(offers[0].externalId, 'sunweb-38128-2026-08-28-8-BRU-Logies');
+  assert.equal(offers[0].externalId, `sunweb-38128-${ELPINIKI_DATE}-8-BRU-Logies`);
 
   const travel = offers.map(normalizeOffer);
   const ranked = rankResultsOffers(travel, {
@@ -483,7 +483,7 @@ test('I. Elpiniki is one Results card after merge; listings are not extra holida
     departureAirport: 'BRU',
   });
   assert.equal(ranked.length, 1);
-  assert.equal(ranked[0].id, 'sunweb-38128-2026-08-28-8-BRU-Logies');
+  assert.equal(ranked[0].id, `sunweb-38128-${ELPINIKI_DATE}-8-BRU-Logies`);
   assert.equal(ranked[0].providerListings?.length, 3);
 });
 
