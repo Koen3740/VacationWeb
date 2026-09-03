@@ -22,6 +22,7 @@ import {
 import {
   orderCatalogPageCandidates,
   selectPage1OverlayCandidates,
+  selectPageOverlayCandidates,
   sliceRankedCatalogResultsPage,
 } from '@/lib/search/results-catalog-page';
 import '@/lib/http/prefer-ipv4';
@@ -207,7 +208,7 @@ export default async function ResultsPage({
   );
   const overlayCandidates = isPage1
     ? selectPage1OverlayCandidates(orderedPool, pageSize)
-    : catalogPage.offers;
+    : selectPageOverlayCandidates(orderedPool, page, pageSize);
   const overlays = startCatalogPageLiveOverlays(overlayCandidates, params);
 
   return (
@@ -215,10 +216,10 @@ export default async function ResultsPage({
       {...pageShell}
       resultCount={matchCount}
       results={
-        catalogPage.offers.length > 0 ? (
+        overlayCandidates.length > 0 ? (
           <Page1ResultsStream
             catalogOffers={catalogPage.offers}
-            candidateOffers={isPage1 ? overlayCandidates : undefined}
+            candidateOffers={overlayCandidates}
             displayLimit={pageSize}
             overlays={overlays}
             searchParams={{ ...params, pageSize }}

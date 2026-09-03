@@ -1,6 +1,7 @@
 import { ResultsPagination } from '@/components/results/results-pagination';
 import { SyncPage1IdsToUrl } from '@/components/results/sync-page1-ids-to-url';
 import { TravelCard } from '@/components/results/travel-card';
+import { Page1ResultsCap } from '@/components/results/page1-results-cap';
 import { RESULTS_PRODUCT_PAGE_SIZE } from '@/lib/providers/prijsvrij';
 import { slicePriceSortPoolPage } from '@/lib/search/prepare-results-offers';
 import type { SearchParams, TravelOffer } from '@/types/travel';
@@ -51,15 +52,18 @@ function PriceSortPageBody({
     provisional: pending,
     params,
   });
+  const useCap = slice.visibleOffers.length > pageSize;
+  const slots = slice.visibleOffers.map((offer) => (
+    <div key={offer.id} data-page1-slot>
+      <TravelCard offer={offer} provisional={pending} searchParams={params} />
+    </div>
+  ));
+
   return (
     <>
       {pending ? <PriceSortPendingNotice /> : null}
       {pending ? null : <SyncPage1IdsToUrl page1Ids={slice.page1Ids} replaceExisting />}
-      <div className="space-y-3.5">
-        {slice.visibleOffers.map((offer) => (
-          <TravelCard key={offer.id} offer={offer} provisional={pending} searchParams={params} />
-        ))}
-      </div>
+      {useCap ? <Page1ResultsCap limit={pageSize}>{slots}</Page1ResultsCap> : <div className="space-y-3.5">{slots}</div>}
       <ResultsPagination
         params={{ ...params, pageSize, page1Ids: slice.page1Ids }}
         totalResults={slice.paginationTotal}

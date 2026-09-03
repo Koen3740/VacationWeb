@@ -96,7 +96,7 @@ export function Page1ResultsStream({
 }) {
   const overlayById = new Map(overlays.map((overlay) => [overlay.catalog.id, overlay]));
   const renderOffers = candidateOffers ?? catalogOffers;
-  const useCap = Boolean(candidateOffers && candidateOffers.length > catalogOffers.length);
+  const useCap = Boolean(candidateOffers && candidateOffers.length > displayLimit);
 
   const slots = renderOffers.filter(isResultsListableOffer).map((offer) => {
     const overlay = overlayById.get(offer.id);

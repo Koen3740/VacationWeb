@@ -122,3 +122,25 @@ export function selectPage1OverlayCandidates(
   const windowSize = Math.min(ordered.length, pageSize + reserve);
   return ordered.slice(0, windowSize) as TravelOffer[];
 }
+
+/**
+ * Overlay candidate window for an arbitrary page.
+ *
+ * Same idea as `selectPage1OverlayCandidates`, but starting at the page offset,
+ * so that live-price failures on intermediate pages can be backfilled from
+ * the next candidates without leaving mostly-empty pages.
+ */
+export function selectPageOverlayCandidates(
+  ordered: readonly TravelOffer[],
+  page: number,
+  pageSize: number,
+  reserve: number = PAGE1_OVERLAY_RESERVE,
+): TravelOffer[] {
+  const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  const startIndex = (safePage - 1) * pageSize;
+  const endIndex = Math.min(ordered.length, startIndex + pageSize + reserve);
+  if (startIndex >= ordered.length) {
+    return [] as TravelOffer[];
+  }
+  return ordered.slice(startIndex, endIndex) as TravelOffer[];
+}

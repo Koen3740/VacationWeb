@@ -15,7 +15,7 @@ import {
   SUNWEB_PROVIDER_NAME,
 } from './presentable-price';
 import { rankResultsOffers } from './rank-results-offers';
-import { orderCatalogPageCandidates } from './results-catalog-page';
+import { orderCatalogPageCandidates, PAGE1_OVERLAY_RESERVE } from './results-catalog-page';
 import {
   applyResultsLivePriceOverlays,
   hasResultsLivePriceOverlay,
@@ -101,8 +101,14 @@ export function slicePriceSortPoolPage(
 } {
   const browseable = orderCatalogPageCandidates(ranked, options.params);
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  // For intermediate (non-page-1) pages, include a reserve window so
+  // live-price failures can be backfilled without leaving mostly-empty
+  // pages. Page-1 already has its own reserve/cap mechanism.
+  const reserve = safePage > 1 ? PAGE1_OVERLAY_RESERVE : 0;
+  const startIndex = (safePage - 1) * pageSize;
+  const endIndex = Math.min(browseable.length, startIndex + pageSize + reserve);
   return {
-    visibleOffers: paginateResults(browseable, safePage, pageSize),
+    visibleOffers: browseable.slice(startIndex, endIndex),
     page1Ids: paginateResults(browseable, 1, pageSize).map((offer) => offer.id),
     paginationTotal: browseable.length,
   };
