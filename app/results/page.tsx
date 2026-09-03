@@ -121,11 +121,12 @@ export default async function ResultsPage({
   const isPage1 = !Number.isFinite(page) || Math.floor(page) <= 1;
 
   const prepared = await prepareResultsOffers(offers, filteringParams);
-  // Full filtered+ranked matchset is the user result set — never slice(0, 150) for browse/count.
-  // Count/pagination follow this matchset; live-price admission must not shrink it.
+  // Full filtered+ranked matchset stays intact for sort-stable ranking / live work.
+  // User-facing count + pagination follow the browseable (listable) pool so pages
+  // never advertise results that cannot render as cards.
   const filtered = prepared.offers;
   const orderedPool = orderCatalogPageCandidates(filtered, filteringParams);
-  const matchCount = filtered.length;
+  const matchCount = orderedPool.length;
   const carRentalCount = countCarRentalFacet(filtered, filteringParams);
 
   const pageShell = {
@@ -145,7 +146,7 @@ export default async function ResultsPage({
   };
 
   if (isPriceDependentSort(params.sort)) {
-    if (filtered.length === 0) {
+    if (orderedPool.length === 0) {
       return (
         <ResultsPageClient
           {...pageShell}
@@ -182,7 +183,7 @@ export default async function ResultsPage({
 
   // Catalog first-paint. Full-matchset live pricing was scheduled in
   // prepareResultsOffers (not awaited). Page overlays join cache / in-flight.
-  if (filtered.length === 0) {
+  if (orderedPool.length === 0) {
     return (
       <ResultsPageClient
         {...pageShell}

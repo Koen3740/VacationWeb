@@ -1,3 +1,4 @@
+import { offerMatchesBudget } from '@/lib/search/filtering';
 import { paginateResults, RESULTS_PAGE_SIZE_DEFAULT } from '@/lib/search/pagination';
 import {
   filterToResultsListableOffers,
@@ -20,7 +21,10 @@ export type ResultsPipelineCounts = {
   afterListabilityFilter: number;
   /** Offers with cached proven live p.p. + total. */
   afterPresentableFilter: number;
-  /** Ordered browse pool (presentable → pending → settled); equals ranked.length. */
+  /**
+   * Ordered browse pool (presentable → pending listable).
+   * Settled live failures are excluded so pagination never lands on empty card pages.
+   */
   afterPaginationOrder: number;
   pageSize: number;
   pageSliceSize: number;
@@ -32,9 +36,11 @@ export const PAGE1_OVERLAY_RESERVE = 10;
 /**
  * Pagination / browse pool for a ranked filter matchset.
  *
- * Presentable offers first, then other listable (catalog/pending), then
- * settled live failures. Length always equals the ranked matchset — live
- * pricing must not shrink result count or pagination totals.
+ * Presentable offers first, then other listable (catalog/pending).
+ * Settled non-listable live outcomes stay out of this pool so count,
+ * pagination, and card rendering share the same resultset.
+ * Sort-stable match counts still come from the full filtered ranked set upstream;
+ * this only decides what users can page through and paint.
  */
 export function orderCatalogPageCandidates(
   ranked: readonly TravelOffer[],
@@ -45,21 +51,24 @@ export function orderCatalogPageCandidates(
     : (ranked as TravelOffer[]);
   const presentable: TravelOffer[] = [];
   const pending: TravelOffer[] = [];
-  const settled: TravelOffer[] = [];
 
   for (const offer of overlaid) {
+    // Live overlays can push a proven price outside the active budget — those
+    // cannot become cards, so they must not occupy browse/pagination slots.
+    if (params && !offerMatchesBudget(offer, params)) {
+      continue;
+    }
     if (hasValidPresentablePrice(offer)) {
       presentable.push(offer);
       continue;
     }
     if (isResultsListableOffer(offer)) {
       pending.push(offer);
-      continue;
     }
-    settled.push(offer);
+    // Settled unavailable / unpriced: keep out of browse pool (no empty pages).
   }
 
-  return [...presentable, ...pending, ...settled];
+  return [...presentable, ...pending];
 }
 
 export function measureResultsPipelineCounts(
@@ -77,7 +86,6 @@ export function measureResultsPipelineCounts(
     afterCatalogFilter: ranked.length,
     afterListabilityFilter: listable.length,
     afterPresentableFilter: overlaid.filter(hasValidPresentablePrice).length,
-    /** Always equals ranked.length — settled live failures stay in the browse pool. */
     afterPaginationOrder: ordered.length,
     pageSize,
     pageSliceSize: paginateResults(ordered, safePage, pageSize).length,

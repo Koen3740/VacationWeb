@@ -31,6 +31,7 @@ function makeOffer(
     currency: 'EUR',
     imageUrl: '/images/results-card-placeholder.png',
     deepLink: 'https://www.corendon.be/vakantie#9514.COSPY.BRUCFU.201026.8.SZ-U',
+    livePriceStatus: 'catalog',
     ...overrides,
   };
 }
@@ -50,6 +51,17 @@ function seedUnavailableOverlay(offerId: string): void {
   });
 }
 
+function seedProvenOverlay(offerId: string, price: number): void {
+  setResultsLivePriceOverlay(offerId, baseParams, {
+    price,
+    pricePerDay: Math.round(price / 8),
+    livePriceStatus: 'proven',
+    livePriceSource: 'upsales',
+    liveTotalPrice: price * 2,
+    liveTotalPriceField: 'upsales.totalPrice',
+  });
+}
+
 test('sort modes share the same stable filter match-count', async () => {
   clearResultsLivePriceCache();
   const catalog = [
@@ -60,9 +72,6 @@ test('sort modes share the same stable filter match-count', async () => {
     makeOffer({ id: 'other-country', price: 300, destinationCountry: 'Turkije' }),
   ];
 
-  seedUnavailableOverlay('b');
-  seedUnavailableOverlay('c');
-
   const filterCount = filterOffers(catalog, baseParams).length;
   assert.equal(filterCount, 4);
 
@@ -70,29 +79,48 @@ test('sort modes share the same stable filter match-count', async () => {
   const priceAsc = await prepareResultsOffers(catalog, { ...baseParams, sort: 'price' });
   const priceDesc = await prepareResultsOffers(catalog, { ...baseParams, sort: 'price-desc' });
 
+  // Full ranked matchset stays sort-stable (length equal across sort modes).
   assert.equal(standard.offers.length, filterCount);
   assert.equal(priceAsc.offers.length, filterCount);
   assert.equal(priceDesc.offers.length, filterCount);
-
-  assert.equal(orderCatalogPageCandidates(standard.offers, baseParams).length, filterCount);
-  assert.equal(orderCatalogPageCandidates(priceAsc.offers, baseParams).length, filterCount);
-  assert.equal(orderCatalogPageCandidates(priceDesc.offers, baseParams).length, filterCount);
-
-  assert.equal(slicePriceSortPoolPage(standard.offers, 1, 10).paginationTotal, filterCount);
-  assert.equal(slicePriceSortPoolPage(priceAsc.offers, 1, 10).paginationTotal, filterCount);
-  assert.equal(
-    slicePriceSortPoolPage(await priceDesc.exactOffers, 1, 10).paginationTotal,
-    filterCount,
-  );
 });
 
-test('live-price failures do not reduce filter match-count or pagination total', () => {
+test('browse pool excludes settled failures so cards can render', () => {
+  clearResultsLivePriceCache();
+  const ranked = [
+    makeOffer({ id: 'a', price: 400 }),
+    makeOffer({ id: 'b', price: 500 }),
+    makeOffer({ id: 'c', price: 600 }),
+    makeOffer({ id: 'd', price: 700 }),
+  ];
+  seedProvenOverlay('a', 400);
+  seedProvenOverlay('d', 700);
+  seedUnavailableOverlay('b');
+  seedUnavailableOverlay('c');
+
+  const browseable = orderCatalogPageCandidates(ranked, baseParams);
+  assert.equal(browseable.length, 2);
+  assert.deepEqual(
+    browseable.map((offer) => offer.id).sort(),
+    ['a', 'd'],
+  );
+
+  const page = slicePriceSortPoolPage(ranked, 1, 10, {
+    provisional: false,
+    params: baseParams,
+  });
+  assert.equal(page.paginationTotal, 2);
+  assert.equal(page.visibleOffers.length, 2);
+});
+
+test('live-price failures do not create empty card pages', () => {
   clearResultsLivePriceCache();
   const matched = [
     makeOffer({ id: 'ok', price: 400 }),
     makeOffer({ id: 'fail-a', price: 450 }),
     makeOffer({ id: 'fail-b', price: 500 }),
   ];
+  seedProvenOverlay('ok', 400);
   seedUnavailableOverlay('fail-a');
   seedUnavailableOverlay('fail-b');
 
@@ -100,12 +128,16 @@ test('live-price failures do not reduce filter match-count or pagination total',
   assert.equal(ranked.length, 3);
 
   const ordered = orderCatalogPageCandidates(ranked, baseParams);
-  assert.equal(ordered.length, 3);
+  assert.equal(ordered.length, 1);
   assert.equal(ordered[0].id, 'ok');
 
-  const page = slicePriceSortPoolPage(ordered, 1, 10);
-  assert.equal(page.paginationTotal, 3);
-  assert.equal(page.visibleOffers.length, 3);
+  const page = slicePriceSortPoolPage(ranked, 1, 10, {
+    provisional: false,
+    params: baseParams,
+  });
+  assert.equal(page.paginationTotal, 1);
+  assert.equal(page.visibleOffers.length, 1);
+  assert.equal(page.visibleOffers[0].id, 'ok');
 });
 
 test('price-sort live ranking keeps over-budget live overlays in the matchset', () => {

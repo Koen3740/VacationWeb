@@ -21,6 +21,7 @@ import {
   resolveFilteringParamsForEarlyLimit,
 } from '@/lib/search/results-resultset-limit';
 import { orderCatalogPageCandidates } from '@/lib/search/results-catalog-page';
+import { clearResultsLivePriceCache } from '@/lib/search/results-live-price-cache';
 import type { TravelOffer } from '@/types/travel';
 
 function makeOffer(
@@ -90,23 +91,32 @@ test('4. Results page has no overLimit early-return / refinement gate', () => {
 });
 
 test('5. pagination works for resultsets well above 1000', async () => {
+  clearResultsLivePriceCache();
   const catalog = catalogOf(2500);
   const prepared = await prepareResultsOffers(catalog, { adults: 2 });
   assert.equal(prepared.offers.length, 2500);
 
+  const params = { adults: 2 };
+  const browseable = orderCatalogPageCandidates(prepared.offers, params);
+  assert.ok(browseable.length > 1000, `expected large browseable pool, got ${browseable.length}`);
+
   const page1 = slicePriceSortPoolPage(prepared.offers, 1, RESULTS_PAGE_SIZE_DEFAULT, {
     provisional: false,
-    params: { adults: 2 },
+    params,
   });
-  assert.equal(page1.paginationTotal, 2500);
+  assert.equal(page1.paginationTotal, browseable.length);
   assert.equal(page1.visibleOffers.length, 10);
-  assert.equal(getResultsTotalPages(page1.paginationTotal, 10), 250);
+  assert.equal(
+    getResultsTotalPages(page1.paginationTotal, 10),
+    Math.ceil(browseable.length / 10),
+  );
 
-  const lastPage = paginateResults(prepared.offers, 250, 10);
-  assert.equal(lastPage.length, 10);
-  assert.equal(lastPage[0]?.id, prepared.offers[2490]?.id);
+  const lastPageNumber = getResultsTotalPages(browseable.length, 10);
+  const lastPage = paginateResults(browseable, lastPageNumber, 10);
+  assert.ok(lastPage.length > 0);
+  assert.ok(lastPage.every((offer) => Boolean(offer.id)));
 
-  const deepPage = paginateResults(prepared.offers, 101, 10);
+  const deepPage = paginateResults(browseable, 101, 10);
   assert.equal(deepPage.length, 10);
   assert.ok(deepPage.every((offer) => Boolean(offer.id)));
 });

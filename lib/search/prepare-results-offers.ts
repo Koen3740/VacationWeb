@@ -15,6 +15,7 @@ import {
   SUNWEB_PROVIDER_NAME,
 } from './presentable-price';
 import { rankResultsOffers } from './rank-results-offers';
+import { orderCatalogPageCandidates } from './results-catalog-page';
 import {
   applyResultsLivePriceOverlays,
   hasResultsLivePriceOverlay,
@@ -84,24 +85,26 @@ function assemblePriceSortRanking(
 }
 
 /**
- * Paginate the full ranked user result set.
- * Live-pricing candidate windows must not shrink paginationTotal.
+ * Paginate the browseable (listable) pool of a ranked result set.
+ * Settled live failures stay out so paginationTotal matches renderable cards.
+ * Live-pricing candidate windows must not redefine the filter matchset upstream.
  */
 export function slicePriceSortPoolPage(
   ranked: readonly TravelOffer[],
   page: number,
   pageSize: number,
-  _options: { provisional: boolean; params?: SearchParams } = { provisional: false },
+  options: { provisional: boolean; params?: SearchParams } = { provisional: false },
 ): {
   visibleOffers: TravelOffer[];
   page1Ids: string[];
   paginationTotal: number;
 } {
+  const browseable = orderCatalogPageCandidates(ranked, options.params);
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
   return {
-    visibleOffers: paginateResults(ranked as TravelOffer[], safePage, pageSize),
-    page1Ids: paginateResults(ranked as TravelOffer[], 1, pageSize).map((offer) => offer.id),
-    paginationTotal: ranked.length,
+    visibleOffers: paginateResults(browseable, safePage, pageSize),
+    page1Ids: paginateResults(browseable, 1, pageSize).map((offer) => offer.id),
+    paginationTotal: browseable.length,
   };
 }
 

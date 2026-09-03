@@ -386,7 +386,7 @@ test('presentable offers are prioritized before catalog-pending on page 1', () =
   );
 });
 
-test('settled unavailable offers stay in pagination pool after presentable/pending', () => {
+test('settled unavailable offers stay out of browse/pagination pool', () => {
   const ranked = [
     makeCorendon({ id: 'visible', livePriceStatus: 'catalog' }),
     makeCorendon({
@@ -396,9 +396,14 @@ test('settled unavailable offers stay in pagination pool after presentable/pendi
     }),
   ];
   const ordered = orderCatalogPageCandidates(ranked, { adults: 2 });
-  assert.equal(ordered.length, 2);
+  assert.equal(ordered.length, 1);
   assert.equal(ordered[0].id, 'visible');
-  assert.equal(ordered[1].id, 'hidden');
+  const page = sliceRankedCatalogResultsPage(ranked, 1, 10, { adults: 2 });
+  assert.equal(page.paginationTotal, 1);
+  assert.deepEqual(
+    page.offers.map((offer) => offer.id),
+    ['visible'],
+  );
 });
 
 test('pipeline counts distinguish catalog, listable, and presentable stages', () => {
@@ -427,6 +432,6 @@ test('pipeline counts distinguish catalog, listable, and presentable stages', ()
   assert.equal(counts.afterCatalogFilter, 13);
   assert.equal(counts.afterListabilityFilter, 12);
   assert.equal(counts.afterPresentableFilter, 1);
-  assert.equal(counts.afterPaginationOrder, 13);
+  assert.equal(counts.afterPaginationOrder, 12);
   assert.equal(counts.pageSliceSize, 10);
 });
