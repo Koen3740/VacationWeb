@@ -35,7 +35,9 @@ export function HomePhotoCardLink({ href, imageSrc, title }: HomePhotoCardLinkPr
           fill
           sizes="(max-width: 768px) 50vw, 20vw"
           className="object-cover object-center transition duration-500 group-hover:scale-[1.02]"
-          unoptimized={imageSrc.startsWith('https://')}
+          unoptimized={
+            imageSrc.startsWith('https://') || imageSrc.toLowerCase().endsWith('.jfif')
+          }
         />
       </div>
       <div className="px-3.5 py-3 sm:px-4 sm:py-3.5">
