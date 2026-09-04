@@ -1,5 +1,10 @@
 import { HomeFooterCookieLink } from '@/components/home/home-footer-cookie-link';
-import { RESULTS_NAVY } from '@/components/results-v2/results-design-tokens';
+import {
+  RESULTS_BORDER,
+  RESULTS_MUTED,
+  RESULTS_NAVY,
+  RESULTS_PAGE_BG,
+} from '@/components/results-v2/results-design-tokens';
 import Link from 'next/link';
 
 const brandLinks = [
@@ -35,18 +40,21 @@ const bottomBarLinks = [
   { label: 'Sitemap', href: '/search' },
 ] as const;
 
+/** Light footer language aligned with Results USP / panel surfaces (not a separate navy site). */
 const footerLinkClassName =
-  'text-[14px] text-white/75 transition hover:text-white';
+  'text-[14px] text-[#64748B] transition hover:text-[#0A2D62]';
 const footerHeadingClassName =
-  'text-[14px] font-semibold tracking-tight text-white';
+  'text-[14px] font-semibold tracking-tight text-[#0A2D62]';
 
 export function HomeFooter() {
   return (
-    <footer className="border-t border-[#DCE4EE]" style={{ backgroundColor: RESULTS_NAVY }}>
+    <footer className="mt-4 border-t" style={{ borderColor: RESULTS_BORDER, backgroundColor: '#FFFFFF' }}>
       <div className="mx-auto max-w-[1200px] px-6 py-12 lg:px-8 lg:py-14">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           <div>
-            <p className="text-[18px] font-bold tracking-tight text-white">VacationWeb</p>
+            <p className="text-[18px] font-bold tracking-tight" style={{ color: RESULTS_NAVY }}>
+              VacationWeb
+            </p>
             <ul className="mt-4 space-y-2.5">
               {brandLinks.map((link) => (
                 <li key={link.label}>
@@ -103,9 +111,11 @@ export function HomeFooter() {
         </div>
       </div>
 
-      <div className="border-t border-white/12 bg-[#081f45]">
+      <div className="border-t" style={{ borderColor: RESULTS_BORDER, backgroundColor: RESULTS_PAGE_BG }}>
         <div className="mx-auto flex max-w-[1200px] flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between lg:px-8">
-          <p className="text-[13px] text-white/60">© VacationWeb 2026</p>
+          <p className="text-[13px]" style={{ color: RESULTS_MUTED }}>
+            © VacationWeb 2026
+          </p>
           <nav aria-label="Footer juridische links">
             <ul className="flex flex-wrap gap-x-5 gap-y-2">
               {bottomBarLinks.map((link) => (
@@ -113,12 +123,13 @@ export function HomeFooter() {
                   {link.href ? (
                     <Link
                       href={link.href}
-                      className="text-[13px] text-white/60 transition hover:text-white"
+                      className="text-[13px] transition hover:text-[#0A2D62]"
+                      style={{ color: RESULTS_MUTED }}
                     >
                       {link.label}
                     </Link>
                   ) : (
-                    <HomeFooterCookieLink className="text-[13px] text-white/60 transition hover:text-white" />
+                    <HomeFooterCookieLink className="text-[13px] text-[#64748B] transition hover:text-[#0A2D62]" />
                   )}
                 </li>
               ))}

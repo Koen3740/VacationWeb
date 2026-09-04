@@ -26,7 +26,8 @@ export default async function HomePage() {
         totalOffersLabel={totalOffersLabel}
       />
       <section className="border-t border-[#DCE4EE] bg-[#EAF1F7]">
-        <div className="mx-auto max-w-[1200px] px-6 py-5 lg:px-8">
+        {/* Extra top padding clears the Results-style overlapping search bar. */}
+        <div className="mx-auto max-w-[1200px] px-6 pb-5 pt-14 lg:px-8 lg:pb-6 lg:pt-16">
           <HomeFeatures />
         </div>
       </section>

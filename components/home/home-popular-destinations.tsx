@@ -32,17 +32,17 @@ export function HomePopularDestinations({ destinations }: HomePopularDestination
   const displayDestinations = prepareDestinationsForDisplay(destinations);
 
   return (
-    <section id="popular-destinations" className="mx-auto max-w-[1200px] px-6 py-12 lg:px-8 lg:py-14">
+    <section id="popular-destinations" className="mx-auto max-w-[1200px] px-6 pb-10 pt-12 lg:px-8 lg:pb-12 lg:pt-14">
       <div className="max-w-2xl">
-        <h2 className="text-[22px] font-bold tracking-tight sm:text-[26px]" style={{ color: RESULTS_NAVY }}>
+        <h2 className="text-[22px] font-bold tracking-tight" style={{ color: RESULTS_NAVY }}>
           Populaire bestemmingen
         </h2>
-        <p className="mt-2 text-[15px] leading-relaxed sm:text-[16px]" style={{ color: RESULTS_MUTED }}>
+        <p className="mt-1.5 text-[13px] leading-relaxed sm:text-[14px]" style={{ color: RESULTS_MUTED }}>
           Ontdek populaire zonbestemmingen en vergelijk direct beschikbare vakanties.
         </p>
       </div>
 
-      <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
         {displayDestinations.map((destination) => (
           <HomePhotoCardLink
             key={destination.name}

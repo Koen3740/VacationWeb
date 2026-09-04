@@ -16,24 +16,24 @@ const KEY_POINTS = [
 
 export function HomeWhyVacationWeb() {
   return (
-    <section className="mx-auto max-w-[1200px] px-6 py-12 lg:px-8 lg:py-14">
+    <section className="mx-auto max-w-[1200px] px-6 py-10 lg:px-8 lg:py-12">
       <div
-        className="rounded-[16px] border px-6 py-8 sm:px-8 sm:py-9 lg:px-10"
+        className="rounded-[16px] border px-5 py-6 sm:px-7 sm:py-7 lg:px-8"
         style={{
           backgroundColor: RESULTS_PANEL_BG,
           borderColor: RESULTS_BORDER,
           boxShadow: RESULTS_PANEL_SHADOW,
         }}
       >
-        <h2 className="text-[22px] font-bold tracking-tight sm:text-[26px]" style={{ color: RESULTS_NAVY }}>
+        <h2 className="text-[22px] font-bold tracking-tight" style={{ color: RESULTS_NAVY }}>
           Waarom VacationWeb
         </h2>
-        <p className="mt-2 max-w-2xl text-[15px] leading-relaxed sm:text-[16px]" style={{ color: RESULTS_MUTED }}>
+        <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed sm:text-[14px]" style={{ color: RESULTS_MUTED }}>
           VacationWeb is een onafhankelijke vakantievergelijker. Je doorzoekt één overzicht en
           kiest daarna een aanbod dat bij je past.
         </p>
 
-        <ul className="mt-7 grid gap-3 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-3.5">
+        <ul className="mt-5 grid gap-2.5 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-3">
           {KEY_POINTS.map((point) => (
             <li key={point} className="flex items-start gap-2.5">
               <span
@@ -43,7 +43,7 @@ export function HomeWhyVacationWeb() {
               >
                 ✓
               </span>
-              <span className="text-[14px] leading-snug text-[#334155] sm:text-[15px]">{point}</span>
+              <span className="text-[13.5px] leading-snug text-[#334155]">{point}</span>
             </li>
           ))}
         </ul>
