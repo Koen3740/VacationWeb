@@ -27,7 +27,7 @@ function AccountPlaceholderIcon() {
 
 export function HomeHeader() {
   return (
-    <header className="flex items-center gap-4 py-3 lg:py-3.5">
+    <header className="flex h-[64px] items-center gap-6">
       <Link href="/" className="inline-flex shrink-0 items-center">
         <Image
           src="/images/logo.png"
@@ -35,16 +35,16 @@ export function HomeHeader() {
           width={119}
           height={40}
           priority
-          className="h-9 w-auto lg:h-10"
+          className="h-[36px] w-auto"
         />
       </Link>
 
-      <nav className="hidden flex-1 items-center justify-center gap-8 lg:flex" aria-label="Hoofdnavigatie">
+      <nav className="hidden flex-1 items-center justify-center gap-7 lg:flex" aria-label="Hoofdnavigatie">
         {navLinks.map((link) => (
           <Link
             key={link.label}
             href={link.href}
-            className="text-[15px] font-medium text-slate-700 transition hover:text-[#0A2D62]"
+            className="text-[14px] font-medium text-[#334155] transition hover:text-[#0A2D62]"
           >
             {link.label}
           </Link>
@@ -54,12 +54,12 @@ export function HomeHeader() {
       <div className="ml-auto flex items-center gap-1 sm:gap-2 lg:gap-3">
         <span
           aria-hidden="true"
-          className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-slate-600 sm:inline-flex"
+          className="hidden items-center gap-1.5 px-2 py-2 text-[14px] font-medium text-[#334155] sm:inline-flex"
         >
           <AccountPlaceholderIcon />
           Account
         </span>
-        <FavoritesNavLink className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-[#0A2D62] md:inline-flex" />
+        <FavoritesNavLink className="hidden items-center gap-1.5 px-2 py-2 text-[14px] font-medium text-[#334155] transition hover:text-[#0A2D62] md:inline-flex" />
         <div className="lg:hidden">
           <HomeMobileNav links={navLinks} />
         </div>

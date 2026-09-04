@@ -1,5 +1,6 @@
 import { HomeTheme } from '@/lib/offers/derive-home-themes';
 import { HomePhotoCardLink } from '@/components/home/home-photo-card-link';
+import { RESULTS_MUTED, RESULTS_NAVY } from '@/components/results-v2/results-design-tokens';
 
 type HomeThemesProps = {
   themes: HomeTheme[];
@@ -40,17 +41,17 @@ const VACATION_TYPES = [
 
 export function HomeThemes({ themes: _themes }: HomeThemesProps) {
   return (
-    <section className="mx-auto max-w-[1200px] px-4 py-14 sm:px-5 lg:px-6">
+    <section className="mx-auto max-w-[1200px] px-6 py-12 lg:px-8 lg:py-14">
       <div className="max-w-2xl">
-        <h2 className="text-[28px] font-bold tracking-[-0.02em] text-[#0A2D62] sm:text-[32px]">
+        <h2 className="text-[22px] font-bold tracking-tight sm:text-[26px]" style={{ color: RESULTS_NAVY }}>
           Vakantietypes
         </h2>
-        <p className="mt-3 text-[17px] leading-relaxed text-slate-600">
+        <p className="mt-2 text-[15px] leading-relaxed sm:text-[16px]" style={{ color: RESULTS_MUTED }}>
           Weet je nog niet precies waarheen? Ontdek vakanties op basis van jouw voorkeuren.
         </p>
       </div>
 
-      <div className="mt-8 grid grid-cols-5 gap-3 sm:gap-4">
+      <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
         {VACATION_TYPES.map((type) => (
           <HomePhotoCardLink
             key={type.id}

@@ -1,5 +1,6 @@
 import { PopularDestination } from '@/lib/offers/derive-destination-countries';
 import { HomePhotoCardLink } from '@/components/home/home-photo-card-link';
+import { RESULTS_MUTED, RESULTS_NAVY } from '@/components/results-v2/results-design-tokens';
 
 type HomePopularDestinationsProps = {
   destinations: PopularDestination[];
@@ -31,17 +32,17 @@ export function HomePopularDestinations({ destinations }: HomePopularDestination
   const displayDestinations = prepareDestinationsForDisplay(destinations);
 
   return (
-    <section id="popular-destinations" className="mx-auto max-w-[1200px] px-4 py-14 sm:px-5 lg:px-6">
+    <section id="popular-destinations" className="mx-auto max-w-[1200px] px-6 py-12 lg:px-8 lg:py-14">
       <div className="max-w-2xl">
-        <h2 className="text-[28px] font-bold tracking-[-0.02em] text-[#0A2D62] sm:text-[32px]">
+        <h2 className="text-[22px] font-bold tracking-tight sm:text-[26px]" style={{ color: RESULTS_NAVY }}>
           Populaire bestemmingen
         </h2>
-        <p className="mt-3 text-[17px] leading-relaxed text-slate-600">
+        <p className="mt-2 text-[15px] leading-relaxed sm:text-[16px]" style={{ color: RESULTS_MUTED }}>
           Ontdek populaire zonbestemmingen en vergelijk direct beschikbare vakanties.
         </p>
       </div>
 
-      <div className="mt-8 grid grid-cols-5 gap-3 sm:gap-4">
+      <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
         {displayDestinations.map((destination) => (
           <HomePhotoCardLink
             key={destination.name}

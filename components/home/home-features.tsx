@@ -1,27 +1,26 @@
+/**
+ * Homepage USP strip — visual language matched to ResultsUspBar
+ * (light surface, circular icon wells, navy labels).
+ */
+
 function CompareProvidersIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
-      <rect x="4" y="5" width="6" height="14" rx="1.5" stroke="white" strokeWidth="1.6" />
-      <rect x="14" y="5" width="6" height="14" rx="1.5" stroke="white" strokeWidth="1.6" />
-      <path d="M10 10h4M10 14h4" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+      <rect x="4" y="5" width="6" height="14" rx="1.5" stroke="#89ACD3" strokeWidth="1.5" />
+      <rect x="14" y="5" width="6" height="14" rx="1.5" stroke="#89ACD3" strokeWidth="1.5" />
+      <path d="M10 10h4M10 14h4" stroke="#89ACD3" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
 
 function BudgetValueIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
       <path
-        d="M4 18V6l8-3 8 3v12l-8 3-8-3z"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 12.5c0-1.2 1-2 3-2s3 .8 3 2-1 2-3 2-3 .8-3 2 1 2 3 2 3 .8 3 2"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinecap="round"
+        d="M12 3l2.4 5.4 5.9.5-4.5 3.9 1.4 5.7L12 16.8 6.8 18.5l1.4-5.7-4.5-3.9 5.9-.5L12 3z"
+        stroke="#89ACD3"
+        strokeWidth="1.5"
+        fill="none"
       />
     </svg>
   );
@@ -29,33 +28,23 @@ function BudgetValueIcon() {
 
 function FilterPreferencesIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
-      <path
-        d="M4 6h16M7 12h10M10 18h4"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <circle cx="6" cy="6" r="2" stroke="white" strokeWidth="1.6" />
-      <circle cx="14" cy="12" r="2" stroke="white" strokeWidth="1.6" />
-      <circle cx="12" cy="18" r="2" stroke="white" strokeWidth="1.6" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+      <path d="M4 6h16M7 12h10M10 18h4" stroke="#89ACD3" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="6" cy="6" r="2" stroke="#89ACD3" strokeWidth="1.5" />
+      <circle cx="14" cy="12" r="2" stroke="#89ACD3" strokeWidth="1.5" />
+      <circle cx="12" cy="18" r="2" stroke="#89ACD3" strokeWidth="1.5" />
     </svg>
   );
 }
 
 function DirectBookingIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
-      <path
-        d="M7 7h10v10H7V7z"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0">
+      <path d="M7 7h10v10H7V7z" stroke="#89ACD3" strokeWidth="1.5" strokeLinejoin="round" />
       <path
         d="M11 12h6M15 9l3 3-3 3"
-        stroke="white"
-        strokeWidth="1.6"
+        stroke="#89ACD3"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -72,11 +61,15 @@ const features = [
 
 export function HomeFeatures() {
   return (
-    <div className="mt-7 grid grid-cols-1 gap-y-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-0">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
       {features.map((feature) => (
-        <div key={feature.label} className="flex min-w-0 items-start gap-2.5 lg:items-center">
-          {feature.icon}
-          <span className="min-w-0 text-sm font-medium leading-snug text-white">{feature.label}</span>
+        <div key={feature.label} className="flex min-w-0 items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+            {feature.icon}
+          </span>
+          <span className="min-w-0 text-[13px] font-medium leading-snug text-[#0A2D62]">
+            {feature.label}
+          </span>
         </div>
       ))}
     </div>

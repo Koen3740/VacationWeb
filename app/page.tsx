@@ -1,3 +1,4 @@
+import { RESULTS_PAGE_BG } from '@/components/results-v2/results-design-tokens';
 import { HomeCookieBanner } from '@/components/home/home-cookie-banner';
 import { HomeFeatures } from '@/components/home/home-features';
 import { HomeFooter } from '@/components/home/home-footer';
@@ -18,14 +19,14 @@ export default async function HomePage() {
   const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? 0);
 
   return (
-    <main className="min-h-screen bg-[#F5F7FA]">
+    <main className="min-h-screen text-slate-900" style={{ backgroundColor: RESULTS_PAGE_BG }}>
       <HomeHero
         countryCounts={countryCounts}
         departureAirports={filterOptions.departureAirports}
         totalOffersLabel={totalOffersLabel}
       />
-      <section className="bg-[#0A2D62] py-6">
-        <div className="mx-auto max-w-[1200px] px-4 sm:px-5 lg:px-6">
+      <section className="border-t border-[#DCE4EE] bg-[#EAF1F7]">
+        <div className="mx-auto max-w-[1200px] px-6 py-5 lg:px-8">
           <HomeFeatures />
         </div>
       </section>
