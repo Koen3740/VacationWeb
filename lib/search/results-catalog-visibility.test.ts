@@ -115,10 +115,13 @@ test('TEST 1: catalog offer without proven live price still renders a Result car
   const offer = makeCorendon({ livePriceStatus: 'catalog', livePriceSource: 'feed' });
   assert.equal(hasValidPresentablePrice(offer), false);
   assert.equal(isResultsListableOffer(offer), true);
-  const html = cardHtml(offer, true);
-  assert.match(html, /Test Hotel/);
-  assert.match(html, new RegExp(RESULTS_PRICE_COPY.pending));
-  assert.doesNotMatch(html, />€/);
+  // Pending/missing live € must not hide a valid match (provisional or settled stream).
+  for (const provisional of [true, false]) {
+    const html = cardHtml(offer, provisional);
+    assert.match(html, /Test Hotel/, `provisional=${provisional}`);
+    assert.match(html, new RegExp(RESULTS_PRICE_COPY.pending), `provisional=${provisional}`);
+    assert.doesNotMatch(html, />€/, `provisional=${provisional}`);
+  }
 });
 
 test('flexible search window does not replace concrete offer departure on the card', () => {
@@ -252,18 +255,19 @@ test('TEST 6: proven live total stays on the existing upsales total mapping', as
   assert.equal(settled.livePriceSource, 'upsales');
 });
 
-test('TEST 7: catalog feed € is never a settled Results card (no live fallback)', () => {
+test('TEST 7: catalog feed € is never shown as proven; pending card stays visible', () => {
   const offer = makeCorendon({
     livePriceStatus: 'catalog',
     livePriceSource: 'feed',
     price: 458,
   });
-  assert.equal(resultsPricePresentation(offer), 'unavailable');
+  assert.equal(resultsPricePresentation(offer), 'pending');
   assert.equal(hasValidPresentablePrice(offer), false);
-  // Provisional only: catalog may render pending. Settled catalog without B is not a card.
   assert.equal(isResultsListableOffer(offer), true);
+  // Missing live price ≠ remove match: both provisional and settled streams keep the card.
   assert.match(cardHtml(offer, true), new RegExp(RESULTS_PRICE_COPY.pending));
-  assert.equal(cardHtml(offer, false), '');
+  assert.match(cardHtml(offer, false), new RegExp(RESULTS_PRICE_COPY.pending));
+  assert.doesNotMatch(cardHtml(offer, false), />€/);
 });
 
 test('TEST 8: pp × pax is not a live total and is not listable', () => {

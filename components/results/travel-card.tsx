@@ -154,25 +154,24 @@ export function TravelCard({
   provisional?: boolean;
   searchParams?: SearchParams;
 }) {
+  // Provider-confirmed unavailable / parked / non-listable → not a bookable Results card.
+  // Listable matches WITHOUT a proven live price MUST still render (pending) —
+  // missing price ≠ removed from the filtered matchset.
   if (!isResultsListableOffer(offer)) {
-    return null;
-  }
-  // Settled paint: only B. Catalog/provisional may show pending; never catalog €.
-  if (!provisional && !hasValidPresentablePrice(offer)) {
     return null;
   }
   const priceKind = (() => {
     if (hasValidPresentablePrice(offer)) {
       return 'amount' as const;
     }
+    // Catalog / in-flight: pending presentation. Never treat unknown price as "no offer".
     if (
-      provisional &&
-      offer.livePriceStatus !== 'unpriced' &&
-      offer.livePriceStatus !== 'unavailable'
+      provisional ||
+      (offer.livePriceStatus !== 'unpriced' && offer.livePriceStatus !== 'unavailable')
     ) {
       return 'pending' as const;
     }
-    const presentation = resultsPricePresentation(offer, { provisional });
+    const presentation = resultsPricePresentation(offer, { provisional: true });
     if (presentation === 'unpriced' || isUnpricedResultsOffer(offer)) {
       return 'unpriced' as const;
     }

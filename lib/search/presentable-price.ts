@@ -192,7 +192,8 @@ export function filterToResultsListableOffers(offers: TravelOffer[]): TravelOffe
 
 /**
  * Maps TravelOffer live-price status to the Results/Detail price panel.
- * SUCCESS → amount; pending live call → pending; otherwise no amount.
+ * SUCCESS → amount; pending / catalog (price not yet available) → pending;
+ * otherwise no amount. Missing price must not be treated as “no match”.
  */
 export function resultsPricePresentation(
   offer: TravelOffer,
@@ -206,6 +207,10 @@ export function resultsPricePresentation(
   }
   if (isUnpricedResultsOffer(offer)) {
     return 'unpriced';
+  }
+  // Catalog / unset: price not yet available — still a Results match.
+  if (offer.livePriceStatus !== 'unavailable' && offer.livePriceStatus !== 'proven') {
+    return 'pending';
   }
   return 'unavailable';
 }

@@ -21,18 +21,22 @@ async function OverlayTravelCard({
   searchParams?: SearchParams;
 }) {
   const priced = await live;
-  // Settled Results cards require B (proven presentable). A/C/unpriced → hidden.
-  if (!hasValidPresentablePrice(priced)) {
+  // A/C/parked settled non-listable → not a bookable card.
+  // Listable without proven live € → keep the match visible (pending).
+  if (!isResultsListableOffer(priced)) {
     return null;
   }
-  // Live overlay may raise `price` above the budget slider; drop those cards.
-  if (searchParams && !offerMatchesBudget(priced, searchParams)) {
+  if (
+    hasValidPresentablePrice(priced) &&
+    searchParams &&
+    !offerMatchesBudget(priced, searchParams)
+  ) {
     return null;
   }
   return (
     <TravelCard
       offer={priced}
-      provisional={false}
+      provisional={!hasValidPresentablePrice(priced)}
       searchParams={searchParams}
     />
   );
@@ -45,17 +49,20 @@ function renderCatalogOfferSlot(
 ) {
   if (!overlay || !overlay.pending) {
     const settled = overlay?.catalog ?? offer;
-    // Non-provisional paint: only B. Catalog without proven live price is not a card.
-    if (!hasValidPresentablePrice(settled)) {
+    if (!isResultsListableOffer(settled)) {
       return null;
     }
-    if (searchParams && !offerMatchesBudget(settled, searchParams)) {
+    if (
+      hasValidPresentablePrice(settled) &&
+      searchParams &&
+      !offerMatchesBudget(settled, searchParams)
+    ) {
       return null;
     }
     return (
       <TravelCard
         offer={settled}
-        provisional={false}
+        provisional={!hasValidPresentablePrice(settled)}
         searchParams={searchParams}
       />
     );
