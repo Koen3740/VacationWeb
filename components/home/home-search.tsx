@@ -2,7 +2,6 @@
 
 import {
   CalendarIcon,
-  ChevronDownIcon,
   DurationIcon,
   LocationIcon,
   PlaneIcon,
@@ -17,6 +16,7 @@ import {
   DeparturePeriodPopup,
   type FlexibilityDays,
 } from '@/components/search/departure-period-popup/departure-period-popup';
+import { getDepartureDisplay } from '@/components/search/departure-display';
 import { DurationPopup } from '@/components/search/duration-popup/duration-popup';
 import { formatSelectedDurationsLabel } from '@/components/search/duration-popup/duration-popup-utils';
 import { SearchProgressOverlay } from '@/components/search/search-progress-feedback';
@@ -29,16 +29,12 @@ import {
 import { TravelersPopup } from '@/components/search/travelers-popup/travelers-popup';
 import {
   createDefaultTravelersState,
+  formatRoomsLabel,
   formatTravelersLabel,
   type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-
-function formatDate(isoDate: string): string {
-  const date = new Date(isoDate);
-  return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 function getInitialHomeSearchState() {
   const shared = loadSharedSearchState();
@@ -49,29 +45,48 @@ function getInitialHomeSearchState() {
   return shared;
 }
 
+/**
+ * Homepage field chrome aligned with ResultsSearchBar FieldButton
+ * (label / value / hint hierarchy, height, padding, icon gap).
+ */
 function SearchField({
-  displayText,
+  label,
+  value,
+  hint,
   icon,
-  children,
   className = '',
+  valueClassName = '',
 }: {
-  displayText: string;
+  label: string;
+  value: string;
+  hint: string;
   icon: ReactNode;
-  children?: ReactNode;
   className?: string;
+  /** Extra classes for the value line (e.g. date segment: never ellipsize on desktop). */
+  valueClassName?: string;
 }) {
   return (
-    <div className={`relative flex min-w-0 flex-1 items-center gap-3 px-4 py-3 lg:px-5 lg:py-4 ${className}`}>
+    <div
+      className={`flex min-h-[60px] min-w-0 flex-1 items-center gap-2.5 px-3.5 py-2 ${className}`}
+    >
       {icon}
-      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#0A2D62]">{displayText}</span>
-      {children}
-      <ChevronDownIcon />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-semibold uppercase tracking-[0.05em] text-[#94A3B8]">
+          {label}
+        </span>
+        <span
+          className={`mt-0.5 block text-[13px] font-semibold leading-snug text-[#0A2D62] ${valueClassName}`}
+        >
+          {value}
+        </span>
+        <span className="mt-0.5 block text-[11px] leading-snug text-[#94A3B8]">{hint}</span>
+      </span>
     </div>
   );
 }
 
 function Divider() {
-  return <div className="hidden h-10 w-px shrink-0 bg-[#E2E8F0] lg:block" aria-hidden="true" />;
+  return <div className="hidden w-px shrink-0 self-stretch bg-[#E8ECF2] lg:block" aria-hidden="true" />;
 }
 
 type HomeSearchProps = {
@@ -126,17 +141,27 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
     travelers,
   ]);
 
-  const destinationText =
-    selectedCountries.length === 0 ? 'Bestemming' : formatSelectedCountriesLabel(selectedCountries);
+  const destinationValue =
+    selectedCountries.length === 0 ? 'Kies bestemming' : formatSelectedCountriesLabel(selectedCountries);
+  const destinationHint =
+    selectedCountries.length === 0
+      ? 'Land of regio'
+      : selectedCountries.length === 1
+        ? '1 land'
+        : `${selectedCountries.length} landen`;
 
-  const departureText = departureStart
-    ? departureEnd
-      ? `${formatDate(departureStart)} – ${formatDate(departureEnd)}`
-      : formatDate(departureStart)
-    : 'Vertrekdatum';
-  const durationText = formatSelectedDurationsLabel(selectedDurations);
-  const airportText = formatSelectedDepartureAirportsLabel(selectedDepartureAirports);
-  const travelersText = formatTravelersLabel(travelers);
+  const departureDisplay = getDepartureDisplay({
+    departureStart,
+    departureEnd,
+    flexibilityDays,
+  });
+  const departureValue = departureDisplay.label ?? 'Kies periode';
+  const departureHint = departureDisplay.hint ?? 'Kies een datum of periode';
+
+  const durationValue = formatSelectedDurationsLabel(selectedDurations);
+  const airportValue = formatSelectedDepartureAirportsLabel(selectedDepartureAirports);
+  const travelersValue = formatTravelersLabel(travelers);
+  const travelersHint = formatRoomsLabel(travelers);
 
   const searchHref = useMemo(
     () =>
@@ -190,68 +215,103 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
     });
   };
 
+  const fieldButtonClass =
+    'w-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0';
+
   return (
     <>
-      <div className="w-full rounded-full bg-white py-1.5 pl-1.5 pr-1.5 shadow-[0_8px_32px_rgba(10,45,98,0.12)] lg:pr-2">
-        <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:gap-0">
-          <button
-            type="button"
-            onClick={() => setDestinationPopupOpen(true)}
-            className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
-          >
-            <SearchField displayText={destinationText} icon={<LocationIcon />} />
-          </button>
+      <div className="rounded-[16px] bg-white p-1 shadow-[0_10px_28px_rgba(10,45,98,0.12)] ring-1 ring-black/[0.04]">
+        <div className="flex flex-col gap-0 lg:flex-row lg:items-stretch">
+          <div className="flex min-w-0 flex-1 flex-col divide-y divide-[#EEF2F6] lg:flex-row lg:divide-x lg:divide-y-0">
+            <button
+              type="button"
+              onClick={() => setDestinationPopupOpen(true)}
+              className={`${fieldButtonClass} lg:flex-[1.05]`}
+            >
+              <SearchField
+                label="Bestemming"
+                value={destinationValue}
+                hint={destinationHint}
+                icon={<LocationIcon />}
+              />
+            </button>
 
-          <Divider />
+            <Divider />
 
-          <button
-            type="button"
-            onClick={openDeparturePopup}
-            className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
-          >
-            <SearchField displayText={departureText} icon={<CalendarIcon />} />
-          </button>
+            <button
+              type="button"
+              onClick={openDeparturePopup}
+              className={`${fieldButtonClass} lg:min-w-[11.5rem] lg:flex-[1.45]`}
+            >
+              <SearchField
+                label="Wanneer"
+                value={departureValue}
+                hint={departureHint}
+                icon={<CalendarIcon />}
+                // Desktop: full period visible (no ellipsis). Mobile may wrap rather than clip.
+                valueClassName="whitespace-normal sm:whitespace-nowrap"
+              />
+            </button>
 
-          <Divider />
+            <Divider />
 
-          <button
-            type="button"
-            onClick={openDurationPopup}
-            className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
-          >
-            <SearchField displayText={durationText} icon={<DurationIcon />} />
-          </button>
+            <button
+              type="button"
+              onClick={openDurationPopup}
+              className={`${fieldButtonClass} lg:flex-1`}
+            >
+              <SearchField
+                label="Reisduur"
+                value={durationValue}
+                hint="Flexibel"
+                icon={<DurationIcon />}
+              />
+            </button>
 
-          <Divider />
+            <Divider />
 
-          <button
-            type="button"
-            onClick={() => setAirportPopupOpen(true)}
-            className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
-          >
-            <SearchField displayText={airportText} icon={<PlaneIcon />} />
-          </button>
+            <button
+              type="button"
+              onClick={() => setAirportPopupOpen(true)}
+              className={`${fieldButtonClass} lg:min-w-[9rem] lg:flex-[1.15]`}
+            >
+              <SearchField
+                label="Luchthaven"
+                value={airportValue}
+                hint="Flexibel"
+                icon={<PlaneIcon />}
+                valueClassName="whitespace-normal sm:whitespace-nowrap"
+              />
+            </button>
 
-          <Divider />
+            <Divider />
 
-          <button
-            type="button"
-            onClick={() => setTravelersPopupOpen(true)}
-            className="w-full rounded-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0 lg:flex-1"
-          >
-            <SearchField displayText={travelersText} icon={<TravelersIcon />} />
-          </button>
+            <button
+              type="button"
+              onClick={() => setTravelersPopupOpen(true)}
+              className={`${fieldButtonClass} lg:flex-1`}
+            >
+              <SearchField
+                label="Reizigers"
+                value={travelersValue}
+                hint={travelersHint}
+                icon={<TravelersIcon />}
+              />
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={handleSearch}
-            disabled={searchBusy}
-            aria-busy={searchBusy}
-            className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-[#0A2D62] px-6 text-sm font-semibold text-white transition hover:bg-[#082452] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] disabled:cursor-wait disabled:opacity-80 lg:ml-1 lg:h-14 lg:w-auto lg:px-8"
-          >
-            <SearchButtonIcon />
-            {searchBusy ? 'Zoeken…' : 'Vakanties zoeken'}
-          </button>
+          <div className="flex shrink-0 items-center p-1 lg:pl-2">
+            <button
+              type="button"
+              onClick={handleSearch}
+              disabled={searchBusy}
+              aria-busy={searchBusy}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[12px] bg-[#0A2D62] px-6 text-sm font-semibold text-white transition hover:bg-[#082452] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] disabled:cursor-wait disabled:opacity-80 lg:h-[52px] lg:w-auto lg:min-w-[11.5rem] lg:px-7"
+            >
+              <SearchButtonIcon />
+              {searchBusy ? 'Zoeken…' : 'Vakanties zoeken'}
+            </button>
+          </div>
         </div>
       </div>
 
