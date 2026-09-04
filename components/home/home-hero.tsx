@@ -21,7 +21,7 @@ export function HomeHero({ countryCounts, departureAirports, totalOffersLabel }:
       <section className="relative">
         <div className="relative h-[420px] w-full overflow-hidden sm:h-[460px] lg:h-[500px]">
           <Image
-            src="/images/homepage-hero-background.png"
+            src="/images/hero-results-mediterranean-v1.png"
             alt=""
             fill
             priority

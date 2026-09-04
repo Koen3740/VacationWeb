@@ -10,31 +10,31 @@ const VACATION_TYPES = [
   {
     id: 'all-inclusive',
     title: 'All inclusive',
-    image: '/images/vacation-types/all-inclusive.png',
+    image: '/images/vacation-types/all-inclusive.jpg',
     href: '/results?boardTypes=All%20Inclusive,Ultra%20All%20Inclusive',
   },
   {
     id: 'strandvakantie',
     title: 'Strandvakantie',
-    image: '/images/vacation-types/strandvakantie.png',
+    image: '/images/vacation-types/starndvakantie.jpg',
     href: '/results',
   },
   {
     id: 'familievakantie',
     title: 'Familievakantie',
-    image: '/images/vacation-types/familievakantie.png',
+    image: '/images/vacation-types/familievakantie.jpg',
     href: '/results?vacationTypes=Familie',
   },
   {
     id: 'last-minute',
     title: 'Last minute',
-    image: '/images/vacation-types/last-minute.png',
+    image: '/images/vacation-types/last-minute.jpg',
     href: '/results?sort=price',
   },
   {
     id: 'adults-only',
     title: 'Adults Only',
-    image: '/images/vacation-types/adults-only.png',
+    image: '/images/vacation-types/adults-only.jpg',
     href: '/results?vacationTypes=Adults%20Only',
   },
 ] as const;

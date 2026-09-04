@@ -15,11 +15,11 @@ const TOP_DESTINATIONS = [
 ] as const;
 
 const DESTINATION_IMAGES: Record<(typeof TOP_DESTINATIONS)[number], string> = {
-  Spanje: '/images/destinations/spanje.png',
-  Griekenland: '/images/destinations/griekenland.png',
-  Turkije: '/images/destinations/turkije.png',
-  'Canarische Eilanden': '/images/destinations/canarische-eilanden.png',
-  Portugal: '/images/destinations/portugal.png',
+  Spanje: '/images/destinations/spanje.jfif',
+  Griekenland: '/images/destinations/griekenland.jfif',
+  Turkije: '/images/destinations/turkije.jfif',
+  'Canarische Eilanden': '/images/destinations/canarische-eilanden.jfif',
+  Portugal: '/images/destinations/portugal.jfif',
 };
 
 function prepareDestinationsForDisplay(destinations: PopularDestination[]): PopularDestination[] {
