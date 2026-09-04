@@ -27,7 +27,7 @@ export default async function HomePage() {
       />
       <section className="border-t border-[#DCE4EE] bg-[#EAF1F7]">
         {/* Extra top padding clears the Results-style overlapping search bar. */}
-        <div className="mx-auto max-w-[1200px] px-6 pb-5 pt-14 lg:px-8 lg:pb-6 lg:pt-16">
+        <div className="mx-auto max-w-[1600px] px-6 pb-5 pt-14 lg:px-8 lg:pb-6 lg:pt-16">
           <HomeFeatures />
         </div>
       </section>

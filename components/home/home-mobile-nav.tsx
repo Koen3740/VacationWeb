@@ -29,6 +29,7 @@ function CloseIcon() {
   );
 }
 
+/** Light drawer — matches Results header chrome (Results has no mobile menu). */
 export function HomeMobileNav({ links }: HomeMobileNavProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -71,7 +72,7 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
         aria-expanded={open}
         aria-controls="home-mobile-nav-panel"
         aria-label="Menu openen"
-        className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]"
+        className="flex h-10 w-10 items-center justify-center rounded-full text-[#334155] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]"
       >
         <MenuIcon />
       </button>
@@ -81,7 +82,7 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
             <div className="fixed inset-0 z-50 lg:hidden">
               <button
                 type="button"
-                className="absolute inset-0 bg-[rgba(0,0,0,0.4)]"
+                className="absolute inset-0 bg-[rgba(10,45,98,0.28)]"
                 aria-label="Menu sluiten"
                 onClick={closeMenu}
               />
@@ -91,15 +92,17 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Hoofdnavigatie"
-                className="absolute right-0 top-0 flex h-full w-[min(100%,20rem)] flex-col bg-[#0A2D62] px-6 pb-8 pt-6 shadow-xl"
+                className="absolute right-0 top-0 flex h-full w-[min(100%,20rem)] flex-col border-l border-[#E8ECF2] bg-white px-6 pb-8 pt-6 shadow-[0_10px_28px_rgba(10,45,98,0.12)]"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold uppercase tracking-wide text-white/70">Menu</span>
+                  <span className="text-[13px] font-semibold uppercase tracking-wide text-[#64748B]">
+                    Menu
+                  </span>
                   <button
                     type="button"
                     onClick={closeMenu}
                     aria-label="Menu sluiten"
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-[#334155] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]"
                   >
                     <CloseIcon />
                   </button>
@@ -111,7 +114,7 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
                       <Link
                         href={link.href}
                         onClick={closeMenu}
-                        className="block rounded-lg px-3 py-3 text-[17px] font-medium text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                        className="block rounded-[10px] px-3 py-3 text-[16px] font-medium text-[#0A2D62] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]"
                       >
                         {link.label}
                       </Link>

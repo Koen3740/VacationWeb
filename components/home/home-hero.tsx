@@ -10,8 +10,8 @@ type HomeHeroProps = {
 };
 
 /**
- * Homepage hero keeps marketing height/copy, but uses the Results composition:
- * photo band → soft black overlays → search bar overlapping the hero bottom.
+ * Homepage hero: taller than Results (homepage job), but identical image treatment
+ * and overlays as ResultsHero — no invented saturate/contrast filters.
  */
 export function HomeHero({ countryCounts, departureAirports, totalOffersLabel }: HomeHeroProps) {
   return (
@@ -25,7 +25,7 @@ export function HomeHero({ countryCounts, departureAirports, totalOffersLabel }:
             alt=""
             fill
             priority
-            className="object-cover object-[48%_42%] saturate-[0.88] contrast-[0.97] brightness-[0.98]"
+            className="object-cover object-[48%_42%]"
             sizes="100vw"
           />
           <div
@@ -37,7 +37,7 @@ export function HomeHero({ countryCounts, departureAirports, totalOffersLabel }:
             aria-hidden="true"
           />
 
-          <div className="relative z-10 mx-auto flex h-full max-w-[1200px] flex-col justify-center px-6 pb-16 pt-8 lg:px-8">
+          <div className="relative z-10 mx-auto flex h-full max-w-[1600px] flex-col justify-center px-6 pb-16 pt-8 lg:px-8">
             <div className="max-w-xl lg:max-w-2xl">
               <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[13px] font-medium tracking-wide text-white/95 backdrop-blur-sm">
                 <StarBadgeIcon />
@@ -58,7 +58,7 @@ export function HomeHero({ countryCounts, departureAirports, totalOffersLabel }:
           </div>
         </div>
 
-        <div className="relative z-20 mx-auto -mt-[34px] max-w-[1200px] px-6 lg:-mt-[38px] lg:px-8">
+        <div className="relative z-20 mx-auto -mt-[34px] max-w-[1600px] px-6 lg:-mt-[38px] lg:px-8">
           <HomeSearch
             countryCounts={countryCounts}
             departureAirports={departureAirports}

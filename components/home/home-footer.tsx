@@ -1,10 +1,5 @@
 import { HomeFooterCookieLink } from '@/components/home/home-footer-cookie-link';
-import {
-  RESULTS_BORDER,
-  RESULTS_MUTED,
-  RESULTS_NAVY,
-  RESULTS_PAGE_BG,
-} from '@/components/results-v2/results-design-tokens';
+import { RESULTS_MUTED, RESULTS_NAVY, RESULTS_PAGE_BG } from '@/components/results-v2/results-design-tokens';
 import Link from 'next/link';
 
 const brandLinks = [
@@ -40,7 +35,10 @@ const bottomBarLinks = [
   { label: 'Sitemap', href: '/search' },
 ] as const;
 
-/** Light footer language aligned with Results USP / panel surfaces (not a separate navy site). */
+/**
+ * Results has no multi-column footer (ends on USP). Homepage keeps legal/IA links
+ * in the same light chrome language: white surface, cool `#E8ECF2` borders, muted links.
+ */
 const footerLinkClassName =
   'text-[14px] text-[#64748B] transition hover:text-[#0A2D62]';
 const footerHeadingClassName =
@@ -48,9 +46,9 @@ const footerHeadingClassName =
 
 export function HomeFooter() {
   return (
-    <footer className="mt-4 border-t" style={{ borderColor: RESULTS_BORDER, backgroundColor: '#FFFFFF' }}>
-      <div className="mx-auto max-w-[1200px] px-6 py-12 lg:px-8 lg:py-14">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+    <footer className="mt-2 border-t border-[#E8ECF2] bg-white">
+      <div className="mx-auto max-w-[1600px] px-6 py-10 lg:px-8 lg:py-12">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           <div>
             <p className="text-[18px] font-bold tracking-tight" style={{ color: RESULTS_NAVY }}>
               VacationWeb
@@ -111,8 +109,8 @@ export function HomeFooter() {
         </div>
       </div>
 
-      <div className="border-t" style={{ borderColor: RESULTS_BORDER, backgroundColor: RESULTS_PAGE_BG }}>
-        <div className="mx-auto flex max-w-[1200px] flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+      <div className="border-t border-[#DCE4EE]" style={{ backgroundColor: RESULTS_PAGE_BG }}>
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between lg:px-8">
           <p className="text-[13px]" style={{ color: RESULTS_MUTED }}>
             © VacationWeb 2026
           </p>

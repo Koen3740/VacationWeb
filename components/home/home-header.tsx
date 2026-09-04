@@ -3,7 +3,7 @@ import { HomeMobileNav } from '@/components/home/home-mobile-nav';
 import Image from 'next/image';
 import Link from 'next/link';
 
-/** Same IA as ResultsSiteHeader — one VacationWeb navigation language. */
+/** Same IA + chrome as ResultsSiteHeader (width 1600). */
 const navLinks = [
   { label: 'Zo werkt het', href: '/search' },
   { label: 'Inspiratie', href: '/search' },
@@ -36,7 +36,7 @@ function NavChevron() {
 export function HomeHeader() {
   return (
     <header className="border-b border-[#E8ECF2] bg-white">
-      <div className="mx-auto flex h-[64px] max-w-[1200px] items-center justify-between gap-6 px-6 lg:px-8">
+      <div className="mx-auto flex h-[64px] max-w-[1600px] items-center justify-between gap-6 px-6 lg:px-8">
         <Link href="/" className="inline-flex shrink-0 items-center">
           <Image
             src="/images/logo.png"
@@ -63,9 +63,7 @@ export function HomeHeader() {
         </nav>
 
         <div className="lg:hidden">
-          <HomeMobileNav
-            links={navLinks.map(({ label, href }) => ({ label, href }))}
-          />
+          <HomeMobileNav links={navLinks.map(({ label, href }) => ({ label, href }))} />
         </div>
       </div>
     </header>
