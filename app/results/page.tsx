@@ -20,7 +20,6 @@ import {
   startCatalogPageLiveOverlays,
 } from '@/lib/providers/prijsvrij';
 import {
-  orderCatalogPageCandidates,
   selectPage1OverlayCandidates,
   selectPageOverlayCandidates,
   sliceRankedCatalogResultsPage,
@@ -122,12 +121,11 @@ export default async function ResultsPage({
   const isPage1 = !Number.isFinite(page) || Math.floor(page) <= 1;
 
   const prepared = await prepareResultsOffers(offers, filteringParams);
-  // Full filtered+ranked matchset stays intact for sort-stable ranking / live work.
-  // User-facing count + pagination follow the browseable (listable) pool so pages
-  // never advertise results that cannot render as cards.
+  // Filter matchset membership is sort-invariant. Sorting only reorders.
+  // Live pricing may enrich/paint cards (with reserve backfill) but must not
+  // change which offers belong to the resultset or the user-facing count.
   const filtered = prepared.offers;
-  const orderedPool = orderCatalogPageCandidates(filtered, filteringParams);
-  const matchCount = orderedPool.length;
+  const matchCount = filtered.length;
   const carRentalCount = countCarRentalFacet(filtered, filteringParams);
 
   const pageShell = {
@@ -147,7 +145,7 @@ export default async function ResultsPage({
   };
 
   if (isPriceDependentSort(params.sort)) {
-    if (orderedPool.length === 0) {
+    if (filtered.length === 0) {
       return (
         <ResultsPageClient
           {...pageShell}
@@ -184,7 +182,7 @@ export default async function ResultsPage({
 
   // Catalog first-paint. Full-matchset live pricing was scheduled in
   // prepareResultsOffers (not awaited). Page overlays join cache / in-flight.
-  if (orderedPool.length === 0) {
+  if (filtered.length === 0) {
     return (
       <ResultsPageClient
         {...pageShell}
@@ -207,8 +205,8 @@ export default async function ResultsPage({
     filteringParams,
   );
   const overlayCandidates = isPage1
-    ? selectPage1OverlayCandidates(orderedPool, pageSize)
-    : selectPageOverlayCandidates(orderedPool, page, pageSize);
+    ? selectPage1OverlayCandidates(filtered, pageSize, undefined, filteringParams)
+    : selectPageOverlayCandidates(filtered, page, pageSize, undefined, filteringParams);
   const overlays = startCatalogPageLiveOverlays(overlayCandidates, params);
 
   return (

@@ -15,7 +15,7 @@ import {
   SUNWEB_PROVIDER_NAME,
 } from './presentable-price';
 import { rankResultsOffers } from './rank-results-offers';
-import { orderCatalogPageCandidates, PAGE1_OVERLAY_RESERVE } from './results-catalog-page';
+import { PAGE1_OVERLAY_RESERVE, PAGE_OVERLAY_SCAN_LIMIT, collectListablePaintWindow } from './results-catalog-page';
 import {
   applyResultsLivePriceOverlays,
   hasResultsLivePriceOverlay,
@@ -85,9 +85,10 @@ function assemblePriceSortRanking(
 }
 
 /**
- * Paginate the browseable (listable) pool of a ranked result set.
- * Settled live failures stay out so paginationTotal matches renderable cards.
- * Live-pricing candidate windows must not redefine the filter matchset upstream.
+ * Paginate the ranked filter matchset in sort order.
+ * paginationTotal is always the full matchset — live settlement / listability
+ * must not make counts sort-dependent. The visible paint window skips settled
+ * non-listable shells and may include reserve listable candidates for backfill.
  */
 export function slicePriceSortPoolPage(
   ranked: readonly TravelOffer[],
@@ -99,18 +100,18 @@ export function slicePriceSortPoolPage(
   page1Ids: string[];
   paginationTotal: number;
 } {
-  const browseable = orderCatalogPageCandidates(ranked, options.params);
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
-  // For intermediate (non-page-1) pages, include a reserve window so
-  // live-price failures can be backfilled without leaving mostly-empty
-  // pages. Page-1 already has its own reserve/cap mechanism.
-  const reserve = safePage > 1 ? PAGE1_OVERLAY_RESERVE : 0;
   const startIndex = (safePage - 1) * pageSize;
-  const endIndex = Math.min(browseable.length, startIndex + pageSize + reserve);
   return {
-    visibleOffers: browseable.slice(startIndex, endIndex),
-    page1Ids: paginateResults(browseable, 1, pageSize).map((offer) => offer.id),
-    paginationTotal: browseable.length,
+    visibleOffers: collectListablePaintWindow(
+      ranked,
+      startIndex,
+      pageSize + PAGE1_OVERLAY_RESERVE,
+      options.params,
+      Math.max(PAGE_OVERLAY_SCAN_LIMIT, ranked.length - startIndex),
+    ),
+    page1Ids: paginateResults(ranked as TravelOffer[], 1, pageSize).map((offer) => offer.id),
+    paginationTotal: ranked.length,
   };
 }
 

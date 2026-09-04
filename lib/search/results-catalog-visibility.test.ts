@@ -363,7 +363,7 @@ test('TEST 13: catalog Corendon overlays keep existing page-1 concurrency of 5',
   assert.ok(maxInFlight >= 2, `expected parallel Corendon work, got ${maxInFlight}`);
 });
 
-test('presentable offers are prioritized before catalog-pending on page 1', () => {
+test('presentable offers are prioritized for paint; page slice keeps sort order', () => {
   const provenFields = {
     livePriceStatus: 'proven' as const,
     livePriceSource: 'upsales' as const,
@@ -379,14 +379,16 @@ test('presentable offers are prioritized before catalog-pending on page 1', () =
   ];
   const ordered = orderCatalogPageCandidates(ranked, { adults: 2 });
   assert.equal(ordered[0].id, 'proven-z');
+  // Pagination follows ranked sort order — not live-presentable-first —
+  // so price sorts keep their ordering while membership stays intact.
   const page = sliceRankedCatalogResultsPage(ranked, 1, 3, { adults: 2 });
   assert.deepEqual(
     page.offers.map((offer) => offer.id),
-    ['proven-z', 'catalog-a', 'catalog-b'],
+    ['catalog-a', 'catalog-b', 'proven-z'],
   );
 });
 
-test('settled unavailable offers stay out of browse/pagination pool', () => {
+test('settled unavailable offers remain in matchset membership and pagination', () => {
   const ranked = [
     makeCorendon({ id: 'visible', livePriceStatus: 'catalog' }),
     makeCorendon({
@@ -396,13 +398,16 @@ test('settled unavailable offers stay out of browse/pagination pool', () => {
     }),
   ];
   const ordered = orderCatalogPageCandidates(ranked, { adults: 2 });
-  assert.equal(ordered.length, 1);
-  assert.equal(ordered[0].id, 'visible');
+  assert.equal(ordered.length, 2);
+  assert.deepEqual(
+    ordered.map((offer) => offer.id).sort(),
+    ['hidden', 'visible'],
+  );
   const page = sliceRankedCatalogResultsPage(ranked, 1, 10, { adults: 2 });
-  assert.equal(page.paginationTotal, 1);
+  assert.equal(page.paginationTotal, 2);
   assert.deepEqual(
     page.offers.map((offer) => offer.id),
-    ['visible'],
+    ['visible', 'hidden'],
   );
 });
 
@@ -432,6 +437,7 @@ test('pipeline counts distinguish catalog, listable, and presentable stages', ()
   assert.equal(counts.afterCatalogFilter, 13);
   assert.equal(counts.afterListabilityFilter, 12);
   assert.equal(counts.afterPresentableFilter, 1);
-  assert.equal(counts.afterPaginationOrder, 12);
+  // Pagination membership equals the ranked filter matchset (includes settled).
+  assert.equal(counts.afterPaginationOrder, 13);
   assert.equal(counts.pageSliceSize, 10);
 });

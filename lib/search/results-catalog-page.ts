@@ -1,4 +1,3 @@
-import { offerMatchesBudget } from '@/lib/search/filtering';
 import { paginateResults, RESULTS_PAGE_SIZE_DEFAULT } from '@/lib/search/pagination';
 import {
   filterToResultsListableOffers,
@@ -22,25 +21,30 @@ export type ResultsPipelineCounts = {
   /** Offers with cached proven live p.p. + total. */
   afterPresentableFilter: number;
   /**
-   * Ordered browse pool (presentable → pending listable).
-   * Settled live failures are excluded so pagination never lands on empty card pages.
+   * Ordered browse / pagination pool. Equals the ranked filter matchset length —
+   * live settlement must not change membership or sort-dependent counts.
    */
   afterPaginationOrder: number;
   pageSize: number;
   pageSliceSize: number;
 };
 
-/** Reserve candidates beyond page 1 for live overlay backfill when primary slots fail. */
-export const PAGE1_OVERLAY_RESERVE = 10;
+/** Reserve candidates beyond a page slice for live overlay backfill when primary slots fail. */
+export const PAGE1_OVERLAY_RESERVE = 40;
 
 /**
- * Pagination / browse pool for a ranked filter matchset.
+ * Max extra ranked offers to scan past the primary page window when collecting
+ * listable paint/overlay candidates. Does not change membership or paginationTotal.
+ */
+export const PAGE_OVERLAY_SCAN_LIMIT = 120;
+
+/**
+ * Display ordering helper for a ranked filter matchset.
  *
- * Presentable offers first, then other listable (catalog/pending).
- * Settled non-listable live outcomes stay out of this pool so count,
- * pagination, and card rendering share the same resultset.
- * Sort-stable match counts still come from the full filtered ranked set upstream;
- * this only decides what users can page through and paint.
+ * Membership is ALWAYS the full ranked set (same IDs as `filterOffers` + sort).
+ * Live overlays may only change relative order (presentable → pending → settled)
+ * for paint priority — never add/remove members. Sort mode must not change
+ * which offers belong to the resultset.
  */
 export function orderCatalogPageCandidates(
   ranked: readonly TravelOffer[],
@@ -51,24 +55,50 @@ export function orderCatalogPageCandidates(
     : (ranked as TravelOffer[]);
   const presentable: TravelOffer[] = [];
   const pending: TravelOffer[] = [];
+  const settled: TravelOffer[] = [];
 
   for (const offer of overlaid) {
-    // Live overlays can push a proven price outside the active budget — those
-    // cannot become cards, so they must not occupy browse/pagination slots.
-    if (params && !offerMatchesBudget(offer, params)) {
-      continue;
-    }
     if (hasValidPresentablePrice(offer)) {
       presentable.push(offer);
       continue;
     }
     if (isResultsListableOffer(offer)) {
       pending.push(offer);
+      continue;
     }
-    // Settled unavailable / unpriced: keep out of browse pool (no empty pages).
+    settled.push(offer);
   }
 
-  return [...presentable, ...pending];
+  return [...presentable, ...pending, ...settled];
+}
+
+/**
+ * Collect listable paint/overlay candidates in ranked sort order.
+ * Skips settled non-listable shells so reserve can backfill cards without
+ * shrinking the filter matchset used for counts/pagination.
+ */
+export function collectListablePaintWindow(
+  ranked: readonly TravelOffer[],
+  startIndex: number,
+  need: number,
+  params?: SearchParams,
+  scanLimit: number = PAGE_OVERLAY_SCAN_LIMIT,
+): TravelOffer[] {
+  if (need <= 0 || startIndex >= ranked.length) {
+    return [];
+  }
+  const overlaid = params
+    ? applyResultsLivePriceOverlays(ranked as TravelOffer[], params)
+    : (ranked as TravelOffer[]);
+  const end = Math.min(overlaid.length, Math.max(startIndex, 0) + Math.max(scanLimit, need));
+  const selected: TravelOffer[] = [];
+  for (let index = Math.max(startIndex, 0); index < end && selected.length < need; index += 1) {
+    const offer = overlaid[index];
+    if (isResultsListableOffer(offer)) {
+      selected.push(offer);
+    }
+  }
+  return selected;
 }
 
 export function measureResultsPipelineCounts(
@@ -88,28 +118,28 @@ export function measureResultsPipelineCounts(
     afterPresentableFilter: overlaid.filter(hasValidPresentablePrice).length,
     afterPaginationOrder: ordered.length,
     pageSize,
-    pageSliceSize: paginateResults(ordered, safePage, pageSize).length,
+    pageSliceSize: paginateResults(ranked as TravelOffer[], safePage, pageSize).length,
   };
 }
 
 /**
- * Ranked catalog slice for a Results page.
- * Presentable offers are prioritized so page 1 can fill when cached live prices exist
- * beyond the first rank-order slots.
+ * Page slice of the ranked filter matchset.
+ *
+ * Paginate in sort order (not live-presentable-first) so price sorts keep their
+ * ordering. paginationTotal is always the full matchset length.
  */
 export function sliceRankedCatalogResultsPage(
   ranked: readonly TravelOffer[],
   page: number,
   pageSize: number = RESULTS_PAGE_SIZE_DEFAULT,
-  params?: SearchParams,
+  _params?: SearchParams,
 ): RankedCatalogResultsPage {
-  const ordered = orderCatalogPageCandidates(ranked, params);
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
-  const offers = paginateResults(ordered, safePage, pageSize);
+  const offers = paginateResults(ranked as TravelOffer[], safePage, pageSize);
   return {
     offers,
-    page1Ids: paginateResults(ordered, 1, pageSize).map((offer) => offer.id),
-    paginationTotal: ordered.length,
+    page1Ids: paginateResults(ranked as TravelOffer[], 1, pageSize).map((offer) => offer.id),
+    paginationTotal: ranked.length,
   };
 }
 
@@ -118,9 +148,9 @@ export function selectPage1OverlayCandidates(
   ordered: readonly TravelOffer[],
   pageSize: number,
   reserve: number = PAGE1_OVERLAY_RESERVE,
+  params?: SearchParams,
 ): TravelOffer[] {
-  const windowSize = Math.min(ordered.length, pageSize + reserve);
-  return ordered.slice(0, windowSize) as TravelOffer[];
+  return collectListablePaintWindow(ordered, 0, pageSize + reserve, params);
 }
 
 /**
@@ -128,19 +158,16 @@ export function selectPage1OverlayCandidates(
  *
  * Same idea as `selectPage1OverlayCandidates`, but starting at the page offset,
  * so that live-price failures on intermediate pages can be backfilled from
- * the next candidates without leaving mostly-empty pages.
+ * later listable candidates without leaving mostly-empty pages.
  */
 export function selectPageOverlayCandidates(
   ordered: readonly TravelOffer[],
   page: number,
   pageSize: number,
   reserve: number = PAGE1_OVERLAY_RESERVE,
+  params?: SearchParams,
 ): TravelOffer[] {
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
   const startIndex = (safePage - 1) * pageSize;
-  const endIndex = Math.min(ordered.length, startIndex + pageSize + reserve);
-  if (startIndex >= ordered.length) {
-    return [] as TravelOffer[];
-  }
-  return ordered.slice(startIndex, endIndex) as TravelOffer[];
+  return collectListablePaintWindow(ordered, startIndex, pageSize + reserve, params);
 }

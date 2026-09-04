@@ -7,6 +7,7 @@ import { CORENDON_PROVIDER_NAME } from '@/lib/providers/corendon/constants';
 import { isResultsListableOffer } from '@/lib/search/presentable-price';
 import {
   orderCatalogPageCandidates,
+  selectPage1OverlayCandidates,
   sliceRankedCatalogResultsPage,
 } from '@/lib/search/results-catalog-page';
 import {
@@ -43,7 +44,7 @@ const params: SearchParams = {
   nights: [8],
 };
 
-test('count>0 never paginates a page of only settled failures (empty cards)', () => {
+test('count/pagination keep full matchset; cards skip settled via listability', () => {
   clearResultsLivePriceCache();
   const proven = {
     livePriceStatus: 'proven' as const,
@@ -86,23 +87,24 @@ test('count>0 never paginates a page of only settled failures (empty cards)', ()
     }
   }
 
-  const browseable = orderCatalogPageCandidates(ranked, params);
-  assert.equal(browseable.length, 5);
-  assert.ok(browseable.every(isResultsListableOffer));
+  const ordered = orderCatalogPageCandidates(ranked, params);
+  assert.equal(ordered.length, 35);
+  assert.equal(ordered.filter(isResultsListableOffer).length, 5);
 
   const pageSize = 10;
   const page = sliceRankedCatalogResultsPage(ranked, 1, pageSize, params);
-  assert.equal(page.paginationTotal, 5);
-  assert.ok(page.offers.length > 0);
-  assert.ok(page.offers.every(isResultsListableOffer));
+  assert.equal(page.paginationTotal, 35);
+  // Sort-order page may include settled shells; card layer filters them.
+  assert.equal(page.offers.filter(isResultsListableOffer).length, 5);
 
-  // No later page of only settled shells — previously caused count>0 + empty cards.
-  const emptyTail = sliceRankedCatalogResultsPage(ranked, 2, pageSize, params);
-  assert.equal(emptyTail.offers.length, 0);
+  // Overlay window skips settled shells and still reaches the presentable offers.
+  const overlayWindow = selectPage1OverlayCandidates(ordered, pageSize, undefined, params);
+  assert.equal(overlayWindow.length, 5);
+  assert.ok(overlayWindow.every(isResultsListableOffer));
 });
 
-test('results page uses browseable pool length for the user-facing count', () => {
+test('results page uses filter matchset length for the user-facing count', () => {
   const pageSource = readFileSync(join(ROOT, 'app/results/page.tsx'), 'utf8');
-  assert.match(pageSource, /matchCount = orderedPool\.length/);
-  assert.doesNotMatch(pageSource, /matchCount = filtered\.length/);
+  assert.match(pageSource, /matchCount = filtered\.length/);
+  assert.doesNotMatch(pageSource, /matchCount = orderedPool\.length/);
 });

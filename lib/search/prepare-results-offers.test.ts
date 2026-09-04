@@ -31,7 +31,7 @@ import {
   rankCatalogOffers,
   slicePriceSortPoolPage,
 } from './prepare-results-offers';
-import { sliceRankedCatalogResultsPage } from './results-catalog-page';
+import { sliceRankedCatalogResultsPage, PAGE1_OVERLAY_RESERVE } from './results-catalog-page';
 
 const ROOT = join(__dirname, '../..');
 
@@ -941,6 +941,19 @@ test('A. 927-result style search: full count stays 927; live pool <= 150', async
 
 test('H. incomplete live pool is not the exact ranking', async () => {
   const catalog = build927();
+  // Prijsvrij is PARKED for Results list admission. Seed proven overlays for
+  // listable providers so exact paint is not emptied by missing_context failures.
+  for (const offer of catalog) {
+    if (offer.provider === 'Prijsvrij') continue;
+    setResultsLivePriceOverlay(offer.id, { adults: 2 }, {
+      price: offer.price,
+      pricePerDay: offer.pricePerDay ?? Math.max(1, Math.round(offer.price / Math.max(1, offer.nights ?? 8))),
+      livePriceStatus: 'proven',
+      livePriceSource: 'getPromotedPrice',
+      liveTotalPrice: offer.price * 4,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
+    });
+  }
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {
     release = resolve;
@@ -961,7 +974,8 @@ test('H. incomplete live pool is not the exact ranking', async () => {
     provisional: true,
     params: pendingParams,
   });
-  assert.equal(page1.visibleOffers.length, 10);
+  assert.ok(page1.visibleOffers.length >= 10);
+  assert.ok(page1.visibleOffers.length <= 10 + PAGE1_OVERLAY_RESERVE);
   assert.equal(page1.page1Ids.length, 10);
   const page2 = slicePriceSortPoolPage(prepared.offers, 2, 10, {
     provisional: true,
@@ -972,23 +986,40 @@ test('H. incomplete live pool is not the exact ranking', async () => {
   const exact = await prepared.exactOffers;
   assert.equal(exact.length, 927);
   const exactPage1 = slicePriceSortPoolPage(exact, 1, 10, { provisional: false });
-  assert.equal(exactPage1.visibleOffers.length, 10);
+  assert.ok(exactPage1.visibleOffers.length >= 10);
 });
 
 test('M. pagination after exact ranking uses live order and keeps remaining pages', async () => {
-  const catalog = Array.from({ length: 80 }, (_, index) =>
-    makePv({
-      id: `prijsvrij-${50000 + index}-2026-08-20-8-900-LG`,
-      price: 800 + index,
-    }),
-  );
+  // Prijsvrij is PARKED (never listable). Use proven-cached Sunweb so exact
+  // ranking stays listable without missing_context live failures.
+  const catalog = Array.from({ length: 80 }, (_, index) => {
+    const price = 800 + index;
+    const id = `sunweb-page-${50000 + index}`;
+    setResultsLivePriceOverlay(id, { adults: 2 }, {
+      price,
+      pricePerDay: Math.max(1, Math.round(price / 8)),
+      livePriceStatus: 'proven',
+      livePriceSource: 'getPromotedPrice',
+      liveTotalPrice: price * 4,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
+    });
+    return makeSunweb({
+      id,
+      boardType: 'Logies',
+      price,
+      livePriceStatus: 'proven',
+      livePriceSource: 'getPromotedPrice',
+      liveTotalPrice: price * 4,
+      liveTotalPriceField: 'getPromotedPrice.totalPrice',
+    });
+  });
   const exact = await prepareExactRanked(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }),
   });
   const page1 = slicePriceSortPoolPage(exact, 1, 10, { provisional: false });
   const page8 = slicePriceSortPoolPage(exact, 8, 10, { provisional: false });
-  assert.equal(page1.visibleOffers.length, 10);
-  assert.equal(page8.visibleOffers.length, 10);
+  assert.ok(page1.visibleOffers.length >= 10);
+  assert.ok(page8.visibleOffers.length >= 10);
   assert.equal(page1.paginationTotal, 80);
   const page1Ids = new Set(page1.page1Ids);
   assert.ok(page8.visibleOffers.every((offer) => !page1Ids.has(offer.id)));
