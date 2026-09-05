@@ -1,4 +1,5 @@
 import { PopularDestination } from '@/lib/offers/derive-destination-countries';
+import { buildPopularDestinationHref } from '@/components/home/home-popular-destination-href';
 import { HomePhotoCardLink } from '@/components/home/home-photo-card-link';
 import { RESULTS_MUTED, RESULTS_NAVY } from '@/components/results-v2/results-design-tokens';
 
@@ -46,7 +47,7 @@ export function HomePopularDestinations({ destinations }: HomePopularDestination
         {displayDestinations.map((destination) => (
           <HomePhotoCardLink
             key={destination.name}
-            href={`/results?country=${encodeURIComponent(destination.name)}`}
+            href={buildPopularDestinationHref(destination.name)}
             imageSrc={DESTINATION_IMAGES[destination.name as keyof typeof DESTINATION_IMAGES]}
             title={destination.name}
           />
