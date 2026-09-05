@@ -23,7 +23,6 @@ import {
   selectPage1OverlayCandidates,
   selectPageOverlayCandidates,
   sliceRankedCatalogResultsPage,
-  bookableResultsMembership,
 } from '@/lib/search/results-catalog-page';
 import '@/lib/http/prefer-ipv4';
 import { countCarRentalFacet, countRoadtripFacet } from '@/lib/search/filtering';
@@ -122,11 +121,10 @@ export default async function ResultsPage({
   const isPage1 = !Number.isFinite(page) || Math.floor(page) <= 1;
 
   const prepared = await prepareResultsOffers(offers, filteringParams);
-  // Catalog filter matchset (sort-invariant). Bookable membership drops only
-  // provider-confirmed A before pagination — C / pending stay.
+  // Catalog filter matchset (sort-invariant) drives the heading / facets.
+  // Bookable membership drops only provider-confirmed A inside page slicing.
   const filtered = prepared.offers;
-  const bookable = bookableResultsMembership(filtered, filteringParams);
-  const matchCount = bookable.length;
+  const matchCount = filtered.length;
   const carRentalCount = countCarRentalFacet(filtered, filteringParams);
   const roadtripCount = countRoadtripFacet(filtered, filteringParams);
 
