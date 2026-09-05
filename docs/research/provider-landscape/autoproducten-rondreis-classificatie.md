@@ -1,128 +1,101 @@
-# Autoproducten / rondreisclassificatie — productsemantiek SSOT
+# Autoproducten / Roadtrip (Fly & Drive) vs Huurauto — productsemantiek SSOT
 
-**Datum:** 2026-09-05  
-**Type:** CURRENT productsemantiek + onboardingcontrole (geen architectuur-herbouw)  
-**Procedure-SSOT:** `VacationWeb_Provider_Integration_Protocol` (Current) + extract  
+**Datum:** 2026-09-05 (forensics + filter wiring)  
+**Type:** CURRENT productsemantiek + Results-filter + onboardingcontrole  
+**Procedure-SSOT:** Provider Integration Protocol extract  
 `data/_current_doc_extract/VacationWeb_Provider_Integration_Protocol_v1.0_amended.txt`  
-**Code-spiegel (niet Results-filter):** `lib/offers/fly-drive-rondreis.ts`  
-**Huurauto-flag (apart):** `lib/offers/has-car-rental.ts` / `offer.hasCarRental`
+**Code:** `lib/offers/fly-drive-rondreis.ts`, `lib/search/vacation-type.ts`, `lib/search/filtering.ts`
 
 ---
 
-## 1. VacationWeb-concepten (blijven gescheiden)
+## 1. VacationWeb-concepten (onafhankelijk)
 
-| Concept | Betekenis | Runtime vandaag |
+| Concept | UI-label | Runtime |
 |---|---|---|
-| **Huurauto** | Pakket bevat bewezen autohuur | `offer.hasCarRental === true`; UI-filter “Autohuur inclusief” (`hasCarRental=1`) |
-| **Fly & Drive (rondreis/rondtrekken)** | Provider-specifieke rondreis/rondrit-aanduiding waar bewezen | Semantiek hieronder; helper `isProvenFlyAndDriveRondreis` — **niet** aangesloten op Results-filtering |
+| **Roadtrip** | `Roadtrip (Fly & Drive)` | `vacationTypes=Fly & Drive` → `isRoadtripOffer` |
+| **Huurauto** | `Huurauto inbegrepen` | `hasCarRental=1` → `offer.hasCarRental === true` |
 
-Deze twee zijn **niet** hetzelfde. Huurauto bewijst **niet** dat iets een rondreis is.
+Geen overkoepelende categorie “Auto”. Beide opties staan direct onder elkaar in Results (“Wat zoek ik?”).
+
+Filters zijn **onafhankelijk** (AND bij beide actief). Een Roadtrip mag óók `hasCarRental === true` hebben.
 
 ---
 
-## 2. A. BEWEZEN PROVIDERREGELS
+## 2. Oorzaak oude “Fly & Drive”-classificatie (bewezen)
+
+Voorheen matchte `vacationTypes=Fly & Drive` op **keyword** in `offerSearchText` (`fly-drive`, `fly & drive`, …).
+
+Corendon-subcategorie **`Fly-Drive vakantie`** staat in die blob en dekt **Fly & Go** / gewone huurauto-pakketten.
+
+Lokale catalogusaudit (active providers Corendon/Sunweb/Eliza, `data/offers.json`):
+
+| Set | Aantal |
+|---|---|
+| Oude keyword “Fly & Drive” | **590** |
+| Keyword ∩ `hasCarRental` | **577** |
+| Verschil (keyword zonder car) | **13** |
+| **Bewezen Roadtrip** (naam `Fly & Drive`, Corendon/Sunweb) | **29** |
+| Roadtrip ∩ huurauto | **16** |
+| Roadtrip zonder `hasCarRental` | **13** |
+| Alle `hasCarRental` | **1316** |
+| Keyword false positives (subcat `Fly-Drive vakantie`, geen Roadtrip-naam) | **561** (allen Corendon) |
+
+Hypothese UI ≈595 / ≈579 / verschil 16: **richting-correct, niet exact** op deze snapshot (lokaal 590 / 577 / **13**). Het getal **16** = Roadtrip∩huurauto, **niet** het verschil keyword−intersectie. Geen hardcoding van 16.
+
+Eliza: 701 offers, allen `hasCarRental`, **0** Roadtrip.
+
+---
+
+## 3. A. BEWEZEN PROVIDERREGELS
 
 ### Corendon
-
-| Product | Classificatie |
-|---|---|
-| **Fly & Drive** (providerbenaming op product) | **Rondreis / rondrit** |
-| **Fly & Go** (= vlucht + huurauto bij één accommodatie/hotel) | **Geen** rondreis; hoort bij huurauto-pakket |
-| Subcategorie-token `Fly-Drive vakantie` | Alleen **huurauto-import** (`hasCarRental`); **geen** universeel rondreisbewijs (dekt ook Fly & Go) |
-
-Bewezen offer-niveau rondreis-signaal (huidige catalogus): product-/hotelnaam met providerbenaming **Fly & Drive** (bijv. catalogusnamen in `data/filter-options.json`: “Fly & Drive Chalkidiki”, “Fly & Drive Madeira”).  
-**Niet** gebruiken: `hasCarRental === true` alleen.
+- **Fly & Drive** in product-/hotelnaam → **Roadtrip**.
+- **Fly & Go** → geen Roadtrip (huurauto-pakket).
+- Token `Fly-Drive vakantie` → alleen huurauto-import; **geen** Roadtrip.
 
 ### Sunweb
-
-| Product | Classificatie |
-|---|---|
-| Door Sunweb aangeduid als **Fly & Drive** | **Rondreis / rondtrekken** |
-| Gewone huurauto (`hasCarRental` zonder Fly & Drive-benaming) | **Geen** rondreis |
-
-**Niet** gebruiken: `hasCarRental === true` als synoniem voor rondreis.
+- Productnaam **Fly & Drive** → **Roadtrip**.
+- Gewone `hasCarRental` zonder die benaming → geen Roadtrip.
 
 ### Eliza was here
-
-- De **productfeed** bevat **geen** rondreis-/rondritproducten.
-- Een rondrit/rondreis kan **op aanvraag** worden samengesteld — dat is **geen** feed-/catalogusproduct.
-- Daarom: **geen** feedclassificatie als rondreis.
-- Eliza Flight → `hasCarRental` (productregel) blijft **gewone huurauto**, geen rondreis.
+- Geen Roadtrip in productfeed; aanvraag ≠ catalogusproduct.
+- Huurauto blijft huurauto.
 
 ---
 
-## 3. B. NIET GELDIG ALS UNIVERSELE REGEL
+## 4. B. NIET UNIVERSEEL
 
-Verboden generalisaties:
-
-1. `hasCarRental === true` ⇒ rondreis  
-2. “Fly & Drive” bij provider X ⇒ automatisch dezelfde mapping bij provider Y  
-3. Corendon/Sunweb-terminologie stilzwijgend overnemen voor nieuwe providers (o.a. Vakanties.nl)
-
-Providerterminologie moet **per provider** worden onderzocht, bewezen en in de Provider-Bijbel vastgelegd.
+- `hasCarRental === true` ⇒ Roadtrip — **verboden**.
+- Elke tekst “fly drive” in lange copy ⇒ Roadtrip — **verboden**.
+- Corendon/Sunweb-mapping stilzwijgend naar andere providers — **verboden**.
 
 ---
 
-## 4. C. NOG TE ONDERZOEKEN — o.a. Vakanties.nl
+## 5. C. NOG TE ONDERZOEKEN — Vakanties.nl
 
-Bij onboarding van **Vakanties.nl** (eerstvolgende kandidaat voor deze controle) expliciet onderzoeken — **zonder aannames**:
-
-1. Hoe noemt Vakanties.nl gewone huurauto’s?
-2. Bieden zij “Fly & Drive” aan, of een andere naam voor rondreis/rondrit?
-3. Worden huurauto en rondreis structureel onderscheiden?
-4. Welk bronveld / categorie / producttype / ander signaal is beschikbaar?
-5. Is dat signaal betrouwbaar genoeg voor VacationWeb-classificatie op offerniveau?
-6. Negatieve voorbeelden (gewone huurauto mag niet als rondreis landen)?
-
-Status: **OPEN — nog niet bewezen. Niets invullen op naamgelijkenis.**
-
-Zelfde checklist geldt voor **iedere** toekomstige reisprovider (zie §5).
+Expliciete open onboardingcontrole (geen aannames). Zie Protocol Phase 2 checklist.
 
 ---
 
-## 5. Onboardingcontrole — “Autoproducten / rondreisclassificatie”
+## 6. Onboardingcontrole — Autoproducten / Roadtrip
 
-Verplicht bij **elke** nieuwe reisprovider (zie Protocol Phase 2 / acceptance matrix):
+Bij iedere nieuwe provider (Protocol):
 
-1. Heeft de provider gewone huurauto-producten?
-2. Heeft de provider rondreizen/rondritten?
-3. Welke exacte providerbenaming gebruikt de provider?
-4. Is “Fly & Drive” een provider-specifieke naam?
-5. Is “Fly & Drive” bij deze provider daadwerkelijk een rondreis?
-6. Welke bronvelden, categorieën, subcategorieën, producttypes of andere structurele signalen bewijzen dit?
-7. Hoe wordt gewone huurauto onderscheiden van rondreis?
-8. Kan de classificatie betrouwbaar op offer/productniveau worden uitgevoerd?
-9. Zijn er negatieve voorbeelden die voorkomen dat gewone huurauto’s verkeerd als rondreis worden geclassificeerd?
-10. Zijn er provider-specifieke uitzonderingen?
-11. Mapping naar VacationWeb: **Huurauto** vs **Fly & Drive (rondreis/rondtrekken)**
+1. Gewone huurauto-producten?
+2. Rondreizen/roadtrips?
+3. Exacte providerbenaming?
+4. Gebruikt “Fly & Drive”?
+5. Betekent dat bij deze provider een rondreis?
+6. Welke bronvelden/categorieën bewijzen dat?
+7. Onderscheid huurauto vs Roadtrip?
+8. Negatieve voorbeelden (false positives)?
+9. Kunnen Roadtrip en huurauto tegelijk true zijn?
+10. VacationWeb-mapping: Huurauto vs Roadtrip (Fly & Drive)?
 
-Hard:
-
-- `hasCarRental` is **geen** universeel bewijs voor rondreis.
-- Terminologie mag **niet** automatisch van een andere provider worden overgenomen.
+Hard: `hasCarRental` ≠ universeel Roadtrip-signaal; terminologie per provider bewijzen.
 
 ---
 
-## 6. Huidige code vs semantiek (bewust ongemoeid)
+## 7. Facets / counts
 
-| Laag | Gedrag | Oordeel t.o.v. deze SSOT |
-|---|---|---|
-| `hasCarRental` import | Corendon: token `Fly-Drive vakantie` + flight; Sunweb: Flight + feed-flag; Eliza: Flight | Correct voor **huurauto**; dekt Corendon Fly & Go én Fly & Drive voor de auto-flag |
-| Results-filter `hasCarRental=1` | Alleen `offer.hasCarRental === true` | Correct; geen rondreis-synoniem |
-| `vacationTypes=Fly & Drive` | Keyword-match op `offerSearchText` (o.a. `fly-drive`, `fly & drive`) | **Kan** Corendon Fly & Go meenemen via subcategorie `Fly-Drive vakantie` — **niet** identiek aan bewezen rondreis-SSOT |
-| `isProvenFlyAndDriveRondreis` | Provider-bewezen naam-signaal; Eliza altijd false | Documenteert SSOT; **niet** wired in `filterOffers` |
-
-### Open productbesluit (UI)
-
-Gewenste semantiek in producttaal: **Huurauto** vs **Fly & Drive (rondreis/rondtrekken)**.  
-Of/wanneer de Results vacation-type-filter strikt op bewezen rondreis moet filteren (en Fly & Go moet uitsluiten) is een **apart productbesluit**. In deze taak: **geen** Results-filterwijziging (zou match counts wijzigen).
-
-### Hard stop
-
-Geen heuristiek voor providers zonder bewezen signaal. Ontbreekt een betrouwbaar bronveld → classificatie blijft `false` / UNKNOWN tot bewijs in Provider-Bijbel.
-
----
-
-## 7. Regressiebescherming
-
-Wijzigingen onder deze SSOT mogen zoekresultaten, match counts, pricing, provider activation en gerelateerde Results-pijplijnen **niet** stilzwijgend wijzigen. Filter-wiring van rondreis vraagt een expliciet productbesluit.
+`countRoadtripFacet` / `countCarRentalFacet`: catalogus-listable, **niet** afhankelijk van live pricing, sort of pagination.

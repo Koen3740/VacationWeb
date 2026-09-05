@@ -25,7 +25,7 @@ import {
   sliceRankedCatalogResultsPage,
 } from '@/lib/search/results-catalog-page';
 import '@/lib/http/prefer-ipv4';
-import { countCarRentalFacet } from '@/lib/search/filtering';
+import { countCarRentalFacet, countRoadtripFacet } from '@/lib/search/filtering';
 import {
   ACCOMMODATION_TYPE_FILTER_VALUES,
   effectiveAccommodationTypesForFilter,
@@ -127,6 +127,7 @@ export default async function ResultsPage({
   const filtered = prepared.offers;
   const matchCount = filtered.length;
   const carRentalCount = countCarRentalFacet(filtered, filteringParams);
+  const roadtripCount = countRoadtripFacet(filtered, filteringParams);
 
   const pageShell = {
     departureAirports: filterOptions.departureAirports,
@@ -140,6 +141,7 @@ export default async function ResultsPage({
         countryCounts={countryCounts}
         totalOffersLabel={totalOffersLabel}
         carRentalCount={carRentalCount}
+        roadtripCount={roadtripCount}
       />
     ),
   };

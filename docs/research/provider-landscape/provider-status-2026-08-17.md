@@ -110,13 +110,14 @@ Search Architecture Current-update + dit bestand (17-08 + deze note).
 
 ---
 
-## CURRENT NOTE (2026-09-05) — Autoproducten / rondreisclassificatie
+## CURRENT NOTE (2026-09-05) — Autoproducten / Roadtrip vs huurauto
 
-Semantiek-SSOT (geen nieuwe Results-architectuur):
+Semantiek-SSOT:
 `docs/research/provider-landscape/autoproducten-rondreis-classificatie.md`
 
-- **Corendon:** Fly & Drive = rondreis; Fly & Go / gewone huurauto-pakket ≠ rondreis.
-- **Sunweb:** Fly & Drive = rondreis; gewone huurauto ≠ rondreis.
-- **Eliza was here:** geen rondreis/rondrit in de productfeed; aanvraag ≠ catalogusproduct; huurauto-signalen ≠ rondreis.
-- **Vakanties.nl:** eerstvolgende provider waar dit tijdens onboarding **expliciet** moet worden onderzocht (nog OPEN; geen aannames).
-- Procedure: Provider Integration Protocol Phase 2 / acceptance / onboarding gate.
+- **UI:** `Roadtrip (Fly & Drive)` + `Huurauto inbegrepen` (direct onder elkaar; geen categorie “Auto”).
+- **Corendon:** Fly & Drive (naam) = Roadtrip; Fly & Go / token `Fly-Drive vakantie` alleen ≠ Roadtrip.
+- **Sunweb:** Fly & Drive (naam) = Roadtrip; gewone huurauto ≠ Roadtrip.
+- **Eliza was here:** geen Roadtrip in feed; huurauto ≠ Roadtrip.
+- **Vakanties.nl:** OPEN onboardingcontrole (geen aannames).
+- Oude keyword-filter op `offerSearchText` is vervangen door `isRoadtripOffer` voor `vacationTypes=Fly & Drive`.

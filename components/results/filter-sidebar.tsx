@@ -48,7 +48,10 @@ import {
   serializeStarsParam,
 } from '@/lib/search/stars-param';
 import {
-  VACATION_TYPE_VALUES,
+  INTEREST_VACATION_TYPE_VALUES,
+  ROADTRIP_FILTER_LABEL,
+  ROADTRIP_VACATION_TYPE,
+  VACATION_TYPE_LABELS,
   parseVacationTypesParam,
   serializeVacationTypesParam,
   type VacationType,
@@ -99,6 +102,7 @@ type FilterSidebarProps = FilterOptions & {
   countryCounts: Record<string, number>;
   totalOffersLabel: string;
   carRentalCount: number;
+  roadtripCount: number;
 };
 
 function Chevron({ open }: { open: boolean }) {
@@ -229,6 +233,7 @@ export function FilterSidebar({
   countryCounts,
   totalOffersLabel,
   carRentalCount,
+  roadtripCount,
 }: FilterSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -751,7 +756,27 @@ export function FilterSidebar({
 
         <Accordion title="Wat zoek ik?" open={!!openSections.vacation} onToggle={() => toggleSection('vacation')}>
           <div className="space-y-2">
-            {VACATION_TYPE_VALUES.map((type) => {
+            <label className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
+              <input
+                type="checkbox"
+                checked={filters.vacationTypes.includes(ROADTRIP_VACATION_TYPE)}
+                onChange={() => toggleVacationType(ROADTRIP_VACATION_TYPE)}
+                className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+              />
+              <span>{ROADTRIP_FILTER_LABEL}</span>
+              <span className="text-[#8A93A3]">({roadtripCount})</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
+              <input
+                type="checkbox"
+                checked={filters.hasCarRental}
+                onChange={toggleCarRental}
+                className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+              />
+              <span>Huurauto inbegrepen</span>
+              <span className="text-[#8A93A3]">({carRentalCount})</span>
+            </label>
+            {INTEREST_VACATION_TYPE_VALUES.map((type) => {
               const active = filters.vacationTypes.includes(type);
               return (
                 <label key={type} className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
@@ -761,7 +786,7 @@ export function FilterSidebar({
                     onChange={() => toggleVacationType(type)}
                     className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
                   />
-                  {type}
+                  {VACATION_TYPE_LABELS[type]}
                 </label>
               );
             })}
@@ -851,16 +876,6 @@ export function FilterSidebar({
           onToggle={() => toggleSection('extras')}
         >
           <div className="space-y-2">
-            <label className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
-              <input
-                type="checkbox"
-                checked={filters.hasCarRental}
-                onChange={toggleCarRental}
-                className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
-              />
-              <span>Autohuur inclusief</span>
-              <span className="text-[#8A93A3]">({carRentalCount})</span>
-            </label>
             {AMENITY_GROUPS.map((group) => (
               <NestedDisclosure
                 key={group.id}

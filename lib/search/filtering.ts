@@ -23,6 +23,7 @@ import {
 } from '@/lib/search/location-filters';
 import {
   offerMatchesAnyVacationType,
+  offerMatchesVacationType,
   parseVacationTypesParam,
 } from '@/lib/search/vacation-type';
 import {
@@ -279,6 +280,21 @@ function countFacetMatches(
 /** Faceted count: current search/filters without the hasCarRental constraint, listable only. */
 export function countCarRentalFacet(offers: TravelOffer[], params: SearchParams): number {
   return countFacetMatches(offers, params, { hasCarRental: undefined }, (offer) => offer.hasCarRental === true);
+}
+
+/**
+ * Faceted count for Roadtrip (Fly & Drive): current search/filters without the
+ * Roadtrip vacation-type constraint, listable only. Catalog-stable (no live price).
+ */
+export function countRoadtripFacet(offers: TravelOffer[], params: SearchParams): number {
+  const active = parseVacationTypesParam(params.vacationTypes?.join(','));
+  const withoutRoadtrip = active.filter((type) => type !== 'Fly & Drive');
+  return countFacetMatches(
+    offers,
+    params,
+    { vacationTypes: withoutRoadtrip.length > 0 ? withoutRoadtrip : undefined },
+    (offer) => offerMatchesVacationType(offer, 'Fly & Drive'),
+  );
 }
 
 /** Faceted count: current search/filters without the given amenity, listable only. */
