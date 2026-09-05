@@ -184,7 +184,8 @@ test('TEST 2: live-price timeout (C) stays a Results card after settle (no fake 
   assert.equal(hasValidPresentablePrice(settled), false);
   const html = cardHtml(settled, false);
   assert.match(html, /Test Hotel/);
-  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable + '|' + RESULTS_PRICE_COPY.pending));
+  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable));
+  assert.doesNotMatch(html, new RegExp(RESULTS_PRICE_COPY.pending));
   assert.doesNotMatch(html, />€\s*\d/);
 });
 
@@ -287,6 +288,8 @@ test('TEST 8: pp × pax is not a live total — listable without inventing €',
   const html = cardHtml(derived, false);
   assert.match(html, /./);
   assert.doesNotMatch(html, />€\s*669/);
+  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unpriced));
+  assert.doesNotMatch(html, new RegExp(RESULTS_PRICE_COPY.pending));
 });
 
 test('TEST 9: first page uses the normal catalog page-size', () => {
@@ -397,7 +400,7 @@ test('presentable offers are prioritized for paint; page slice keeps sort order'
   );
 });
 
-test('settled unavailable offers remain in matchset membership and pagination', () => {
+test('settled A offers remain in ordered matchset but are excluded before pagination', () => {
   const ranked = [
     makeCorendon({ id: 'visible', livePriceStatus: 'catalog' }),
     makeCorendon({
@@ -413,10 +416,10 @@ test('settled unavailable offers remain in matchset membership and pagination', 
     ['hidden', 'visible'],
   );
   const page = sliceRankedCatalogResultsPage(ranked, 1, 10, { adults: 2 });
-  assert.equal(page.paginationTotal, 2);
+  assert.equal(page.paginationTotal, 1);
   assert.deepEqual(
     page.offers.map((offer) => offer.id),
-    ['visible', 'hidden'],
+    ['visible'],
   );
 });
 

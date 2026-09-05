@@ -23,6 +23,7 @@ import {
   selectPage1OverlayCandidates,
   selectPageOverlayCandidates,
   sliceRankedCatalogResultsPage,
+  bookableResultsMembership,
 } from '@/lib/search/results-catalog-page';
 import '@/lib/http/prefer-ipv4';
 import { countCarRentalFacet, countRoadtripFacet } from '@/lib/search/filtering';
@@ -121,11 +122,11 @@ export default async function ResultsPage({
   const isPage1 = !Number.isFinite(page) || Math.floor(page) <= 1;
 
   const prepared = await prepareResultsOffers(offers, filteringParams);
-  // Filter matchset membership is sort-invariant. Sorting only reorders.
-  // Live pricing may enrich/paint cards (with reserve backfill) but must not
-  // change which offers belong to the resultset or the user-facing count.
+  // Catalog filter matchset (sort-invariant). Bookable membership drops only
+  // provider-confirmed A before pagination — C / pending stay.
   const filtered = prepared.offers;
-  const matchCount = filtered.length;
+  const bookable = bookableResultsMembership(filtered, filteringParams);
+  const matchCount = bookable.length;
   const carRentalCount = countCarRentalFacet(filtered, filteringParams);
   const roadtripCount = countRoadtripFacet(filtered, filteringParams);
 

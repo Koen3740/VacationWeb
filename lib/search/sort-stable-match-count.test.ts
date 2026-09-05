@@ -118,18 +118,14 @@ test('orderCatalogPageCandidates keeps full matchset membership (reorder only)',
     provisional: false,
     params: baseParams,
   });
-  assert.equal(page.paginationTotal, 4);
-  // Membership page slice keeps A shells; bookable cards are listable-only.
-  assert.equal(page.visibleOffers.length, 4);
-  assert.deepEqual(membershipIds(page.visibleOffers), ['a', 'b', 'c', 'd']);
-  assert.equal(page.visibleOffers.filter(isResultsListableOffer).length, 2);
-  assert.deepEqual(
-    page.visibleOffers.filter(isResultsListableOffer).map((offer) => offer.id).sort(),
-    ['a', 'd'],
-  );
+  // A excluded before pagination; bookable = B only (2).
+  assert.equal(page.paginationTotal, 2);
+  assert.equal(page.visibleOffers.length, 2);
+  assert.deepEqual(membershipIds(page.visibleOffers), ['a', 'd']);
+  assert.ok(page.visibleOffers.every(isResultsListableOffer));
 });
 
-test('live-price failures do not shrink paginationTotal or membership', () => {
+test('live-price A failures shrink bookable pagination; C stays', () => {
   clearResultsLivePriceCache();
   const matched = [
     makeOffer({ id: 'ok', price: 400 }),
@@ -151,11 +147,10 @@ test('live-price failures do not shrink paginationTotal or membership', () => {
     provisional: false,
     params: baseParams,
   });
-  assert.equal(page.paginationTotal, 3);
-  assert.equal(page.visibleOffers.length, 3);
-  assert.deepEqual(membershipIds(page.visibleOffers), ['fail-a', 'fail-b', 'ok']);
-  assert.equal(page.visibleOffers.filter(isResultsListableOffer).length, 1);
-  assert.equal(page.visibleOffers.filter(isResultsListableOffer)[0].id, 'ok');
+  assert.equal(page.paginationTotal, 1);
+  assert.equal(page.visibleOffers.length, 1);
+  assert.equal(page.visibleOffers[0]!.id, 'ok');
+  assert.equal(isResultsListableOffer(page.visibleOffers[0]!), true);
 });
 
 test('price-sort live ranking keeps over-budget live overlays in the matchset', () => {
@@ -201,12 +196,18 @@ test('membership(standard) == membership(price) == membership(price-per-day)', a
   const catalog = [
     makeOffer({ id: 'cheap', price: 299, pricePerDay: 37 }),
     makeOffer({ id: 'mid', price: 500, pricePerDay: 62 }),
-    makeOffer({ id: 'pricey', price: 900, pricePerDay: 112 }),
+    makeOffer({
+      id: 'pricey',
+      price: 900,
+      pricePerDay: 112,
+      livePriceStatus: 'unavailable',
+      livePriceFailureReason: 'http_204',
+    }),
     makeOffer({ id: 'day-cheap-total-high', price: 800, nights: 14, pricePerDay: 57 }),
     makeOffer({ id: 'out', price: 200, destinationCountry: 'Turkije' }),
   ];
 
-  // Uneven live settlement across the ranked windows must not change membership.
+  // Uneven live settlement across the ranked windows must not change filter set.
   seedProvenOverlay('cheap', 299);
   seedProvenOverlay('mid', 500);
   seedUnavailableOverlay('pricey');
@@ -220,8 +221,8 @@ test('membership(standard) == membership(price) == membership(price-per-day)', a
   const counts: number[] = [];
 
   for (const sort of sorts) {
-    const prepared = await prepareResultsOffers(catalog, { ...baseParams, sort });
-    const ranked = prepared.offers;
+    // Rank from catalog fields only — avoid async live pricing races against A seeds.
+    const ranked = rankCatalogOffers(catalog, { ...baseParams, sort });
     const ordered = orderCatalogPageCandidates(ranked, { ...baseParams, sort });
     const catalogPage = sliceRankedCatalogResultsPage(ranked, 1, 10, { ...baseParams, sort });
     const pricePage = slicePriceSortPoolPage(ranked, 1, 10, {
@@ -231,11 +232,12 @@ test('membership(standard) == membership(price) == membership(price-per-day)', a
 
     assert.deepEqual(membershipIds(ranked), filterIds, `prepare ${sort}`);
     assert.deepEqual(membershipIds(ordered), filterIds, `order ${sort}`);
-    assert.equal(catalogPage.paginationTotal, filterIds.length, `catalog page ${sort}`);
-    assert.equal(pricePage.paginationTotal, filterIds.length, `price page ${sort}`);
-    // Paint window may omit settled non-listable; ranked membership stays full.
+    // A (pricey) excluded before pagination — bookable = 3.
+    assert.equal(catalogPage.paginationTotal, 3, `catalog page ${sort}`);
+    assert.equal(pricePage.paginationTotal, 3, `price page ${sort}`);
     assert.ok(pricePage.visibleOffers.every((offer) => filterIds.includes(offer.id)));
-    assert.ok(pricePage.visibleOffers.length <= filterIds.length);
+    assert.ok(pricePage.visibleOffers.every(isResultsListableOffer));
+    assert.equal(pricePage.visibleOffers.length, 3);
 
     memberships.push(membershipIds(ranked));
     counts.push(ranked.length);
@@ -247,14 +249,11 @@ test('membership(standard) == membership(price) == membership(price-per-day)', a
   assert.equal(counts[1], counts[2]);
 
   // Sorting may change order but not the ID set.
-  const priceAsc = await prepareResultsOffers(catalog, { ...baseParams, sort: 'price' });
-  const priceDay = await prepareResultsOffers(catalog, {
-    ...baseParams,
-    sort: 'price-per-day',
-  });
+  const priceAsc = rankCatalogOffers(catalog, { ...baseParams, sort: 'price' });
+  const priceDay = rankCatalogOffers(catalog, { ...baseParams, sort: 'price-per-day' });
   assert.notDeepEqual(
-    priceAsc.offers.map((offer) => offer.id),
-    priceDay.offers.map((offer) => offer.id),
+    priceAsc.map((offer) => offer.id),
+    priceDay.map((offer) => offer.id),
   );
-  assert.deepEqual(membershipIds(priceAsc.offers), membershipIds(priceDay.offers));
+  assert.deepEqual(membershipIds(priceAsc), membershipIds(priceDay));
 });

@@ -123,7 +123,7 @@ test('B. slow pricing: match remains until proven overlay arrives', async () => 
   assert.match(cardHtml(ranked[0], false), /\u20AC/);
 });
 
-test('C. live pricing failure: match stays in filtered membership', async () => {
+test('C. live pricing A: removed from bookable pagination; catalog prepare keeps filter set', async () => {
   clearResultsLivePriceCache();
   const catalog = [
     makeOffer({ id: 'ok', price: 400 }),
@@ -136,17 +136,15 @@ test('C. live pricing failure: match stays in filtered membership', async () => 
   assert.deepEqual(membershipIds(prepared.offers), ['fail', 'ok']);
   assert.equal(prepared.offers.length, filterOffers(catalog, baseParams).length);
 
-  // A stays in membership/pagination; only bookable presentation drops A.
+  // A excluded before pagination — only bookable ok remains.
   const page = slicePriceSortPoolPage(prepared.offers, 1, 10, {
     provisional: false,
     params: baseParams,
   });
-  assert.equal(page.paginationTotal, 2);
-  assert.deepEqual(membershipIds(page.visibleOffers), ['fail', 'ok']);
-  assert.equal(isResultsListableOffer(page.visibleOffers.find((o) => o.id === 'fail')!), false);
-  assert.equal(isResultsListableOffer(page.visibleOffers.find((o) => o.id === 'ok')!), true);
-  assert.match(cardHtml(page.visibleOffers.find((o) => o.id === 'ok')!), /Hotel ok/);
-  assert.equal(cardHtml(page.visibleOffers.find((o) => o.id === 'fail')!), '');
+  assert.equal(page.paginationTotal, 1);
+  assert.deepEqual(membershipIds(page.visibleOffers), ['ok']);
+  assert.equal(isResultsListableOffer(page.visibleOffers[0]!), true);
+  assert.match(cardHtml(page.visibleOffers[0]!), /Hotel ok/);
 });
 
 test('D. intermediate page stays filled when many prices are pending', () => {
@@ -276,11 +274,12 @@ test('G. Abora-shaped stale_context: 1 match → 1 visible card, no fake €', (
   assert.equal(hasValidPresentablePrice(overlaid[0]), false);
   const html = cardHtml(overlaid[0], false);
   assert.match(html, /Abora Catarina/);
-  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable + '|' + RESULTS_PRICE_COPY.pending));
+  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable));
+  assert.doesNotMatch(html, new RegExp(RESULTS_PRICE_COPY.pending));
   assert.doesNotMatch(html, />€\s*\d/);
 });
 
-test('H. pagination membership: 37 → 10/10/10/7 regardless of pricing mix', () => {
+test('H. pagination membership: A excluded before slice (37 − 3 A → 34 → 10/10/10/4)', () => {
   clearResultsLivePriceCache();
   const ranked = Array.from({ length: 37 }, (_, index) =>
     makeOffer({ id: `m-${index}`, price: 300 + index }),
@@ -295,20 +294,18 @@ test('H. pagination membership: 37 → 10/10/10/7 regardless of pricing mix', ()
       provisional: false,
       params: baseParams,
     });
-    assert.equal(slice.paginationTotal, 37);
+    assert.equal(slice.paginationTotal, 34);
     return slice.visibleOffers.length;
   });
-  assert.deepEqual(pageSizes, [10, 10, 10, 7]);
+  assert.deepEqual(pageSizes, [10, 10, 10, 4]);
 
-  // Bookable cards: A on page 4 can drop presentation, but membership length stays 7.
   const page4 = slicePriceSortPoolPage(ranked, 4, 10, { provisional: false, params: baseParams });
-  assert.equal(page4.visibleOffers.length, 7);
-  const bookable = page4.visibleOffers.filter((offer) => isResultsListableOffer(offer));
-  assert.equal(bookable.length, 4); // 7 members − 3 A
-  assert.ok(bookable.every((offer) => cardHtml(offer, false).includes('Hotel')));
+  assert.equal(page4.visibleOffers.length, 4);
+  assert.ok(page4.visibleOffers.every((offer) => isResultsListableOffer(offer)));
+  assert.ok(page4.visibleOffers.every((offer) => cardHtml(offer, false).includes('Hotel')));
 });
 
-test('I. property: pricing status mixes do not change matchCount or page membership', () => {
+test('I. property: C/pending keep bookable count; mixes without A stay full', () => {
   clearResultsLivePriceCache();
   const catalog = Array.from({ length: 21 }, (_, index) =>
     makeOffer({ id: `p-${index}`, price: 400 + index }),

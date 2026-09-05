@@ -24,7 +24,6 @@ import {
   RESULTS_PRICE_COPY,
   hasValidPresentablePrice,
   isResultsListableOffer,
-  isUnpricedResultsOffer,
   resultsPricePresentation,
 } from '@/lib/search/presentable-price';
 import { boardTypeLabelForDutchUi } from '@/lib/offers/ui-locale';
@@ -160,26 +159,7 @@ export function TravelCard({
   if (!isResultsListableOffer(offer)) {
     return null;
   }
-  const priceKind = (() => {
-    if (hasValidPresentablePrice(offer)) {
-      return 'amount' as const;
-    }
-    // Catalog / in-flight: pending presentation. Never treat unknown price as "no offer".
-    if (
-      provisional ||
-      (offer.livePriceStatus !== 'unpriced' && offer.livePriceStatus !== 'unavailable')
-    ) {
-      return 'pending' as const;
-    }
-    const presentation = resultsPricePresentation(offer, { provisional: true });
-    if (presentation === 'unpriced' || isUnpricedResultsOffer(offer)) {
-      return 'unpriced' as const;
-    }
-    if (presentation === 'pending') {
-      return 'pending' as const;
-    }
-    return 'unavailable' as const;
-  })();
+  const priceKind = resultsPricePresentation(offer, { provisional });
 
   const location = formatCardLocationHierarchy(offer);
   const stars = offer.stars && offer.stars > 0 ? offer.stars : 0;
@@ -220,6 +200,9 @@ export function TravelCard({
         boxShadow: RESULTS_CARD_SHADOW,
       }}
       data-testid="travel-card"
+      data-price-presentation={priceKind}
+      data-provisional={provisional ? 'true' : 'false'}
+      data-live-price-status={offer.livePriceStatus ?? 'catalog'}
     >
       <div className="flex flex-col md:min-h-[268px] md:flex-row md:items-stretch">
         <div className="relative w-full shrink-0 self-stretch md:w-[320px] lg:w-[340px]">

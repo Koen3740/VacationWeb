@@ -11,6 +11,12 @@ export const PRICE_SORT_PENDING_MESSAGE =
   'Een momentje — we controleren de actuele prijzen.';
 export const PRICE_SORT_PENDING_DETAIL = 'De volgorde kan nog wijzigen.';
 
+/** True only while this offer has no settled live-price outcome yet. */
+function isOfferLivePriceInFlight(offer: TravelOffer): boolean {
+  const status = offer.livePriceStatus;
+  return status !== 'proven' && status !== 'unavailable' && status !== 'unpriced';
+}
+
 function PriceSortPendingNotice() {
   return (
     <div
@@ -55,7 +61,11 @@ function PriceSortPageBody({
   const useCap = slice.visibleOffers.length > pageSize;
   const slots = slice.visibleOffers.map((offer) => (
     <div key={offer.id} data-page1-slot>
-      <TravelCard offer={offer} provisional={pending} searchParams={params} />
+      <TravelCard
+        offer={offer}
+        provisional={isOfferLivePriceInFlight(offer)}
+        searchParams={params}
+      />
     </div>
   ));
 

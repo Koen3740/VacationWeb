@@ -10,6 +10,7 @@ import { requiresSunwebResultsLivePrice } from '../providers/sunweb';
 import {
   CORENDON_PROVIDER_NAME,
   ELIZA_PROVIDER_NAME,
+  filterToResultsListableOffers,
   hasValidPresentablePrice,
   PRIJSVRIJ_PROVIDER_NAME,
   SUNWEB_PROVIDER_NAME,
@@ -84,11 +85,9 @@ function assemblePriceSortRanking(
 }
 
 /**
- * Paginate the ranked filter matchset in sort order.
- * paginationTotal is always the full matchset — live settlement / listability
- * must not make counts sort-dependent.
- * visibleOffers is the membership page slice (with live overlays for status),
- * not a listability-gated paint window.
+ * Paginate the bookable (non-A) pool in sort order.
+ * Provider-confirmed A is removed before the page slice so A never occupies a
+ * slot. C / pending / B stay. paginationTotal is the bookable pool length.
  */
 export function slicePriceSortPoolPage(
   ranked: readonly TravelOffer[],
@@ -101,14 +100,15 @@ export function slicePriceSortPoolPage(
   paginationTotal: number;
 } {
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
-  const pageMembers = paginateResults(ranked as TravelOffer[], safePage, pageSize);
-  const visibleOffers = options.params
-    ? applyResultsLivePriceOverlays(pageMembers, options.params)
-    : pageMembers;
+  const overlaid = options.params
+    ? applyResultsLivePriceOverlays(ranked as TravelOffer[], options.params)
+    : (ranked as TravelOffer[]);
+  const bookable = filterToResultsListableOffers(overlaid);
+  const visibleOffers = paginateResults(bookable, safePage, pageSize);
   return {
     visibleOffers,
-    page1Ids: paginateResults(ranked as TravelOffer[], 1, pageSize).map((offer) => offer.id),
-    paginationTotal: ranked.length,
+    page1Ids: paginateResults(bookable, 1, pageSize).map((offer) => offer.id),
+    paginationTotal: bookable.length,
   };
 }
 

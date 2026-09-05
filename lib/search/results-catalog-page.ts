@@ -123,23 +123,39 @@ export function measureResultsPipelineCounts(
 }
 
 /**
- * Page slice of the ranked filter matchset.
+ * Bookable Results membership for pagination:
+ * ranked filter matchset → apply live overlays → drop provider-confirmed A →
+ * paginate. C / pending / B stay. A never occupies a page slot.
+ */
+export function bookableResultsMembership(
+  ranked: readonly TravelOffer[],
+  params?: SearchParams,
+): TravelOffer[] {
+  const overlaid = params
+    ? applyResultsLivePriceOverlays(ranked as TravelOffer[], params)
+    : (ranked as TravelOffer[]);
+  return filterToResultsListableOffers(overlaid);
+}
+
+/**
+ * Page slice of the bookable (non-A) Results membership.
  *
  * Paginate in sort order (not live-presentable-first) so price sorts keep their
- * ordering. paginationTotal is always the full matchset length.
+ * ordering. paginationTotal is the bookable pool — A is excluded before slice.
  */
 export function sliceRankedCatalogResultsPage(
   ranked: readonly TravelOffer[],
   page: number,
   pageSize: number = RESULTS_PAGE_SIZE_DEFAULT,
-  _params?: SearchParams,
+  params?: SearchParams,
 ): RankedCatalogResultsPage {
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
-  const offers = paginateResults(ranked as TravelOffer[], safePage, pageSize);
+  const bookable = bookableResultsMembership(ranked, params);
+  const offers = paginateResults(bookable, safePage, pageSize);
   return {
     offers,
-    page1Ids: paginateResults(ranked as TravelOffer[], 1, pageSize).map((offer) => offer.id),
-    paginationTotal: ranked.length,
+    page1Ids: paginateResults(bookable, 1, pageSize).map((offer) => offer.id),
+    paginationTotal: bookable.length,
   };
 }
 

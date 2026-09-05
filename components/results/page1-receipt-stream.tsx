@@ -33,10 +33,12 @@ async function OverlayTravelCard({
   ) {
     return null;
   }
+  // Settled overlay: provisional only while in-flight (Suspense fallback).
+  // Settled C / unpriced / B must not be painted as PENDING.
   return (
     <TravelCard
       offer={priced}
-      provisional={!hasValidPresentablePrice(priced)}
+      provisional={false}
       searchParams={searchParams}
     />
   );
@@ -62,7 +64,7 @@ function renderCatalogOfferSlot(
     return (
       <TravelCard
         offer={settled}
-        provisional={!hasValidPresentablePrice(settled)}
+        provisional={false}
         searchParams={searchParams}
       />
     );
@@ -95,16 +97,19 @@ export function Page1ResultsStream({
   searchParams,
 }: {
   catalogOffers: TravelOffer[];
-  /** When set (page 1), reserve candidates may backfill failed primary slots. */
+  /** When set, reserve candidates backfill when a primary slot settles as A. */
   candidateOffers?: TravelOffer[];
   displayLimit?: number;
   overlays: CatalogPageLiveOverlay[];
   searchParams?: SearchParams;
 }) {
   const overlayById = new Map(overlays.map((overlay) => [overlay.catalog.id, overlay]));
-  // Membership page slice first — never replace with listability paint/backfill.
-  const renderOffers = catalogOffers;
-  const useCap = Boolean(candidateOffers && candidateOffers.length > displayLimit);
+  // Paint primary page members first, then reserve for A-settlement backfill.
+  const primaryIds = new Set(catalogOffers.map((offer) => offer.id));
+  const reserve = (candidateOffers ?? []).filter((offer) => !primaryIds.has(offer.id));
+  const renderOffers =
+    reserve.length > 0 ? [...catalogOffers, ...reserve] : catalogOffers;
+  const useCap = reserve.length > 0;
 
   const slots = renderOffers.map((offer) => {
     const overlay = overlayById.get(offer.id);
