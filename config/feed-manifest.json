@@ -44,7 +44,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "../Productfeeds/Corendon/Corendon.nl.xml"
+        "path": "../Productfeeds/Corendon/Corendon NL.xml"
       },
       "campaignId": "38108",
       "preferredFormat": "xml",
@@ -62,7 +62,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "../Productfeeds/Corendon/Corendon.be - Général BEFR.xml"
+        "path": "../Productfeeds/Corendon/Corendon BEFR.xml"
       },
       "campaignId": "38103",
       "preferredFormat": "xml",
@@ -77,7 +77,7 @@
       "provider": "Prijsvrij",
       "profile": "prijsvrij",
       "format": "tradetracker-xml",
-      "enabled": true,
+      "enabled": false,
       "source": {
         "type": "file",
         "path": "data/prijsvrij.xml"
@@ -98,7 +98,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "data/sunweb/productfeed Sunweb Zon Accomodatie.xml"
+        "path": "../Productfeeds/Sunweb/Sunweb_accomodatie_BENL.xml"
       },
       "campaignId": "1393",
       "preferredFormat": "xml",
@@ -116,7 +116,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "data/sunweb/productfeed Sunweb Zon Spanje BENL.xml"
+        "path": "../Productfeeds/Sunweb/Sunweb_Spanje_BENL.xml"
       },
       "campaignId": "1393",
       "preferredFormat": "xml",
@@ -134,7 +134,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "data/sunweb/productfeed Sunweb Zon Griekenland BENL.xml"
+        "path": "../Productfeeds/Sunweb/Sunweb_Griekenland_BENL.xml"
       },
       "campaignId": "1393",
       "preferredFormat": "xml",
@@ -152,7 +152,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "data/sunweb/productfeed Sunweb Zon Turkije BENL.xml"
+        "path": "../Productfeeds/Sunweb/Sunweb_Turkije_BENL.xml"
       },
       "campaignId": "1393",
       "preferredFormat": "xml",
@@ -170,7 +170,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "data/sunweb/productfeed Sunweb Zon Egypte BENL.xml"
+        "path": "../Productfeeds/Sunweb/Sunweb_Egypte_BENL.xml"
       },
       "campaignId": "1393",
       "preferredFormat": "xml",
@@ -188,7 +188,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "data/sunweb/productfeed Sunweb Zon Lastminute BENL (new).xml"
+        "path": "../Productfeeds/Sunweb/Sunweb_Last Minute_BENL.xml"
       },
       "campaignId": "1393",
       "preferredFormat": "xml",
@@ -199,14 +199,32 @@
       "priority": 80
     },
     {
-      "id": "sunweb-citytrips",
+      "id": "sunweb-lastminute-befr",
       "provider": "Sunweb",
       "profile": "sunweb",
       "format": "tradetracker-xml",
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "data/sunweb/productfeed Sunweb Zon Citytrips.xml"
+        "path": "../Productfeeds/Sunweb/Sunweb_Last Minute_BEFR.xml"
+      },
+      "campaignId": "1393",
+      "preferredFormat": "xml",
+      "checksum": "",
+      "lastImport": "",
+      "lastSuccess": "",
+      "version": "",
+      "priority": 85
+    },
+    {
+      "id": "sunweb-citytrips",
+      "provider": "Sunweb",
+      "profile": "sunweb",
+      "format": "tradetracker-xml",
+      "enabled": false,
+      "source": {
+        "type": "file",
+        "path": "../Productfeeds/Sunweb/Sunweb_Citytrips.xml"
       },
       "campaignId": "1393",
       "preferredFormat": "xml",
@@ -224,7 +242,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "data/sunweb/productfeed Sunweb Zon Sunweb Topdeals.xml"
+        "path": "../Productfeeds/Sunweb/Sunweb_Sunweb Top Deals.xml"
       },
       "campaignId": "1393",
       "preferredFormat": "xml",
@@ -242,7 +260,7 @@
       "enabled": true,
       "source": {
         "type": "file",
-        "path": "../Productfeeds/Elizawashere/productfeed Elizawashere.xml"
+        "path": "../Productfeeds/Elizawashere/ElizaWasHere.xml"
       },
       "campaignId": "1327",
       "preferredFormat": "xml",
