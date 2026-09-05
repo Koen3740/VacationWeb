@@ -1,0 +1,404 @@
+﻿VACATIONWEBPROVIDER INTEGRATION PROTOCOL
+Central procedural standard â€” Provider onboarding, validation and acceptance
+Status: Current central procedural standard â€” amended after catalog/live mismatch finding
+Scope: Every new travel provider, feed, API or equivalent inventory source
+Core principle: Prove the provider contract before integrating it into VacationWeb.
+1. Purpose
+The Provider Integration Protocol defines the mandatory procedure for investigating, mapping, validating and accepting a new VacationWeb provider. It centralises the workflow and evidence requirements without replacing provider-specific technical sources of truth.
+The protocol answers four questions: What must be investigated? What must be proven? What evidence is required? When is a provider allowed to receive GO, NEEDS MORE EVIDENCE, PARKED or NO-GO?
+2. Documentation hierarchy
+The protocol is procedural. It does not replace existing SSOTs.
+Central Provider Integration Protocol â€” what must be investigated and proven.
+Provider-Bijbel â€” what is actually known and technically proven for a specific provider.
+Research / Evidence â€” the underlying proof, captures, tests and source material.
+Search Architecture â€” current search/results architecture and provider contracts.
+Internal Data Model â€” canonical VacationWeb entities and relationships.
+TradeTracker Integration Guide â€” TradeTracker-specific feed discovery/import rules.
+Master Development Plan / project governance â€” roadmap, priorities and project decisions.
+3. Evidence principles
+Field names are not proof of semantic meaning.
+A feed field called price is not automatically the VacationWeb live price.
+Catalog availability is not automatically proof of live bookability.
+One successful request is not sufficient proof of production suitability.
+Provider-specific behaviour must not become a universal VacationWeb rule without evidence.
+Every important technical claim must have identifiable provenance.
+Unknown means UNKNOWN / NOT PROVEN; do not fill gaps with assumptions.
+4. Provider integration lifecycle
+Phase 0 â€” Provider intake & eligibility
+Identify provider, market, product category and integration route (feed/API/affiliate/etc.).
+Confirm product fit and initial eligibility.
+Record known approval/status information.
+Phase 1 â€” Source / feed structure
+Inspect source structure, records, identifiers and relevant fields.
+Determine completeness, update frequency and feed freshness.
+Mandatory duration control â€” provider-specific unit audit
+Before any provider receives Technical GO, VacationWeb must explicitly prove the duration unit at every relevant layer. The word or field name `nights` must never be treated as proof that a value represents nights.
+The audit must record, separately: (1) UI selection unit, (2) URL/SearchParams unit, (3) catalog/TravelOffer unit, (4) live-pricing/API unit, (5) Results display unit, and (6) return-date calculation unit.
+The audit must also determine whether the provider has a second duration axis, for example catalog duration in days while a live-pricing route requires nights.
+If two duration units coexist, the provider-specific conversion and source of truth must be explicitly documented and tested. The central protocol does not assume a universal `days - 1` conversion.
+A provider passes this control only when the complete path is internally consistent and the correct unit is used at each boundary.
+Phase 2 â€” Data semantics
+Prove the meaning of duration, days, nights, departure date, return date, departure window, airport, country, region, place, board/mealplan and room.
+Do not infer meaning from field names alone.
+Mandatory control â€” Autoproducten / rondreisclassificatie
+For every new travel provider, before Technical GO, VacationWeb must explicitly investigate and document how ordinary car-rental products relate to Fly & Drive / rondreis / rondtrekken. Full checklist and proven vs open rules: docs/research/provider-landscape/autoproducten-rondreis-classificatie.md
+Mandatory questions (all required; unknowns stay UNKNOWN):
+(1) Does the provider offer ordinary huurauto products?
+(2) Does the provider offer rondreizen/rondritten?
+(3) What exact provider naming is used?
+(4) Is "Fly & Drive" a provider-specific name?
+(5) If the provider uses "Fly & Drive", is it actually a rondreis for that provider?
+(6) Which source fields, categories, subcategories, product types or other structural signals prove the distinction?
+(7) How is ordinary huurauto distinguished from rondreis?
+(8) Can classification be performed reliably at offer/product level?
+(9) Are there negative examples that prevent ordinary huurauto from being misclassified as rondreis?
+(10) Are there provider-specific exceptions?
+(11) How must this map to VacationWeb semantics: Huurauto vs Fly & Drive (rondreis/rondtrekken)?
+Hard rules: hasCarRental is NEVER universal proof of rondreis. Provider terminology must be investigated per provider and must NOT be copied automatically from another provider (including Corendon/Sunweb "Fly & Drive" mapping).
+Open pending control â€” Vakanties.nl (next provider for this audit): investigate how Vakanties.nl names ordinary huurauto; whether they offer Fly & Drive or another rondreis/rondrit name; whether huurauto and rondreis are structurally separated; which source field/signal exists; whether that signal is reliable enough for VacationWeb. Do not fill answers by assumption or name similarity.
+Proven reference (not universal): Corendon Fly & Drive = rondreis; Corendon Fly & Go / ordinary car package = not rondreis. Sunweb Fly & Drive = rondreis; ordinary Sunweb huurauto = not rondreis. Eliza was here: no rondreis/rondrit products in the current product feed (on-request assembly is not a catalog product); Eliza huurauto signals must not be classified as rondreis.
+Phase 3 â€” VacationWeb data-model mapping
+Map provider data to existing Hotel, Bookable Offer and Provider Listing concepts.
+Verify hotel identity, offer identity, external IDs and deep links.
+Do not redesign the Internal Data Model here.
+Phase 4 â€” Catalogus & filtering
+Verify how offers enter the valid catalog result set.
+Test country, region, place, airport, date, duration, board and occupancy filtering.
+Phase 5 â€” Live availability & pricing
+Identify the live availability/pricing route.
+Separate catalog presence from live availability.
+Prove price provenance, live price meaning, HTTP responses and unavailable responses.
+Test HTTP 204 / provider-confirmed unavailable modes separately from technical failures (timeout, network_error, retryable http_error, exception).
+For price-based sorting, offers without a valid current live price must never be treated as having a usable numeric live price. They must not outrank offers with valid current prices because of a stale/catalog price. Their exact UI placement remains governed by the current Search Architecture.
+Provider-confirmed unavailable (A) and technical/transient failure (C) must not be treated as the same claim. Catalog presence, confirmed unavailability, and technical uncertainty are separate.
+VacationWeb must NEVER present the catalog/feed price as a current live price. Fail closed for amount display when there is no proven live price.
+A â€” Provider confirmed unavailable (including exact-trip unavailable / HTTP 204 and other confirmed-unavailable classifications): the offer must NOT remain listable in Results. No retry of A. C â€” Technical failure: the offer must NOT be removed from Results solely because pricing could not be completed reliably; it must not receive an actuele price. B â€” Proven live price: present the proven amount.
+Prove that the provider response (or VacationWeb classification) can distinguish provider-confirmed unavailable from technical uncertainty. A technical error must not be auto-interpreted as trip unavailable.
+Retry policy compatibility (REQUIRED): retryable technical failures may use at most two attempts total, with attempt 2 immediate (no multi-minute cooldown). Confirmed unavailable is not retried. In-flight deduplication must prevent duplicate concurrent HTTP for the same offer/context.
+Technical (C) failures must not be long-term blacklisted as unavailable. Proven (B) and confirmed-unavailable (A) may follow the Search Architecture cache policy. See Search Architecture v2.11 addendum 2026-08-25.
+Mandatory catalog/live mismatch display rule
+Phase 6 â€” Occupancy
+Verify adults, children, child ages, infants, rooms and room assignment.
+Verify multi-room behaviour where relevant.
+Phase 7 â€” Dates & duration
+Explicitly verify days versus nights.
+Verify duration semantics, departure date, return date and departure windows.
+Verify provider-specific conversion rules, if any.
+Phase 8 â€” Results, ranking & price sort
+Verify catalog result set, ranking and pagination.
+Verify price lowâ†’high and highâ†’low.
+Verify live-price interaction with ranking.
+Ensure price sorting is based on the complete necessary live-priced population required by Search Architecture (not an arbitrary subset of already-priced offers). Reuse cache and in-flight pricing; never treat catalog/feed price or a technical C-failure as a valid live sort key.
+Verify compatibility with full-matchset background live pricing and page-1 priority (catalog-first): page 2+ must not depend on the user opening that page before pricing starts.
+Phase 9 â€” Results â†” Detail consistency
+Verify hotel, provider, departure, duration, board, occupancy, price, availability and deep-link consistency.
+Phase 10 â€” Performance
+Before Technical GO, assess live-pricing performance for the full production call-chain (not a single happy-path request): individual response latency, concurrency behaviour, possible rate limits, timeouts, technical failure rates, retry behaviour, and behaviour at larger matchset sizes.
+Record response codes, HTTP 204 / confirmed-unavailable, technical failure modes, retry behaviour (max two attempts for retryable C), and cache behaviour. Evidence may reference Sub-18-style capacity research where relevant (docs/research/search-capacity/search-capacity-latency-audit.md); do not invent SLAs.
+One successful request is not sufficient proof of production suitability.
+Product impact gate: the provider must not become an unassessed structural bottleneck for Results page-1 overlays, full-matchset background pricing, or correct price-sort. Client timeout values in code are technical implementation values, not proven VacationWeb product SLAs.
+Phase 11 â€” Freshness & catalog/live mismatch
+Verify feed/catalog freshness.
+Compare catalog availability with live availability.
+Document stale offers, stale prices and catalog/live mismatches.
+Phase 12 â€” Provider-specific exceptions
+Record only actual, proven differences.
+Keep provider-specific technical facts in the Provider-Bijbel.
+Phase 13 â€” Acceptance
+Evaluate all REQUIRED controls.
+Assign GO, NEEDS MORE EVIDENCE, PARKED or NO-GO.
+Keep TECHNICAL GO distinct from PRODUCTION READY.
+5. Mandatory acceptance matrix
+Control
+Required
+Test / evidence
+Status
+Source / provenance
+Feed/source structure
+YES
+Controlled test + traceable evidence
+â˜
+
+Feed freshness
+YES
+Controlled test + traceable evidence
+â˜
+
+Hotel identity
+YES
+Controlled test + traceable evidence
+â˜
+
+Offer identity
+YES
+Controlled test + traceable evidence
+â˜
+
+Country / region / place
+YES
+Controlled test + traceable evidence
+â˜
+
+Airport
+YES
+Controlled test + traceable evidence
+â˜
+
+Autoproducten / rondreisclassificatie (huurauto vs Fly & Drive / rondreis)
+YES
+Provider-Bijbel + feed/API evidence; see docs/research/provider-landscape/autoproducten-rondreis-classificatie.md
+â˜
+
+Departure date
+YES
+Controlled test + traceable evidence
+â˜
+
+Departure window
+YES
+Controlled test + traceable evidence
+â˜
+
+Duration / days-nights semantics
+YES
+Controlled test + traceable evidence
+â˜
+
+Return date
+YES
+Controlled test + traceable evidence
+â˜
+
+Board / mealplan
+YES
+Controlled test + traceable evidence
+â˜
+
+Room
+YES
+Controlled test + traceable evidence
+â˜
+
+Occupancy
+YES
+Controlled test + traceable evidence
+â˜
+
+Adults / children / ages
+YES
+Controlled test + traceable evidence
+â˜
+
+Price semantics
+YES
+Controlled test + traceable evidence
+â˜
+
+Currency
+YES
+Controlled test + traceable evidence
+â˜
+
+Live availability
+YES
+Controlled test + traceable evidence
+â˜
+
+Live pricing
+YES
+Controlled test + traceable evidence
+â˜
+
+Pricing provenance
+YES
+Controlled test + traceable evidence
+â˜
+
+HTTP responses / 204
+YES
+Controlled test + traceable evidence
+â˜
+
+Timeout
+YES
+Controlled test + traceable evidence
+â˜
+
+Latency
+YES
+Controlled test + traceable evidence
+â˜
+
+Concurrency
+YES
+Controlled test + traceable evidence
+â˜
+
+Caching
+IF USED
+Controlled test + traceable evidence
+â˜
+
+Deep link
+YES
+Controlled test + traceable evidence
+â˜
+
+Results mapping
+YES
+Controlled test + traceable evidence
+â˜
+
+Detail mapping
+YES
+Controlled test + traceable evidence
+â˜
+
+Ranking
+YES
+Controlled test + traceable evidence
+â˜
+
+Price sort
+YES
+Controlled test + traceable evidence
+â˜
+
+Catalog/live mismatch
+YES
+Controlled test: catalog-valid + live-unavailable case
+â˜
+
+Provider exceptions
+YES
+Controlled test + traceable evidence
+â˜
+
+6. Acceptance statuses
+GO â€” All REQUIRED technical contracts are proven and the provider is technically suitable.
+NEEDS MORE EVIDENCE â€” Potentially suitable, but one or more REQUIRED claims are not proven.
+PARKED â€” Potentially viable but intentionally not integrated under current product/architecture priorities.
+NO-GO â€” Fails a necessary technical, product or architectural requirement.
+TECHNICAL GO does not mean PRODUCTION READY. Production readiness requires the project's separate implementation, acceptance and deployment criteria.
+6A. Verified duration comparison â€” current reference cases
+Corendon: source/feed duration is days; the catalog stores that value in `TravelOffer.nights`; the deep-link/external-ID duration segment and live-pricing route use nights. The live client performs an explicit daysâ†’nights conversion (`durationInDays - 1`). This is a provider-specific dual-duration model.
+Sunweb: the investigated source, catalog and live-pricing path use the same duration value as days. No provider-specific daysâ†’nights conversion was proven in the investigated code.
+Eliza was here: the investigated source, catalog and live-pricing path use the same duration value as days. No provider-specific daysâ†’nights conversion was proven in the investigated code.
+For Sunweb and Eliza, the actual provider-side statement that an 8-day package equals exactly 7 hotel nights was NOT proven by the cited code/data. Do not promote that assumption to an architectural rule.
+Current common VacationWeb risk: the UI says days while the URL/SearchParams key is named `nights`, `TravelOffer.nights` carries the provider duration value, Results currently labels that value as nights, and return-date logic uses that same value. This must be treated as a mandatory protocol control, not silently assumed to be correct for every provider.
+7. Historical lessons learned â€” mandatory control points
+Days versus nights must be explicitly verified at UI, URL/SearchParams, catalog, live-pricing, display and return-date layers for every provider.
+Feed semantics must be proven rather than inferred from field names.
+Catalog availability and live availability are separate claims.
+Feed price, catalog price and live price must not be treated as interchangeable without evidence.
+Pricing provenance must be identifiable.
+Occupancy semantics must be verified per provider.
+Provider latency and concurrency must be measured at representative scale.
+HTTP 204 / provider-confirmed unavailable must be distinguished from technical failures; both behaviours must be understood.
+Feed freshness must be checked against live availability where relevant.
+Results ranking and price sorting must be validated against the complete valid result population.
+Results and Detail must represent the same offer consistently.
+Provider-specific exceptions must remain provider-specific unless architecture explicitly generalises them.
+Catalog/live mismatch: never present catalog/feed price as a current price. A = provider-confirmed unavailable may remove the offer from listable Results. C = technical failure must not be treated as A; amount display remains fail-closed.
+8. Historical provider reference
+Corendon â€” Technical GO; provider-specific facts remain in its Provider-Bijbel and evidence.
+Sunweb â€” Technical GO; provider-specific facts remain in its Provider-Bijbel and evidence.
+Eliza was here â€” Technical GO; provider-specific facts remain in its Provider-Bijbel and evidence.
+Prijsvrij â€” Technically researched; PARKED for the current product/architecture decision.
+Vakantie.nl / Vakanties.nl â€” NOT YET VERIFIED. No technical facts are to be invented or inferred. Autoproducten / rondreisclassificatie for Vakanties.nl is an explicit open onboarding control (huurauto naming, Fly & Drive or alternate rondreis naming, structural distinction, reliable source signal).
+9. What belongs elsewhere
+Provider-specific API endpoints and request contracts.
+Provider-specific feed IDs and mappings.
+Provider-specific pricing routes.
+Provider-specific authentication details.
+Provider-specific deep-link formats.
+Concrete research captures and raw evidence.
+Detailed provider implementation decisions.
+Canonical data-model definitions belonging to the Internal Data Model.
+Current search/results architecture belonging to Search Architecture.
+10. Required Provider-Bijbel contents
+Provider identity and scope.
+Source/feed/API details.
+Proven data semantics.
+VacationWeb mapping.
+Live pricing/availability contract.
+Occupancy contract.
+Dates/duration contract.
+Performance evidence.
+Known exceptions.
+Known unknowns.
+Evidence references.
+Current status and acceptance decision.
+11. Change control
+The protocol defines what must be checked. The Provider-Bijbel records what was actually proven. Research/evidence remains the proof. When a discovery reveals a reusable procedural control, update this protocol; otherwise keep the discovery in the relevant provider dossier/evidence.
+Do not silently override higher-level architectural SSOTs. Resolve conflicts through the existing project governance process.
+12. Provider onboarding gate
+â˜ Eligibility completed
+â˜ Source/feed inspected
+â˜ Required semantics proven
+â˜ Autoproducten / rondreisclassificatie investigated (huurauto vs Fly & Drive / rondreis; per-provider; not copied from another provider)
+â˜ VacationWeb mapping proven
+â˜ Catalog/filtering validated
+â˜ Live availability/pricing validated
+â˜ Occupancy validated
+â˜ Dates/duration validated
+â˜ Results/ranking/price-sort validated
+â˜ Results â†” Detail validated
+â˜ Performance validated
+â˜ A vs C availability semantics proven
+â˜ Live-pricing performance / matchset impact assessed
+â˜ Freshness/catalog-live mismatch assessed
+â˜ Provider exceptions documented
+â˜ Evidence/provenance recorded
+â˜ Acceptance status assigned
+â˜ Provider-Bijbel complete
+â˜ Technical GO distinguished from Production Ready
+13. Core rule
+NO PROOF â†’ NO ASSUMPTION. The protocol defines what must be checked; the Provider-Bijbel records what was actually proven.
+Layer
+Mandatory question
+Evidence required
+Result
+Provider-specific?
+UI
+Does the user select days or nights?
+UI code + visible label
+â˜
+YES
+URL / SearchParams
+What unit does the numeric value actually represent?
+URL builder + parser
+â˜
+YES
+Catalog / TravelOffer
+What unit is stored in the canonical offer value?
+Importer + sample offer
+â˜
+YES
+Live pricing
+What unit does the provider route/API require?
+Request context + provider response
+â˜
+YES
+Results display
+Does the displayed label match the stored unit?
+TravelCard/result UI
+â˜
+YES
+Return date
+What unit is used for date calculation?
+Calculation code + controlled case
+â˜
+YES
+Second duration axis
+Does another provider route use a different unit?
+Deep link/API/provider evidence
+â˜
+YES
+Revision note â€” V1.0 amendment
+A Sunweb Results test case demonstrated a catalog-valid offer with a correct live-pricing context but no exact live trip match. Provider-confirmed unavailable is fail-closed for listability and price presentation. Technical failures are a separate claim (not auto-unavailable). See also V1.0 amendment 2026-08-25 (A/B/C, retry max 2, performance gate, Search Architecture v2.11 addendum 2026-08-25).
+Revision note â€” V1.0 amendment (2026-08-25)
+Documented mandatory distinction between provider-confirmed unavailable (A), proven live price (B), and technical/transient failure (C); immediate max-two-attempt retry for retryable C only; no long-term C unavailable blacklist; expanded Phase 10 live-pricing performance / matchset impact gate for new providers. Architecture details remain in Search Architecture v2.11. Prijsvrij remains PARKED and is not an active Results performance baseline.
+Revision note â€” V1.0 amendment (2026-09-05)
+Added mandatory Phase 2 / acceptance / onboarding-gate control "Autoproducten / rondreisclassificatie". Proven provider rules (Corendon, Sunweb, Eliza) and open Vakanties.nl control are recorded in docs/research/provider-landscape/autoproducten-rondreis-classificatie.md. hasCarRental is not universal rondreis proof; Fly & Drive mapping is not transferable across providers without evidence. Results filter wiring remains a separate product decision.
+

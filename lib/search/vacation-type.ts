@@ -4,6 +4,13 @@ import { offerMatchesAnyKeyword, offerSearchText } from '@/lib/search/offer-text
 /**
  * Vacation-type filter options backed by feed evidence (WP8C-002/003).
  * Strand/Stad/Natuur removed — not reliable as taxonomy.
+ *
+ * "Fly & Drive" here is a keyword filter on offerSearchText. It is NOT the
+ * proven rondreis SSOT (Corendon Fly & Go can match via subcategory
+ * `Fly-Drive vakantie`). See
+ * docs/research/provider-landscape/autoproducten-rondreis-classificatie.md
+ * and lib/offers/fly-drive-rondreis.ts. Do not change this matcher without an
+ * explicit product decision (would alter Results membership).
  */
 export const VACATION_TYPE_VALUES = [
   'Adults Only',

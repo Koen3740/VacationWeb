@@ -4,6 +4,13 @@
  * Derived only from structural feed fields or a proven provider-level
  * product rule at import/merge — never from hotel name, marketing copy,
  * searchText, or vacationTypes "Fly & Drive".
+ *
+ * hasCarRental is NOT rondreis proof. Fly & Drive (rondreis) semantics:
+ * docs/research/provider-landscape/autoproducten-rondreis-classificatie.md
+ * and lib/offers/fly-drive-rondreis.ts (not wired into Results filters).
+ *
+ * Corendon token `Fly-Drive vakantie` marks car-inclusive packages (incl.
+ * Fly & Go); it must not be treated as a rondreis classifier by itself.
  */
 
 export const CORENDON_FLY_DRIVE_TOKEN = 'Fly-Drive vakantie';
