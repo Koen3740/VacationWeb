@@ -13,7 +13,7 @@
     "refresh:offers": "tsc -p tsconfig.import.json && node dist/import/scripts/refresh-offers.js",
     "validate:prijsvrij": "tsc -p tsconfig.import.json && node dist/import/scripts/validate-prijsvrij-import.js",
     "backup:pre-sub19": "tsc -p tsconfig.import.json && node dist/import/scripts/backup-pre-sub19.js",
-    "publish:generation": "tsc -p tsconfig.import.json && node dist/import/scripts/publish-generation.js"
+    "publish:generation": "tsc -p tsconfig.import.json && node -r ./scripts/register-import-path-alias.cjs dist/import/scripts/publish-generation.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",
