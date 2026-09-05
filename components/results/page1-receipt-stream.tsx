@@ -21,8 +21,8 @@ async function OverlayTravelCard({
   searchParams?: SearchParams;
 }) {
   const priced = await live;
-  // A/C/parked settled non-listable → not a bookable card.
-  // Listable without proven live € → keep the match visible (pending).
+  // Only A (provider-confirmed) / parked → not a bookable card.
+  // C / pending / unpriced stay listable without inventing a live €.
   if (!isResultsListableOffer(priced)) {
     return null;
   }
@@ -102,18 +102,22 @@ export function Page1ResultsStream({
   searchParams?: SearchParams;
 }) {
   const overlayById = new Map(overlays.map((overlay) => [overlay.catalog.id, overlay]));
-  const renderOffers = candidateOffers ?? catalogOffers;
+  // Membership page slice first — never replace with listability paint/backfill.
+  const renderOffers = catalogOffers;
   const useCap = Boolean(candidateOffers && candidateOffers.length > displayLimit);
 
-  const slots = renderOffers.filter(isResultsListableOffer).map((offer) => {
+  const slots = renderOffers.map((offer) => {
     const overlay = overlayById.get(offer.id);
     const card = renderCatalogOfferSlot(offer, overlay, searchParams);
+    if (card == null) {
+      return null;
+    }
     return (
       <div key={offer.id} data-page1-slot>
         {card}
       </div>
     );
-  });
+  }).filter(Boolean);
 
   if (useCap) {
     return <Page1ResultsCap limit={displayLimit}>{slots}</Page1ResultsCap>;

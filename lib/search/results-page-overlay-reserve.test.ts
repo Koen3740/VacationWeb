@@ -49,7 +49,7 @@ test('intermediate overlay windows are larger than pageSize so Page1ResultsCap c
   assert.ok(overlayWindow.length <= pageSize + PAGE1_OVERLAY_RESERVE);
 });
 
-test('slicePriceSortPoolPage adds reserve only for non-page-1 pages', () => {
+test('slicePriceSortPoolPage is exact membership page slice (no paint reserve)', () => {
   const ranked = Array.from({ length: 200 }, (_, i) => makeOffer(i));
   const pageSize = 10;
 
@@ -64,7 +64,9 @@ test('slicePriceSortPoolPage adds reserve only for non-page-1 pages', () => {
     provisional: false,
   });
   assert.equal(page4.paginationTotal, 200);
-  assert.equal(page4.visibleOffers.length, 20);
+  // Overlay reserve lives in selectPageOverlayCandidates — not in membership slice.
+  assert.equal(page4.visibleOffers.length, 10);
   assert.equal(page4.visibleOffers[0]?.id, 'offer-30');
+  assert.equal(page4.visibleOffers[9]?.id, 'offer-39');
 });
 

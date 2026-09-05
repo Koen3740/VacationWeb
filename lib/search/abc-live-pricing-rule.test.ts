@@ -22,7 +22,8 @@ import type { TravelOffer } from '@/types/travel';
 
 /**
  * Evidence for A/B/C Results live-pricing:
- * attempt 1 → attempt 2 → C (~2 min cache) → listable=false.
+ * attempt 1 → attempt 2 → C (~2 min cache) → stays listable (no fake €).
+ * Only A (provider-confirmed) leaves bookable presentation.
  */
 
 const CORENDON_FRAGMENT = '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U';
@@ -135,7 +136,7 @@ test('A: provider 204 → one attempt, not listable', async () => {
   assert.equal(cardHtml(settled), '');
 });
 
-test('C: attempt1 → attempt2 on timeout → listable=false + ~2min cache', async () => {
+test('C: attempt1 → attempt2 on timeout → listable + visible card + ~2min cache', async () => {
   const offer = makeCorendon({ id: 'corendon-9514-c-timeout' });
   let lowestCalls = 0;
   const t0 = 7_000_000;
@@ -162,15 +163,16 @@ test('C: attempt1 → attempt2 on timeout → listable=false + ~2min cache', asy
   assert.equal(settled.livePriceStatus, 'unavailable');
   assert.equal(settled.livePriceFailureReason, 'timeout');
   assert.equal(hasValidPresentablePrice(settled), false);
-  assert.equal(isResultsListableOffer(settled), false);
-  assert.equal(cardHtml(settled), '');
+  assert.equal(isResultsListableOffer(settled), true);
+  assert.match(cardHtml(settled), /Test Hotel/);
+  assert.doesNotMatch(cardHtml(settled), />€\s*\d/);
   assert.equal(hasResultsLivePriceOverlay(offer.id, { adults: 2 }), true);
 
   setResultsLivePriceNowMsForTests(t0 + RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS + 1);
   assert.equal(hasResultsLivePriceOverlay(offer.id, { adults: 2 }), false);
 });
 
-test('C: stale_context airport mismatch retries once then not listable', async () => {
+test('C: stale_context airport mismatch retries once then stays listable', async () => {
   const offer = makeCorendon({ id: 'corendon-9514-c-stale-airport' });
   let lowestCalls = 0;
   const overlays = startCatalogPageLiveOverlays([offer], { adults: 2 }, {
@@ -186,11 +188,12 @@ test('C: stale_context airport mismatch retries once then not listable', async (
   const settled = await overlays[0]!.live;
   assert.equal(lowestCalls, 2, 'evidence: attempt 1 then attempt 2 for stale_context');
   assert.equal(settled.livePriceFailureReason, 'stale_context');
-  assert.equal(isResultsListableOffer(settled), false);
-  assert.equal(cardHtml(settled), '');
+  assert.equal(isResultsListableOffer(settled), true);
+  assert.match(cardHtml(settled), /Test Hotel/);
+  assert.doesNotMatch(cardHtml(settled), />€\s*\d/);
 });
 
-test('Rosa-shaped C airport mismatch → hidden (no catalog € fallback)', async () => {
+test('Rosa-shaped C airport mismatch → listable card, no catalog € fallback', async () => {
   const offer = makeCorendon({
     id: 'corendon-9514-rosa-260926',
     hotelName: 'Rosa Nautica',
@@ -209,8 +212,9 @@ test('Rosa-shaped C airport mismatch → hidden (no catalog € fallback)', asyn
   assert.equal(lowestCalls, 2);
   assert.equal(settled.livePriceFailureReason, 'stale_context');
   assert.equal(hasValidPresentablePrice(settled), false);
-  assert.equal(isResultsListableOffer(settled), false);
-  assert.equal(cardHtml(settled), '');
+  assert.equal(isResultsListableOffer(settled), true);
+  assert.match(cardHtml(settled), /Rosa Nautica/);
+  assert.doesNotMatch(cardHtml(settled), />€\s*\d/);
 });
 
 test('matching live price → presentable and listable (Rosa 28/09 success path)', async () => {

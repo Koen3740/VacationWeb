@@ -161,28 +161,24 @@ export function filterToResultsVisibleOffers(offers: TravelOffer[]): TravelOffer
 
 /**
  * Results list admission (A/B/C):
- * - B (proven presentable live price) → listable
- * - catalog / unset → listable only so overlays can run (provisional UI)
- * - A (provider-confirmed unavailable) → not listable
- * - C (technical / no usable live price after attempts) → not listable
- * - unpriced / proven-without-total → not listable
- * Catalog € is never a Results fallback.
+ * - Parked providers → not listable
+ * - A (provider-confirmed unavailable) → not listable / not bookable card
+ * - B (proven presentable) → listable
+ * - pending / catalog / unset → listable (provisional UI)
+ * - C (technical failure, often stamped livePriceStatus=unavailable with
+ *   timeout/stale_context/network_error/…) → listable; no fake €
+ * - unpriced / proven-without-total → listable; no fake €
+ *
+ * Live pricing must NOT remove catalog matches from Results membership.
+ * Only true provider-confirmed unavailable (A) leaves bookable presentation.
  */
 export function isResultsListableOffer(offer: TravelOffer): boolean {
   if (isParkedResultsProvider(offer.provider)) {
     return false;
   }
-  if (hasValidPresentablePrice(offer)) {
-    return true;
-  }
-  // Settled live outcomes without a presentable price leave Results.
-  if (offer.livePriceStatus === 'unavailable' || isUnpricedResultsOffer(offer)) {
+  if (isProviderConfirmedUnavailable(offer)) {
     return false;
   }
-  if (offer.livePriceStatus === 'proven') {
-    return false;
-  }
-  // catalog / undefined: admitted for provisional overlay only.
   return true;
 }
 
@@ -207,6 +203,15 @@ export function resultsPricePresentation(
   }
   if (isUnpricedResultsOffer(offer)) {
     return 'unpriced';
+  }
+  // Technical C often shares livePriceStatus=unavailable with A; only A is
+  // provider-confirmed. C stays visible with "prijs niet beschikbaar" copy —
+  // never invent a catalog/feed € as actuele prijs.
+  if (
+    offer.livePriceStatus === 'unavailable' &&
+    !isProviderConfirmedUnavailable(offer)
+  ) {
+    return 'unavailable';
   }
   // Catalog / unset: price not yet available — still a Results match.
   if (offer.livePriceStatus !== 'unavailable' && offer.livePriceStatus !== 'proven') {

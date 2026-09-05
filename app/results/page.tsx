@@ -209,14 +209,17 @@ export default async function ResultsPage({
   const overlayCandidates = isPage1
     ? selectPage1OverlayCandidates(filtered, pageSize, undefined, filteringParams)
     : selectPageOverlayCandidates(filtered, page, pageSize, undefined, filteringParams);
-  const overlays = startCatalogPageLiveOverlays(overlayCandidates, params);
+  const overlays = startCatalogPageLiveOverlays(
+    overlayCandidates.length > 0 ? overlayCandidates : catalogPage.offers,
+    params,
+  );
 
   return (
     <ResultsPageClient
       {...pageShell}
       resultCount={matchCount}
       results={
-        overlayCandidates.length > 0 ? (
+        catalogPage.offers.length > 0 ? (
           <Page1ResultsStream
             catalogOffers={catalogPage.offers}
             candidateOffers={overlayCandidates}

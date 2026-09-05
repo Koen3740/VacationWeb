@@ -14,7 +14,6 @@ import {
   parseAmenitiesParam,
   type AmenityValue,
 } from '@/lib/search/amenity-filters';
-import { filterToResultsListableOffers } from '@/lib/search/presentable-price';
 import {
   offerMatchesAnyBeachLocation,
   offerMatchesAnyCenterLocation,
@@ -274,17 +273,18 @@ function countFacetMatches(
   predicate: (offer: TravelOffer) => boolean,
 ): number {
   const context = filterOffers(offers, { ...params, ...omitParam });
-  return filterToResultsListableOffers(context.filter(predicate)).length;
+  // Facet counts are catalog-matchset counts — never gated on live listability.
+  return context.filter(predicate).length;
 }
 
-/** Faceted count: current search/filters without the hasCarRental constraint, listable only. */
+/** Faceted count: current search/filters without the hasCarRental constraint (catalog matchset). */
 export function countCarRentalFacet(offers: TravelOffer[], params: SearchParams): number {
   return countFacetMatches(offers, params, { hasCarRental: undefined }, (offer) => offer.hasCarRental === true);
 }
 
 /**
  * Faceted count for Roadtrip (Fly & Drive): current search/filters without the
- * Roadtrip vacation-type constraint, listable only. Catalog-stable (no live price).
+ * Roadtrip vacation-type constraint. Catalog-stable (no live price / listability).
  */
 export function countRoadtripFacet(offers: TravelOffer[], params: SearchParams): number {
   const active = parseVacationTypesParam(params.vacationTypes?.join(','));
@@ -297,7 +297,7 @@ export function countRoadtripFacet(offers: TravelOffer[], params: SearchParams):
   );
 }
 
-/** Faceted count: current search/filters without the given amenity, listable only. */
+/** Faceted count: current search/filters without the given amenity (catalog matchset). */
 export function countAmenityFacet(
   offers: TravelOffer[],
   params: SearchParams,

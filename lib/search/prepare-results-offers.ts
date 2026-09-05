@@ -15,7 +15,6 @@ import {
   SUNWEB_PROVIDER_NAME,
 } from './presentable-price';
 import { rankResultsOffers } from './rank-results-offers';
-import { PAGE1_OVERLAY_RESERVE, PAGE_OVERLAY_SCAN_LIMIT, collectListablePaintWindow } from './results-catalog-page';
 import {
   applyResultsLivePriceOverlays,
   hasResultsLivePriceOverlay,
@@ -87,8 +86,9 @@ function assemblePriceSortRanking(
 /**
  * Paginate the ranked filter matchset in sort order.
  * paginationTotal is always the full matchset — live settlement / listability
- * must not make counts sort-dependent. The visible paint window skips settled
- * non-listable shells and may include reserve listable candidates for backfill.
+ * must not make counts sort-dependent.
+ * visibleOffers is the membership page slice (with live overlays for status),
+ * not a listability-gated paint window.
  */
 export function slicePriceSortPoolPage(
   ranked: readonly TravelOffer[],
@@ -101,15 +101,12 @@ export function slicePriceSortPoolPage(
   paginationTotal: number;
 } {
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
-  const startIndex = (safePage - 1) * pageSize;
+  const pageMembers = paginateResults(ranked as TravelOffer[], safePage, pageSize);
+  const visibleOffers = options.params
+    ? applyResultsLivePriceOverlays(pageMembers, options.params)
+    : pageMembers;
   return {
-    visibleOffers: collectListablePaintWindow(
-      ranked,
-      startIndex,
-      pageSize + PAGE1_OVERLAY_RESERVE,
-      options.params,
-      Math.max(PAGE_OVERLAY_SCAN_LIMIT, ranked.length - startIndex),
-    ),
+    visibleOffers,
     page1Ids: paginateResults(ranked as TravelOffer[], 1, pageSize).map((offer) => offer.id),
     paginationTotal: ranked.length,
   };

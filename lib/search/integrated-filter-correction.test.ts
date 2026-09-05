@@ -186,7 +186,8 @@ test('filter counts: car rental facet respects listability gate', () => {
   const listableMatches = filterToResultsListableOffers(
     filterOffers(offers, { hasCarRental: true }),
   ).length;
-  assert.equal(facet, 1);
+  // Facet counts are catalog-matchset counts (includes A); bookable listability is separate.
+  assert.equal(facet, 2);
   assert.equal(listableMatches, 1);
 });
 

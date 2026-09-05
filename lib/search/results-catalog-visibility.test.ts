@@ -168,7 +168,7 @@ test('Sunweb unavailable_trip catalog offer is not a Results card', () => {
   assert.equal(html, '');
 });
 
-test('TEST 2: live-price timeout (C) is not a Results card after settle', async () => {
+test('TEST 2: live-price timeout (C) stays a Results card after settle (no fake €)', async () => {
   const offer = makeCorendon();
   const overlays = startCatalogPageLiveOverlays([offer], { adults: 2 }, {
     fetchImpl: async () => {
@@ -180,9 +180,12 @@ test('TEST 2: live-price timeout (C) is not a Results card after settle', async 
   assert.equal(overlays[0].pending, true);
   assert.equal(isResultsListableOffer(overlays[0].catalog), true);
   const settled = await overlays[0].live;
-  assert.equal(isResultsListableOffer(settled), false);
+  assert.equal(isResultsListableOffer(settled), true);
   assert.equal(hasValidPresentablePrice(settled), false);
-  assert.equal(cardHtml(settled, false), '');
+  const html = cardHtml(settled, false);
+  assert.match(html, /Test Hotel/);
+  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable + '|' + RESULTS_PRICE_COPY.pending));
+  assert.doesNotMatch(html, />€\s*\d/);
 });
 
 test('TEST 3: HTTP 204 provider-unavailable is not a Results card', async () => {
@@ -270,7 +273,7 @@ test('TEST 7: catalog feed € is never shown as proven; pending card stays visi
   assert.doesNotMatch(cardHtml(offer, false), />€/);
 });
 
-test('TEST 8: pp × pax is not a live total and is not listable', () => {
+test('TEST 8: pp × pax is not a live total — listable without inventing €', () => {
   const derived = makeCorendon({
     livePriceStatus: 'proven',
     livePriceSource: 'upsales',
@@ -280,8 +283,10 @@ test('TEST 8: pp × pax is not a live total and is not listable', () => {
   });
   assert.equal(hasProvenLiveTotalPrice(derived), false);
   assert.equal(hasValidPresentablePrice(derived), false);
-  assert.equal(isResultsListableOffer(derived), false);
-  assert.equal(cardHtml(derived, false), '');
+  assert.equal(isResultsListableOffer(derived), true);
+  const html = cardHtml(derived, false);
+  assert.match(html, /./);
+  assert.doesNotMatch(html, />€\s*669/);
 });
 
 test('TEST 9: first page uses the normal catalog page-size', () => {

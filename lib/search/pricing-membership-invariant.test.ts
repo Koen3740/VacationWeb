@@ -136,14 +136,17 @@ test('C. live pricing failure: match stays in filtered membership', async () => 
   assert.deepEqual(membershipIds(prepared.offers), ['fail', 'ok']);
   assert.equal(prepared.offers.length, filterOffers(catalog, baseParams).length);
 
-  // Confirmed unavailable is not bookable; surviving listable still fills the page.
+  // A stays in membership/pagination; only bookable presentation drops A.
   const page = slicePriceSortPoolPage(prepared.offers, 1, 10, {
     provisional: false,
     params: baseParams,
   });
   assert.equal(page.paginationTotal, 2);
-  assert.ok(page.visibleOffers.some((offer) => offer.id === 'ok'));
-  assert.ok(page.visibleOffers.every(isResultsListableOffer));
+  assert.deepEqual(membershipIds(page.visibleOffers), ['fail', 'ok']);
+  assert.equal(isResultsListableOffer(page.visibleOffers.find((o) => o.id === 'fail')!), false);
+  assert.equal(isResultsListableOffer(page.visibleOffers.find((o) => o.id === 'ok')!), true);
+  assert.match(cardHtml(page.visibleOffers.find((o) => o.id === 'ok')!), /Hotel ok/);
+  assert.equal(cardHtml(page.visibleOffers.find((o) => o.id === 'fail')!), '');
 });
 
 test('D. intermediate page stays filled when many prices are pending', () => {
@@ -245,4 +248,169 @@ test('F. price sort order uses proven amounts when available', () => {
     'price-per-day',
   );
   assert.ok(perDay[0].pricePerDay <= perDay[1].pricePerDay);
+});
+
+function seedTechnicalFailure(id: string, reason: 'stale_context' | 'timeout' | 'network_error'): void {
+  setResultsLivePriceOverlay(id, baseParams, {
+    price: 999,
+    pricePerDay: 125,
+    livePriceStatus: 'unavailable',
+    livePriceSource: 'lowestpricesacco',
+    livePriceFailureReason: reason,
+  });
+}
+
+test('G. Abora-shaped stale_context: 1 match → 1 visible card, no fake €', () => {
+  clearResultsLivePriceCache();
+  const offer = makeOffer({
+    id: 'corendon-8985-BRULPA-150926-7-DZA',
+    price: 458,
+    hotelName: 'Abora Catarina by Lopesan Hotels',
+    livePriceStatus: 'unavailable',
+    livePriceFailureReason: 'stale_context',
+  });
+  seedTechnicalFailure(offer.id, 'stale_context');
+  const overlaid = rankLivePricedCandidatePool([offer], baseParams);
+  assert.equal(overlaid.length, 1);
+  assert.equal(isResultsListableOffer(overlaid[0]), true);
+  assert.equal(hasValidPresentablePrice(overlaid[0]), false);
+  const html = cardHtml(overlaid[0], false);
+  assert.match(html, /Abora Catarina/);
+  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable + '|' + RESULTS_PRICE_COPY.pending));
+  assert.doesNotMatch(html, />€\s*\d/);
+});
+
+test('H. pagination membership: 37 → 10/10/10/7 regardless of pricing mix', () => {
+  clearResultsLivePriceCache();
+  const ranked = Array.from({ length: 37 }, (_, index) =>
+    makeOffer({ id: `m-${index}`, price: 300 + index }),
+  );
+  // Mix: B on first 10, C on next 10, pending on rest, A on last 3.
+  for (let i = 0; i < 10; i += 1) seedProven(`m-${i}`, 300 + i);
+  for (let i = 10; i < 20; i += 1) seedTechnicalFailure(`m-${i}`, 'stale_context');
+  for (let i = 34; i < 37; i += 1) seedUnavailable(`m-${i}`);
+
+  const pageSizes = [1, 2, 3, 4].map((page) => {
+    const slice = slicePriceSortPoolPage(ranked, page, 10, {
+      provisional: false,
+      params: baseParams,
+    });
+    assert.equal(slice.paginationTotal, 37);
+    return slice.visibleOffers.length;
+  });
+  assert.deepEqual(pageSizes, [10, 10, 10, 7]);
+
+  // Bookable cards: A on page 4 can drop presentation, but membership length stays 7.
+  const page4 = slicePriceSortPoolPage(ranked, 4, 10, { provisional: false, params: baseParams });
+  assert.equal(page4.visibleOffers.length, 7);
+  const bookable = page4.visibleOffers.filter((offer) => isResultsListableOffer(offer));
+  assert.equal(bookable.length, 4); // 7 members − 3 A
+  assert.ok(bookable.every((offer) => cardHtml(offer, false).includes('Hotel')));
+});
+
+test('I. property: pricing status mixes do not change matchCount or page membership', () => {
+  clearResultsLivePriceCache();
+  const catalog = Array.from({ length: 21 }, (_, index) =>
+    makeOffer({ id: `p-${index}`, price: 400 + index }),
+  );
+  const expectedIds = membershipIds(catalog);
+
+  const mixes: Array<() => void> = [
+    () => {
+      for (const offer of catalog) seedProven(offer.id, offer.price);
+    },
+    () => {
+      catalog.forEach((offer, index) => {
+        if (index % 2 === 0) seedProven(offer.id, offer.price);
+        else seedTechnicalFailure(offer.id, 'timeout');
+      });
+    },
+    () => {
+      catalog.forEach((offer, index) => {
+        if (index % 2 === 0) {
+          /* leave catalog/pending */
+        } else {
+          seedTechnicalFailure(offer.id, 'stale_context');
+        }
+      });
+    },
+    () => {
+      catalog.forEach((offer, index) => {
+        if (index % 3 === 0) seedProven(offer.id, offer.price);
+        else if (index % 3 === 1) seedTechnicalFailure(offer.id, 'network_error');
+        // else pending
+      });
+    },
+  ];
+
+  for (const applyMix of mixes) {
+    clearResultsLivePriceCache();
+    applyMix();
+    const ranked = rankLivePricedCandidatePool(catalog, { ...baseParams, sort: 'price' });
+    assert.equal(ranked.length, 21);
+    assert.deepEqual(membershipIds(ranked), expectedIds);
+    const page1 = slicePriceSortPoolPage(ranked, 1, 10, { provisional: false, params: baseParams });
+    const page2 = slicePriceSortPoolPage(ranked, 2, 10, { provisional: false, params: baseParams });
+    const page3 = slicePriceSortPoolPage(ranked, 3, 10, { provisional: false, params: baseParams });
+    assert.equal(page1.paginationTotal, 21);
+    assert.equal(page1.visibleOffers.length, 10);
+    assert.equal(page2.visibleOffers.length, 10);
+    assert.equal(page3.visibleOffers.length, 1);
+    assert.deepEqual(
+      [...page1.visibleOffers, ...page2.visibleOffers, ...page3.visibleOffers].map((o) => o.id).sort(),
+      expectedIds,
+    );
+  }
+});
+
+test('J. sort modes share matchCount for same filters (incl. technical C)', async () => {
+  clearResultsLivePriceCache();
+  const catalog = [
+    makeOffer({ id: 's1', price: 300, pricePerDay: 37 }),
+    makeOffer({ id: 's2', price: 500, pricePerDay: 62 }),
+    makeOffer({ id: 's3', price: 800, nights: 14, pricePerDay: 57 }),
+  ];
+  seedProven('s1', 300);
+  seedTechnicalFailure('s2', 'stale_context');
+  // s3 pending
+
+  const counts: number[] = [];
+  for (const sort of ['value', 'price', 'price-desc', 'price-per-day'] as const) {
+    const prepared = await prepareResultsOffers(catalog, { ...baseParams, sort });
+    counts.push(prepared.offers.length);
+    assert.deepEqual(membershipIds(prepared.offers), ['s1', 's2', 's3'], sort);
+  }
+  assert.ok(counts.every((count) => count === counts[0]));
+});
+
+test('K. page-size edges keep stable membership lengths', () => {
+  clearResultsLivePriceCache();
+  for (const total of [1, 9, 10, 11, 20, 21, 37, 40]) {
+    const ranked = Array.from({ length: total }, (_, index) =>
+      makeOffer({
+        id: `e-${total}-${index}`,
+        price: 200 + index,
+        livePriceStatus: index % 2 === 0 ? 'catalog' : 'unavailable',
+        livePriceFailureReason: index % 2 === 0 ? undefined : 'timeout',
+      }),
+    );
+    for (const offer of ranked) {
+      if (offer.livePriceFailureReason === 'timeout') {
+        seedTechnicalFailure(offer.id, 'timeout');
+      }
+    }
+    const pages = Math.ceil(total / 10);
+    let seen = 0;
+    for (let page = 1; page <= pages; page += 1) {
+      const slice = slicePriceSortPoolPage(ranked, page, 10, {
+        provisional: false,
+        params: baseParams,
+      });
+      assert.equal(slice.paginationTotal, total);
+      const expected = page < pages ? 10 : total - (pages - 1) * 10;
+      assert.equal(slice.visibleOffers.length, expected, `total=${total} page=${page}`);
+      seen += slice.visibleOffers.length;
+    }
+    assert.equal(seen, total);
+  }
 });

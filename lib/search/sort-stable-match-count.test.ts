@@ -16,6 +16,7 @@ import {
   clearResultsLivePriceCache,
   setResultsLivePriceOverlay,
 } from '@/lib/search/results-live-price-cache';
+import { isResultsListableOffer } from '@/lib/search/presentable-price';
 import { CORENDON_PROVIDER_NAME } from '@/lib/providers/corendon/constants';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
@@ -118,9 +119,12 @@ test('orderCatalogPageCandidates keeps full matchset membership (reorder only)',
     params: baseParams,
   });
   assert.equal(page.paginationTotal, 4);
-  assert.equal(page.visibleOffers.length, 2);
+  // Membership page slice keeps A shells; bookable cards are listable-only.
+  assert.equal(page.visibleOffers.length, 4);
+  assert.deepEqual(membershipIds(page.visibleOffers), ['a', 'b', 'c', 'd']);
+  assert.equal(page.visibleOffers.filter(isResultsListableOffer).length, 2);
   assert.deepEqual(
-    page.visibleOffers.map((offer) => offer.id).sort(),
+    page.visibleOffers.filter(isResultsListableOffer).map((offer) => offer.id).sort(),
     ['a', 'd'],
   );
 });
@@ -148,8 +152,10 @@ test('live-price failures do not shrink paginationTotal or membership', () => {
     params: baseParams,
   });
   assert.equal(page.paginationTotal, 3);
-  assert.equal(page.visibleOffers.length, 1);
-  assert.equal(page.visibleOffers[0].id, 'ok');
+  assert.equal(page.visibleOffers.length, 3);
+  assert.deepEqual(membershipIds(page.visibleOffers), ['fail-a', 'fail-b', 'ok']);
+  assert.equal(page.visibleOffers.filter(isResultsListableOffer).length, 1);
+  assert.equal(page.visibleOffers.filter(isResultsListableOffer)[0].id, 'ok');
 });
 
 test('price-sort live ranking keeps over-budget live overlays in the matchset', () => {
