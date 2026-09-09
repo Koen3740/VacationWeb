@@ -13,7 +13,8 @@
     "refresh:offers": "tsc -p tsconfig.import.json && node dist/import/scripts/refresh-offers.js",
     "validate:prijsvrij": "tsc -p tsconfig.import.json && node dist/import/scripts/validate-prijsvrij-import.js",
     "backup:pre-sub19": "tsc -p tsconfig.import.json && node dist/import/scripts/backup-pre-sub19.js",
-    "publish:generation": "tsc -p tsconfig.import.json && node -r ./scripts/register-import-path-alias.cjs dist/import/scripts/publish-generation.js"
+    "publish:generation": "tsc -p tsconfig.import.json && node -r ./scripts/register-import-path-alias.cjs dist/import/scripts/publish-generation.js",
+    "ingest:tradetracker-promotions": "tsc -p tsconfig.import.json && node dist/import/scripts/ingest-tradetracker-promotions.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",
@@ -21,7 +22,8 @@
     "fast-xml-parser": "^5.9.3",
     "next": "14.2.15",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "soap": "^1.11.0"
   },
   "devDependencies": {
     "@types/node": "20.14.15",
