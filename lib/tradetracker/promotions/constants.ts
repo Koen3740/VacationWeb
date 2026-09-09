@@ -14,6 +14,12 @@ export const TRADETRACKER_SANDBOX_ENV = 'TRADETRACKER_SANDBOX';
 export const TRADETRACKER_DEMO_ENV = 'TRADETRACKER_DEMO';
 export const TRADETRACKER_AFFILIATE_SITE_ID_ENV = 'TRADETRACKER_AFFILIATE_SITE_ID';
 
+/**
+ * VacationWeb TradeTracker affiliate site.
+ * Do not use 512055 (MKDigitalMedia) as VacationWeb context.
+ */
+export const VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID = '512226';
+
 /** WSDL Locale enumeration; override with TRADETRACKER_LOCALE. */
 export const TRADETRACKER_DEFAULT_LOCALE = 'nl_BE';
 

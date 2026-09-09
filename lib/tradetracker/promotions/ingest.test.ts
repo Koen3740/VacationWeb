@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID } from './constants';
 import { ingestTradeTrackerPromotions, snapshotCounts } from './ingest';
 import { createAffiliateSoapPort, type AffiliateSoapPort } from './soap-client';
 import { TradeTrackerSoapError } from './errors';
@@ -19,11 +20,15 @@ function fakePort(overrides: Partial<AffiliateSoapPort> = {}): AffiliateSoapPort
     async getAffiliateSites() {
       return {
         affiliateSites: {
-          affiliateSite: [{ ID: 512226, name: 'VacationWeb', URL: 'https://vacationweb.example' }],
+          affiliateSite: [
+            { ID: 512055, name: 'MKDigitalMedia', URL: 'https://mk.example' },
+            { ID: 512226, name: 'Vacationweb.nl', URL: 'https://vacationweb.example' },
+          ],
         },
       };
     },
-    async getCampaigns() {
+    async getCampaigns(affiliateSiteID: number) {
+      assert.equal(affiliateSiteID, 512226);
       return {
         campaigns: {
           campaign: [
@@ -36,19 +41,30 @@ function fakePort(overrides: Partial<AffiliateSoapPort> = {}): AffiliateSoapPort
     async getCampaignNewsItems() {
       return {
         campaignNewsItems: {
-          campaignNewsItem: {
-            ID: 5,
-            campaignNewsType: 'campaign_update_general',
-            title: 'Update',
-            content: 'Source news',
-            publishDate: '2026-09-01',
-            expirationDate: '2026-09-30',
-            campaign: { ID: 1488, name: 'Corendon' },
-          },
+          campaignNewsItem: [
+            {
+              ID: 5,
+              campaignNewsType: 'campaign_update_general',
+              title: 'Update',
+              content: 'Source news',
+              publishDate: '2026-09-01',
+              expirationDate: '2026-09-30',
+              campaign: { ID: 1488, name: 'Corendon' },
+            },
+            {
+              ID: 99,
+              campaignNewsType: 'campaign_update_consumer',
+              title: 'Other site campaign news',
+              content: 'Must be filtered out',
+              publishDate: '2026-09-01',
+              campaign: { ID: 999999, name: 'Not on VacationWeb site' },
+            },
+          ],
         },
       };
     },
-    async getMaterialIncentiveOfferItems() {
+    async getMaterialIncentiveOfferItems(affiliateSiteID: number) {
+      assert.equal(affiliateSiteID, 512226);
       return {
         materialItems: {
           materialItem: {
@@ -60,7 +76,8 @@ function fakePort(overrides: Partial<AffiliateSoapPort> = {}): AffiliateSoapPort
         },
       };
     },
-    async getMaterialIncentiveVoucherItems() {
+    async getMaterialIncentiveVoucherItems(affiliateSiteID: number) {
+      assert.equal(affiliateSiteID, 512226);
       return {
         materialItems: {
           materialItem: {
@@ -77,7 +94,7 @@ function fakePort(overrides: Partial<AffiliateSoapPort> = {}): AffiliateSoapPort
   };
 }
 
-test('successful ingest normalizes campaigns, news, incentives and vouchers', async () => {
+test('successful ingest scopes to VacationWeb affiliateSiteID 512226', async () => {
   const snapshot = await ingestTradeTrackerPromotions({
     port: fakePort(),
     credentials: CREDENTIALS,
@@ -85,11 +102,21 @@ test('successful ingest normalizes campaigns, news, incentives and vouchers', as
   });
   const serialized = JSON.stringify(snapshot);
   assert.equal(serialized.includes(CREDENTIALS.passphrase), false);
+  assert.equal(snapshot.scopedAffiliateSiteId, VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID);
+  assert.deepEqual(
+    snapshot.affiliateSites.map((site) => site.siteId),
+    ['512226'],
+  );
+  assert.equal(snapshot.affiliateSites.some((site) => site.siteId === '512055'), false);
   assert.equal(snapshot.campaigns.length, 2);
+  assert.equal(snapshot.campaigns.every((c) => c.affiliateSiteId === '512226'), true);
+  assert.equal(snapshot.newsItems.length, 1);
+  assert.equal(snapshot.newsItems[0]?.newsItemId, '5');
   assert.equal(snapshot.newsItems[0]?.newsType, 'campaign_update_general');
   assert.equal(snapshot.incentiveOffers[0]?.kind, 'incentive_offer');
   assert.equal(snapshot.vouchers[0]?.kind, 'voucher');
-  assert.deepEqual(snapshotCounts(snapshot).campaigns, 2);
+  assert.equal(snapshotCounts(snapshot).campaigns, 2);
+  assert.equal(snapshotCounts(snapshot).scopedAffiliateSiteId, '512226');
 });
 
 test('API error on authenticate fails ingest without leaking passphrase', async () => {
@@ -122,6 +149,24 @@ test('malformed getAffiliateSites response is an API error', async () => {
         credentials: CREDENTIALS,
       }),
     /Malformed response/,
+  );
+});
+
+test('missing VacationWeb affiliate site fails clearly', async () => {
+  await assert.rejects(
+    () =>
+      ingestTradeTrackerPromotions({
+        port: fakePort({
+          getAffiliateSites: async () => ({
+            affiliateSites: {
+              affiliateSite: [{ ID: 512055, name: 'MKDigitalMedia' }],
+            },
+          }),
+        }),
+        credentials: CREDENTIALS,
+        affiliateSiteId: '512226',
+      }),
+    /512226/,
   );
 });
 

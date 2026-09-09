@@ -2,135 +2,138 @@
 
 ## Datum
 
-2026-09-07 (implementatie) · live SOAP-bewijs 2026-09-09
+2026-09-07 (implementatie) · live SOAP-bewijs 2026-09-09 · VacationWeb-site scope 2026-09-09
 
 ## Doel
 
-Officiële TradeTracker Affiliate Webservice-data (campagnes, campaign news, incentive offers, vouchers) ophalen, normaliseren en veilig beschikbaar maken voor latere productfasen.
+Officiële TradeTracker Affiliate Webservice-data (campagnes, campaign news, incentive offers, vouchers) ophalen, normaliseren en veilig beschikbaar maken voor latere productfasen — **scoped op VacationWeb**.
 
 ## Scope
 
 Data ingestion only. Geen UI, geen Aanbiedingen/Last Minute/homepage, geen catalogus- of pricingwijzigingen, geen commerciële ranking.
 
+## VacationWeb affiliate site
+
+| | |
+|--|--|
+| **VacationWeb affiliateSiteID** | **512226** (`Vacationweb.nl`) |
+| Niet gebruiken als VW-context | 512055 (`MKDigitalMedia`) |
+
+Ingest default = `512226` (`VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID`). Optioneel override via `TRADETRACKER_AFFILIATE_SITE_ID` (research only).
+
+`getCampaigns`, incentive offers en vouchers worden met `affiliateSiteID=512226` aangeroepen. Account-wide `getCampaignNewsItems` wordt gefilterd tot news waarvan `campaignId` tot de 512226-campagne-set behoort.
+
 ## Bestaande TradeTracker-infrastructuur
 
 VacationWeb had al **productfeed XML-import** (`config/feed-manifest.json`, `lib/feeds/*`, `format: tradetracker-xml`). Dat pad blijft ongewijzigd.
 
-Er was **geen** SOAP Affiliate-client, geen promotion/campaign-ingestielaag, en geen `TRADETRACKER_*` credentials in de bestaande env-conventie (Object Storage + gitignored `.env.local`).
-
-Deze fase voegt een **geïsoleerde** module toe: `lib/tradetracker/promotions/`. Geen tweede feed-importer en geen wijziging van bestaande provider-feedmapping.
+SOAP promotion-laag: `lib/tradetracker/promotions/` + CLI `npm run ingest:tradetracker-promotions`.
 
 ## Gebruikte Webservice-methodes
 
 - `authenticate`
 - `getAffiliateSites`
-- `getCampaigns`
-- `getCampaignNewsItems`
-- `getMaterialIncentiveOfferItems`
-- `getMaterialIncentiveVoucherItems`
+- `getCampaigns(affiliateSiteID=512226)`
+- `getCampaignNewsItems` (daarna gefilterd op VW-campagne-IDs)
+- `getMaterialIncentiveOfferItems(affiliateSiteID=512226)`
+- `getMaterialIncentiveVoucherItems(affiliateSiteID=512226)`
 
 ## WSDL / endpoint
 
 - WSDL: `https://ws.tradetracker.com/soap-literal-wsi/affiliate?wsdl`
 - Namespace: `https://ws.tradetracker.com/soap-literal-wsi/affiliate`
 - SOAP 1.2 document/literal WSI
-- Client: npm `soap` (WSDL-driven; geen handmatig gegokte envelopes)
-- Sessie: `Set-Cookie` na `authenticate` wordt als `Cookie` hergebruikt
+- Client: npm `soap` (WSDL-driven)
+- Sessie: `Set-Cookie` na `authenticate` → `Cookie`
 
 ## Authenticatie
 
-Environment variables (zelfde lokale conventie als Object Storage: `.env.local`, nooit in Git):
-
-- `TRADETRACKER_CUSTOMER_ID` (WSDL `customerID`)
-- `TRADETRACKER_ACCESS_KEY` (WSDL `passphrase`)
-- optioneel: `TRADETRACKER_LOCALE` (default `nl_BE`), `TRADETRACKER_SANDBOX`, `TRADETRACKER_DEMO`, `TRADETRACKER_AFFILIATE_SITE_ID`
-
-Namen van variabelen staan in `.env.example` zonder waarden.
+- `TRADETRACKER_CUSTOMER_ID` / `TRADETRACKER_ACCESS_KEY` in gitignored `.env.local`
+- namen in `.env.example` zonder waarden
 
 ## Interne normalisatie
 
-Snapshot-model (`TradeTrackerPromotionSnapshot`) onderscheidt:
+Snapshot (`TradeTrackerPromotionSnapshot`) met `scopedAffiliateSiteId` onderscheidt:
 
 - `campaign`
 - `campaign_news` / `campaign_start` / `campaign_stop` / `campaign_update`
-- `consumer_promotion` (alleen bronlabel voor `campaign_update_consumer`; geen deal-classificatie)
+- `consumer_promotion` (label voor `campaign_update_consumer`; geen deal)
 - `incentive_offer`
 - `voucher`
 
-Bronvelden (IDs, namen, URLs, newsType, datums, advertiser/campaign identity, raw key metadata) blijven behouden. Campaign IDs komen uit TradeTracker; geen hardcoded Corendon/Sunweb/Eliza-IDs.
-
-Campaign news is broninformatie. Niet ieder news-item is een “aanbieding”.
+Bronvelden blijven behouden. Campaign IDs komen uit TradeTracker. Campaign news ≠ automatisch een “aanbieding”.
 
 ## Datumvalidatie
 
-TradeTracker `xsd:date` wordt als kalenderdatum `YYYY-MM-DD` gelezen.
+UTC-kalenderdatum (`timezoneAssumption: utc-calendar-date`):
 
-Vergelijking gebruikt de **UTC-kalenderdatum** van `asOfMs` (`timezoneAssumption: utc-calendar-date`). Geen stille Europe/Amsterdam-conversie. `campaign.info.timeZone` wordt bewaard, niet stil toegepast.
+- toekomstig → `scheduled`, niet actief
+- verlopen → `expired`, niet actief
+- geen `expirationDate` → niet kunstmatig verlopen
+- geen `publishDate` → `undated`, niet actief
+- einddatum = vandaag UTC → die dag nog actief
 
-- nog niet gepubliceerd (`start` > vandaag UTC) → `scheduled`, niet actief
-- verlopen (`end` < vandaag UTC) → `expired`, niet actief
-- ontbrekende `end`/`expirationDate` → niet kunstmatig verlopen
-- ontbrekende `start`/`publishDate` → `undated`, niet actief
-- `end` gelijk aan vandaag UTC blijft die dag actief
-
-News gebruikt `publishDate`/`expirationDate`. Incentives gebruiken `validFromDate`/`validToDate`.
-
-## Runtime-test (live)
+## Runtime-test (live, affiliateSiteID 512226)
 
 CLI: `npm run ingest:tradetracker-promotions`  
-Snapshot (gitignored JSON): `data/tradetracker-promotions/snapshot.json`
+Snapshot (gitignored): `data/tradetracker-promotions/snapshot-vacationweb-512226.json`
 
-**2026-09-09T17:02:36.166Z — SUCCESS** (wall ~6,3 s, `methodErrors: 0`)
+### Eerdere account-brede run (onvoldoende als VW-bewijs)
+
+2026-09-09 ~17:02Z: sites 2, campaigns **2946**, news 109, vouchers 1 — **beide** affiliate sites. Niet gebruiken als VacationWeb-scope-bewijs.
+
+### VacationWeb-scope run (bewijs)
+
+**2026-09-09 — SUCCESS** (~4,0 s, `methodErrors: 0`)
 
 | Meting | Waarde |
 |--------|--------|
-| WSDL | `https://ws.tradetracker.com/soap-literal-wsi/affiliate?wsdl` |
-| Affiliate sites | 2 (`512055` MKDigitalMedia, `512226` Vacationweb.nl) |
-| Campaigns | 2946 |
-| Campaign news | 109 (alle 109 `validity.isActive` op capture-moment) |
-| Incentive offers | 0 |
-| Vouchers | 1 (actief) |
+| scopedAffiliateSiteId | **512226** |
+| Affiliate sites in snapshot | 1 (`Vacationweb.nl`) |
+| Campaigns | **1473** |
+| Campaign news (na VW-filter) | **104** |
+| Active campaign news | **104** |
+| Incentive offers | **0** |
+| Vouchers | **0** |
 
-NewsType-verdeling (deze run):
+NewsTypes (512226-run):
 
 | Type | Count |
 |------|------:|
-| `campaign_update_consumer` | 42 |
-| `campaign_update_general` | 26 |
+| `campaign_update_consumer` | 41 |
+| `campaign_update_general` | 24 |
 | `campaign_start` | 11 |
-| `campaign_stop` | 10 |
+| `campaign_stop` | 9 |
 | `campaign_update_commission` | 9 |
-| `campaign_update_feed` | 5 |
+| `campaign_update_feed` | 4 |
 | `campaign_update_material` | 3 |
 | `campaign_update_vouchercode` | 2 |
 | `campaign_update_urgent` | 1 |
 
-Bewerkte methodes in deze run: authenticate, getAffiliateSites, getCampaigns, getCampaignNewsItems, getMaterialIncentiveOfferItems, getMaterialIncentiveVoucherItems — allemaal zonder method-error.
-
-Geen credentials of passphrases in logs/snapshot-rapportage.
+Opmerking: de eerdere account-brede voucher (1) hoorde niet bij de 512226-scope; op VacationWeb-site zijn vouchers in deze run **0**.
 
 ## Testresultaten
 
-Unit tests: `lib/tradetracker/promotions/*.test.ts` (normalisatie, identity, newsType, datums, incentives vs vouchers, malformed/API errors, ontbrekende credentials zonder file-load, geen secret-leak).
+Unit tests `lib/tradetracker/promotions/*.test.ts`: normalisatie, 512226-scope (excl. 512055), news-filter, newsType, datums, incentive/voucher, malformed/API errors, ontbrekende credentials, geen secret-leak.
 
-Live SOAP: **bewezen** (zie Runtime-test).
+Live SOAP voor **512226**: bewezen (zie Runtime-test).
 
 ## Beperkingen
 
-- Snapshot is één momentopname; counts wijzigen in TT.
-- Incentive HTML `code` wordt niet als productcopy gebruikt; alleen metadata (`hasMaterialCode`).
+- Snapshot is momentopname.
+- Incentive HTML `code` niet als productcopy; alleen `hasMaterialCode`.
 - Geen koppeling naar offers.json / live pricing / Results.
-- Campagne-lijst bevat alle TT-campagnes op de affiliate sites; geen VacationWeb productfilter in deze fase.
+- Geen VacationWeb productfilter op campagne-namen in deze fase (alle TT-campagnes op site 512226).
 
 ## Openstaande punten
 
-- Productfase: welke bronrecords (indien enige) op een Aanbiedingen-pagina mogen.
-- Eventueel site-scope via `TRADETRACKER_AFFILIATE_SITE_ID` als alleen Vacationweb.nl gewenst is.
+- Productfase: welke bronrecords (indien enige) op Aanbiedingen mogen.
+- Eventuele mapping TT-campagne ↔ VacationWeb provider-identity blijft productwerk.
 
 ## Bewust NIET geïmplementeerd
 
 - Aanbiedingen UI, header, homepage, Last Minute UI/feeds
 - Catalogus-, pricing-, results-, sort-, search-, airport-wijzigingen
-- Nieuwe providerfeeds of feedmapping-wijzigingen
-- Automatische dealranking / commerciële selectie / afgeleide kortingsclaims
+- Nieuwe providerfeeds / feedmapping
+- Dealranking / commerciële selectie / afgeleide kortingsclaims
 - Deployment

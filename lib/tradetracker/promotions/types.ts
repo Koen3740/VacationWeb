@@ -99,6 +99,8 @@ export type TradeTrackerPromotionSnapshot = {
   source: typeof import('./constants').TRADETRACKER_SOURCE;
   ingestedAt: string;
   wsdlUrl: string;
+  /** Affiliate site used for this snapshot (VacationWeb = 512226). */
+  scopedAffiliateSiteId: string;
   affiliateSites: TradeTrackerAffiliateSiteRecord[];
   campaigns: TradeTrackerCampaignRecord[];
   newsItems: TradeTrackerCampaignNewsRecord[];

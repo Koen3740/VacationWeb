@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getTradeTrackerSoapCredentials } from './credentials';
+import { VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID } from './constants';
+import { getTradeTrackerSoapCredentials, resolveAffiliateSiteIdForIngest } from './credentials';
 import { redactSecrets, TradeTrackerCredentialsError } from './errors';
 
 test('missing credentials throw without leaking values', () => {
@@ -19,6 +20,20 @@ test('missing credentials throw without leaking values', () => {
       assert.equal(error.message.includes('secret-value'), false);
       return true;
     },
+  );
+});
+
+test('resolveAffiliateSiteIdForIngest defaults to VacationWeb 512226', () => {
+  assert.equal(
+    resolveAffiliateSiteIdForIngest({ loadFiles: false, env: {} }),
+    VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID,
+  );
+  assert.equal(
+    resolveAffiliateSiteIdForIngest({
+      loadFiles: false,
+      env: { TRADETRACKER_AFFILIATE_SITE_ID: '512226' },
+    }),
+    '512226',
   );
 });
 

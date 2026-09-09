@@ -8,6 +8,7 @@ import {
   TRADETRACKER_DEMO_ENV,
   TRADETRACKER_LOCALE_ENV,
   TRADETRACKER_SANDBOX_ENV,
+  VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID,
 } from './constants';
 import { TradeTrackerCredentialsError } from './errors';
 import type { TradeTrackerSoapCredentials } from './types';
@@ -53,15 +54,15 @@ type CredentialOptions = {
   /** When false, skip `.env.local` / `.env` file load (tests). Default true. */
   loadFiles?: boolean;
   /** Optional env bag; defaults to `process.env`. */
-  env?: NodeJS.ProcessEnv;
+  env?: Record<string, string | undefined>;
 };
 
-function readEnv(name: string, env: NodeJS.ProcessEnv = process.env): string | undefined {
+function readEnv(name: string, env: Record<string, string | undefined> = process.env): string | undefined {
   const value = env[name]?.trim();
   return value ? value : undefined;
 }
 
-function envFlag(name: string, env: NodeJS.ProcessEnv = process.env): boolean {
+function envFlag(name: string, env: Record<string, string | undefined> = process.env): boolean {
   const value = readEnv(name, env)?.toLowerCase();
   return value === '1' || value === 'true' || value === 'yes';
 }
@@ -109,6 +110,19 @@ export function getTradeTrackerSoapCredentials(
   };
 }
 
+/**
+ * Affiliate site used for VacationWeb promotion ingest.
+ * Defaults to VacationWeb `512226`. Optional env override for research only.
+ */
+export function resolveAffiliateSiteIdForIngest(options: CredentialOptions = {}): string {
+  if (options.loadFiles !== false) {
+    loadLocalEnvFiles();
+  }
+  const env = options.env ?? process.env;
+  return readEnv(TRADETRACKER_AFFILIATE_SITE_ID_ENV, env) ?? VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID;
+}
+
+/** @deprecated Prefer resolveAffiliateSiteIdForIngest (defaults to VacationWeb 512226). */
 export function getOptionalAffiliateSiteIdOverride(
   options: CredentialOptions = {},
 ): string | null {
