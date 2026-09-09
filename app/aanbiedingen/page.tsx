@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Aanbiedingen | VacationWeb',
-  description: 'Actuele promoties van VacationWeb via officiële TradeTracker-campagnedata.',
+  description: 'Actuele aanbiedingen van de reispartners van VacationWeb.',
 };
 
 export const runtime = 'nodejs';
@@ -29,7 +29,7 @@ function marketsForHost(host: string | null): VacationWebPromotionMarket[] {
 }
 
 function marketTitle(market: VacationWebPromotionMarket): string {
-  return market === 'be' ? 'VacationWeb.be' : 'VacationWeb.nl';
+  return market === 'be' ? 'België' : 'Nederland';
 }
 
 export default async function AanbiedingenPage() {
@@ -41,13 +41,13 @@ export default async function AanbiedingenPage() {
   return (
     <div className="min-h-screen bg-[#F7F5F1]">
       <ResultsSiteHeader />
-      <main className="mx-auto max-w-[960px] px-6 py-8 lg:px-8">
+      <main className="mx-auto max-w-[800px] px-6 py-8 lg:px-8">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-[28px] font-bold tracking-tight text-[#0A2D62]">Aanbiedingen</h1>
-            <p className="mt-1 max-w-[40rem] text-[14px] text-[#64748B]">
-              Actuele promoties uit officiële TradeTracker-campagnebronnen. Dit is geen
-              vakantieresultatenlijst en geen afgeleide korting uit de catalogusprijs.
+            <p className="mt-1 max-w-[36rem] text-[14px] text-[#64748B]">
+              Actuele acties van onze reispartners. Geen volledige vakantielijst — alleen echte
+              promoties.
             </p>
           </div>
           <Link href="/" className="text-[13px] font-medium text-[#0A2D62] hover:underline">
@@ -56,33 +56,37 @@ export default async function AanbiedingenPage() {
         </div>
 
         <p className="mb-6 text-[13px] text-[#64748B]">
-          {total === 1 ? '1 actieve promotie' : `${total} actieve promoties`}
+          {total === 0
+            ? 'Momenteel geen actuele aanbiedingen'
+            : total === 1
+              ? '1 actuele aanbieding'
+              : `${total} actuele aanbiedingen`}
         </p>
 
         <div className="space-y-10">
           {sections.map((section) => (
             <section key={section.market} aria-labelledby={`promotions-${section.market}`}>
-              <div className="mb-4">
+              {markets.length > 1 ? (
                 <h2
                   id={`promotions-${section.market}`}
-                  className="text-[20px] font-semibold tracking-tight text-[#0A2D62]"
+                  className="mb-4 text-[18px] font-semibold tracking-tight text-[#0A2D62]"
                 >
                   {marketTitle(section.market)}
                 </h2>
-                <p className="mt-1 text-[12px] text-[#94A3B8]">
-                  Affiliate site {section.affiliateSiteId}
-                  {section.ingestedAt ? ` · bron ${section.ingestedAt}` : null}
-                </p>
-              </div>
+              ) : (
+                <h2 id={`promotions-${section.market}`} className="sr-only">
+                  {marketTitle(section.market)}
+                </h2>
+              )}
 
               {section.error ? (
                 <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-[14px] text-[#991B1B]">
-                  Promoties voor {marketTitle(section.market)} konden niet worden geladen.
+                  Aanbiedingen konden nu niet worden geladen. Probeer het later opnieuw.
                 </p>
               ) : (
                 <AanbiedingenPromotionList
                   promotions={section.promotions}
-                  emptyMessage={`Geen actuele TradeTracker-promoties voor ${marketTitle(section.market)}.`}
+                  emptyMessage={`Geen actuele aanbiedingen voor ${marketTitle(section.market)}.`}
                 />
               )}
             </section>

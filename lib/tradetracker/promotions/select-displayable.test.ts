@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { clearFeedRegistryCache } from '../../feeds/feed-registry';
+import {
+  getConnectedTradeTrackerCampaignIds,
+  resolveConnectedProvider,
+} from './connected-providers';
 import { selectDisplayablePromotions } from './select-displayable';
 import type { TradeTrackerPromotionSnapshot } from './types';
 
@@ -45,7 +50,43 @@ function expiredValidity() {
   };
 }
 
-test('keeps active consumer/voucher/incentive news and drops ops news', () => {
+test('connected campaign IDs come from enabled feed-manifest providers', () => {
+  clearFeedRegistryCache();
+  const ids = getConnectedTradeTrackerCampaignIds();
+  assert.equal(ids.has('38108'), true);
+  assert.equal(ids.has('38103'), true);
+  assert.equal(ids.has('1393'), true);
+  assert.equal(ids.has('1327'), true);
+  // Prijsvrij is disabled / parked — not an active Results provider campaign set.
+  assert.equal(ids.has('25331'), false);
+});
+
+test('resolveConnectedProvider accepts Corendon/Sunweb/Eliza and rejects Alsa/Journaway', () => {
+  clearFeedRegistryCache();
+  assert.equal(
+    resolveConnectedProvider({ campaignId: '38108', campaignName: 'Corendon NL' }),
+    'Corendon',
+  );
+  assert.equal(
+    resolveConnectedProvider({ campaignId: null, campaignName: 'Sunweb Zomer' }),
+    'Sunweb',
+  );
+  assert.equal(
+    resolveConnectedProvider({ campaignId: '1327', campaignName: 'Eliza was here' }),
+    'Eliza was here',
+  );
+  assert.equal(
+    resolveConnectedProvider({ campaignId: null, campaignName: 'alsa-nature.nl' }),
+    null,
+  );
+  assert.equal(
+    resolveConnectedProvider({ campaignId: null, campaignName: 'Journaway.com/nl' }),
+    null,
+  );
+});
+
+test('keeps active Corendon consumer promo and drops Alsa-Nature / Journaway / ops news', () => {
+  clearFeedRegistryCache();
   const selected = selectDisplayablePromotions(
     baseSnapshot({
       newsItems: [
@@ -54,42 +95,57 @@ test('keeps active consumer/voucher/incentive news and drops ops news', () => {
           kind: 'consumer_promotion',
           newsItemId: '1',
           newsType: 'campaign_update_consumer',
-          title: 'Zomeractie',
-          content: 'Officiële consumentenpromotie',
+          title: 'Corendon NL - Nazomer Deals',
+          content: 'Boek nu je nazomervakantie met Corendon.',
           publishDate: '2026-09-01',
           expirationDate: '2026-09-30',
-          campaignId: '1488',
-          campaignName: 'Corendon',
-          campaignUrl: 'https://www.corendon.be/',
+          campaignId: '38108',
+          campaignName: 'Corendon NL',
+          campaignUrl: 'https://www.corendon.nl/',
           validity: activeValidity('2026-09-01', '2026-09-30'),
           sourceMetadata: {},
         },
         {
           source: 'tradetracker-affiliate-webservice',
-          kind: 'campaign_update',
+          kind: 'consumer_promotion',
           newsItemId: '2',
-          newsType: 'campaign_update_general',
-          title: 'Feed update',
-          content: 'Niet tonen als aanbieding',
+          newsType: 'campaign_update_consumer',
+          title: 'Nieuwe kortingscodes',
+          content: 'Alsa-nature.nl actie',
           publishDate: '2026-09-01',
           expirationDate: null,
-          campaignId: '1488',
-          campaignName: 'Corendon',
-          campaignUrl: null,
+          campaignId: '999',
+          campaignName: 'alsa-nature.nl',
+          campaignUrl: 'https://www.alsa-nature.nl/',
           validity: activeValidity('2026-09-01'),
           sourceMetadata: {},
         },
         {
           source: 'tradetracker-affiliate-webservice',
-          kind: 'campaign_start',
+          kind: 'consumer_promotion',
           newsItemId: '3',
-          newsType: 'campaign_start',
-          title: 'Campagne gestart',
-          content: 'Ops',
+          newsType: 'campaign_update_consumer',
+          title: '2for1 America Deals',
+          content: 'Journaway bundelt acties',
           publishDate: '2026-09-01',
           expirationDate: null,
-          campaignId: '1488',
-          campaignName: 'Corendon',
+          campaignId: '888',
+          campaignName: 'Journaway.com/nl',
+          campaignUrl: 'https://journaway.com/',
+          validity: activeValidity('2026-09-01'),
+          sourceMetadata: {},
+        },
+        {
+          source: 'tradetracker-affiliate-webservice',
+          kind: 'campaign_update',
+          newsItemId: '4',
+          newsType: 'campaign_update_general',
+          title: 'Feed update',
+          content: 'Niet tonen',
+          publishDate: '2026-09-01',
+          expirationDate: null,
+          campaignId: '38108',
+          campaignName: 'Corendon NL',
           campaignUrl: null,
           validity: activeValidity('2026-09-01'),
           sourceMetadata: {},
@@ -99,11 +155,14 @@ test('keeps active consumer/voucher/incentive news and drops ops news', () => {
     'nl',
   );
   assert.equal(selected.length, 1);
-  assert.equal(selected[0]?.kind, 'consumer_promotion');
-  assert.equal(selected[0]?.campaignName, 'Corendon');
+  assert.equal(selected[0]?.providerName, 'Corendon');
+  assert.equal(selected[0]?.title, 'Nazomer Deals');
+  assert.match(selected[0]?.summary ?? '', /nazomer/i);
+  assert.equal('affiliateSiteId' in (selected[0] as object), false);
 });
 
-test('excludes expired and future promotions', () => {
+test('excludes expired promotions even for connected providers', () => {
+  clearFeedRegistryCache();
   const selected = selectDisplayablePromotions(
     baseSnapshot({
       newsItems: [
@@ -116,39 +175,10 @@ test('excludes expired and future promotions', () => {
           content: 'x',
           publishDate: '2026-01-01',
           expirationDate: '2026-01-31',
-          campaignId: '1',
-          campaignName: 'A',
+          campaignId: '38108',
+          campaignName: 'Corendon NL',
           campaignUrl: null,
           validity: expiredValidity(),
-          sourceMetadata: {},
-        },
-      ],
-      vouchers: [
-        {
-          source: 'tradetracker-affiliate-webservice',
-          kind: 'voucher',
-          materialItemId: '20',
-          name: 'Future voucher',
-          description: null,
-          conditions: null,
-          validFromDate: '2026-12-01',
-          validToDate: null,
-          discountFixed: null,
-          discountVariable: null,
-          voucherCode: 'X',
-          campaignId: '1',
-          campaignName: 'A',
-          campaignUrl: null,
-          affiliateSiteId: '512226',
-          affiliateSiteName: 'Vacationweb.nl',
-          validity: {
-            status: 'scheduled',
-            isActive: false,
-            asOfUtcDate: '2026-09-09',
-            startDate: '2026-12-01',
-            endDate: null,
-            timezoneAssumption: 'utc-calendar-date',
-          },
           sourceMetadata: {},
         },
       ],
@@ -158,7 +188,8 @@ test('excludes expired and future promotions', () => {
   assert.equal(selected.length, 0);
 });
 
-test('includes active vouchers and keeps BE/NL market labels separate', () => {
+test('H10 Hotels voucher is excluded because provider is not connected', () => {
+  clearFeedRegistryCache();
   const selected = selectDisplayablePromotions(
     baseSnapshot({
       scopedAffiliateSiteId: '512055',
@@ -167,8 +198,8 @@ test('includes active vouchers and keeps BE/NL market labels separate', () => {
           source: 'tradetracker-affiliate-webservice',
           kind: 'voucher',
           materialItemId: '99',
-          name: 'Hotel korting',
-          description: 'Officiële vouchertekst',
+          name: 'Get up to 25% off on stays - H10 Hotels',
+          description: 'Travel this autumn',
           conditions: null,
           validFromDate: '2026-09-01',
           validToDate: '2026-09-30',
@@ -187,9 +218,5 @@ test('includes active vouchers and keeps BE/NL market labels separate', () => {
     }),
     'be',
   );
-  assert.equal(selected.length, 1);
-  assert.equal(selected[0]?.market, 'be');
-  assert.equal(selected[0]?.affiliateSiteId, '512055');
-  assert.equal(selected[0]?.kind, 'voucher');
-  assert.match(selected[0]?.content ?? '', /SAVE/);
+  assert.equal(selected.length, 0);
 });

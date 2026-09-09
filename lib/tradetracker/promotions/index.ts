@@ -5,6 +5,11 @@ export {
   VACATIONWEB_NL_AFFILIATE_SITE_ID,
   VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID,
 } from './constants';
+export {
+  getConnectedTradeTrackerCampaignIds,
+  getConnectedTravelProviderNames,
+  resolveConnectedProvider,
+} from './connected-providers';
 export { getTradeTrackerSoapCredentials, resolveAffiliateSiteIdForIngest } from './credentials';
 export { ingestTradeTrackerPromotions, snapshotCounts } from './ingest';
 export { loadDisplayablePromotionsByMarkets, loadDisplayablePromotionsForMarket } from './load-for-page';
