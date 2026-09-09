@@ -15,13 +15,27 @@ export const TRADETRACKER_DEMO_ENV = 'TRADETRACKER_DEMO';
 export const TRADETRACKER_AFFILIATE_SITE_ID_ENV = 'TRADETRACKER_AFFILIATE_SITE_ID';
 
 /**
- * VacationWeb TradeTracker affiliate site.
- * Do not use 512055 (MKDigitalMedia) as VacationWeb context.
+ * VacationWeb TradeTracker affiliate sites.
+ * Keep BE and NL contexts separated.
  */
-export const VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID = '512226';
+export const VACATIONWEB_NL_AFFILIATE_SITE_ID = '512226';
+export const VACATIONWEB_BE_AFFILIATE_SITE_ID = '512055';
+
+/** @deprecated Prefer VACATIONWEB_NL_AFFILIATE_SITE_ID */
+export const VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID = VACATIONWEB_NL_AFFILIATE_SITE_ID;
 
 /** WSDL Locale enumeration; override with TRADETRACKER_LOCALE. */
 export const TRADETRACKER_DEFAULT_LOCALE = 'nl_BE';
+
+/**
+ * Campaign-news types that are clearly consumer-facing promotions.
+ * Ops/affiliate updates (start/stop/feed/general/commission/…) are excluded.
+ */
+export const DISPLAYABLE_CAMPAIGN_NEWS_TYPES = [
+  'campaign_update_consumer',
+  'campaign_update_vouchercode',
+  'campaign_update_incentive',
+] as const;
 
 export const TRADETRACKER_MATERIAL_OUTPUT_TYPE = 'html' as const;
 

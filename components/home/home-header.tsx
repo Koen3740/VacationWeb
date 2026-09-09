@@ -8,7 +8,7 @@ const navLinks = [
   { label: 'Zo werkt het', href: '/search' },
   { label: 'Inspiratie', href: '/search' },
   { label: 'Bestemmingen', href: '/results', hasChevron: true },
-  { label: 'Aanbiedingen', href: '/results' },
+  { label: 'Aanbiedingen', href: '/aanbiedingen' },
   { label: 'Over ons', href: '/search' },
 ] as const;
 
