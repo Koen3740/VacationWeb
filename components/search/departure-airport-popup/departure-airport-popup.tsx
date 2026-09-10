@@ -1,6 +1,6 @@
 'use client';
 
-import '@/components/search/duration-popup/duration-popup.css';
+import '@/components/search/departure-airport-popup/departure-airport-popup.css';
 import {
   formatDepartureAirportOptionLabel,
   getCountriesWithSelectedAirports,
@@ -28,8 +28,8 @@ export type DepartureAirportPopupProps = {
 
 function CloseIcon() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6 6l12 12M18 6L6 18" stroke="#111827" strokeWidth="2" strokeLinecap="round" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4 4l8 8M12 4L4 12" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
     </svg>
   );
 }
@@ -37,16 +37,16 @@ function CloseIcon() {
 function ChevronIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg
-      width="16"
-      height="16"
+      width="14"
+      height="14"
       viewBox="0 0 16 16"
       fill="none"
       aria-hidden="true"
-      className={`duration-popup__chevron ${expanded ? 'duration-popup__chevron--expanded' : ''}`}
+      className={`dap__chevron ${expanded ? 'dap__chevron--expanded' : ''}`}
     >
       <path
         d="M6 4l4 4-4 4"
-        stroke="#374151"
+        stroke="#475569"
         strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -58,10 +58,8 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
 function CheckboxMark({ selected, indeterminate }: { selected: boolean; indeterminate?: boolean }) {
   return (
     <span
-      className={`duration-popup__checkbox ${
-        selected || indeterminate
-          ? 'duration-popup__checkbox--selected'
-          : 'duration-popup__checkbox--default'
+      className={`dap__checkbox ${
+        selected || indeterminate ? 'dap__checkbox--selected' : 'dap__checkbox--default'
       }`}
       aria-hidden="true"
     >
@@ -79,6 +77,7 @@ function AirportRow({
   selected: boolean;
   onToggle: (code: string) => void;
 }) {
+  const iata = code.toUpperCase();
   return (
     <button
       type="button"
@@ -86,11 +85,12 @@ function AirportRow({
         event.stopPropagation();
         onToggle(code);
       }}
-      className={`duration-popup__row duration-popup__row--child ${selected ? 'duration-popup__row--selected' : ''}`}
+      className={`dap__airport ${selected ? 'dap__airport--selected' : ''}`}
       aria-pressed={selected}
     >
       <CheckboxMark selected={selected} />
-      <span className="duration-popup__label">{formatDepartureAirportOptionLabel(code)}</span>
+      <span className="dap__airport-name">{formatDepartureAirportOptionLabel(code)}</span>
+      <span className="dap__airport-iata">{iata}</span>
     </button>
   );
 }
@@ -119,11 +119,11 @@ function CountryGroupBlock({
   const someSelected = selectedCount > 0 && !allSelected;
 
   return (
-    <div className="duration-popup__group">
-      <div className="duration-popup__country-header">
+    <div className="dap__group">
+      <div className="dap__country">
         <button
           type="button"
-          className="duration-popup__expand"
+          className="dap__expand"
           aria-expanded={expanded}
           aria-label={`${expanded ? 'Inklappen' : 'Uitklappen'} ${countryLabel}`}
           onClick={(event) => {
@@ -139,24 +139,26 @@ function CountryGroupBlock({
             event.stopPropagation();
             onToggleCountry(airportCodes, !allSelected);
           }}
-          className={`duration-popup__row duration-popup__row--country ${allSelected ? 'duration-popup__row--selected' : ''}`}
+          className={`dap__country-toggle ${allSelected ? 'dap__country-toggle--selected' : ''}`}
           aria-pressed={allSelected}
           aria-label={`${countryLabel}${allSelected ? ', alle geselecteerd' : someSelected ? ', deels geselecteerd' : ''}`}
         >
           <CheckboxMark selected={allSelected} indeterminate={someSelected} />
-          <span className="duration-popup__label duration-popup__label--country">{countryLabel}</span>
+          <span className="dap__country-label">{countryLabel}</span>
         </button>
       </div>
-      {expanded
-        ? airportCodes.map((code) => (
+      {expanded ? (
+        <div className="dap__airports">
+          {airportCodes.map((code) => (
             <AirportRow
               key={code}
               code={code}
               selected={selectedSet.has(code.toUpperCase())}
               onToggle={onToggleAirport}
             />
-          ))
-        : null}
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -179,13 +181,12 @@ function DepartureAirportPopupPanel({
     () => new Set(selectedAirports.map((code) => code.toUpperCase())),
     [selectedAirports],
   );
-  const [expandedCountries, setExpandedCountries] = useState<Set<AirportCountryCode>>(() =>
-    getCountriesWithSelectedAirports(selectedAirports, groups),
-  );
-
-  useEffect(() => {
-    setExpandedCountries(getCountriesWithSelectedAirports(selectedAirports, groups));
-  }, [groups, selectedAirports]);
+  const [expandedCountries, setExpandedCountries] = useState<Set<AirportCountryCode>>(() => {
+    const withSelected = getCountriesWithSelectedAirports(selectedAirports, groups);
+    if (withSelected.size > 0) return withSelected;
+    // Empty selection: open the full tree so hierarchy (name + IATA) is immediately scannable.
+    return new Set(groups.map((group) => group.countryCode));
+  });
 
   const handleToggleExpand = (countryCode: AirportCountryCode) => {
     setExpandedCountries((current) => toggleCountryExpanded(current, countryCode));
@@ -196,23 +197,18 @@ function DepartureAirportPopupPanel({
       role="dialog"
       aria-modal="true"
       aria-labelledby="departure-airport-popup-title"
-      className={`flex w-[360px] flex-col overflow-hidden rounded-xl bg-white p-5 shadow-[0_8px_24px_rgba(0,0,0,0.15)] ${destinationPopupPoppins.className}`}
+      className={`dap ${destinationPopupPoppins.className}`}
     >
-      <div className="mb-4 flex shrink-0 items-center justify-between">
-        <h2 id="departure-airport-popup-title" className="text-base font-semibold text-[#1E40AF]">
+      <div className="dap__header">
+        <h2 id="departure-airport-popup-title" className="dap__title">
           Vertrekluchthaven
         </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex h-6 w-6 items-center justify-center"
-          aria-label="Sluiten"
-        >
+        <button type="button" onClick={onClose} className="dap__close" aria-label="Sluiten">
           <CloseIcon />
         </button>
       </div>
 
-      <div className="duration-popup-scroll max-h-[360px] min-h-0 overflow-y-auto">
+      <div className="dap__scroll">
         {groups.map((group) => (
           <CountryGroupBlock
             key={group.countryCode}
@@ -228,12 +224,8 @@ function DepartureAirportPopupPanel({
         ))}
       </div>
 
-      <div className="mt-5 flex shrink-0 justify-end">
-        <button
-          type="button"
-          onClick={onSave}
-          className="h-11 w-40 rounded-md bg-[#2E7D32] text-sm font-semibold text-white"
-        >
+      <div className="dap__footer">
+        <button type="button" onClick={onSave} className="dap__save">
           OPSLAAN
         </button>
       </div>
