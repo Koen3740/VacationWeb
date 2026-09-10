@@ -1,7 +1,9 @@
 const COUNTRY_ALIASES: Record<string, string> = {
   Albanie: 'Albanië',
   Brazilie: 'Brazilië',
+  Bulgarie: 'Bulgarije',
   Curacao: 'Curaçao',
+  Chypre: 'Cyprus',
   Espagne: 'Spanje',
   Grece: 'Griekenland',
   'Grèce': 'Griekenland',
@@ -14,6 +16,7 @@ const COUNTRY_ALIASES: Record<string, string> = {
   Slovenie: 'Slovenië',
   Tsjechie: 'Tsjechië',
   Tunesie: 'Tunesië',
+  Tunisie: 'Tunesië',
   Turquie: 'Turkije',
 };
 

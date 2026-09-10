@@ -9,6 +9,9 @@ test('French country labels map onto existing Dutch VacationWeb names', () => {
   assert.equal(canonicalizeCountryName('Grèce'), 'Griekenland');
   assert.equal(canonicalizeCountryName('Grece'), 'Griekenland');
   assert.equal(canonicalizeCountryName('Maroc'), 'Marokko');
+  assert.equal(canonicalizeCountryName('Bulgarie'), 'Bulgarije');
+  assert.equal(canonicalizeCountryName('Chypre'), 'Cyprus');
+  assert.equal(canonicalizeCountryName('Tunisie'), 'Tunesië');
   assert.equal(canonicalizeCountryName('Spanje'), 'Spanje');
   assert.equal(canonicalizeCountryName('Turkije'), 'Turkije');
 });
