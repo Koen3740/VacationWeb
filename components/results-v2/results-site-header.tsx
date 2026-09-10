@@ -5,7 +5,7 @@ import Link from 'next/link';
 const NAV_LINKS = [
   { label: 'Zo werkt het', href: '/search' },
   { label: 'Inspiratie', href: '/search' },
-  { label: 'Bestemmingen', href: '/results', hasChevron: true },
+  { label: 'Bestemmingen', href: '/bestemmingen', hasChevron: true },
   { label: 'Aanbiedingen', href: '/aanbiedingen' },
   { label: 'Over ons', href: '/search' },
 ] as const;
