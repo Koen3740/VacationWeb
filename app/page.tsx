@@ -1,5 +1,6 @@
 import { RESULTS_PAGE_BG } from '@/components/results-v2/results-design-tokens';
 import { HomeCookieBanner } from '@/components/home/home-cookie-banner';
+import { HomeDiscoverTeaser } from '@/components/home/home-discover-teaser';
 import { HomeFeatures } from '@/components/home/home-features';
 import { HomeFooter } from '@/components/home/home-footer';
 import { HomeHero } from '@/components/home/home-hero';
@@ -31,6 +32,7 @@ export default async function HomePage() {
           <HomeFeatures />
         </div>
       </section>
+      <HomeDiscoverTeaser />
       <HomePopularDestinations destinations={popularDestinations} />
       <HomeThemes themes={homeThemes} />
       <HomeWhyVacationWeb />
