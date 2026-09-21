@@ -28,7 +28,12 @@ import {
   markOpsEvaluated,
   upsertOpsIncident,
 } from './store';
-import { getThresholdDefinitions, OPS_COVERAGE_TARGET_B, OPS_MIN_ATTEMPTS_FOR_RATE } from './thresholds';
+import {
+  OPS_MIN_ATTEMPTS_FOR_RATE,
+  OPS_COVERAGE_TARGET_B,
+  OPS_C_RATE_YELLOW,
+  getThresholdDefinitions,
+} from './thresholds';
 import type {
   BacOpsView,
   CoverageOpsView,
@@ -161,6 +166,77 @@ function buildLiveEvaluationInput(): OpsEvaluationInput {
   };
 }
 
+/**
+ * Build a provider ABC row where attempts === b+a+c and rates = counts/attempts.
+ * Target rates preserve scenario intent; integers use largest-remainder allocation
+ * (remainder prefers B) so C is not inflated by all rounding error.
+ */
+function providerAbcFromTargetRates(
+  attempts: number,
+  targetBRate: number,
+  targetARate: number,
+  targetCRate: number,
+): {
+  attempts: number;
+  b: number;
+  a: number;
+  c: number;
+  bRate: number;
+  aRate: number;
+  cRate: number;
+} {
+  if (attempts <= 0) {
+    return { attempts: 0, b: 0, a: 0, c: 0, bRate: 0, aRate: 0, cRate: 0 };
+  }
+  const raw = Math.max(0, targetBRate) + Math.max(0, targetARate) + Math.max(0, targetCRate);
+  const nb = raw > 0 ? Math.max(0, targetBRate) / raw : 1;
+  const na = raw > 0 ? Math.max(0, targetARate) / raw : 0;
+  const nc = raw > 0 ? Math.max(0, targetCRate) / raw : 0;
+  const exact = [
+    { key: 'b' as const, floor: Math.floor(nb * attempts), frac: nb * attempts - Math.floor(nb * attempts) },
+    { key: 'a' as const, floor: Math.floor(na * attempts), frac: na * attempts - Math.floor(na * attempts) },
+    { key: 'c' as const, floor: Math.floor(nc * attempts), frac: nc * attempts - Math.floor(nc * attempts) },
+  ];
+  let b = exact[0]!.floor;
+  let a = exact[1]!.floor;
+  let c = exact[2]!.floor;
+  let rem = attempts - b - a - c;
+  const order = [...exact].sort((x, y) => {
+    if (y.frac !== x.frac) {
+      return y.frac - x.frac;
+    }
+    // Tie-break: prefer B, then A, then C — avoids dumping remainder into C.
+    const rank = { b: 0, a: 1, c: 2 };
+    return rank[x.key] - rank[y.key];
+  });
+  let i = 0;
+  while (rem > 0 && order.length > 0) {
+    const slot = order[i % order.length]!;
+    if (slot.key === 'b') b += 1;
+    else if (slot.key === 'a') a += 1;
+    else c += 1;
+    rem -= 1;
+    i += 1;
+  }
+  // Do not let integer rounding alone push a quiet target C into YELLOW (≥5%).
+  if (targetCRate < OPS_C_RATE_YELLOW) {
+    const maxC = Math.max(0, Math.ceil(attempts * OPS_C_RATE_YELLOW) - 1);
+    while (c > maxC && c > 0) {
+      c -= 1;
+      b += 1;
+    }
+  }
+  return {
+    attempts,
+    b,
+    a,
+    c,
+    bRate: b / attempts,
+    aRate: a / attempts,
+    cRate: c / attempts,
+  };
+}
+
 function buildSimulatedEvaluationInput(sim: SimulatedOpsInput): OpsEvaluationInput {
   const attempts = sim.attempts ?? (sim.b ?? 0) + (sim.a ?? 0) + (sim.c ?? 0);
   const b = sim.b ?? 0;
@@ -183,6 +259,15 @@ function buildSimulatedEvaluationInput(sim: SimulatedOpsInput): OpsEvaluationInp
       ? null
       : sim.s6StopReason ?? (deficit === 0 ? 'target_met' : 'no_progress');
 
+  // Secondary Corendon row: keep "healthier than primary" intent, but enforce ABC invariants.
+  const corendonAttempts = Math.max(OPS_MIN_ATTEMPTS_FOR_RATE, Math.floor(attempts * 0.4));
+  const corendon = providerAbcFromTargetRates(
+    corendonAttempts,
+    cRate < 0.05 ? 0.85 : Math.min(1, bRate + 0.2),
+    cRate < 0.05 ? 0.12 : Math.max(0, aRate * 0.5),
+    cRate < 0.05 ? 0.03 : Math.min(cRate, Math.max(0, cRate * 0.4)),
+  );
+
   return {
     attempts,
     b,
@@ -197,15 +282,7 @@ function buildSimulatedEvaluationInput(sim: SimulatedOpsInput): OpsEvaluationInp
         ? {}
         : {
             [provider]: { attempts, b, a, c, bRate, aRate, cRate },
-            Corendon: {
-              attempts: Math.max(OPS_MIN_ATTEMPTS_FOR_RATE, Math.floor(attempts * 0.4)),
-              b: Math.max(1, Math.floor(b * 0.6)),
-              a: Math.max(0, Math.floor(a * 0.3)),
-              c: Math.max(0, Math.floor(c * 0.1)),
-              bRate: cRate < 0.05 ? 0.85 : Math.min(1, bRate + 0.2),
-              aRate: cRate < 0.05 ? 0.12 : Math.max(0, aRate * 0.5),
-              cRate: cRate < 0.05 ? 0.03 : Math.min(cRate, Math.max(0, cRate * 0.4)),
-            },
+            ...(provider === 'Corendon' ? {} : { Corendon: corendon }),
           },
     byTransportErrorCode: transport,
     circuitOpenCount: sim.circuitOpens ?? 0,

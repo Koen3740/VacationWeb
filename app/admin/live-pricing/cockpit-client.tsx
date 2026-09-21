@@ -14,6 +14,7 @@ import {
   humanProblemSummary,
 } from '@/lib/ops/live-pricing/aggregates';
 import { buildOpsClientAuthHeaders } from '@/lib/ops/live-pricing/client-auth-headers';
+import { rebindSelectedIncident, rebindSelectedProvider } from '@/lib/ops/live-pricing/cockpit-selection';
 import {
   CoverageProgress,
   HorizontalBars,
@@ -120,6 +121,15 @@ export function LivePricingOpsCockpitClient({
   const remediationCounts =
     period === '24h' ? snapshot.remediationsLast24h : snapshot.remediationsLast7d;
 
+  const applyCockpitSnapshot = useCallback((next: LivePricingCockpitSnapshot, nextTrends?: TrendPoint[]) => {
+    setSnapshot(next);
+    if (nextTrends) {
+      setTrends(nextTrends);
+    }
+    setSelectedProvider((prev) => rebindSelectedProvider(prev, next.providers));
+    setSelectedIncident((prev) => rebindSelectedIncident(prev, next));
+  }, []);
+
   const refresh = useCallback(async () => {
     setBusy(true);
     setError(null);
@@ -135,14 +145,13 @@ export function LivePricingOpsCockpitClient({
         snapshot: LivePricingCockpitSnapshot;
         trends: TrendPoint[];
       };
-      setSnapshot(data.snapshot);
-      setTrends(data.trends);
+      applyCockpitSnapshot(data.snapshot, data.trends);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [applyCockpitSnapshot]);
 
   const simulate = useCallback(
     async (scenario: 'IDLE' | 'GREEN' | 'YELLOW' | 'ORANGE' | 'RED' | 'clear') => {
@@ -159,14 +168,14 @@ export function LivePricingOpsCockpitClient({
         }
         // POST snapshot is authoritative — do not GET-refresh (Preview may lose process-local sim).
         const data = (await res.json()) as { snapshot: LivePricingCockpitSnapshot };
-        setSnapshot(data.snapshot);
+        applyCockpitSnapshot(data.snapshot);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         setBusy(false);
       }
     },
-    [],
+    [applyCockpitSnapshot],
   );
 
   const providers = useMemo(() => {

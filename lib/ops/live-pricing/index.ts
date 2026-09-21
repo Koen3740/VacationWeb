@@ -23,6 +23,11 @@ export {
   getActiveOpsSimulation,
 } from './simulation';
 export {
+  rebindOpsCockpitSelection,
+  rebindSelectedProvider,
+  rebindSelectedIncident,
+} from './cockpit-selection';
+export {
   recordOpsS6Telemetry,
   recordOpsLastBAt,
   clearOpsStoreForTests,
