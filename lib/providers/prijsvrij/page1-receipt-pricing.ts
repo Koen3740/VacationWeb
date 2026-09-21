@@ -29,9 +29,12 @@ import {
   LIVE_PRICE_ATTEMPT_STATUS,
   classifyLivePriceFailure,
   isRetryableTechnicalLivePriceFailure,
+  noteMissingContextSkipped,
   recordOfferLivePriceAttempt,
   type LivePriceFailureInput,
 } from '../../search/live-price-observability';
+import { canAttemptLivePrice } from '../../search/live-price-context-gate';
+import { isOfferLivePriceCircuitOpen } from '../../search/live-pricing-workset';
 import {
   PRIJSVRIJ_PAGE1_MAX_SLOTS,
   PRIJSVRIJ_PROVIDER_NAME,
@@ -347,39 +350,22 @@ type LivePriceAttemptResult = {
   ok: boolean;
   reason?: string;
   httpStatus?: number;
+  transportErrorCode?: string;
 };
 
 /**
- * At most two attempts. Attempt 2 runs immediately only for retryable C failures.
- * No cooldown. In-flight coalescing remains the duplicate-call guard.
+ * DEC-011: exactly one live-price attempt per pricing-run for Corendon/Sunweb/Eliza.
+ * No same-run attempt-2 on retryable C (timeout/network/stale_context/…).
+ * Later user actions may retry after C-TTL expiry + circuit closed (cache/inflight unchanged).
+ * In-flight coalescing remains the duplicate-call guard within a run.
  */
 async function fetchLivePriceWithImmediateRetry<T extends LivePriceAttemptResult>(
   fetchOnce: () => Promise<T>,
 ): Promise<T> {
-  const toException = (): T => ({ ok: false, reason: 'exception' }) as T;
-  let first: T;
-  try {
-    first = await fetchOnce();
-  } catch {
-    try {
-      return await fetchOnce();
-    } catch {
-      return toException();
-    }
-  }
-  if (
-    first.ok ||
-    !isRetryableTechnicalLivePriceFailure({
-      reason: first.reason ?? 'exception',
-      httpStatus: first.httpStatus,
-    })
-  ) {
-    return first;
-  }
   try {
     return await fetchOnce();
   } catch {
-    return toException();
+    return { ok: false, reason: 'exception' } as T;
   }
 }
 
@@ -683,7 +669,10 @@ function cacheUnavailableLivePrice(
       : undefined;
   cacheLiveOverlay(hidden, params, ttlMs != null ? { ttlMs } : undefined);
   if (!existing) {
-    recordOfferLivePriceAttempt(offer, params, classified);
+    recordOfferLivePriceAttempt(offer, params, {
+      ...classified,
+      ...(failure.transportErrorCode ? { transportErrorCode: failure.transportErrorCode } : {}),
+    });
   }
   return hidden;
 }
@@ -839,6 +828,14 @@ export async function priceLiveRequiredMatchset(
 
   for (const offer of offers) {
     if (!isCorendon(offer) && hasResultsLivePriceOverlay(offer.id, params)) {
+      continue;
+    }
+    // AN-061: do not enqueue doomed missing_context or open-circuit offers.
+    if (!canAttemptLivePrice(offer, params)) {
+      noteMissingContextSkipped(1);
+      continue;
+    }
+    if (isOfferLivePriceCircuitOpen(offer)) {
       continue;
     }
     if (isPrijsvrij(offer)) {

@@ -21,9 +21,9 @@ import {
 import type { TravelOffer } from '@/types/travel';
 
 /**
- * Evidence for A/B/C Results live-pricing:
- * attempt 1 → attempt 2 → C (~2 min cache) → stays listable (no fake €).
- * Only A (provider-confirmed) leaves bookable presentation.
+ * Evidence for A/B/C Results live-pricing (DEC-011):
+ * one attempt per pricing-run; C (~2 min cache) stays listable (no fake €).
+ * Later user action may retry after C-TTL. Only A leaves bookable presentation.
  */
 
 const CORENDON_FRAGMENT = '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U';
@@ -100,8 +100,8 @@ test('B: proven live price → listable with amount', async () => {
   const overlays = startCatalogPageLiveOverlays([offer], { adults: 2 }, {
     fetchImpl: async (input) => {
       const url = String(input);
-      lowestCalls += 1;
       if (url.includes('lowestpricesacco') || url.includes('Lowest')) {
+        lowestCalls += 1;
         return new Response(okLowestBody(), { status: 200 });
       }
       if (url.includes('/upsales') || url.includes('Upsales')) {
@@ -112,7 +112,7 @@ test('B: proven live price → listable with amount', async () => {
   });
   assert.equal(overlays[0]!.pending, true, `pending=false status=${offer.livePriceStatus}`);
   const settled = await overlays[0]!.live;
-  assert.ok(lowestCalls >= 1, `no live HTTP; status=${settled.livePriceStatus} reason=${settled.livePriceFailureReason}`);
+  assert.equal(lowestCalls, 1, 'DEC-011: B succeeds on attempt 1 — no retry');
   assert.equal(hasValidPresentablePrice(settled), true);
   assert.equal(isResultsListableOffer(settled), true);
   assert.match(cardHtml(settled), /€/);
@@ -136,7 +136,7 @@ test('A: provider 204 → one attempt, not listable', async () => {
   assert.equal(cardHtml(settled), '');
 });
 
-test('C: attempt1 → attempt2 on timeout → listable + visible card + ~2min cache', async () => {
+test('C: DEC-011 one attempt on timeout → listable + visible card + ~2min cache', async () => {
   const offer = makeCorendon({ id: 'corendon-9514-c-timeout' });
   let lowestCalls = 0;
   const t0 = 7_000_000;
@@ -159,7 +159,7 @@ test('C: attempt1 → attempt2 on timeout → listable + visible card + ~2min ca
 
   const settled = await overlays[0]!.live;
 
-  assert.equal(lowestCalls, 2, 'evidence: attempt 1 then attempt 2');
+  assert.equal(lowestCalls, 1, 'DEC-011: no same-run attempt 2');
   assert.equal(settled.livePriceStatus, 'unavailable');
   assert.equal(settled.livePriceFailureReason, 'timeout');
   assert.equal(hasValidPresentablePrice(settled), false);
@@ -172,7 +172,7 @@ test('C: attempt1 → attempt2 on timeout → listable + visible card + ~2min ca
   assert.equal(hasResultsLivePriceOverlay(offer.id, { adults: 2 }), false);
 });
 
-test('C: stale_context airport mismatch retries once then stays listable', async () => {
+test('C: stale_context airport mismatch → one attempt then stays listable (DEC-011)', async () => {
   const offer = makeCorendon({ id: 'corendon-9514-c-stale-airport' });
   let lowestCalls = 0;
   const overlays = startCatalogPageLiveOverlays([offer], { adults: 2 }, {
@@ -186,7 +186,7 @@ test('C: stale_context airport mismatch retries once then stays listable', async
     },
   });
   const settled = await overlays[0]!.live;
-  assert.equal(lowestCalls, 2, 'evidence: attempt 1 then attempt 2 for stale_context');
+  assert.equal(lowestCalls, 1, 'DEC-011: stale_context is not same-run-retried');
   assert.equal(settled.livePriceFailureReason, 'stale_context');
   assert.equal(isResultsListableOffer(settled), true);
   assert.match(cardHtml(settled), /Test Hotel/);
@@ -209,7 +209,7 @@ test('Rosa-shaped C airport mismatch → listable card, no catalog € fallback'
     },
   });
   const settled = await overlays[0]!.live;
-  assert.equal(lowestCalls, 2);
+  assert.equal(lowestCalls, 1, 'DEC-011: one attempt');
   assert.equal(settled.livePriceFailureReason, 'stale_context');
   assert.equal(hasValidPresentablePrice(settled), false);
   assert.equal(isResultsListableOffer(settled), true);
@@ -238,4 +238,64 @@ test('matching live price → presentable and listable (Rosa 28/09 success path)
   assert.equal(hasValidPresentablePrice(settled), true);
   assert.equal(isResultsListableOffer(settled), true);
   assert.match(cardHtml(settled), /527|1.?054/);
+});
+
+test('DEC-011: C within TTL blocks later pricing-run HTTP; after TTL allows one new attempt', async () => {
+  const offer = makeCorendon({ id: 'corendon-9514-c-later' });
+  let lowestCalls = 0;
+  const t0 = 9_000_000;
+  setResultsLivePriceNowMsForTests(t0);
+  const fetchImpl: typeof fetch = async (input) => {
+    if (String(input).includes('lowestpricesacco')) {
+      lowestCalls += 1;
+      const error = new Error('TimeoutError');
+      error.name = 'TimeoutError';
+      throw error;
+    }
+    return new Response(null, { status: 404 });
+  };
+
+  const first = startCatalogPageLiveOverlays([offer], { adults: 2 }, { fetchImpl });
+  await first[0]!.live;
+  assert.equal(lowestCalls, 1);
+
+  clearLivePriceInflightForTests();
+  const withinTtl = startCatalogPageLiveOverlays([offer], { adults: 2 }, { fetchImpl });
+  await withinTtl[0]!.live;
+  assert.equal(lowestCalls, 1, 'within soft C-TTL (~2 min): no new HTTP');
+
+  setResultsLivePriceNowMsForTests(t0 + RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS + 1);
+  clearLivePriceInflightForTests();
+  const afterTtl = startCatalogPageLiveOverlays([offer], { adults: 2 }, { fetchImpl });
+  await afterTtl[0]!.live;
+  assert.equal(lowestCalls, 2, 'after C-TTL: new pricing-run may attempt once');
+});
+
+test('DEC-011: concurrent identical overlays share one in-flight attempt', async () => {
+  const offer = makeCorendon({ id: 'corendon-9514-c-inflight' });
+  let lowestCalls = 0;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const fetchImpl: typeof fetch = async (input) => {
+    if (String(input).includes('lowestpricesacco')) {
+      lowestCalls += 1;
+      await gate;
+      const error = new Error('TimeoutError');
+      error.name = 'TimeoutError';
+      throw error;
+    }
+    return new Response(null, { status: 404 });
+  };
+
+  const a = startCatalogPageLiveOverlays([offer], { adults: 2 }, { fetchImpl });
+  const b = startCatalogPageLiveOverlays([offer], { adults: 2 }, { fetchImpl });
+  assert.equal(a[0]!.pending, true);
+  assert.equal(b[0]!.pending, true);
+  // Yield so both runners can enter limter/inflight before HTTP resolves.
+  await Promise.resolve();
+  release();
+  await Promise.all([a[0]!.live, b[0]!.live]);
+  assert.equal(lowestCalls, 1, 'in-flight reuse preserved under DEC-011');
 });

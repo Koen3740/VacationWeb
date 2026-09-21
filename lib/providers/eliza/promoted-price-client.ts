@@ -57,6 +57,8 @@ export type ElizaLivePriceResult =
         | 'invalid_context'
         | 'missing_page_context';
       httpStatus?: number;
+      /** Undici/Node transport code when reason is network_error (observability). */
+      transportErrorCode?: string;
     };
 
 const CONTEXT_ITEM_RE =
@@ -478,6 +480,10 @@ export async function fetchElizaPromotedPrice(
       ...http,
       ...(transportErrorCode ? { transportErrorCode } : {}),
     });
-    return { ok: false, reason };
+    return {
+      ok: false,
+      reason,
+      ...(reason === 'network_error' && transportErrorCode ? { transportErrorCode } : {}),
+    };
   }
 }

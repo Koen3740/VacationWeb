@@ -1,4 +1,5 @@
 import '@/lib/http/prefer-ipv4';
+import { extractTransportErrorCode } from '@/lib/http/transport-error-code';
 import type { FetchLike } from '../prijsvrij/auth';
 import {
   CORENDON_DEFAULT_2A_PARTY,
@@ -52,6 +53,8 @@ export type CorendonLivePriceResult =
         | 'network_error'
         | 'invalid_context';
       httpStatus?: number;
+      /** Undici/Node transport code when reason is network_error (observability). */
+      transportErrorCode?: string;
     };
 
 function isTimeoutError(error: unknown): boolean {
@@ -241,6 +244,11 @@ export async function fetchCorendonLowestpricesaccoPrice(
     if (isTimeoutError(error)) {
       return { ok: false, reason: 'timeout' };
     }
-    return { ok: false, reason: 'network_error' };
+    const transportErrorCode = extractTransportErrorCode(error);
+    return {
+      ok: false,
+      reason: 'network_error',
+      ...(transportErrorCode ? { transportErrorCode } : {}),
+    };
   }
 }

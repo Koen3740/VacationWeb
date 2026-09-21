@@ -63,6 +63,8 @@ export type SunwebLivePriceResult =
         | 'invalid_context'
         | 'missing_page_context';
       httpStatus?: number;
+      /** Undici/Node transport code when reason is network_error (observability). */
+      transportErrorCode?: string;
     };
 
 const GUID =
@@ -676,6 +678,10 @@ export async function fetchSunwebPromotedPrice(
       ...http,
       ...(transportErrorCode ? { transportErrorCode } : {}),
     });
-    return { ok: false, reason };
+    return {
+      ok: false,
+      reason,
+      ...(reason === 'network_error' && transportErrorCode ? { transportErrorCode } : {}),
+    };
   }
 }

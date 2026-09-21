@@ -19,3 +19,10 @@ export function scheduleResultsMatchsetLivePricing(work: Promise<unknown>): void
   pendingMatchsetWork.add(tracked);
   waitUntil(tracked);
 }
+
+/** Test helper: drain background matchset / S6 work scheduled via {@link scheduleResultsMatchsetLivePricing}. */
+export async function awaitPendingResultsMatchsetLivePricingForTests(): Promise<void> {
+  while (pendingMatchsetWork.size > 0) {
+    await Promise.all([...pendingMatchsetWork]);
+  }
+}

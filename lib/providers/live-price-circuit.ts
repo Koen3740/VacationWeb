@@ -4,6 +4,8 @@
  * Does not substitute catalog € for live prices while open.
  */
 
+import { recordLivePriceCircuitOpened } from '@/lib/search/live-price-observability';
+
 export type LivePriceCircuitProvider = 'corendon' | 'sunweb' | 'eliza' | 'prijsvrij';
 
 /** Consecutive technical failures before opening. */
@@ -46,9 +48,13 @@ export function recordLivePriceCircuitSuccess(provider: LivePriceCircuitProvider
 
 export function recordLivePriceCircuitFailure(provider: LivePriceCircuitProvider): void {
   const state = stateOf(provider);
+  const wasOpen = nowMs() < state.openUntilMs;
   state.consecutiveFailures += 1;
   if (state.consecutiveFailures >= LIVE_PRICE_CIRCUIT_FAILURE_THRESHOLD) {
     state.openUntilMs = nowMs() + LIVE_PRICE_CIRCUIT_OPEN_MS;
+    if (!wasOpen) {
+      recordLivePriceCircuitOpened();
+    }
   }
 }
 

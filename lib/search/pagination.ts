@@ -6,10 +6,19 @@ export const RESULTS_PAGE_SIZE_DEFAULT = 10;
 export const RESULTS_PAGE_SIZE_MIN = 1;
 export const RESULTS_PAGE_SIZE_MAX = 100;
 /**
- * Technical live-pricing / price-sort await window after filter+sort.
+ * Technical live-pricing / price-sort candidate window after filter+sort.
  * Never a user-browse, matchCount, or paginationTotal cap.
+ * Full window may continue pricing in the background after the initial workset.
  */
 export const RESULTS_LIVE_PRICING_CANDIDATE_CAP = 150;
+
+/**
+ * Initial price-sort await workset (subset of {@link RESULTS_LIVE_PRICING_CANDIDATE_CAP}).
+ * Aligned with page size 10 + overlay reserve 40: usable live-ranked page paint
+ * without sync-awaiting the entire 150-window. Remainder = refill (background).
+ * Must stay ≤ {@link RESULTS_LIVE_PRICING_CANDIDATE_CAP}.
+ */
+export const RESULTS_LIVE_PRICING_INITIAL_WORKSET = 50;
 
 /**
  * @deprecated Alias of {@link RESULTS_LIVE_PRICING_CANDIDATE_CAP}.
@@ -28,7 +37,18 @@ export function limitLivePricingCandidatePool<T>(
   if (cap <= 0) {
     return [];
   }
-  return rankedOffers.slice(0, cap);
+  return rankedOffers.slice(0, Math.min(cap, rankedOffers.length));
+}
+
+/** Initial price-sort await slice; never larger than the technical candidate window. */
+export function limitLivePricingInitialWorkset<T>(
+  rankedOffers: readonly T[],
+  cap: number = RESULTS_LIVE_PRICING_INITIAL_WORKSET,
+): T[] {
+  return limitLivePricingCandidatePool(
+    rankedOffers,
+    Math.min(cap, RESULTS_LIVE_PRICING_CANDIDATE_CAP),
+  );
 }
 
 /** @deprecated Use {@link limitLivePricingCandidatePool}. Live-pricing window only. */

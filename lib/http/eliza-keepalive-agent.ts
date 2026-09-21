@@ -15,6 +15,7 @@ import {
   ELIZA_KEEPALIVE_MAX_SOCKETS_DEFAULT,
   ELIZA_KEEPALIVE_MAX_SOCKETS_ENV,
 } from '../providers/eliza/constants';
+import { extractTransportErrorCode } from './transport-error-code';
 
 /** Opt-in canary. Any value other than exactly `1` → OFF (native fetch). */
 export { ELIZA_KEEPALIVE_ENV, ELIZA_KEEPALIVE_MAX_SOCKETS_ENV };
@@ -147,26 +148,7 @@ function getOrCreateAgent(
  * Does not change fail-closed classification.
  */
 export function extractElizaTransportErrorCode(error: unknown): string | undefined {
-  if (!error || typeof error !== 'object') {
-    return undefined;
-  }
-  const e = error as { code?: unknown; cause?: unknown; name?: unknown };
-  if (typeof e.code === 'string' && e.code.length > 0) {
-    return e.code;
-  }
-  if (e.cause && typeof e.cause === 'object') {
-    const c = e.cause as { code?: unknown; name?: unknown };
-    if (typeof c.code === 'string' && c.code.length > 0) {
-      return c.code;
-    }
-    if (typeof c.name === 'string' && c.name.length > 0) {
-      return c.name;
-    }
-  }
-  if (typeof e.name === 'string' && e.name !== 'Error' && e.name !== 'TypeError') {
-    return e.name;
-  }
-  return undefined;
+  return extractTransportErrorCode(error);
 }
 
 function isAbortOrTimeoutName(code: string | undefined): boolean {

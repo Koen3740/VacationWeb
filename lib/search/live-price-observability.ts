@@ -58,6 +58,8 @@ export type LivePriceAttemptEvent = {
   departureAirport?: string;
   occupancyCategory: string;
   rooms: number;
+  /** Undici/Node transport code for network_error (observability). */
+  transportErrorCode?: string;
   /** Internal unique-offer tracking only; never logged. */
   offerId?: string;
 };
@@ -65,9 +67,17 @@ export type LivePriceAttemptEvent = {
 export type LivePriceFailureInput = {
   reason: string;
   httpStatus?: number;
+  transportErrorCode?: string;
 };
 
 type StatusCounts = Record<LivePriceAttemptStatus, number>;
+
+export type LivePriceProviderRates = {
+  attempts: number;
+  bRate: number;
+  aRate: number;
+  cRate: number;
+};
 
 export type LivePriceObservabilitySnapshot = {
   attempts: number;
@@ -75,8 +85,15 @@ export type LivePriceObservabilitySnapshot = {
   unavailable: number;
   unpriced: number;
   error: number;
+  /** SUCCESS / attempts */
+  bRate: number;
+  /** UNAVAILABLE / attempts */
+  aRate: number;
+  /** ERROR / attempts — primary C-rate alarm KPI */
+  cRate: number;
   byStatus: StatusCounts;
   byProvider: Record<string, StatusCounts>;
+  byProviderRates: Record<string, LivePriceProviderRates>;
   uniqueOffersByProvider: Record<string, StatusCounts>;
   byListingHost: Record<string, StatusCounts>;
   byFeedSourceId: Record<string, StatusCounts>;
@@ -84,10 +101,22 @@ export type LivePriceObservabilitySnapshot = {
   byOccupancyCategory: Record<string, StatusCounts>;
   byRooms: Record<string, StatusCounts>;
   byReason: Record<string, number>;
+  /** network_error subtypes (UND_ERR_*, ECONNRESET, …); unknown when missing */
+  byTransportErrorCode: Record<string, number>;
+  /** Times a provider circuit crossed open threshold */
+  circuitOpenCount: number;
+  /** Workset slots skipped because provider circuit was open */
+  worksetSkippedCircuitOpen: number;
+  /** Candidates skipped before enqueue due to missing live context */
+  missingContextSkipped: number;
   recent: LivePriceAttemptEvent[];
 };
 
 const RING_BUFFER_SIZE = 500;
+
+/** Rolling C-rate alarm: when attempts ≥ min and cRate ≥ threshold (ops tune). */
+export const LIVE_PRICE_C_RATE_ALARM_MIN_ATTEMPTS = 20;
+export const LIVE_PRICE_C_RATE_ALARM_THRESHOLD = 0.25;
 
 const emptyStatusCounts = (): StatusCounts => ({
   SUCCESS: 0,
@@ -105,7 +134,12 @@ const byDepartureAirport = new Map<string, StatusCounts>();
 const byOccupancyCategory = new Map<string, StatusCounts>();
 const byRooms = new Map<string, StatusCounts>();
 const byReason = new Map<string, number>();
+const byTransportErrorCode = new Map<string, number>();
 const uniqueOfferIdsByProviderStatus = new Map<string, Set<string>>();
+let circuitOpenCount = 0;
+let worksetSkippedCircuitOpen = 0;
+let missingContextSkipped = 0;
+let lastCRateAlarmLogged = false;
 
 function bumpStatus(map: Map<string, StatusCounts>, key: string, status: LivePriceAttemptStatus): void {
   const current = map.get(key) ?? emptyStatusCounts();
@@ -117,6 +151,27 @@ function mapToRecord(map: Map<string, StatusCounts>): Record<string, StatusCount
   return Object.fromEntries(
     [...map.entries()].map(([key, value]) => [key, { ...value }]),
   );
+}
+
+function rate(numerator: number, denominator: number): number {
+  if (denominator <= 0) {
+    return 0;
+  }
+  return numerator / denominator;
+}
+
+function providerRatesRecord(): Record<string, LivePriceProviderRates> {
+  const out: Record<string, LivePriceProviderRates> = {};
+  for (const [provider, counts] of byProvider) {
+    const attempts = counts.SUCCESS + counts.UNAVAILABLE + counts.UNPRICED + counts.ERROR;
+    out[provider] = {
+      attempts,
+      bRate: rate(counts.SUCCESS, attempts),
+      aRate: rate(counts.UNAVAILABLE, attempts),
+      cRate: rate(counts.ERROR, attempts),
+    };
+  }
+  return out;
 }
 
 export function classifyLivePriceFailure(
@@ -249,7 +304,11 @@ function occupancyRooms(params: SearchParams): number {
 export function buildLivePriceAttemptEvent(
   offer: Pick<TravelOffer, 'provider' | 'listingHost' | 'feedSourceId' | 'departureAirport'>,
   params: SearchParams,
-  outcome: { status: LivePriceAttemptStatus; reason: LivePriceAttemptReason },
+  outcome: {
+    status: LivePriceAttemptStatus;
+    reason: LivePriceAttemptReason;
+    transportErrorCode?: string;
+  },
 ): LivePriceAttemptEvent {
   const event: LivePriceAttemptEvent = {
     status: outcome.status,
@@ -267,6 +326,9 @@ export function buildLivePriceAttemptEvent(
   const airport = offer.departureAirport ?? params.departureAirport;
   if (airport) {
     event.departureAirport = airport;
+  }
+  if (outcome.transportErrorCode) {
+    event.transportErrorCode = outcome.transportErrorCode;
   }
   return event;
 }
@@ -314,8 +376,25 @@ function maybeLog(event: LivePriceAttemptEvent): void {
     `[live-price] ${event.status} reason=${event.reason} provider=${event.provider} occupancy=${event.occupancyCategory} rooms=${event.rooms}` +
       (event.listingHost ? ` host=${event.listingHost}` : '') +
       (event.feedSourceId ? ` feed=${event.feedSourceId}` : '') +
-      (event.departureAirport ? ` airport=${event.departureAirport}` : ''),
+      (event.departureAirport ? ` airport=${event.departureAirport}` : '') +
+      (event.transportErrorCode ? ` transport=${event.transportErrorCode}` : ''),
   );
+}
+
+function maybeLogCRateAlarm(attempts: number, cRate: number): void {
+  if (process.env.NODE_ENV === 'test' || process.env.NODE_TEST_CONTEXT) {
+    return;
+  }
+  const shouldAlarm =
+    attempts >= LIVE_PRICE_C_RATE_ALARM_MIN_ATTEMPTS && cRate >= LIVE_PRICE_C_RATE_ALARM_THRESHOLD;
+  if (shouldAlarm && !lastCRateAlarmLogged) {
+    console.warn(
+      `[live-price-ops] ALARM cRate=${cRate.toFixed(3)} attempts=${attempts} threshold=${LIVE_PRICE_C_RATE_ALARM_THRESHOLD}`,
+    );
+    lastCRateAlarmLogged = true;
+  } else if (!shouldAlarm) {
+    lastCRateAlarmLogged = false;
+  }
 }
 
 function uniqueOffersByProviderRecord(): Record<string, StatusCounts> {
@@ -352,6 +431,11 @@ export function recordLivePriceAttempt(event: LivePriceAttemptEvent): void {
   bumpStatus(byRooms, String(publicEvent.rooms), publicEvent.status);
   byReason.set(publicEvent.reason, (byReason.get(publicEvent.reason) ?? 0) + 1);
 
+  if (publicEvent.reason === LIVE_PRICE_ATTEMPT_REASON.network_error) {
+    const code = publicEvent.transportErrorCode ?? 'unknown';
+    byTransportErrorCode.set(code, (byTransportErrorCode.get(code) ?? 0) + 1);
+  }
+
   if (offerId) {
     const key = `${publicEvent.provider}\0${publicEvent.status}`;
     const ids = uniqueOfferIdsByProviderStatus.get(key) ?? new Set<string>();
@@ -365,16 +449,60 @@ export function recordLivePriceAttempt(event: LivePriceAttemptEvent): void {
   }
 
   maybeLog(publicEvent);
+
+  const attempts = byStatus.SUCCESS + byStatus.UNAVAILABLE + byStatus.UNPRICED + byStatus.ERROR;
+  maybeLogCRateAlarm(attempts, rate(byStatus.ERROR, attempts));
+
+  // AN-064: feed ops cockpit (lazy import avoids cycle at module init).
+  if (publicEvent.status === LIVE_PRICE_ATTEMPT_STATUS.SUCCESS) {
+    void import('@/lib/ops/live-pricing/store')
+      .then((m) => m.recordOpsLastBAt())
+      .catch(() => undefined);
+  }
+  maybeScheduleOpsEvaluation();
+}
+
+let opsEvalTimer: ReturnType<typeof setTimeout> | null = null;
+function maybeScheduleOpsEvaluation(): void {
+  if (process.env.NODE_ENV === 'test' || process.env.NODE_TEST_CONTEXT) {
+    return;
+  }
+  if (opsEvalTimer) {
+    return;
+  }
+  opsEvalTimer = setTimeout(() => {
+    opsEvalTimer = null;
+    void import('@/lib/ops/live-pricing/evaluate')
+      .then((m) => m.evaluateLivePricingOps())
+      .catch(() => undefined);
+  }, 2500);
 }
 
 export function recordOfferLivePriceAttempt(
   offer: Pick<TravelOffer, 'id' | 'provider' | 'listingHost' | 'feedSourceId' | 'departureAirport'>,
   params: SearchParams,
-  outcome: { status: LivePriceAttemptStatus; reason: LivePriceAttemptReason },
+  outcome: {
+    status: LivePriceAttemptStatus;
+    reason: LivePriceAttemptReason;
+    transportErrorCode?: string;
+  },
 ): void {
   const event = buildLivePriceAttemptEvent(offer, params, outcome);
   event.offerId = offer.id;
   recordLivePriceAttempt(event);
+}
+
+/** Called when a provider circuit transitions to open. */
+export function recordLivePriceCircuitOpened(): void {
+  circuitOpenCount += 1;
+}
+
+export function noteWorksetSkippedCircuitOpen(count = 1): void {
+  worksetSkippedCircuitOpen += Math.max(0, count);
+}
+
+export function noteMissingContextSkipped(count = 1): void {
+  missingContextSkipped += Math.max(0, count);
 }
 
 export function getLivePriceObservabilitySnapshot(): LivePriceObservabilitySnapshot {
@@ -385,8 +513,12 @@ export function getLivePriceObservabilitySnapshot(): LivePriceObservabilitySnaps
     unavailable: byStatus.UNAVAILABLE,
     unpriced: byStatus.UNPRICED,
     error: byStatus.ERROR,
+    bRate: rate(byStatus.SUCCESS, attempts),
+    aRate: rate(byStatus.UNAVAILABLE, attempts),
+    cRate: rate(byStatus.ERROR, attempts),
     byStatus: { ...byStatus },
     byProvider: mapToRecord(byProvider),
+    byProviderRates: providerRatesRecord(),
     uniqueOffersByProvider: uniqueOffersByProviderRecord(),
     byListingHost: mapToRecord(byListingHost),
     byFeedSourceId: mapToRecord(byFeedSourceId),
@@ -394,8 +526,32 @@ export function getLivePriceObservabilitySnapshot(): LivePriceObservabilitySnaps
     byOccupancyCategory: mapToRecord(byOccupancyCategory),
     byRooms: mapToRecord(byRooms),
     byReason: Object.fromEntries(byReason.entries()),
+    byTransportErrorCode: Object.fromEntries(byTransportErrorCode.entries()),
+    circuitOpenCount,
+    worksetSkippedCircuitOpen,
+    missingContextSkipped,
     recent: recent.map((event) => ({ ...event })),
   };
+}
+
+/** Compact ops line for dashboards / log drains (no PII). */
+export function formatLivePriceOpsSummary(
+  snapshot: LivePriceObservabilitySnapshot = getLivePriceObservabilitySnapshot(),
+): string {
+  const topTransport = Object.entries(snapshot.byTransportErrorCode)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([code, n]) => `${code}:${n}`)
+    .join(',') || 'none';
+  return (
+    `[live-price-ops] attempts=${snapshot.attempts}` +
+    ` B=${snapshot.success} A=${snapshot.unavailable} C=${snapshot.error}` +
+    ` bRate=${snapshot.bRate.toFixed(3)} aRate=${snapshot.aRate.toFixed(3)} cRate=${snapshot.cRate.toFixed(3)}` +
+    ` circuitOpens=${snapshot.circuitOpenCount}` +
+    ` skipCircuit=${snapshot.worksetSkippedCircuitOpen}` +
+    ` skipMissingCtx=${snapshot.missingContextSkipped}` +
+    ` transport=[${topTransport}]`
+  );
 }
 
 export function clearLivePriceObservabilityForTests(): void {
@@ -412,4 +568,9 @@ export function clearLivePriceObservabilityForTests(): void {
   byOccupancyCategory.clear();
   byRooms.clear();
   byReason.clear();
+  byTransportErrorCode.clear();
+  circuitOpenCount = 0;
+  worksetSkippedCircuitOpen = 0;
+  missingContextSkipped = 0;
+  lastCRateAlarmLogged = false;
 }

@@ -238,4 +238,5 @@ test('10. pagination.ts no longer defines RESULTS_USER_RESULTSET_MAX', () => {
   assert.equal(paginationSrc.includes('RESULTS_USER_RESULTSET_MAX'), false);
   assert.equal(paginationSrc.includes('isResultsResultsetOverLimit'), false);
   assert.match(paginationSrc, /RESULTS_LIVE_PRICING_CANDIDATE_CAP\s*=\s*150/);
+  assert.match(paginationSrc, /RESULTS_LIVE_PRICING_INITIAL_WORKSET\s*=\s*50/);
 });

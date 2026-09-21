@@ -393,18 +393,15 @@ test('page1: Eliza 4p/2r without party DOBs is not shown', async () => {
   assert.equal(page.length, 0);
 });
 
-test('Eliza: timeout then success retries once immediately (max 2 attempts)', async () => {
+test('Eliza: DEC-011 timeout → C with one attempt (no same-run retry to B)', async () => {
   let gppCalls = 0;
   const fetchImpl: typeof fetch = async (input) => {
     const url = String(input);
     if (url.includes('GetPromotedPriceApi')) {
       gppCalls += 1;
-      if (gppCalls === 1) {
-        const err = new Error('aborted');
-        err.name = 'TimeoutError';
-        throw err;
-      }
-      return new Response(okPromotedBody(), { status: 200 });
+      const err = new Error('aborted');
+      err.name = 'TimeoutError';
+      throw err;
     }
     if (url.includes('elizawashere.be') && !url.includes('/api/')) {
       return new Response(ELIZA_LANDING_HTML, { status: 200 });
@@ -417,12 +414,13 @@ test('Eliza: timeout then success retries once immediately (max 2 attempts)', as
     { adults: 2 },
     { fetchImpl },
   );
-  assert.equal(gppCalls, 2);
-  assert.equal(priced.livePriceStatus, 'proven');
-  assert.equal(priced.price, 652);
+  assert.equal(gppCalls, 1, 'DEC-011: no attempt 2');
+  assert.equal(priced.livePriceStatus, 'unavailable');
+  assert.equal(priced.livePriceFailureReason, 'timeout');
+  assert.notEqual(priced.livePriceStatus, 'proven');
 });
 
-test('Eliza: two timeouts → short C TTL; later search may retry', async () => {
+test('Eliza: one timeout → short C TTL; later search may retry', async () => {
   let gppCalls = 0;
   const fetchImpl: typeof fetch = async (input) => {
     const url = String(input);
@@ -445,10 +443,19 @@ test('Eliza: two timeouts → short C TTL; later search may retry', async () => 
     { adults: 2 },
     { fetchImpl },
   );
-  assert.equal(gppCalls, 2);
+  assert.equal(gppCalls, 1, 'DEC-011: one attempt in first pricing-run');
   assert.equal(failed.livePriceStatus, 'unavailable');
   assert.equal(failed.livePriceFailureReason, 'timeout');
   assert.equal(hasResultsLivePriceOverlay('eliza-6270665', { adults: 2 }), true);
+
+  // Within C-TTL: new user action must not re-HTTP while soft C cache holds.
+  clearLivePriceInflightForTests();
+  await priceLiveRequiredMatchset(
+    [makeOffer({ id: 'eliza-6270665', provider: 'Eliza was here', price: 599 })],
+    { adults: 2 },
+    { fetchImpl },
+  );
+  assert.equal(gppCalls, 1, 'within C-TTL: no HTTP retry');
 
   setResultsLivePriceNowMsForTests(t0 + RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS + 1);
   assert.equal(hasResultsLivePriceOverlay('eliza-6270665', { adults: 2 }), false);
@@ -459,10 +466,9 @@ test('Eliza: two timeouts → short C TTL; later search may retry', async () => 
     { adults: 2 },
     { fetchImpl },
   );
-  assert.equal(gppCalls, 4);
+  assert.equal(gppCalls, 2, 'after C-TTL: later pricing-run may attempt again');
   setResultsLivePriceNowMsForTests(null);
 });
-
 test('Eliza: confirmed unavailable (204) is not retried', async () => {
   let gppCalls = 0;
   const [priced] = await priceLiveRequiredMatchset(

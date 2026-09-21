@@ -265,7 +265,7 @@ test('G: PENDING → C stays visible with C copy, no fake €', async () => {
   assert.doesNotMatch(html, />€\s*\d/);
 });
 
-test('H: C retry is attempt1 then attempt2 (max 2)', async () => {
+test('H: DEC-011 C is one attempt only (no same-run attempt 2)', async () => {
   const CORENDON_FRAGMENT = '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U';
   const offer = makeOffer({
     id: 'corendon-9514-retry',
@@ -285,7 +285,7 @@ test('H: C retry is attempt1 then attempt2 (max 2)', async () => {
     },
   });
   const settled = await overlays[0]!.live;
-  assert.equal(calls, 2);
+  assert.equal(calls, 1, 'DEC-011: no second 15s attempt in same pricing-run');
   assert.equal(settled.livePriceFailureReason, 'timeout');
   assert.equal(resultsPricePresentation(settled, { provisional: false }), 'unavailable');
 });

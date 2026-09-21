@@ -1,4 +1,5 @@
 import type { FetchLike } from '../prijsvrij/auth';
+import { extractTransportErrorCode } from '@/lib/http/transport-error-code';
 import {
   CORENDON_FE_BASE_URL,
   CORENDON_FE_VERSION,
@@ -266,7 +267,12 @@ export async function fetchCorendonUpsalesPrice(
     if (isTimeoutError(error)) {
       return { ok: false, reason: 'timeout' };
     }
-    return { ok: false, reason: 'network_error' };
+    const transportErrorCode = extractTransportErrorCode(error);
+    return {
+      ok: false,
+      reason: 'network_error',
+      ...(transportErrorCode ? { transportErrorCode } : {}),
+    };
   }
 }
 

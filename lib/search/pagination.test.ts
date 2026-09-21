@@ -3,8 +3,10 @@ import test from 'node:test';
 import { sortOffers } from './filtering';
 import {
   getResultsTotalPages,
+  limitLivePricingInitialWorkset,
   limitRankedResultsForPagination,
   paginateResults,
+  RESULTS_LIVE_PRICING_INITIAL_WORKSET,
   RESULTS_PAGE_SIZE_DEFAULT,
   RESULTS_USER_PAGINATION_CAP,
   buildOfferDetailHref,
@@ -65,6 +67,16 @@ test('A. 921 matches: full user result set; live-pricing window separately cappe
   assert.equal(getResultsTotalPages(ranked.length, RESULTS_PAGE_SIZE_DEFAULT), 93);
   assert.equal(paginateResults(ranked, 16, RESULTS_PAGE_SIZE_DEFAULT).length, 10);
   assert.equal(paginateResults(liveWindow, 16, RESULTS_PAGE_SIZE_DEFAULT).length, 0);
+});
+
+test('A2. initial live-pricing workset is a bounded subset of the 150 window', () => {
+  assert.equal(RESULTS_LIVE_PRICING_INITIAL_WORKSET, 50);
+  assert.ok(RESULTS_LIVE_PRICING_INITIAL_WORKSET < RESULTS_USER_PAGINATION_CAP);
+  const ranked = sortOffers(ranked921(), 'price');
+  const workset = limitLivePricingInitialWorkset(ranked);
+  assert.equal(workset.length, RESULTS_LIVE_PRICING_INITIAL_WORKSET);
+  assert.equal(workset[0].id, 'offer-0');
+  assert.equal(workset[49].id, 'offer-49');
 });
 
 test('B. price low→high: live window is catalog top 150; user set keeps #920', () => {
