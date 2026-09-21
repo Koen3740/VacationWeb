@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-18",
+  "pools": {
+    "albania": {
+      "path": "media/metadata/destination-media-pools/pool-albania.json",
+      "size": 12,
+      "usable": 11
+    },
+    "crete": {
+      "path": "media/metadata/destination-media-pools/pool-crete.json",
+      "size": 9,
+      "usable": 8
+    },
+    "sicily": {
+      "path": "media/metadata/destination-media-pools/pool-sicily.json",
+      "size": 10,
+      "usable": 10
+    },
+    "sardinia": {
+      "path": "media/metadata/destination-media-pools/pool-sardinia.json",
+      "size": 10,
+      "usable": 10
+    }
+  },
+  "totals": {
+    "assets": 41,
+    "finalVerifiedUsable": 39
+  },
+  "method": "DOC-012",
+  "analysis": "AN-022",
+  "change": "CHG-023"
+}

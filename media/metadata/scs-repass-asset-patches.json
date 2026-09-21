@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-17",
+  "change": "CHG-019",
+  "patches": [
+    {
+      "assetId": "vw-story-sicily-cefalu-rocca-38193686",
+      "updates": {
+        "selectionStatus": "superseded_by_repass",
+        "reviewStatus": "rejected_preselect",
+        "supersededBy": "vw-story-sicily-cefalu-view-0832-commons",
+        "reason": "Weak street-under-Rocca; beaten by Cefalu View 0832 rooftops+Rocca+sea",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Weak street-under-Rocca; beaten by Cefalu View 0832 rooftops+Rocca+sea"
+      }
+    },
+    {
+      "assetId": "vw-story-sicily-taormina-theatre-4563289",
+      "updates": {
+        "selectionStatus": "superseded_by_repass",
+        "reviewStatus": "rejected_preselect",
+        "supersededBy": "vw-story-sicily-taormina-teatro-etna-commons",
+        "reason": "Etna clouded/dark theatre; beaten by CC0 Teatro Greco Etna clear snow-cap",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Etna clouded/dark theatre; beaten by CC0 Teatro Greco Etna clear snow-cap"
+      }
+    },
+    {
+      "assetId": "vw-story-sicily-valle-templi-10765309",
+      "updates": {
+        "selectionStatus": "superseded_by_repass",
+        "reviewStatus": "rejected_preselect",
+        "supersededBy": "vw-story-sicily-concordia-valle-2024-commons",
+        "reason": "Side temple only; beaten by 2024 valley+olive+sea landscape context",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Side temple only; beaten by 2024 valley+olive+sea landscape context"
+      }
+    },
+    {
+      "assetId": "vw-story-crete-chania-port-30064009",
+      "updates": {
+        "selectionStatus": "superseded_by_repass",
+        "reviewStatus": "rejected_preselect",
+        "supersededBy": "vw-story-crete-chania-shipyards-lighthouse-qi",
+        "reason": "Hazy harbour; beaten by QI shipyards+lighthouse panorama",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Hazy harbour; beaten by QI shipyards+lighthouse panorama"
+      }
+    },
+    {
+      "assetId": "vw-story-crete-chania-lighthouse-13900806",
+      "updates": {
+        "selectionStatus": "superseded_by_repass",
+        "reviewStatus": "rejected_preselect",
+        "supersededBy": "vw-story-crete-chania-lighthouse-featured-qi",
+        "reason": "Flat lighthouse; beaten by Featured/QI crashing-waves lighthouse",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Flat lighthouse; beaten by Featured/QI crashing-waves lighthouse"
+      }
+    },
+    {
+      "assetId": "vw-story-crete-balos-beach-38169038",
+      "updates": {
+        "selectionStatus": "superseded_by_repass",
+        "reviewStatus": "rejected_preselect",
+        "supersededBy": "vw-story-crete-balos-aerial-commons",
+        "reason": "Generic beach idyll vs stronger aerial geography candidates",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Generic beach idyll vs stronger aerial geography candidates"
+      }
+    },
+    {
+      "assetId": "vw-story-crete-spinalonga-29962711",
+      "updates": {
+        "selectionStatus": "superseded_by_repass",
+        "reviewStatus": "rejected_preselect",
+        "supersededBy": "vw-story-crete-spinalonga-fortress-east-qi",
+        "reason": "Flat island silhouette; beaten by QI fortress-east + Ile",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Flat island silhouette; beaten by QI fortress-east + Ile"
+      }
+    },
+    {
+      "assetId": "vw-story-sardinia-nuraghe-su-nuraxi-commons",
+      "updates": {
+        "selectionStatus": "superseded_by_repass",
+        "reviewStatus": "rejected_preselect",
+        "supersededBy": "vw-story-sardinia-nuraghe-su-nuraxi-19",
+        "reason": "Nagel 06 ground tower; beaten by Nagel 19 QI complex high-angle",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Nagel 06 ground tower; beaten by Nagel 19 QI complex high-angle"
+      }
+    },
+    {
+      "assetId": "vw-story-sardinia-piscinas-36796797",
+      "updates": {
+        "selectionStatus": "superseded_by_repass",
+        "reviewStatus": "rejected_preselect",
+        "supersededBy": "vw-story-sardinia-piscinas-dunes-arbus10",
+        "reason": "Path-to-sea weaker dune WOW vs Arbus 10 ripple dunes",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Path-to-sea weaker dune WOW vs Arbus 10 ripple dunes"
+      }
+    },
+    {
+      "assetId": "vw-story-sardinia-porto-pino-35142345",
+      "updates": {
+        "selectionStatus": "rejected_preselect",
+        "reviewStatus": "rejected_preselect",
+        "reason": "Redundant dune beach vs Piscinas Arbus; not place-distinctive enough for shortlist",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Redundant dune beach vs Piscinas Arbus; not place-distinctive enough for shortlist"
+      }
+    },
+    {
+      "assetId": "vw-story-sardinia-tavolara-18660972",
+      "updates": {
+        "selectionStatus": "superseded_by_repass",
+        "reviewStatus": "rejected_preselect",
+        "supersededBy": "vw-story-sardinia-tavolara-profilo-commons",
+        "reason": "Beaten by profilo lenticular-cloud distinctive landmark",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "notesAppend": "AN-018/CHG-019: Beaten by profilo lenticular-cloud distinctive landmark"
+      }
+    },
+    {
+      "assetId": "vw-story-sicily-cefalu-waterfront-18453312",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "reviewStatus": "pending_visual_review",
+        "notesAppend": "AN-018/CHG-019 DOC-009 re-pass KEEP shortlist after multi-candidate compare."
+      }
+    },
+    {
+      "assetId": "vw-story-sicily-concordia-temple-37261506",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "reviewStatus": "pending_visual_review",
+        "notesAppend": "AN-018/CHG-019 DOC-009 re-pass KEEP shortlist after multi-candidate compare."
+      }
+    },
+    {
+      "assetId": "vw-story-sicily-isola-bella-37105275",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "reviewStatus": "pending_visual_review",
+        "notesAppend": "AN-018/CHG-019 DOC-009 re-pass KEEP shortlist after multi-candidate compare."
+      }
+    },
+    {
+      "assetId": "vw-story-crete-balos-aerial-37800644",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "reviewStatus": "pending_visual_review",
+        "notesAppend": "AN-018/CHG-019 DOC-009 re-pass KEEP shortlist after multi-candidate compare."
+      }
+    },
+    {
+      "assetId": "vw-story-crete-elafonissi-water-15071869",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "reviewStatus": "pending_visual_review",
+        "notesAppend": "AN-018/CHG-019 DOC-009 re-pass KEEP shortlist after multi-candidate compare."
+      }
+    },
+    {
+      "assetId": "vw-story-crete-elafonissi-aerial-30002088",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "reviewStatus": "pending_visual_review",
+        "notesAppend": "AN-018/CHG-019 DOC-009 re-pass KEEP shortlist after multi-candidate compare."
+      }
+    },
+    {
+      "assetId": "vw-story-sardinia-emerald-coast-38146980",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "reviewStatus": "pending_visual_review",
+        "notesAppend": "AN-018/CHG-019 DOC-009 re-pass KEEP shortlist after multi-candidate compare."
+      }
+    },
+    {
+      "assetId": "vw-story-sardinia-cliff-beach-aerial-23962079",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "reviewStatus": "pending_visual_review",
+        "notesAppend": "AN-018/CHG-019 DOC-009 re-pass KEEP shortlist after multi-candidate compare."
+      }
+    }
+  ]
+}

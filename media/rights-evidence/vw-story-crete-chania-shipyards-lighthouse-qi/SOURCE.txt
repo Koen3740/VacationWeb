@@ -1,0 +1,7 @@
+assetId: vw-story-crete-chania-shipyards-lighthouse-qi
+sourceUrl: https://commons.wikimedia.org/wiki/File%3AHarbor%2C_Venetian_shipyards_and_Lighthouse_in_Chania._Crete%2C_Greece.jpg
+commonsFile: Harbor,_Venetian_shipyards_and_Lighthouse_in_Chania._Crete,_Greece.jpg
+license: CC BY-SA 3.0
+creator: Ввласенко
+checkedAt: 2026-09-18
+note: license_ok_pending_review; truth unverified; not published

@@ -1,0 +1,71 @@
+{
+  "changeId": "CHG-018",
+  "patches": [
+    {
+      "assetId": "vw-story-albania-gjirokaster-slate-roofs-commons",
+      "updates": {
+        "reviewStatus": "rejected_preselect",
+        "selectionStatus": "superseded_by_repass",
+        "supersededBy": [
+          "vw-story-albania-gjirokaster-cityscape-pudelek-fp",
+          "vw-story-albania-gjirokaster-rooftops-37604966"
+        ],
+        "notes": "AN-017/CHG-018 SUPERSEDED. Weaker than Pudelek Featured cityscape + Mehmeti intimate rooftops (orange-tile distraction, less emotional pull). Kept in history; NOT on Albania shortlist. DEC-008."
+      }
+    },
+    {
+      "assetId": "vw-story-albania-gjirokaster-fortress-20761909",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "selectionMethod": "destination-media-quality-preselection-v1-DOC009",
+        "storyElement": "A-fortress-clock-tower",
+        "notes": "AN-016 acquired; AN-017 re-pass RETAINED as complementary portrait/moody fortress (beat A) alongside new Pudelek #5 Quality landscape. Place-truth: title+location Gjirokaster Fortress, Gjirokastër County. Pending dual verification. DEC-008. No publish."
+      }
+    },
+    {
+      "assetId": "vw-story-albania-ksamil-beach-commons-commons",
+      "updates": {
+        "reviewStatus": "rejected_preselect",
+        "selectionStatus": "superseded_by_repass",
+        "notes": "AN-017: not WOW — generic establishing; out of Albania curated shortlist. Prefer Ksamil sunset 33079364. History retained. DEC-008."
+      }
+    },
+    {
+      "assetId": "vw-story-albania-ksamil-beach-cc0-commons",
+      "updates": {
+        "reviewStatus": "rejected_preselect",
+        "selectionStatus": "superseded_by_repass",
+        "notes": "AN-017: not WOW — weak beach life; out of curated shortlist. History retained. DEC-008."
+      }
+    },
+    {
+      "assetId": "vw-story-albania-himare-coast-commons",
+      "updates": {
+        "reviewStatus": "rejected_preselect",
+        "selectionStatus": "superseded_by_repass",
+        "notes": "AN-017: mediocre Riviera establishing vs Ksamil sunset / Dhërmi framed; out of curated shortlist. History retained. OPEN: stronger Himarë/Porto Palermo if found later. DEC-008."
+      }
+    },
+    {
+      "assetId": "vw-story-albania-ksamil-sunset-33079364",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "notes": "AN-015 candidate RETAINED on AN-017 shortlist — strong lighting/emotion Ksamil. Pending dual verification. DEC-008."
+      }
+    },
+    {
+      "assetId": "vw-story-albania-dhermi-framed-33396275",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "notes": "AN-015 candidate RETAINED on AN-017 shortlist — framed Riviera discovery composition. Pending dual verification. DEC-008."
+      }
+    },
+    {
+      "assetId": "vw-story-albania-blue-eye-commons",
+      "updates": {
+        "selectionStatus": "shortlist_repass",
+        "notes": "AN-015 candidate RETAINED on AN-017 shortlist — Blue Eye wow discovery. Attribution CC BY-SA 4.0. Pending dual verification. DEC-008."
+      }
+    }
+  ]
+}

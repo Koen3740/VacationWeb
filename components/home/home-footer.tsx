@@ -1,138 +1,105 @@
 import { HomeFooterCookieLink } from '@/components/home/home-footer-cookie-link';
-import { RESULTS_MUTED, RESULTS_NAVY, RESULTS_PAGE_BG } from '@/components/results-v2/results-design-tokens';
 import Link from 'next/link';
 
-const brandLinks = [
-  { label: 'Over VacationWeb', href: '/search' },
-  { label: 'Hoe werkt VacationWeb', href: '/search' },
-  { label: 'FAQ', href: '/search' },
+const ontdekLinks = [
+  { label: 'Bestemmingen', href: '/bestemmingen' },
+  { label: 'Inspiratie', href: '/#inspiratie' },
+  { label: 'Aanbod', href: '/aanbiedingen' },
 ] as const;
 
-const discoverLinks = [
-  { label: 'Bestemmingen', href: '/results' },
-  { label: 'Vakantietypes', href: '/search' },
-  { label: 'Deals', href: '/results' },
-  { label: 'Inspiratie', href: '/search' },
+const overLinks = [
+  { label: 'Onze missie', href: '/#value' },
+  { label: 'Zo werkt het', href: '/#value' },
+  { label: 'Veelgestelde vragen', href: '/#value' },
 ] as const;
 
-const aboutLinks = [
-  { label: 'Contact', href: '/search' },
-  { label: 'Over ons', href: '/search' },
+const serviceLinks = [
+  { label: 'Contact', href: '/#value' },
+  { label: 'Blog', href: '/#inspiratie' },
+  { label: 'Reisinformatie', href: '/#value' },
 ] as const;
 
-const legalLinks = [
-  { label: 'Privacybeleid', href: '/search' },
-  { label: 'Cookiebeleid', href: null },
-  { label: 'Algemene voorwaarden', href: '/search' },
-  { label: 'Disclaimer', href: '/search' },
-] as const;
+const linkCls = 'text-[12.5px] text-white/75 transition hover:text-white';
 
-const bottomBarLinks = [
-  { label: 'Privacybeleid', href: '/search' },
-  { label: 'Cookiebeleid', href: null },
-  { label: 'Algemene voorwaarden', href: '/search' },
-  { label: 'Disclaimer', href: '/search' },
-  { label: 'Sitemap', href: '/search' },
-] as const;
-
-/**
- * Results has no multi-column footer (ends on USP). Homepage keeps legal/IA links
- * in the same light chrome language: white surface, cool `#E8ECF2` borders, muted links.
- */
-const footerLinkClassName =
-  'text-[14px] text-[#64748B] transition hover:text-[#0A2D62]';
-const footerHeadingClassName =
-  'text-[14px] font-semibold tracking-tight text-[#0A2D62]';
-
+/** WOW footer — dark navy, columns, socials, copyright, back-to-top. Compact ~198. */
 export function HomeFooter() {
   return (
-    <footer className="mt-2 border-t border-[#E8ECF2] bg-white">
-      <div className="mx-auto max-w-[1600px] px-6 py-10 lg:px-8 lg:py-12">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-          <div>
-            <p className="text-[18px] font-bold tracking-tight" style={{ color: RESULTS_NAVY }}>
-              VacationWeb
+    <footer className="bg-[#01213A] text-white">
+      <div className="mx-auto w-[86.8vw] px-4 py-6 sm:px-6 lg:px-0 lg:py-7">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-12 lg:gap-6">
+          <div className="lg:col-span-3">
+            <p className="inline-flex items-baseline gap-2">
+              <span
+                className="text-[28px] font-semibold leading-none"
+                style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
+              >
+                W
+              </span>
+              <span className="text-[17px] font-bold tracking-tight">VacationWeb</span>
             </p>
-            <ul className="mt-4 space-y-2.5">
-              {brandLinks.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href} className={footerLinkClassName}>
-                    {link.label}
+            <p className="mt-2 text-[12px] text-white/70">Discover more. Travel smarter.</p>
+          </div>
+          <div className="lg:col-span-2">
+            <p className="text-[13px] font-semibold">Ontdek</p>
+            <ul className="mt-2 space-y-1.5">
+              {ontdekLinks.map((l) => (
+                <li key={l.label}>
+                  <Link href={l.href} className={linkCls}>
+                    {l.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
-
-          <div>
-            <p className={footerHeadingClassName}>Ontdekken</p>
-            <ul className="mt-4 space-y-2.5">
-              {discoverLinks.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href} className={footerLinkClassName}>
-                    {link.label}
+          <div className="lg:col-span-2">
+            <p className="text-[13px] font-semibold">Over ons</p>
+            <ul className="mt-2 space-y-1.5">
+              {overLinks.map((l) => (
+                <li key={l.label}>
+                  <Link href={l.href} className={linkCls}>
+                    {l.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
-
-          <div>
-            <p className={footerHeadingClassName}>Over VacationWeb</p>
-            <ul className="mt-4 space-y-2.5">
-              {aboutLinks.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href} className={footerLinkClassName}>
-                    {link.label}
+          <div className="lg:col-span-2">
+            <p className="text-[13px] font-semibold">Service</p>
+            <ul className="mt-2 space-y-1.5">
+              {serviceLinks.map((l) => (
+                <li key={l.label}>
+                  <Link href={l.href} className={linkCls}>
+                    {l.label}
                   </Link>
                 </li>
               ))}
+              <li>
+                <HomeFooterCookieLink className={`${linkCls} text-left`} />
+              </li>
             </ul>
           </div>
-
-          <div>
-            <p className={footerHeadingClassName}>Juridisch</p>
-            <ul className="mt-4 space-y-2.5">
-              {legalLinks.map((link) => (
-                <li key={link.label}>
-                  {link.href ? (
-                    <Link href={link.href} className={footerLinkClassName}>
-                      {link.label}
-                    </Link>
-                  ) : (
-                    <HomeFooterCookieLink className={`${footerLinkClassName} text-left`} />
-                  )}
-                </li>
-              ))}
-            </ul>
+          <div className="flex flex-col items-start gap-3 lg:col-span-3 lg:items-end">
+            <div className="flex gap-2.5 text-[13px] text-white/80" aria-label="Sociale media">
+              <span title="Instagram">IG</span>
+              <span title="Facebook">FB</span>
+              <span title="YouTube">YT</span>
+              <span title="Pinterest">PI</span>
+              <span title="TikTok">TT</span>
+            </div>
+            <div className="flex w-full items-center justify-between gap-3 lg:w-auto lg:flex-col lg:items-end">
+              <div className="text-[11.5px] text-white/55">
+                <p>© {new Date().getFullYear()} VacationWeb</p>
+                <p className="mt-0.5">Reis verder.</p>
+              </div>
+              <a
+                href="#hero"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/25 text-sm text-white/80 transition hover:bg-white/10"
+                aria-label="Terug naar boven"
+              >
+                ↑
+              </a>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div className="border-t border-[#DCE4EE]" style={{ backgroundColor: RESULTS_PAGE_BG }}>
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between lg:px-8">
-          <p className="text-[13px]" style={{ color: RESULTS_MUTED }}>
-            © VacationWeb 2026
-          </p>
-          <nav aria-label="Footer juridische links">
-            <ul className="flex flex-wrap gap-x-5 gap-y-2">
-              {bottomBarLinks.map((link) => (
-                <li key={link.label}>
-                  {link.href ? (
-                    <Link
-                      href={link.href}
-                      className="text-[13px] transition hover:text-[#0A2D62]"
-                      style={{ color: RESULTS_MUTED }}
-                    >
-                      {link.label}
-                    </Link>
-                  ) : (
-                    <HomeFooterCookieLink className="text-[13px] text-[#64748B] transition hover:text-[#0A2D62]" />
-                  )}
-                </li>
-              ))}
-            </ul>
-          </nav>
         </div>
       </div>
     </footer>

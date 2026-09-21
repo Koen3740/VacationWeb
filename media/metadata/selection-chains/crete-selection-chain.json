@@ -1,0 +1,824 @@
+{
+  "schemaVersion": 2,
+  "updatedAt": "2026-09-18",
+  "destinationId": "crete",
+  "destination": "Crete",
+  "method": "DOC-010+DOC-011",
+  "analysis": "AN-021",
+  "change": "CHG-022",
+  "priorMethod": "DOC-010",
+  "priorAnalysis": "AN-020",
+  "priorChange": "CHG-021",
+  "discoverPoolMembership": "CHG-011",
+  "offerVolume": "OPEN",
+  "startingQuestion": "What must someone see in ~10 images to understand and be surprised by Crete?",
+  "whyDestination": {
+    "sourcedFactors": [
+      "Discover-pool seed (CHG-011) — largest Greek island in P2 four-destination pool.",
+      "Island story requires west harbour + distinct beach types + inland gorge + Minoan culture + east history + south/east palm anomalies — not Chania/Elafonissi/Spinalonga doubles.",
+      "DOC-011 external visual benchmark (Claude/ChatGPT/Grokky Crete) validates breadth gaps: Knossos, Preveli, Vai (+ Falassarna/Loutro/Psiloritis as secondary signals).",
+      "Distinctiveness vs Sicily (temples/Etna), Sardinia (nuragic/granite), Albania (Ottoman + Riviera): Crete = lagoons + Venetian harbour + gorge + Minoan palace + palm river/forest.",
+      "Offer volume OPEN."
+    ],
+    "editorialHypotheses": [
+      "Falassarna sunset / Psiloritis / Loutro remain OPEN — not forced without strong non-redundant rights-ok WOW."
+    ]
+  },
+  "geographyCompared": [
+    {
+      "place": "Chania",
+      "decision": "chosen",
+      "role": "ONE Venetian harbour establishing"
+    },
+    {
+      "place": "Balos",
+      "decision": "chosen",
+      "role": "ONE west lagoon sandbar aerial"
+    },
+    {
+      "place": "Elafonissi",
+      "decision": "chosen",
+      "role": "ONE pink/shallow colour (water)"
+    },
+    {
+      "place": "Spinalonga",
+      "decision": "chosen",
+      "role": "ONE east fortress-island establishing"
+    },
+    {
+      "place": "Samaria Gorge",
+      "decision": "chosen",
+      "role": "Inland White Mountains gorge"
+    },
+    {
+      "place": "Knossos",
+      "decision": "chosen",
+      "role": "NEW Minoan culture — CLOSED former OPEN"
+    },
+    {
+      "place": "Preveli",
+      "decision": "chosen",
+      "role": "NEW south palm river-mouth"
+    },
+    {
+      "place": "Vai",
+      "decision": "chosen",
+      "role": "NEW east palm forest beach"
+    },
+    {
+      "place": "Falassarna",
+      "decision": "not_shortlist",
+      "reason": "Sunset candidate attractive but weak place-uniqueness vs existing beach set; left OPEN"
+    },
+    {
+      "place": "Psiloritis / White Mountains summit",
+      "decision": "not_shortlist",
+      "reason": "No strong rights-ok WOW found this pass; Samaria already covers inland mountains"
+    },
+    {
+      "place": "Loutro",
+      "decision": "not_shortlist",
+      "reason": "Charming but secondary; no strong candidate forced"
+    },
+    {
+      "place": "Rethymno",
+      "decision": "not_shortlist",
+      "reason": "Secondary harbour; Chania owns Venetian harbour"
+    }
+  ],
+  "places": [
+    {
+      "placeId": "chania",
+      "name": "Chania",
+      "region": "West Crete",
+      "narrativeRole": "Venetian harbour identity — single establishing.",
+      "whyPlace": [
+        "West base town",
+        "Harbour before beaches"
+      ],
+      "storyElements": [
+        {
+          "elementId": "A-chania-harbour",
+          "beatType": "establishing",
+          "why": "Shipyards+town+lighthouse QI panorama.",
+          "photoIds": [
+            "vw-story-crete-chania-shipyards-lighthouse-qi"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "balos",
+      "name": "Balos Lagoon",
+      "region": "Gramvousa / west",
+      "narrativeRole": "Headline west lagoon.",
+      "whyPlace": [
+        "Iconic sandbar"
+      ],
+      "storyElements": [
+        {
+          "elementId": "C-balos-aerial",
+          "beatType": "nature-setting",
+          "why": "Aerial sandbar geography.",
+          "photoIds": [
+            "vw-story-crete-balos-aerial-commons"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "elafonissi",
+      "name": "Elafonissi",
+      "region": "SW Crete",
+      "narrativeRole": "Pink/shallow distinct from Balos.",
+      "whyPlace": [
+        "Colour character"
+      ],
+      "storyElements": [
+        {
+          "elementId": "D-elafonissi-water",
+          "beatType": "nature-setting",
+          "why": "Pink sand + turquoise shallows.",
+          "photoIds": [
+            "vw-story-crete-elafonissi-water-15071869"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "spinalonga",
+      "name": "Spinalonga",
+      "region": "Elounda / east",
+      "narrativeRole": "East fortress island history.",
+      "whyPlace": [
+        "East diversity",
+        "Cultural story"
+      ],
+      "storyElements": [
+        {
+          "elementId": "E-spinalonga-establishing",
+          "beatType": "cultural-story",
+          "why": "Island silhouette establishing.",
+          "photoIds": [
+            "vw-story-crete-spinalonga-ile-qi"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "samaria",
+      "name": "Samaria Gorge",
+      "region": "White Mountains",
+      "narrativeRole": "Inland gorge hike.",
+      "whyPlace": [
+        "Not beach-only"
+      ],
+      "storyElements": [
+        {
+          "elementId": "F-samaria",
+          "beatType": "nature-setting",
+          "why": "Sheer walls + stream narrows.",
+          "photoIds": [
+            "vw-story-crete-samaria-dominou-1"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "knossos",
+      "name": "Knossos",
+      "region": "Heraklion / central",
+      "narrativeRole": "Minoan palace culture.",
+      "whyPlace": [
+        "Must-see archaeology",
+        "Benchmark breadth"
+      ],
+      "storyElements": [
+        {
+          "elementId": "G-knossos-palace",
+          "beatType": "cultural-story",
+          "why": "North Entrance columns + bull fresco.",
+          "photoIds": [
+            "vw-story-crete-knossos-palace-commons"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "preveli",
+      "name": "Preveli",
+      "region": "South Crete",
+      "narrativeRole": "South palm river-mouth oasis.",
+      "whyPlace": [
+        "Distinct from Balos/Elafonissi",
+        "Claude benchmark place"
+      ],
+      "storyElements": [
+        {
+          "elementId": "H-preveli-palm",
+          "beatType": "nature-setting",
+          "why": "Palm forest + river to sea.",
+          "photoIds": [
+            "vw-story-crete-preveli-aerial-commons"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "vai",
+      "name": "Vai",
+      "region": "East Crete / Lasithi",
+      "narrativeRole": "East palm forest beach.",
+      "whyPlace": [
+        "Distinct from Spinalonga and Preveli",
+        "ChatGPT/Claude breadth"
+      ],
+      "storyElements": [
+        {
+          "elementId": "I-vai-palm",
+          "beatType": "nature-setting",
+          "why": "Phoenix theophrasti grove to beach.",
+          "photoIds": [
+            "vw-story-crete-vai-beach-commons"
+          ]
+        }
+      ]
+    }
+  ],
+  "photos": {
+    "vw-story-crete-chania-shipyards-lighthouse-qi": {
+      "placeId": "chania",
+      "storyElement": "A-chania-harbour",
+      "decision": "keep",
+      "whyPhoto": "QI panorama shipyards + town + lighthouse = complete harbour story in one frame; highest information density for Chania.",
+      "alternatives": [
+        "chania-lighthouse-featured-qi (SUPERSEDED redundant harbour)",
+        "Pexels hazy port SUPERSEDED prior",
+        "Lapplaender harbor series"
+      ],
+      "wowDims": [
+        "harbour completeness",
+        "QI",
+        "recognizability",
+        "establishing"
+      ],
+      "weaknesses": [
+        "Ultra-wide crop risk",
+        "CC BY-SA attribution",
+        "truth unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY-SA 3.0",
+      "source": "Wikimedia Commons",
+      "rationale": {
+        "1_place": "Chania",
+        "2_region": "West Crete",
+        "3_storyElement": "A-chania-harbour",
+        "4_beatType": "establishing",
+        "5_whyPlace": "Venetian harbour identity / west base town — must-see settlement beat for Crete understanding.",
+        "6_whyThisPhoto": "QI panorama shipyards + town + lighthouse = complete harbour story in one frame; highest information density for Chania.",
+        "7_alternativesCompared": [
+          "chania-lighthouse-featured-qi (SUPERSEDED redundant harbour)",
+          "Pexels hazy port SUPERSEDED prior",
+          "Lapplaender harbor series"
+        ],
+        "8_wowDims": [
+          "harbour completeness",
+          "QI",
+          "recognizability",
+          "establishing"
+        ],
+        "9_emotionalPull": "Arrival / historic harbour — first mental map of west Crete.",
+        "10_surprise": "Venetian arsenal shipyards unusual vs generic harbour postcard.",
+        "11_compositionLighting": "Ultra-wide QI; even daylight; Discover crop needed (~3:1).",
+        "12_uniquenessVsShortlist": "Only settlement/harbour establishing; not beach.",
+        "13_redundancyGate": "PASS — sole Chania frame after lighthouse supersede.",
+        "14_weakPoints": [
+          "Ultra-wide crop risk",
+          "CC BY-SA attribution",
+          "truth unverified"
+        ],
+        "15_rightsTruthPending": "rightsStatus=license_ok_pending_review; truthStatus=unverified; reviewStatus=pending_visual_review; publishStatus=not_published"
+      }
+    },
+    "vw-story-crete-balos-aerial-commons": {
+      "placeId": "balos",
+      "storyElement": "C-balos-aerial",
+      "decision": "keep",
+      "whyPhoto": "Full sandbar + turquoise shelf aerial — strongest Balos recognition / map-readable geography.",
+      "alternatives": [
+        "Pexels 37800644 trail aerial SUPERSEDED same beat",
+        "Featured ultra-wide ~6:1 REJECTED format",
+        "Bay of Balos QI ferry clutter REJECTED"
+      ],
+      "wowDims": [
+        "iconic geography",
+        "sandbar clarity",
+        "turquoise",
+        "card aspect"
+      ],
+      "weaknesses": [
+        "CC BY 2.0 attribution",
+        "truth unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY 2.0",
+      "source": "Wikimedia Commons",
+      "rationale": {
+        "1_place": "Balos Lagoon",
+        "2_region": "Gramvousa / west Crete",
+        "3_storyElement": "C-balos-aerial",
+        "4_beatType": "nature-setting",
+        "5_whyPlace": "Iconic west lagoon sandbar — Crete headline geography.",
+        "6_whyThisPhoto": "Full sandbar + turquoise shelf aerial — strongest Balos recognition / map-readable geography.",
+        "7_alternativesCompared": [
+          "Pexels 37800644 trail aerial SUPERSEDED same beat",
+          "Featured ultra-wide ~6:1 REJECTED format",
+          "Bay of Balos QI ferry clutter REJECTED"
+        ],
+        "8_wowDims": [
+          "iconic geography",
+          "sandbar clarity",
+          "turquoise",
+          "card aspect"
+        ],
+        "9_emotionalPull": "Dream lagoon — Discover surprise density.",
+        "10_surprise": "Sandbar form rare vs typical beach strip.",
+        "11_compositionLighting": "Clear aerial midday; landscape card-friendly.",
+        "12_uniquenessVsShortlist": "Only Gramvousa sandbar lagoon; distinct from Elafonissi pink shallows and Preveli river-palm.",
+        "13_redundancyGate": "PASS — one Balos.",
+        "14_weakPoints": [
+          "CC BY 2.0 attribution",
+          "truth unverified"
+        ],
+        "15_rightsTruthPending": "rightsStatus=license_ok_pending_review; truthStatus=unverified; reviewStatus=pending_visual_review; publishStatus=not_published"
+      }
+    },
+    "vw-story-crete-elafonissi-water-15071869": {
+      "placeId": "elafonissi",
+      "storyElement": "D-elafonissi-water",
+      "decision": "keep",
+      "whyPhoto": "Eye-level pink-tinged sand + turquoise shallows = place colour truth; preferred over second aerial under redundancy gate.",
+      "alternatives": [
+        "elafonissi-aerial-30002088 SUPERSEDED same-place beach-type",
+        "Commons Elafonisi Sun Holidays weaker",
+        "Kedrodasos wrong place"
+      ],
+      "wowDims": [
+        "pink sand colour",
+        "shallow intimacy",
+        "orientation contrast to Balos aerial"
+      ],
+      "weaknesses": [
+        "truth unverified",
+        "portrait crop for landscape cards"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "Pexels License",
+      "source": "Pexels",
+      "rationale": {
+        "1_place": "Elafonissi",
+        "2_region": "South-west Crete",
+        "3_storyElement": "D-elafonissi-water",
+        "4_beatType": "nature-setting",
+        "5_whyPlace": "Pink/shallow west beach — colour character distinct from Balos sandbar.",
+        "6_whyThisPhoto": "Eye-level pink-tinged sand + turquoise shallows = place colour truth; preferred over second aerial under redundancy gate.",
+        "7_alternativesCompared": [
+          "elafonissi-aerial-30002088 SUPERSEDED same-place beach-type",
+          "Commons Elafonisi Sun Holidays weaker",
+          "Kedrodasos wrong place"
+        ],
+        "8_wowDims": [
+          "pink sand colour",
+          "shallow intimacy",
+          "orientation contrast to Balos aerial"
+        ],
+        "9_emotionalPull": "Warm/intimate beach feel vs aerial map shots.",
+        "10_surprise": "Pink sand tint uncommon in Greek-island Discover sets.",
+        "11_compositionLighting": "Portrait; bright shallows; master upgraded to 2560px Pexels.",
+        "12_uniquenessVsShortlist": "Only pink-shallow colour beat; not lagoon aerial, not palm beaches.",
+        "13_redundancyGate": "PASS — one Elafonissi after aerial supersede.",
+        "14_weakPoints": [
+          "truth unverified",
+          "portrait crop for landscape cards"
+        ],
+        "15_rightsTruthPending": "rightsStatus=license_ok_pending_review; truthStatus=unverified; reviewStatus=pending_visual_review; publishStatus=not_published"
+      }
+    },
+    "vw-story-crete-spinalonga-ile-qi": {
+      "placeId": "spinalonga",
+      "storyElement": "E-spinalonga-establishing",
+      "decision": "keep",
+      "whyPhoto": "QI classic island silhouette across gulf — establishing scale of fortress island; best single-frame Spinalonga for destination understanding.",
+      "alternatives": [
+        "spinalonga-fortress-east-qi SUPERSEDED same place",
+        "Pexels 29962711 SUPERSEDED prior",
+        "Plaka/Tears series"
+      ],
+      "wowDims": [
+        "QI",
+        "island establishing",
+        "gulf context",
+        "history silhouette"
+      ],
+      "weaknesses": [
+        "Complex Commons attribution note (Wolfgang Moroder)",
+        "CC BY-SA",
+        "truth unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY-SA 3.0",
+      "source": "Wikimedia Commons",
+      "rationale": {
+        "1_place": "Spinalonga",
+        "2_region": "Elounda / east Crete",
+        "3_storyElement": "E-spinalonga-establishing",
+        "4_beatType": "cultural-story",
+        "5_whyPlace": "East Venetian fortress island + leprosy history — geographic/cultural balance to west beaches.",
+        "6_whyThisPhoto": "QI classic island silhouette across gulf — establishing scale of fortress island; best single-frame Spinalonga for destination understanding.",
+        "7_alternativesCompared": [
+          "spinalonga-fortress-east-qi SUPERSEDED same place",
+          "Pexels 29962711 SUPERSEDED prior",
+          "Plaka/Tears series"
+        ],
+        "8_wowDims": [
+          "QI",
+          "island establishing",
+          "gulf context",
+          "history silhouette"
+        ],
+        "9_emotionalPull": "Mysterious fortress island — story beyond beach.",
+        "10_surprise": "Leper-colony/Venetian layer uncommon in beach-heavy sets.",
+        "11_compositionLighting": "Clear midday; turquoise water; landscape.",
+        "12_uniquenessVsShortlist": "Only east fortress island; distinct from Vai palm and Knossos culture.",
+        "13_redundancyGate": "PASS — one Spinalonga after fortress-east supersede.",
+        "14_weakPoints": [
+          "Complex Commons attribution note (Wolfgang Moroder)",
+          "CC BY-SA",
+          "truth unverified"
+        ],
+        "15_rightsTruthPending": "rightsStatus=license_ok_pending_review; truthStatus=unverified; reviewStatus=pending_visual_review; publishStatus=not_published"
+      }
+    },
+    "vw-story-crete-samaria-dominou-1": {
+      "placeId": "samaria",
+      "storyElement": "F-samaria",
+      "decision": "keep",
+      "whyPhoto": "Title-explicit Dominou Samaria gorge narrows with sheer walls + stream — place-proven CLOSED (AN-018); still strongest rights-ok interior.",
+      "alternatives": [
+        "Samaria Gorge 01 Lapplaender REJECTED road sign",
+        "Biosphere Reserve riverbed weaker",
+        "Iron Gates named shot still OPEN soft"
+      ],
+      "wowDims": [
+        "place-proven title",
+        "gorge narrows",
+        "inland contrast",
+        "portrait drama"
+      ],
+      "weaknesses": [
+        "Stronger named Iron Gates still desirable (OPEN soft)",
+        "truth unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY-SA 4.0",
+      "source": "Wikimedia Commons",
+      "rationale": {
+        "1_place": "Samaria Gorge",
+        "2_region": "Lefka Ori / White Mountains / west inland",
+        "3_storyElement": "F-samaria",
+        "4_beatType": "nature-setting",
+        "5_whyPlace": "Inland gorge hike — White Mountains contrast to coast; Crete is not beach-only.",
+        "6_whyThisPhoto": "Title-explicit Dominou Samaria gorge narrows with sheer walls + stream — place-proven CLOSED (AN-018); still strongest rights-ok interior.",
+        "7_alternativesCompared": [
+          "Samaria Gorge 01 Lapplaender REJECTED road sign",
+          "Biosphere Reserve riverbed weaker",
+          "Iron Gates named shot still OPEN soft"
+        ],
+        "8_wowDims": [
+          "place-proven title",
+          "gorge narrows",
+          "inland contrast",
+          "portrait drama"
+        ],
+        "9_emotionalPull": "Adventure/hike intensity.",
+        "10_surprise": "Sheer canyon scale vs island beach stereotype.",
+        "11_compositionLighting": "Portrait; canyon light; strong verticals.",
+        "12_uniquenessVsShortlist": "Only inland gorge.",
+        "13_redundancyGate": "PASS — one Samaria.",
+        "14_weakPoints": [
+          "Stronger named Iron Gates still desirable (OPEN soft)",
+          "truth unverified"
+        ],
+        "15_rightsTruthPending": "rightsStatus=license_ok_pending_review; truthStatus=unverified; reviewStatus=pending_visual_review; publishStatus=not_published"
+      }
+    },
+    "vw-story-crete-knossos-palace-commons": {
+      "placeId": "knossos",
+      "storyElement": "G-knossos-palace",
+      "decision": "keep",
+      "whyPhoto": "North Entrance red columns + charging-bull fresco — most recognizable Knossos hero shot; high-res CC BY-SA 4.0 Commons.",
+      "alternatives": [
+        "Palace of Knossos.jpg low-res Flickr",
+        "Knossos Rekonstruktion.jpg smaller",
+        "Throne room Annatsach (interior — less establishing)",
+        "Northwest Portico QI (detail)"
+      ],
+      "wowDims": [
+        "Minoan recognizability",
+        "colour columns",
+        "fresco storytelling",
+        "culture depth"
+      ],
+      "weaknesses": [
+        "Tourists in frame",
+        "reconstruction debated among archaeologists (truth note)",
+        "CC BY-SA attribution",
+        "master=2560 thumb"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY-SA 4.0",
+      "source": "Wikimedia Commons",
+      "rationale": {
+        "1_place": "Knossos",
+        "2_region": "Heraklion / central Crete",
+        "3_storyElement": "G-knossos-palace",
+        "4_beatType": "cultural-story",
+        "5_whyPlace": "Minoan palace — must-see culture/myth beat; CLOSED former AN-020 OPEN gap.",
+        "6_whyThisPhoto": "North Entrance red columns + charging-bull fresco — most recognizable Knossos hero shot; high-res CC BY-SA 4.0 Commons.",
+        "7_alternativesCompared": [
+          "Palace of Knossos.jpg low-res Flickr",
+          "Knossos Rekonstruktion.jpg smaller",
+          "Throne room Annatsach (interior — less establishing)",
+          "Northwest Portico QI (detail)"
+        ],
+        "8_wowDims": [
+          "Minoan recognizability",
+          "colour columns",
+          "fresco storytelling",
+          "culture depth"
+        ],
+        "9_emotionalPull": "Ancient civilization awe — myth/archaeology.",
+        "10_surprise": "Breaks beach-only Crete stereotype; Claude/ChatGPT benchmarks surface this as essential.",
+        "11_compositionLighting": "Soft overcast; monumental low angle; landscape 3:2.",
+        "12_uniquenessVsShortlist": "Only Minoan archaeology; distinct from Spinalonga Venetian/Ottoman.",
+        "13_redundancyGate": "PASS — new place.",
+        "14_weakPoints": [
+          "Tourists in frame",
+          "reconstruction debated among archaeologists (truth note)",
+          "CC BY-SA attribution",
+          "master=2560 thumb"
+        ],
+        "15_rightsTruthPending": "rightsStatus=license_ok_pending_review; truthStatus=unverified; reviewStatus=pending_visual_review; publishStatus=not_published"
+      }
+    },
+    "vw-story-crete-preveli-aerial-commons": {
+      "placeId": "preveli",
+      "storyElement": "H-preveli-palm",
+      "decision": "keep",
+      "whyPhoto": "Aerial/elevated view shows palm forest + river cutting to Libyan Sea + arid gorge walls — complete Preveli story in one frame (dronepicr CC BY 2.0).",
+      "alternatives": [
+        "Preveli beach on Crete dronepicr (similar)",
+        "Palm beach Preveli dronepicr",
+        "Preveli Gorge Jimzoun WLE (less sea context)",
+        "Palmenstrand von Preveli series"
+      ],
+      "wowDims": [
+        "river-palm oasis",
+        "south-coast surprise",
+        "geographic completeness",
+        "colour contrast arid/green/turquoise"
+      ],
+      "weaknesses": [
+        "People on beach",
+        "CC BY 2.0 attribution",
+        "master=2560 thumb",
+        "truth unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY 2.0",
+      "source": "Wikimedia Commons",
+      "rationale": {
+        "1_place": "Preveli",
+        "2_region": "South Crete / Rethymno (Megalopotamos)",
+        "3_storyElement": "H-preveli-palm",
+        "4_beatType": "nature-setting",
+        "5_whyPlace": "South palm river-mouth oasis — distinct geography from Balos lagoon and Elafonissi pink shallows.",
+        "6_whyThisPhoto": "Aerial/elevated view shows palm forest + river cutting to Libyan Sea + arid gorge walls — complete Preveli story in one frame (dronepicr CC BY 2.0).",
+        "7_alternativesCompared": [
+          "Preveli beach on Crete dronepicr (similar)",
+          "Palm beach Preveli dronepicr",
+          "Preveli Gorge Jimzoun WLE (less sea context)",
+          "Palmenstrand von Preveli series"
+        ],
+        "8_wowDims": [
+          "river-palm oasis",
+          "south-coast surprise",
+          "geographic completeness",
+          "colour contrast arid/green/turquoise"
+        ],
+        "9_emotionalPull": "Exotic oasis discovery.",
+        "10_surprise": "Palm river mouth unexpected vs west lagoon beaches — Claude benchmark staple.",
+        "11_compositionLighting": "Bright midday; leading river line; landscape.",
+        "12_uniquenessVsShortlist": "Only south-coast palm river; not Vai east grove, not Balos sandbar.",
+        "13_redundancyGate": "PASS — new place / new beach type.",
+        "14_weakPoints": [
+          "People on beach",
+          "CC BY 2.0 attribution",
+          "master=2560 thumb",
+          "truth unverified"
+        ],
+        "15_rightsTruthPending": "rightsStatus=license_ok_pending_review; truthStatus=unverified; reviewStatus=pending_visual_review; publishStatus=not_published"
+      }
+    },
+    "vw-story-crete-vai-beach-commons": {
+      "placeId": "vai",
+      "storyElement": "I-vai-palm",
+      "decision": "keep",
+      "whyPhoto": "Marc Ryckaert Vai R01 — palms framing beach + sea + rocky headland; title-explicit palm beach; 3900×2590 source.",
+      "alternatives": [
+        "Vai Beach Crete Pietrak",
+        "Palm trees at Vai Pietrak",
+        "Vai R06 closer palms",
+        "Vai Palm Beach Kriti low-res REJECTED",
+        "Vai Crete Greece 2023 winter light"
+      ],
+      "wowDims": [
+        "palm forest framing",
+        "east-coast nature",
+        "tropical anomaly",
+        "establishing"
+      ],
+      "weaknesses": [
+        "Beach umbrellas/tourists",
+        "hard noon shadows",
+        "CC BY 3.0 attribution",
+        "master=2560 thumb"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY 3.0",
+      "source": "Wikimedia Commons",
+      "rationale": {
+        "1_place": "Vai",
+        "2_region": "East Crete / Lasithi",
+        "3_storyElement": "I-vai-palm",
+        "4_beatType": "nature-setting",
+        "5_whyPlace": "Europe’s largest natural Phoenix theophrasti palm forest beach — east nature beat distinct from Spinalonga history.",
+        "6_whyThisPhoto": "Marc Ryckaert Vai R01 — palms framing beach + sea + rocky headland; title-explicit palm beach; 3900×2590 source.",
+        "7_alternativesCompared": [
+          "Vai Beach Crete Pietrak",
+          "Palm trees at Vai Pietrak",
+          "Vai R06 closer palms",
+          "Vai Palm Beach Kriti low-res REJECTED",
+          "Vai Crete Greece 2023 winter light"
+        ],
+        "8_wowDims": [
+          "palm forest framing",
+          "east-coast nature",
+          "tropical anomaly",
+          "establishing"
+        ],
+        "9_emotionalPull": "Tropical Crete surprise.",
+        "10_surprise": "Palm forest on Greek island — Claude/ChatGPT breadth signal.",
+        "11_compositionLighting": "Hard midday shadows; palm portal composition; landscape.",
+        "12_uniquenessVsShortlist": "Only east palm forest; Preveli is south river-mouth; Spinalonga is fortress.",
+        "13_redundancyGate": "PASS — new place / distinct palm type from Preveli.",
+        "14_weakPoints": [
+          "Beach umbrellas/tourists",
+          "hard noon shadows",
+          "CC BY 3.0 attribution",
+          "master=2560 thumb"
+        ],
+        "15_rightsTruthPending": "rightsStatus=license_ok_pending_review; truthStatus=unverified; reviewStatus=pending_visual_review; publishStatus=not_published"
+      }
+    },
+    "vw-story-crete-chania-lighthouse-featured-qi": {
+      "placeId": "chania",
+      "storyElement": "B-chania-lighthouse",
+      "decision": "supersede",
+      "whyPhoto": "Redundant Chania harbour beat vs shipyards+lighthouse establishing; same place crowding out Knossos/Preveli/Vai destination stories. Storm landmark does not earn a second harbour slot under DOC-011 redundancy gate.",
+      "alternatives": [],
+      "wowDims": [],
+      "weaknesses": [],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY-SA 3.0",
+      "source": "Wikimedia Commons",
+      "rationale": {},
+      "shortlistChange": {
+        "action": "remove_from_shortlist",
+        "newStatus": "superseded_by_benchmark_repass",
+        "proof": "Redundant Chania harbour beat vs shipyards+lighthouse establishing; same place crowding out Knossos/Preveli/Vai destination stories. Storm landmark does not earn a second harbour slot under DOC-011 redundancy gate."
+      }
+    },
+    "vw-story-crete-elafonissi-aerial-30002088": {
+      "placeId": "elafonissi",
+      "storyElement": "D-elafonissi-aerial",
+      "decision": "supersede",
+      "whyPhoto": "Second Elafonissi frame; prefer ONE pink/shallow beat — water/colour place-proof kept; aerial sand-spit same place/beach-type crowding.",
+      "alternatives": [],
+      "wowDims": [],
+      "weaknesses": [],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "Pexels License",
+      "source": "Pexels",
+      "rationale": {},
+      "shortlistChange": {
+        "action": "remove_from_shortlist",
+        "newStatus": "superseded_by_benchmark_repass",
+        "proof": "Second Elafonissi frame; prefer ONE pink/shallow beat — water/colour place-proof kept; aerial sand-spit same place/beach-type crowding."
+      }
+    },
+    "vw-story-crete-spinalonga-fortress-east-qi": {
+      "placeId": "spinalonga",
+      "storyElement": "E-spinalonga-fortress",
+      "decision": "supersede",
+      "whyPhoto": "Second Spinalonga frame; prefer ONE island/fortress establishing — ile silhouette shows full fortress-island geography; close east walls same place/view family.",
+      "alternatives": [],
+      "wowDims": [],
+      "weaknesses": [],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY-SA 4.0",
+      "source": "Wikimedia Commons",
+      "rationale": {},
+      "shortlistChange": {
+        "action": "remove_from_shortlist",
+        "newStatus": "superseded_by_benchmark_repass",
+        "proof": "Second Spinalonga frame; prefer ONE island/fortress establishing — ile silhouette shows full fortress-island geography; close east walls same place/view family."
+      }
+    }
+  },
+  "shortlist": {
+    "priorSize": 8,
+    "size": 8,
+    "targetRange": "9-11 quality-over-quota; delivered 8 strong non-redundant (optional 9th/10th OPEN honestly)",
+    "changesVsPrior": [
+      {
+        "assetId": "vw-story-crete-chania-lighthouse-featured-qi",
+        "action": "remove_from_shortlist",
+        "newStatus": "superseded_by_benchmark_repass"
+      },
+      {
+        "assetId": "vw-story-crete-elafonissi-aerial-30002088",
+        "action": "remove_from_shortlist",
+        "newStatus": "superseded_by_benchmark_repass"
+      },
+      {
+        "assetId": "vw-story-crete-spinalonga-fortress-east-qi",
+        "action": "remove_from_shortlist",
+        "newStatus": "superseded_by_benchmark_repass"
+      },
+      {
+        "assetId": "vw-story-crete-knossos-palace-commons",
+        "action": "add_to_shortlist",
+        "newStatus": "shortlist_repass"
+      },
+      {
+        "assetId": "vw-story-crete-preveli-aerial-commons",
+        "action": "add_to_shortlist",
+        "newStatus": "shortlist_repass"
+      },
+      {
+        "assetId": "vw-story-crete-vai-beach-commons",
+        "action": "add_to_shortlist",
+        "newStatus": "shortlist_repass"
+      }
+    ],
+    "assetIds": [
+      "vw-story-crete-chania-shipyards-lighthouse-qi",
+      "vw-story-crete-balos-aerial-commons",
+      "vw-story-crete-elafonissi-water-15071869",
+      "vw-story-crete-spinalonga-ile-qi",
+      "vw-story-crete-samaria-dominou-1",
+      "vw-story-crete-knossos-palace-commons",
+      "vw-story-crete-preveli-aerial-commons",
+      "vw-story-crete-vai-beach-commons"
+    ]
+  },
+  "redundancyGate": {
+    "rule": "Drop same place multiples, same view, same beach type, low new info, or one place crowding other destination stories — even if individually beautiful.",
+    "applied": [
+      "Chania ×2 → keep shipyards establishing only",
+      "Elafonissi ×2 → keep water only",
+      "Spinalonga ×2 → keep ile establishing only",
+      "Beach-type diversity enforced: sandbar lagoon ≠ pink shallows ≠ south river-palm ≠ east palm forest"
+    ]
+  },
+  "openPoints": [
+    "Falassarna / Psiloritis / Loutro — researched; no non-redundant rights-ok WOW strong enough → OPEN honestly",
+    "Samaria named Iron Gates stronger shot — OPEN soft",
+    "Offer volume — OPEN",
+    "DEC-008 dual-verify / publish — not done",
+    "Human visual review — NOT opened"
+  ]
+}

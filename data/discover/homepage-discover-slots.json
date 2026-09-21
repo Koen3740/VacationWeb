@@ -1,0 +1,9 @@
+{
+  "slots": [
+    { "slotIndex": 0, "destinationId": "albania", "previousDestinationId": "albania" },
+    { "slotIndex": 1, "destinationId": "sicily", "previousDestinationId": "sicily" },
+    { "slotIndex": 2, "destinationId": "crete", "previousDestinationId": "crete" },
+    { "slotIndex": 3, "destinationId": "sardinia", "previousDestinationId": "sardinia" },
+    { "slotIndex": 4, "destinationId": null, "previousDestinationId": null }
+  ]
+}

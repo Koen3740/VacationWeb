@@ -1,0 +1,15 @@
+{
+  "patches": [
+    {
+      "assetId": "vw-story-sardinia-cliff-beach-aerial-23962079",
+      "updates": {
+        "imageCategory": "cala-goloritze",
+        "storyRole": "Cala Goloritzé aerial — Baunei limestone cove (Aguglia coast)",
+        "truthStatus": "unverified",
+        "notes": "AN-016 reclassify: place-truth demonstrable from Pexels description \"Breathtaking aerial photo of Cala Goloritzé beach in Sardinia with turquoise waters and rugged cliffs.\" + location \"Baunei, Sardegna, Italy\". URL https://www.pexels.com/photo/23962079/. Was needs_human in AN-015; gap Cala Goloritzè CLOSED via reclassification (same master). Pending dual verification. No homepage publish. DEC-008.",
+        "selectionMethod": "destination-research-visual-story-v1-gapfill-reclassify"
+      }
+    }
+  ],
+  "updatedAt": "2026-09-17"
+}

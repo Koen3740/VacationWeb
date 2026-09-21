@@ -1,0 +1,13 @@
+sourceName=Wikimedia Commons
+sourceUrl=https://commons.wikimedia.org/wiki/File%3ATempio_della_Concordia%2C_Valle_dei_Templi%2C_Agrigento%2C_Sicilia%2C_Italia_2024.jpg
+creator=Sharon Hahn Darlin
+license=CC BY 2.0
+licenseUrl=https://creativecommons.org/licenses/by/2.0
+commonsFile=Tempio_della_Concordia,_Valle_dei_Templi,_Agrigento,_Sicilia,_Italia_2024.jpg
+assessment=
+originalWidth=3956
+originalHeight=2967
+checkedAt=2026-09-17
+checkedBy=Grokky
+method=DOC-009 AN-018 CHG-019
+notes=Rights traced to Commons file page (not Google/Pinterest). DEC-008 pending dual verification. No publish.

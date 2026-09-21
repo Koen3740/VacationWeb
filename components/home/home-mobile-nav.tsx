@@ -79,7 +79,8 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
 
       {mounted && open
         ? createPortal(
-            <div className="fixed inset-0 z-50 lg:hidden">
+            // xl:hidden must match header hamburger breakpoint (xl:hidden), not lg.
+            <div className="fixed inset-0 z-50 xl:hidden">
               <button
                 type="button"
                 className="absolute inset-0 bg-[rgba(10,45,98,0.28)]"
@@ -113,7 +114,10 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
                     <li key={link.label}>
                       <Link
                         href={link.href}
-                        onClick={closeMenu}
+                        onClick={() => {
+                          // Defer unmount so Next.js Link navigation is not aborted.
+                          window.setTimeout(() => setOpen(false), 0);
+                        }}
                         className="block rounded-[10px] px-3 py-3 text-[16px] font-medium text-[#0A2D62] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]"
                       >
                         {link.label}

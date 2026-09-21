@@ -1,0 +1,7 @@
+assetId: vw-story-crete-vai-beach-commons
+sourceUrl: https://commons.wikimedia.org/wiki/File:Vai_R01.jpg
+commonsFile: Vai_R01.jpg
+license: CC BY 3.0
+creator: Marc Ryckaert (MJJR)
+checkedAt: 2026-09-18
+note: license_ok_pending_review; truth unverified; not published

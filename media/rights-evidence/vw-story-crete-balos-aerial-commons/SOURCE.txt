@@ -1,0 +1,7 @@
+assetId: vw-story-crete-balos-aerial-commons
+sourceUrl: https://commons.wikimedia.org/wiki/File%3AAerial_view_of_Balos_Beach_and_Lagoon_on_Crete%2C_Greece.jpg
+commonsFile: Aerial_view_of_Balos_Beach_and_Lagoon_on_Crete,_Greece.jpg
+license: CC BY 2.0
+creator: dronepicr
+checkedAt: 2026-09-18
+note: license_ok_pending_review; truth unverified; not published

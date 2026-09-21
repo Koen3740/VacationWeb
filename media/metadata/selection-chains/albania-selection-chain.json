@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-17",
+  "protocol": ["DOC-010", "DOC-009", "DEC-008"],
+  "analysisId": "AN-019",
+  "changeId": "CHG-020",
+  "destinationId": "albania",
+  "destination": {
+    "name": "Albanië",
+    "why": [
+      "Already in VacationWeb Discover managed pool seed (CHG-011/012); teaser on wow-ssot card.",
+      "Documented Riviera appeal (NatGeo; AKT.gov.al): Ionian coves Ksamil–Vlorë corridor.",
+      "UNESCO + cultural depth: Gjirokastër/Berat Ottoman townscapes; Butrint on southern itineraries (WHC 569; AKT).",
+      "Discovery/surprise vs GR/IT poolmates: Blue Eye karst; slate City of Stone typology (AN-015).",
+      "Story breadth: beach + inland UNESCO + karst spring on one southern axis (official itineraries)."
+    ],
+    "sources": [
+      "https://whc.unesco.org/en/list/569/",
+      "https://www.nationalgeographic.com/travel/article/why-the-albanian-riviera-is-the-perfect-roadtrip",
+      "https://akt.gov.al/en/itineraries/trip-to-visit-the-beautiful-Albanian-Riviera/",
+      "PROJECT_LOG AN-015; CHG-011 homepage-discover-destinations.ts"
+    ],
+    "openFactors": [
+      "Live VacationWeb offer volume/pricing for Albania not verified in AN-019 (Motor no-touch)."
+    ],
+    "rejectedClaims": [
+      "Hidden Caribbean of Europe as place-truth (AN-015)."
+    ]
+  },
+  "places": [
+    {
+      "placeId": "gjirokaster",
+      "name": "Gjirokastër",
+      "why": [
+        "AN-015 required inland settlement-character beat so Albania is not beach-only.",
+        "UNESCO City of Stone; core stop on official southern itineraries with Riviera + Blue Eye (AKT).",
+        "Vs Berat: complementary Ottoman typology; grey slate/kullë/fortress vs pale thousand-windows; geographically paired with south Riviera axis.",
+        "Place chosen before stock quality; multi-candidate acquire followed place decision (AN-017) — not stock-driven."
+      ],
+      "comparedPlaces": ["berat", "ksamil", "dhermi", "blue-eye", "butrint", "porto-palermo", "llogara"],
+      "roleInDestinationStory": "Cultural/architectural inland anchor: stone city + castle above Drino valley.",
+      "sources": [
+        "https://whc.unesco.org/en/list/569/",
+        "https://akt.gov.al/en/cities/gjirokaster/",
+        "https://albaniaguidebook.com/planning/berat-vs-gjirokaster/",
+        "AN-015",
+        "AN-017"
+      ],
+      "storyElements": [
+        { "storyElementId": "gjirokaster-cityscape-rooftops", "label": "Sea of slate roofs", "why": "Primary recognition of City of Stone skyline.", "photos": ["vw-story-albania-gjirokaster-cityscape-pudelek-fp"] },
+        { "storyElementId": "gjirokaster-slate-rooftops-intimate", "label": "Intimate slate rooftops", "why": "Close storytelling / Discover portrait beside wide establishing.", "photos": ["vw-story-albania-gjirokaster-rooftops-37604966"] },
+        { "storyElementId": "gjirokaster-clock-tower", "label": "Fortress clock tower", "why": "Recognisable Kalaja/Sahat silhouette.", "photos": ["vw-story-albania-gjirokaster-clock-tower-pudelek5"] },
+        { "storyElementId": "gjirokaster-house-fortress-view", "label": "House frame to fortress", "why": "Ottoman house + fortress + slate town in one frame.", "photos": ["vw-story-albania-gjirokaster-zekate-view-commons"] },
+        { "storyElementId": "gjirokaster-fortress", "label": "Moody fortress portrait", "why": "Complementary emotion/lighting to QI clock.", "photos": ["vw-story-albania-gjirokaster-fortress-20761909"] }
+      ]
+    },
+    {
+      "placeId": "ksamil",
+      "name": "Ksamil",
+      "why": ["Iconic Ionian islets/clarity for Riviera recognition (AN-015)."],
+      "roleInDestinationStory": "Primary beach recognition beat.",
+      "storyElements": [{ "storyElementId": "ksamil-sunset", "label": "Ksamil sunset water", "why": "Emotional Riviera establishing.", "photos": ["vw-story-albania-ksamil-sunset-33079364"] }]
+    },
+    {
+      "placeId": "dhermi",
+      "name": "Dhërmi",
+      "why": ["Riviera village cove with mountain backdrop (AKT/AN-015)."],
+      "roleInDestinationStory": "Riviera village contrast to Ksamil.",
+      "storyElements": [{ "storyElementId": "dhermi-framed", "label": "Framed Dhërmi cove", "why": "Surprise composition / establishing.", "photos": ["vw-story-albania-dhermi-framed-33396275"] }]
+    },
+    {
+      "placeId": "blue-eye",
+      "name": "Syri i Kaltër (Blue Eye)",
+      "why": ["Documented karst spring on Sarandë–Gjirokastër corridor (AKT; Lovealbania)."],
+      "roleInDestinationStory": "WOW discovery nature — surprise vs beach expectation.",
+      "storyElements": [{ "storyElementId": "blue-eye-spring", "label": "Blue Eye karst spring", "why": "Unexpected inland water wow.", "photos": ["vw-story-albania-blue-eye-commons"] }]
+    }
+  ],
+  "photos": {
+    "vw-story-albania-gjirokaster-cityscape-pudelek-fp": {
+      "placeId": "gjirokaster",
+      "storyElementId": "gjirokaster-cityscape-rooftops",
+      "whySelected": "Commons Featured Picture; strongest free-license establishing slate-roof cityscape + valley.",
+      "alternativesConsidered": ["Furtschegger panoramio superseded", "Pudelek roofs-only QI rejected less card WOW"],
+      "weaknesses": ["CC BY-SA attribution", "truthStatus unverified until human dual-verify"],
+      "analysisRef": "AN-017 B; AN-019 §4"
+    },
+    "vw-story-albania-gjirokaster-rooftops-37604966": {
+      "placeId": "gjirokaster",
+      "storyElementId": "gjirokaster-slate-rooftops-intimate",
+      "whySelected": "Pexels Mehmeti; intimate slate + vibrant sky; complementary portrait to FP.",
+      "alternativesConsidered": ["FP-only insufficient scale variety"],
+      "weaknesses": ["Place-proof via Pexels location metadata"],
+      "analysisRef": "AN-017 B; AN-019 §4"
+    },
+    "vw-story-albania-gjirokaster-clock-tower-pudelek5": {
+      "placeId": "gjirokaster",
+      "storyElementId": "gjirokaster-clock-tower",
+      "whySelected": "Commons QI; clean tower + mountains; no festival clutter.",
+      "alternativesConsidered": ["Pudelek Castle #4 stage clutter", "redundant Pexels clocks"],
+      "weaknesses": [],
+      "analysisRef": "AN-017 A; AN-019 §4"
+    },
+    "vw-story-albania-gjirokaster-zekate-view-commons": {
+      "placeId": "gjirokaster",
+      "storyElementId": "gjirokaster-house-fortress-view",
+      "whySelected": "House-framed fortress + slate town — beat C.",
+      "alternativesConsidered": ["malenki wide hillside clutter"],
+      "weaknesses": [],
+      "analysisRef": "AN-017 C; AN-019 §4"
+    },
+    "vw-story-albania-gjirokaster-fortress-20761909": {
+      "placeId": "gjirokaster",
+      "storyElementId": "gjirokaster-fortress",
+      "whySelected": "Moody portrait retained after compare as complementary to QI clock.",
+      "alternativesConsidered": ["Other Meinhardt/Zeqiri clocks redundant"],
+      "weaknesses": ["Possible overlap with clock-tower beat"],
+      "analysisRef": "AN-017 A; AN-019 §4"
+    },
+    "vw-story-albania-ksamil-sunset-33079364": {
+      "placeId": "ksamil",
+      "storyElementId": "ksamil-sunset",
+      "whySelected": "Strong lighting/emotion; AN-017 Riviera keep.",
+      "alternativesConsidered": ["Ksamil beach commons x2 rejected_preselect"],
+      "analysisRef": "AN-017; AN-019 §5"
+    },
+    "vw-story-albania-dhermi-framed-33396275": {
+      "placeId": "dhermi",
+      "storyElementId": "dhermi-framed",
+      "whySelected": "Discovery composition; Riviera village establishing.",
+      "alternativesConsidered": ["Himarë coast commons superseded"],
+      "analysisRef": "AN-017; AN-019 §5"
+    },
+    "vw-story-albania-blue-eye-commons": {
+      "placeId": "blue-eye",
+      "storyElementId": "blue-eye-spring",
+      "whySelected": "Place-proven Commons Blue Eye; WOW discovery spring.",
+      "alternativesConsidered": [],
+      "analysisRef": "AN-017; AN-019 §5"
+    }
+  }
+}

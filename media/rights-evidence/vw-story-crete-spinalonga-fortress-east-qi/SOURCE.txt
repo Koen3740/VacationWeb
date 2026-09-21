@@ -1,0 +1,13 @@
+sourceName=Wikimedia Commons
+sourceUrl=https://commons.wikimedia.org/wiki/File%3ASpinalonga_fortress_from_East%2C_2019.jpg
+creator=Cayambe
+license=CC BY-SA 4.0
+licenseUrl=https://creativecommons.org/licenses/by-sa/4.0
+commonsFile=Spinalonga_fortress_from_East,_2019.jpg
+assessment=quality
+originalWidth=6192
+originalHeight=3368
+checkedAt=2026-09-17
+checkedBy=Grokky
+method=DOC-009 AN-018 CHG-019
+notes=Rights traced to Commons file page (not Google/Pinterest). DEC-008 pending dual verification. No publish.

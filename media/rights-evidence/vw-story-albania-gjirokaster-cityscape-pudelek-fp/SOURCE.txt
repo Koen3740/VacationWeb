@@ -1,0 +1,13 @@
+assetId=vw-story-albania-gjirokaster-cityscape-pudelek-fp
+sourceName=Wikimedia Commons
+sourceUrl=https://commons.wikimedia.org/wiki/File:Gjirokast%D1%91r_(by_Pudelek).JPG
+creator=Pudelek (Marcin Szala)
+license=CC BY-SA 3.0
+licenseUrl=https://creativecommons.org/licenses/by-sa/3.0/
+rightsStatus=license_ok_pending_review
+truthStatus=unverified
+reviewStatus=pending_visual_review
+publishStatus=not_published
+checkedAt=2026-09-17 Europe/Brussels
+checkedBy=Grokky
+note=DEC-008: AI does not self dual-verify/publish. CHG-018 Albania re-pass.

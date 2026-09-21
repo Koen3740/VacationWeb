@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-17",
+  "destinationId": "sardinia",
+  "destination": "Sardinia",
+  "method": "DOC-010",
+  "analysis": "AN-020",
+  "change": "CHG-021",
+  "priorMethod": "DOC-009",
+  "priorAnalysis": "AN-018",
+  "priorChange": "CHG-019",
+  "discoverPoolMembership": "CHG-011",
+  "offerVolume": "OPEN",
+  "whyDestination": {
+    "sourcedFactors": [
+      "Discover-pool seed (CHG-011 / AN-015).",
+      "Unique combination: UNESCO nuragic Su Nuraxi + granite emerald NE coast + wild Piscinas dunes + Orosei/Baunei limestone cliffs (Cala Goloritzè / Aguglia) — SardegnaTurismo-highlighted icons.",
+      "Visual/WOW: Aguglia pinnacle, dune ripples, Tavolara massif profile, nuraghe complex, emerald waters.",
+      "Distinctiveness vs Sicily (Greek temples/Etna/Norman): Sardinia is nuragic Bronze Age + granite/limestone coasts + desert dunes; vs Crete (lagoons/Venetian/gorge): Sardinia inland nuraghe + dune system uniqueness; vs Albania (Ottoman stone/Riviera): island granite/nuragic identity.",
+      "Story breadth: NE recognition coast, east Orosei wow cove, inland UNESCO nuraghe, SW wild dunes, NE island landmark — island-scale contrast.",
+      "VW relevance: distinctive non-generic Mediterranean island for Discover; offer volume OPEN."
+    ],
+    "editorialHypotheses": [
+      "La Maddalena/Budelli pink beach may be access-restricted — do not claim without rights+access research.",
+      "Stronger Costa Smeralda granite-cove establishing still desirable (AN-018 OPEN)."
+    ]
+  },
+  "geographyCompared": [
+    {
+      "place": "Costa Smeralda / Gallura",
+      "decision": "chosen",
+      "role": "NE recognition emerald granite coast"
+    },
+    {
+      "place": "Cala Goloritzè (Baunei / Orosei)",
+      "decision": "chosen",
+      "role": "East limestone wow — Aguglia + cove (SardegnaTurismo icon)"
+    },
+    {
+      "place": "Su Nuraxi Barumini",
+      "decision": "chosen",
+      "role": "UNESCO nuragic inland cultural uniqueness"
+    },
+    {
+      "place": "Piscinas / Costa Verde",
+      "decision": "chosen",
+      "role": "SW dune system — wild contrast to Smeralda luxury"
+    },
+    {
+      "place": "Tavolara",
+      "decision": "chosen",
+      "role": "NE island massif landmark near Olbia/Smeralda axis"
+    },
+    {
+      "place": "La Maddalena / Budelli",
+      "decision": "not_shortlist",
+      "reason": "Access restrictions possible — research before claim; not forced"
+    },
+    {
+      "place": "Cala Luna",
+      "decision": "not_shortlist",
+      "reason": "Orosei alternative; Goloritzè Aguglia already owns east limestone wow"
+    },
+    {
+      "place": "Capo Caccia",
+      "decision": "not_shortlist",
+      "reason": "NW cliffs/caves alternative; not needed for current story breadth"
+    }
+  ],
+  "places": [
+    {
+      "placeId": "costa-smeralda",
+      "name": "Costa Smeralda / Gallura",
+      "region": "North-east Sardinia",
+      "narrativeRole": "NE recognition coast — emerald granite waters establishing.",
+      "whyPlace": [
+        "International recognition name for Sardinia holidays; granite emerald coast identity.",
+        "OPEN soft: stronger named granite cove still desirable; current emerald waters asset KEPT as establishing placeholder with honest weakness."
+      ],
+      "storyElements": [
+        {
+          "elementId": "C-emerald-coast",
+          "beatType": "establishing",
+          "why": "Emerald coastal waters establishing for Smeralda/Gallura recognition — best available after AN-018 Commons search limits.",
+          "photoIds": [
+            "vw-story-sardinia-emerald-coast-38146980"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "cala-goloritze",
+      "name": "Cala Goloritzè",
+      "region": "Baunei / Golfo di Orosei / east Sardinia",
+      "narrativeRole": "East limestone wow cove — Aguglia pinnacle + arch coast (SardegnaTurismo).",
+      "whyPlace": [
+        "Official tourism icon; Aguglia spire is unmistakable Sardinia east-coast identity.",
+        "Chosen for narrative limestone wow — distinct from granite Smeralda."
+      ],
+      "storyElements": [
+        {
+          "elementId": "A-cala-goloritze-aerial",
+          "beatType": "nature-setting",
+          "why": "Aerial cove scale of Goloritzè coast (reclass AN-016/018); keep with needs_human truth flag.",
+          "photoIds": [
+            "vw-story-sardinia-cliff-beach-aerial-23962079"
+          ]
+        },
+        {
+          "elementId": "A-cala-goloritze-aguglia",
+          "beatType": "nature-setting",
+          "why": "Place-proven sunlit Aguglia pinnacle — high place WOW and truthable Commons title.",
+          "photoIds": [
+            "vw-story-sardinia-cala-goloritze-aguglia-commons"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "su-nuraxi",
+      "name": "Su Nuraxi (Barumini)",
+      "region": "Central Sardinia / Barumini",
+      "narrativeRole": "UNESCO nuragic complex — inland Bronze Age uniqueness no other pool dest has.",
+      "whyPlace": [
+        "UNESCO Su Nuraxi is the defining cultural differentiator for Sardinia vs Sicily/Crete/Albania.",
+        "Inland placement balances coast-heavy shortlist."
+      ],
+      "storyElements": [
+        {
+          "elementId": "B-nuraghe",
+          "beatType": "cultural-story",
+          "why": "High-angle QI complex (Nagel 19) tells site story better than ground tower closes.",
+          "photoIds": [
+            "vw-story-sardinia-nuraghe-su-nuraxi-19"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "piscinas",
+      "name": "Piscinas / Costa Verde",
+      "region": "Arbus / south-west Sardinia",
+      "narrativeRole": "Wild dune system — desert-meets-sea contrast to Smeralda luxury.",
+      "whyPlace": [
+        "Distinctive dune ripples unique in pool; SW geographic balance.",
+        "Chosen for wild contrast narrative — not photo-first."
+      ],
+      "storyElements": [
+        {
+          "elementId": "D-piscinas",
+          "beatType": "nature-setting",
+          "why": "Arbus dune ripples — distinctive desert-meets-sea character.",
+          "photoIds": [
+            "vw-story-sardinia-piscinas-dunes-arbus10"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "tavolara",
+      "name": "Tavolara",
+      "region": "Gallura / NE near Olbia",
+      "narrativeRole": "Island limestone massif landmark on Smeralda/Olbia axis.",
+      "whyPlace": [
+        "Distinctive profile landmark; ties NE story without duplicating Smeralda water establishing.",
+        "Lenticular cloud surprise elevates landmark WOW (AN-018)."
+      ],
+      "storyElements": [
+        {
+          "elementId": "E-tavolara",
+          "beatType": "landmark",
+          "why": "Island profile + cloud cap — distinctive NE landmark.",
+          "photoIds": [
+            "vw-story-sardinia-tavolara-profilo-commons"
+          ]
+        }
+      ]
+    }
+  ],
+  "photos": {
+    "vw-story-sardinia-emerald-coast-38146980": {
+      "placeId": "costa-smeralda",
+      "storyElement": "C-emerald-coast",
+      "decision": "keep",
+      "whyPhoto": "Best available emerald waters establishing after AN-018; no stronger Commons granite cove acquired.",
+      "alternatives": [
+        "Commons search/429 limited — OPEN stronger granite cove"
+      ],
+      "wowDims": [
+        "emerald colour",
+        "coast establishing"
+      ],
+      "weaknesses": [
+        "Generic emerald water — weak named-place granite cove identity",
+        "OPEN upgrade"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "Pexels License",
+      "source": "Pexels / Bruno Storchi Bergmann"
+    },
+    "vw-story-sardinia-cliff-beach-aerial-23962079": {
+      "placeId": "cala-goloritze",
+      "storyElement": "A-cala-goloritze-aerial",
+      "decision": "keep",
+      "whyPhoto": "Strong aerial limestone cove scale; reclassed to Goloritzè coast in AN-016/018. Keep with explicit needs_human truth.",
+      "alternatives": [
+        "Aguglia commons complementary place-proven spire",
+        "boat-clutter panoramio REJECTED"
+      ],
+      "wowDims": [
+        "aerial cliff cove",
+        "portrait drama",
+        "Orosei character"
+      ],
+      "weaknesses": [
+        "truthStatus=needs_human (place-id needs human confirm)",
+        "not Aguglia-spire close"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "needs_human",
+      "license": "Pexels License",
+      "source": "Pexels / Serhii Panasiuk"
+    },
+    "vw-story-sardinia-cala-goloritze-aguglia-commons": {
+      "placeId": "cala-goloritze",
+      "storyElement": "A-cala-goloritze-aguglia",
+      "decision": "keep",
+      "whyPhoto": "Sunlit Aguglia pinnacle — place-proven Commons title; highest Goloritzè place WOW.",
+      "alternatives": [
+        "Baunei Guglia moody sea-level research",
+        "panoramio boat clutter REJECTED"
+      ],
+      "wowDims": [
+        "Aguglia recognizability",
+        "place-proven",
+        "limestone wow"
+      ],
+      "weaknesses": [
+        "Attribution CC BY 4.0",
+        "truth unverified pending DEC-008"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY 4.0",
+      "source": "Commons / Unukorno"
+    },
+    "vw-story-sardinia-nuraghe-su-nuraxi-19": {
+      "placeId": "su-nuraxi",
+      "storyElement": "B-nuraghe",
+      "decision": "keep",
+      "whyPhoto": "Nagel QI #19 high-angle complex beats ground towers 06/02 (AN-018).",
+      "alternatives": [
+        "Nagel 06 SUPERSEDED",
+        "Nagel 02 REJECTED"
+      ],
+      "wowDims": [
+        "QI",
+        "site complexity",
+        "UNESCO cultural uniqueness"
+      ],
+      "weaknesses": [
+        "Attribution; less 'holiday emotion' than coast shots"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY-SA 3.0",
+      "source": "Commons QI / Norbert Nagel"
+    },
+    "vw-story-sardinia-piscinas-dunes-arbus10": {
+      "placeId": "piscinas",
+      "storyElement": "D-piscinas",
+      "decision": "keep",
+      "whyPhoto": "Arbus dune ripples — distinctive desert-meets-sea; beat weaker Pexels dunes.",
+      "alternatives": [
+        "Pexels 36796797 SUPERSEDED",
+        "Porto Pino rejected_preselect redundant"
+      ],
+      "wowDims": [
+        "dune uniqueness",
+        "texture WOW",
+        "SW contrast"
+      ],
+      "weaknesses": [
+        "Attribution",
+        "sea edge not always in frame"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY-SA 4.0",
+      "source": "Commons / Gianni Careddu"
+    },
+    "vw-story-sardinia-tavolara-profilo-commons": {
+      "placeId": "tavolara",
+      "storyElement": "E-tavolara",
+      "decision": "keep",
+      "whyPhoto": "Profile + lenticular cloud — landmark surprise; beat weaker Pexels/distant variants.",
+      "alternatives": [
+        "Pexels 18660972 SUPERSEDED",
+        "Tavolara from South/distant REJECTED"
+      ],
+      "wowDims": [
+        "landmark profile",
+        "cloud surprise",
+        "NE axis"
+      ],
+      "weaknesses": [
+        "Attribution; truth unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY-SA 3.0",
+      "source": "Commons / Roberto Mura"
+    }
+  },
+  "shortlist": {
+    "priorSize": 6,
+    "size": 6,
+    "changesVsPrior": [],
+    "assetIds": [
+      "vw-story-sardinia-emerald-coast-38146980",
+      "vw-story-sardinia-cliff-beach-aerial-23962079",
+      "vw-story-sardinia-cala-goloritze-aguglia-commons",
+      "vw-story-sardinia-nuraghe-su-nuraxi-19",
+      "vw-story-sardinia-piscinas-dunes-arbus10",
+      "vw-story-sardinia-tavolara-profilo-commons"
+    ]
+  },
+  "openPoints": [
+    "Stronger Costa Smeralda named granite cove — OPEN",
+    "La Maddalena/Budelli — research access before claim",
+    "Aguglia sea-arch higher WOW upgrade — OPEN soft",
+    "cliff-beach-aerial truthStatus needs_human",
+    "Offer volume — OPEN",
+    "DEC-008 dual-verify / publish — not done"
+  ]
+}

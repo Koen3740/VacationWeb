@@ -1,0 +1,336 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-17",
+  "destinationId": "sicily",
+  "destination": "Sicily",
+  "method": "DOC-010",
+  "analysis": "AN-020",
+  "change": "CHG-021",
+  "priorMethod": "DOC-009",
+  "priorAnalysis": "AN-018",
+  "priorChange": "CHG-019",
+  "discoverPoolMembership": "CHG-011",
+  "offerVolume": "OPEN",
+  "whyDestination": {
+    "sourcedFactors": [
+      "Discover-pool seed destination (CHG-011 / AN-015) — official P2 four-destination pool membership.",
+      "Layered civilizations: Greek Doric temples (Valle dei Templi), Arab-Norman serial UNESCO (Cefalù cathedral in UNESCO 1487 Arab-Norman Palermo and Cathedral Churches of Cefalú and Monreale), Greek-Roman theatre with Etna views (Taormina).",
+      "Visit Sicily / European destination rankings cite Cefalù + Taormina among high-recognition Sicily stops for 2026 travel framing (tourism marketing — use as discovery cue, not place-truth).",
+      "Visual/WOW: Rocca+beach townscape, theatre+volcano landmark, temple landscape, Isola Bella cove — strong Discover-card shapes.",
+      "Distinctiveness vs other pool dests: vs Crete (beach lagoons / Venetian harbour / gorge) — Sicily emphasizes layered archaeology + Etna theatre; vs Sardinia (nuragic + granite emerald + dunes) — Sicily is Greek temples + Norman/Arab town fabric; vs Albania (Ottoman stone city + Riviera) — Sicily is Mediterranean island with volcano landmark and Doric temples.",
+      "Story breadth: north-coast town (Cefalù), east-coast glamour landmark (Taormina/Isola Bella), south/west archaeology (Agrigento) — geographic and civilizational range without forcing Etna crater / Ortigia / Scala dei Turchi.",
+      "VW relevance: high recognizability for Discover pool; offer volume OPEN (no Motor touch — no proof of inventory density claimed)."
+    ],
+    "editorialHypotheses": [
+      "Etna crater/lava and Scala dei Turchi remain strong WOW candidates — OPEN, not forced."
+    ]
+  },
+  "geographyCompared": [
+    {
+      "place": "Cefalù",
+      "decision": "chosen",
+      "role": "North-coast Norman cathedral town + beach + La Rocca townscape"
+    },
+    {
+      "place": "Taormina",
+      "decision": "chosen",
+      "role": "East-coast Greek-Roman theatre + Etna landmark / glamour"
+    },
+    {
+      "place": "Isola Bella",
+      "decision": "chosen",
+      "role": "Nature-reserve islet on Taormina coast — nature beat on same east axis"
+    },
+    {
+      "place": "Valle dei Templi / Concordia (Agrigento)",
+      "decision": "chosen",
+      "role": "UNESCO Greek temple archaeology — south/west cultural beat"
+    },
+    {
+      "place": "Palermo",
+      "decision": "not_shortlist",
+      "reason": "Capital density; Arab-Norman serial partly represented via Cefalù cathedral context; avoid capital sprawl without stronger curated set"
+    },
+    {
+      "place": "Ortigia / Syracuse",
+      "decision": "not_shortlist",
+      "reason": "OPEN gap AN-018 — strong story candidate, no place-proven shortlist asset this pass"
+    },
+    {
+      "place": "Scala dei Turchi",
+      "decision": "not_shortlist",
+      "reason": "OPEN gap AN-018 — white cliff WOW not acquired with rights+truth"
+    },
+    {
+      "place": "Etna crater close",
+      "decision": "not_shortlist",
+      "reason": "OPEN gap — Taormina theatre already carries Etna as backdrop landmark"
+    }
+  ],
+  "places": [
+    {
+      "placeId": "cefalu",
+      "name": "Cefalù",
+      "region": "North coast Sicily",
+      "narrativeRole": "North-coast living townscape: Norman cathedral (UNESCO 1487 serial) + sandy beach + La Rocca limestone crag.",
+      "whyPlace": [
+        "Sourced tourism identity: Visit Cefalù / AN-015 — beach town under Rocca with Norman Duomo.",
+        "UNESCO Arab-Norman serial context (cathedral churches of Cefalú) gives cultural depth beyond generic beach.",
+        "Chosen for narrative role as settlement+coast establishing — not because shortlist photos already existed (photos validated after place choice)."
+      ],
+      "storyElements": [
+        {
+          "elementId": "A-cefalu-waterfront",
+          "beatType": "establishing",
+          "why": "Shows Cefalù as a lived coastal town — waterfront + Rocca silhouette for instant recognition.",
+          "photoIds": [
+            "vw-story-sicily-cefalu-waterfront-18453312"
+          ]
+        },
+        {
+          "elementId": "A-cefalu-rocca-townscape",
+          "beatType": "settlement-character",
+          "why": "Orange-tile fabric under Rocca + sea establishes settlement character beyond beach postcard.",
+          "photoIds": [
+            "vw-story-sicily-cefalu-view-0832-commons"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "taormina",
+      "name": "Taormina",
+      "region": "East coast Sicily",
+      "narrativeRole": "East-coast glamour landmark — Ancient Theatre with Etna backdrop.",
+      "whyPlace": [
+        "NatGeo / classic Sicily itineraries treat Taormina theatre + Etna as must-see landmark (AN-015 sourced).",
+        "Delivers volcano-island distinctiveness unavailable at Cefalù or Agrigento.",
+        "Place chosen for landmark narrative role; photo selected only after multi-candidate Etna-visibility compare (AN-018)."
+      ],
+      "storyElements": [
+        {
+          "elementId": "B-taormina-theatre-etna",
+          "beatType": "landmark",
+          "why": "Single frame that is unmistakably Sicily: Greek-Roman seating curve + snow-capped Etna.",
+          "photoIds": [
+            "vw-story-sicily-taormina-teatro-etna-commons"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "isola-bella",
+      "name": "Isola Bella",
+      "region": "Taormina coast / east Sicily",
+      "narrativeRole": "Nature-reserve islet beat tied to Taormina coastal axis — turquoise cove contrast to theatre landmark.",
+      "whyPlace": [
+        "Geographic logic: same east-coast holiday axis as Taormina but different story type (nature vs cultural landmark).",
+        "Highly photogenic reserve islet — nature WOW without inventing a disconnected west-coast place.",
+        "Compared to Etna crater: Isola Bella closes nature beat with existing place-proven aerial; crater remains OPEN."
+      ],
+      "storyElements": [
+        {
+          "elementId": "D-isola-bella",
+          "beatType": "nature-setting",
+          "why": "Aerial scale of islet + turquoise shelf — nature wow complementary to Taormina theatre.",
+          "photoIds": [
+            "vw-story-sicily-isola-bella-37105275"
+          ]
+        }
+      ]
+    },
+    {
+      "placeId": "valle-dei-templi",
+      "name": "Valle dei Templi / Temple of Concordia (Agrigento)",
+      "region": "South-west Sicily / Agrigento",
+      "narrativeRole": "UNESCO Greek archaeology — civilizational depth and south/west geographic balance.",
+      "whyPlace": [
+        "Sourced: Valle dei Templi UNESCO; Concordia among best-preserved Doric temples (AN-015/NatGeo).",
+        "Needed for story breadth: without Agrigento, Sicily shortlist would be coast+theatre only.",
+        "Dual photos allowed as two story elements at same place: temple close landmark + valley landscape toward sea."
+      ],
+      "storyElements": [
+        {
+          "elementId": "C-concordia-close",
+          "beatType": "landmark",
+          "why": "Golden-hour temple close — icon recognition of Doric Sicily.",
+          "photoIds": [
+            "vw-story-sicily-concordia-temple-37261506"
+          ]
+        },
+        {
+          "elementId": "C-valle-concordia-landscape",
+          "beatType": "cultural-story",
+          "why": "Temple in olive valley toward sea — situates Concordia in landscape, not isolated monument.",
+          "photoIds": [
+            "vw-story-sicily-concordia-valle-2024-commons"
+          ]
+        }
+      ]
+    }
+  ],
+  "photos": {
+    "vw-story-sicily-cefalu-waterfront-18453312": {
+      "placeId": "cefalu",
+      "storyElement": "A-cefalu-waterfront",
+      "decision": "keep",
+      "whyPhoto": "Strong turquoise waterfront establishing with Rocca backdrop; AN-018 KEEP after compare vs street clutter and Rocca-trail set.",
+      "alternatives": [
+        "Pexels 38193686 street under Rocca — SUPERSEDED (clutter / weak WOW)",
+        "Commons La Rocca trail/ruins series — REJECTED (archaeology trail, less card WOW)",
+        "Commons View Cefalù 2015 peninsula — research only (A1+A2 enough)"
+      ],
+      "wowDims": [
+        "recognizability",
+        "turquoise establishing",
+        "Rocca silhouette",
+        "Discover-card fit"
+      ],
+      "weaknesses": [
+        "Pexels stock; less settlement-tile fabric than 0832 commons",
+        "truthStatus unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "Pexels License",
+      "source": "Pexels / Efrem Efre"
+    },
+    "vw-story-sicily-cefalu-view-0832-commons": {
+      "placeId": "cefalu",
+      "storyElement": "A-cefalu-rocca-townscape",
+      "decision": "keep",
+      "whyPhoto": "Rooftops + cathedral + Rocca + Mediterranean — highest settlement recognizability in A-set (AN-018 SELECT).",
+      "alternatives": [
+        "Waterfront 18453312 complementary establishing",
+        "Rocca 01/15/18/22/28 trail set rejected"
+      ],
+      "wowDims": [
+        "settlement fabric",
+        "Rocca landmark",
+        "sea horizon",
+        "composition"
+      ],
+      "weaknesses": [
+        "CC BY-SA attribution required",
+        "master packaged ~1920px thumb"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY-SA 4.0",
+      "source": "Commons / Ludvig14 / Cefalu_View_0832.jpg"
+    },
+    "vw-story-sicily-taormina-teatro-etna-commons": {
+      "placeId": "taormina",
+      "storyElement": "B-taormina-theatre-etna",
+      "decision": "keep",
+      "whyPhoto": "Clear snow Etna + classic theatre curve; CC0; beat prior Pexels where Etna was clouded (AN-018).",
+      "alternatives": [
+        "Pexels 4563289 — SUPERSEDED (Etna clouded)",
+        "Greec-Roman theater+Etna CC BY-SA — REJECTED (hazy)",
+        "Mt Etna from theatre Flickr — REJECTED (theatre weak)"
+      ],
+      "wowDims": [
+        "iconic landmark",
+        "Etna clarity",
+        "surprise volcano backdrop",
+        "uniqueness"
+      ],
+      "weaknesses": [
+        "Crowding/season not visible; truth unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC0",
+      "source": "Commons / Grey48"
+    },
+    "vw-story-sicily-concordia-temple-37261506": {
+      "placeId": "valle-dei-templi",
+      "storyElement": "C-concordia-close",
+      "decision": "keep",
+      "whyPhoto": "Golden-hour Doric landmark close; complementary to valley landscape element (not duplicate beat).",
+      "alternatives": [
+        "Pexels valle 10765309 — SUPERSEDED (side columns only)",
+        "Commons Concordia AG / textbook closes — REJECTED"
+      ],
+      "wowDims": [
+        "landmark recognition",
+        "golden light",
+        "emotional pull"
+      ],
+      "weaknesses": [
+        "Less landscape context than 2024 commons",
+        "truth unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "Pexels License",
+      "source": "Pexels / Brett A"
+    },
+    "vw-story-sicily-concordia-valle-2024-commons": {
+      "placeId": "valle-dei-templi",
+      "storyElement": "C-valle-concordia-landscape",
+      "decision": "keep",
+      "whyPhoto": "Temple in olive valley toward sea — cultural landscape story; dual Concordia justified as close vs landscape elements.",
+      "alternatives": [
+        "Concordia close 37261506 complementary",
+        "Valle-4/5 tourist frames rejected"
+      ],
+      "wowDims": [
+        "landscape context",
+        "cultural story",
+        "composition toward sea"
+      ],
+      "weaknesses": [
+        "CC BY 2.0 attribution",
+        "truth unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "CC BY 2.0",
+      "source": "Commons / Sharon Hahn Darlin"
+    },
+    "vw-story-sicily-isola-bella-37105275": {
+      "placeId": "isola-bella",
+      "storyElement": "D-isola-bella",
+      "decision": "keep",
+      "whyPhoto": "Strong turquoise aerial of islet; Commons beach-level alternative rejected for tourist clutter (AN-018).",
+      "alternatives": [
+        "Commons Isola Bella 01 beach — REJECTED (clutter)"
+      ],
+      "wowDims": [
+        "aerial scale",
+        "turquoise WOW",
+        "nature setting",
+        "portrait orientation option"
+      ],
+      "weaknesses": [
+        "Portrait may need crop for some cards",
+        "truth unverified"
+      ],
+      "rightsStatus": "license_ok_pending_review",
+      "truthStatus": "unverified",
+      "license": "Pexels License",
+      "source": "Pexels / Alejandro De Roa"
+    }
+  },
+  "shortlist": {
+    "priorSize": 6,
+    "size": 6,
+    "changesVsPrior": [],
+    "assetIds": [
+      "vw-story-sicily-cefalu-waterfront-18453312",
+      "vw-story-sicily-cefalu-view-0832-commons",
+      "vw-story-sicily-taormina-teatro-etna-commons",
+      "vw-story-sicily-concordia-temple-37261506",
+      "vw-story-sicily-concordia-valle-2024-commons",
+      "vw-story-sicily-isola-bella-37105275"
+    ]
+  },
+  "openPoints": [
+    "Ortigia / Syracuse alleys — OPEN (AN-018)",
+    "Scala dei Turchi — OPEN",
+    "Etna crater / lava close — OPEN (theatre carries Etna backdrop)",
+    "Offer volume — OPEN (Motor not touched)",
+    "DEC-008 dual-verify / publish — not done"
+  ]
+}
