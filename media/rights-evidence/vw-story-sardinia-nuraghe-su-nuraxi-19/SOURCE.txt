@@ -1,0 +1,13 @@
+sourceName=Wikimedia Commons
+sourceUrl=https://commons.wikimedia.org/wiki/File%3ANuraghe_Su_Nuraxi_-_Barumini_-_Sardinia_-_Italy_-_19.jpg
+creator=Norbert Nagel
+license=CC BY-SA 3.0
+licenseUrl=https://creativecommons.org/licenses/by-sa/3.0
+commonsFile=Nuraghe_Su_Nuraxi_-_Barumini_-_Sardinia_-_Italy_-_19.jpg
+assessment=quality
+originalWidth=5007
+originalHeight=3342
+checkedAt=2026-09-17
+checkedBy=Grokky
+method=DOC-009 AN-018 CHG-019
+notes=Rights traced to Commons file page (not Google/Pinterest). DEC-008 pending dual verification. No publish.

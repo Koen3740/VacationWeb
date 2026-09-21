@@ -33,7 +33,7 @@ export function HomePhotoCardLink({ href, imageSrc, title }: HomePhotoCardLinkPr
           src={imageSrc}
           alt={title}
           fill
-          sizes="(max-width: 768px) 50vw, 20vw"
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
           className="object-cover object-center transition duration-500 group-hover:scale-[1.02]"
           unoptimized={
             imageSrc.startsWith('https://') || imageSrc.toLowerCase().endsWith('.jfif')

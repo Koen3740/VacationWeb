@@ -1,0 +1,13 @@
+sourceName=Wikimedia Commons
+sourceUrl=https://commons.wikimedia.org/wiki/File%3ASicily_Taormina_Teatro_Greco_Etna.jpg
+creator=Grey48
+license=CC0
+licenseUrl=http://creativecommons.org/publicdomain/zero/1.0/deed.en
+commonsFile=Sicily_Taormina_Teatro_Greco_Etna.jpg
+assessment=
+originalWidth=4600
+originalHeight=3072
+checkedAt=2026-09-17
+checkedBy=Grokky
+method=DOC-009 AN-018 CHG-019
+notes=Rights traced to Commons file page (not Google/Pinterest). DEC-008 pending dual verification. No publish.

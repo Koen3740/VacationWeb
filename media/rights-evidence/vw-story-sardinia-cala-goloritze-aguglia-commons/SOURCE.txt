@@ -1,0 +1,13 @@
+sourceName=Wikimedia Commons
+sourceUrl=https://commons.wikimedia.org/wiki/File%3ASardegna_Cala_Goloritze.jpg
+creator=Unukorno
+license=CC BY 4.0
+licenseUrl=https://creativecommons.org/licenses/by/4.0
+commonsFile=Sardegna_Cala_Goloritze.jpg
+assessment=
+originalWidth=3164
+originalHeight=2373
+checkedAt=2026-09-17
+checkedBy=Grokky
+method=DOC-009 AN-018 CHG-019
+notes=Rights traced to Commons file page (not Google/Pinterest). DEC-008 pending dual verification. No publish.

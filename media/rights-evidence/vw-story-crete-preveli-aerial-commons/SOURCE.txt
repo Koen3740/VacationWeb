@@ -1,0 +1,7 @@
+assetId: vw-story-crete-preveli-aerial-commons
+sourceUrl: https://commons.wikimedia.org/wiki/File:Aerial_view_of_the_palm_beach_Preveli_on_Crete,_Greece.jpg
+commonsFile: Aerial_view_of_the_palm_beach_Preveli_on_Crete,_Greece.jpg
+license: CC BY 2.0
+creator: dronepicr
+checkedAt: 2026-09-18
+note: license_ok_pending_review; truth unverified; not published

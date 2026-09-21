@@ -1,0 +1,289 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-17",
+  "round": "v3-unsplash-shortlist-partial",
+  "assets": [
+    {
+      "assetId": "vw-pend-cefalu-unsplash-CtzaLWK2Foo",
+      "mediaType": "photo",
+      "visualClass": "place-truth",
+      "selectionRound": "v3-unsplash-shortlist",
+      "placeKey": "cefalu",
+      "truthStatus": "unverified",
+      "rightsStatus": "pending",
+      "sourceName": "Unsplash",
+      "sourceUrl": "https://unsplash.com/photos/a-body-of-water-with-buildings-on-a-hill-in-the-background-CtzaLWK2Foo",
+      "creator": "Petr Slováček (@grwood)",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "commercialWebOk": "unknown",
+      "rightsCheckedAt": "2026-09-17",
+      "rightsCheckedBy": "Grokky",
+      "masterPath": null,
+      "masterStatus": "awaiting_download",
+      "orientation": "landscape",
+      "visualWhy": "Waterfront + La Rocca reflection",
+      "suggestedUsesVisual": [
+        "discover",
+        "place",
+        "hero"
+      ],
+      "publishStatus": "not_published",
+      "notes": "Unsplash shortlist from browser (AN-011 follow-up). Master not yet on disk (CDN 429). Do not verified/publish.",
+      "unsplashId": "CtzaLWK2Foo"
+    },
+    {
+      "assetId": "vw-pend-cefalu-unsplash-Er4gxPJpRe8",
+      "mediaType": "photo",
+      "visualClass": "place-truth",
+      "selectionRound": "v3-unsplash-shortlist",
+      "placeKey": "cefalu",
+      "truthStatus": "unverified",
+      "rightsStatus": "pending",
+      "sourceName": "Unsplash",
+      "sourceUrl": "https://unsplash.com/photos/white-and-brown-concrete-buildings-near-body-of-water-during-daytime-Er4gxPJpRe8",
+      "creator": "Henrique Ferreira (@rickpsd)",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "commercialWebOk": "unknown",
+      "rightsCheckedAt": "2026-09-17",
+      "rightsCheckedBy": "Grokky",
+      "masterPath": null,
+      "masterStatus": "awaiting_download",
+      "orientation": "landscape",
+      "visualWhy": "Aerial rooftops harbor La Rocca",
+      "suggestedUsesVisual": [
+        "discover",
+        "place",
+        "hero"
+      ],
+      "publishStatus": "not_published",
+      "notes": "Unsplash shortlist from browser (AN-011 follow-up). Master not yet on disk (CDN 429). Do not verified/publish.",
+      "unsplashId": "Er4gxPJpRe8"
+    },
+    {
+      "assetId": "vw-pend-symi-unsplash-YqpZqRbmf4E",
+      "mediaType": "photo",
+      "visualClass": "place-truth",
+      "selectionRound": "v3-unsplash-shortlist",
+      "placeKey": "symi",
+      "truthStatus": "unverified",
+      "rightsStatus": "pending",
+      "sourceName": "Unsplash",
+      "sourceUrl": "https://unsplash.com/photos/colorful-houses-on-symi-harbor-YqpZqRbmf4E",
+      "creator": "Esin (@essari)",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "commercialWebOk": "unknown",
+      "rightsCheckedAt": "2026-09-17",
+      "rightsCheckedBy": "Grokky",
+      "masterPath": null,
+      "masterStatus": "awaiting_download",
+      "orientation": "landscape",
+      "visualWhy": "Symi harbor boats colorful houses",
+      "suggestedUsesVisual": [
+        "discover",
+        "place",
+        "hero"
+      ],
+      "publishStatus": "not_published",
+      "notes": "Unsplash shortlist from browser (AN-011 follow-up). Master not yet on disk (CDN 429). Do not verified/publish.",
+      "unsplashId": "YqpZqRbmf4E"
+    },
+    {
+      "assetId": "vw-pend-symi-unsplash-TTwXEOxpcCI",
+      "mediaType": "photo",
+      "visualClass": "place-truth",
+      "selectionRound": "v3-unsplash-shortlist",
+      "placeKey": "symi",
+      "truthStatus": "unverified",
+      "rightsStatus": "pending",
+      "sourceName": "Unsplash",
+      "sourceUrl": "https://unsplash.com/photos/houses-on-mountain-near-body-of-water-during-daytime-TTwXEOxpcCI",
+      "creator": "Dimitris Kiriakakis (@dimeloper)",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "commercialWebOk": "unknown",
+      "rightsCheckedAt": "2026-09-17",
+      "rightsCheckedBy": "Grokky",
+      "masterPath": null,
+      "masterStatus": "awaiting_download",
+      "orientation": "portrait",
+      "visualWhy": "Colorful houses + Gialos harbor",
+      "suggestedUsesVisual": [
+        "discover",
+        "place",
+        "card"
+      ],
+      "publishStatus": "not_published",
+      "notes": "Unsplash shortlist from browser (AN-011 follow-up). Master not yet on disk (CDN 429). Do not verified/publish.",
+      "unsplashId": "TTwXEOxpcCI"
+    },
+    {
+      "assetId": "vw-pend-cadaques-unsplash-8xDLEF1xgtM",
+      "mediaType": "photo",
+      "visualClass": "place-truth",
+      "selectionRound": "v3-unsplash-shortlist",
+      "placeKey": "cadaques",
+      "truthStatus": "unverified",
+      "rightsStatus": "pending",
+      "sourceName": "Unsplash",
+      "sourceUrl": "https://unsplash.com/photos/boats-on-the-harbor-8xDLEF1xgtM",
+      "creator": "Saul Mercado (@mercadomuses)",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "commercialWebOk": "unknown",
+      "rightsCheckedAt": "2026-09-17",
+      "rightsCheckedBy": "Grokky",
+      "masterPath": null,
+      "masterStatus": "awaiting_download",
+      "orientation": "landscape",
+      "visualWhy": "White village church across bay boats",
+      "suggestedUsesVisual": [
+        "discover",
+        "place",
+        "hero"
+      ],
+      "publishStatus": "not_published",
+      "notes": "Unsplash shortlist from browser (AN-011 follow-up). Master not yet on disk (CDN 429). Do not verified/publish.",
+      "unsplashId": "8xDLEF1xgtM"
+    },
+    {
+      "assetId": "vw-pend-cadaques-unsplash-5BDzbeO5nx0",
+      "mediaType": "photo",
+      "visualClass": "place-truth",
+      "selectionRound": "v3-unsplash-shortlist",
+      "placeKey": "cadaques",
+      "truthStatus": "unverified",
+      "rightsStatus": "pending",
+      "sourceName": "Unsplash",
+      "sourceUrl": "https://unsplash.com/photos/cadaques-coastal-town-on-mediterranean-5BDzbeO5nx0",
+      "creator": "Sergey Konstantinov (@twirl)",
+      "license": "Unsplash License",
+      "licenseUrl": "https://unsplash.com/license",
+      "commercialWebOk": "unknown",
+      "rightsCheckedAt": "2026-09-17",
+      "rightsCheckedBy": "Grokky",
+      "masterPath": null,
+      "masterStatus": "awaiting_download",
+      "orientation": "landscape",
+      "visualWhy": "Explicit Cadaqués harbor skyline",
+      "suggestedUsesVisual": [
+        "discover",
+        "place",
+        "hero"
+      ],
+      "publishStatus": "not_published",
+      "notes": "Unsplash shortlist from browser (AN-011 follow-up). Master not yet on disk (CDN 429). Do not verified/publish.",
+      "unsplashId": "5BDzbeO5nx0"
+    }
+  ],
+  "remainingPlaces": [
+    "kas",
+    "nazare"
+  ],
+  "fullAgentShortlist": {
+    "cefalu": [
+      {
+        "url": "https://unsplash.com/photos/a-body-of-water-with-buildings-on-a-hill-in-the-background-CtzaLWK2Foo",
+        "id": "CtzaLWK2Foo",
+        "photographer": "Petr Slováček",
+        "username": "grwood",
+        "orient": "landscape",
+        "why": "Waterfront + La Rocca reflection"
+      },
+      {
+        "url": "https://unsplash.com/photos/white-and-brown-concrete-buildings-near-body-of-water-during-daytime-Er4gxPJpRe8",
+        "id": "Er4gxPJpRe8",
+        "photographer": "Henrique Ferreira",
+        "username": "rickpsd",
+        "orient": "landscape",
+        "why": "Aerial rooftops harbor La Rocca"
+      },
+      {
+        "url": "https://unsplash.com/photos/brown-and-white-concrete-houses-near-body-of-water-during-daytime-OOtlY6Z7PW0",
+        "id": "OOtlY6Z7PW0",
+        "photographer": "Henrique Ferreira",
+        "username": "rickpsd",
+        "orient": "landscape",
+        "why": "Elevated rooftops cathedral beach Rocca"
+      },
+      {
+        "url": "https://unsplash.com/photos/aerial-photography-of-brown-town-near-ocean-tR54rO5JwsA",
+        "id": "tR54rO5JwsA",
+        "photographer": "Jacek Dylag",
+        "username": "dylu",
+        "orient": "landscape",
+        "why": "Elevated panorama town beach cliff"
+      }
+    ],
+    "symi": [
+      {
+        "url": "https://unsplash.com/photos/houses-on-mountain-near-body-of-water-during-daytime-TTwXEOxpcCI",
+        "id": "TTwXEOxpcCI",
+        "photographer": "Dimitris Kiriakakis",
+        "username": "dimeloper",
+        "orient": "portrait",
+        "why": "Colorful houses + Gialos harbor"
+      },
+      {
+        "url": "https://unsplash.com/photos/colorful-houses-on-symi-harbor-YqpZqRbmf4E",
+        "id": "YqpZqRbmf4E",
+        "photographer": "Esin",
+        "username": "essari",
+        "orient": "landscape",
+        "why": "Symi harbor boats colorful houses"
+      },
+      {
+        "url": "https://unsplash.com/photos/colorful-houses-on-symi-harbor-hillside-NMrxJosIxJI",
+        "id": "NMrxJosIxJI",
+        "photographer": "Sergei Gussev",
+        "username": "sergei_gussev",
+        "orient": "portrait",
+        "why": "Pastel hillside above harbor"
+      },
+      {
+        "url": "https://unsplash.com/photos/colorful-hillside-town-overlooks-a-harbor-filled-with-boats-WzWrsisESzw",
+        "id": "WzWrsisESzw",
+        "photographer": "Nisa Yum",
+        "username": "nisayum",
+        "orient": "landscape",
+        "why": "Warm hillside panorama with boats"
+      }
+    ],
+    "cadaques": [
+      {
+        "url": "https://unsplash.com/photos/boats-on-the-harbor-8xDLEF1xgtM",
+        "id": "8xDLEF1xgtM",
+        "photographer": "Saul Mercado",
+        "username": "mercadomuses",
+        "orient": "landscape",
+        "why": "White village church across bay boats"
+      },
+      {
+        "url": "https://unsplash.com/photos/a-view-of-a-town-from-a-hill-FL-L0wWEMO4",
+        "id": "FL-L0wWEMO4",
+        "photographer": "Maciej Jasiński",
+        "username": "jasinski",
+        "orient": "portrait",
+        "why": "White hillside + church tower"
+      },
+      {
+        "url": "https://unsplash.com/photos/coastal-town-with-church-and-mountain-backdrop-FRnm7ggPjSI",
+        "id": "FRnm7ggPjSI",
+        "photographer": "Lucas Gallone",
+        "username": "lucasgallone",
+        "orient": "landscape",
+        "why": "Waterfront church mountain Cadaqués"
+      },
+      {
+        "url": "https://unsplash.com/photos/cadaques-coastal-town-on-mediterranean-5BDzbeO5nx0",
+        "id": "5BDzbeO5nx0",
+        "photographer": "Sergey Konstantinov",
+        "username": "twirl",
+        "orient": "landscape",
+        "why": "Explicit Cadaqués harbor skyline"
+      }
+    ]
+  }
+}

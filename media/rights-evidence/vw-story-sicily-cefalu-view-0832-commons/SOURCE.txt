@@ -1,0 +1,13 @@
+sourceName=Wikimedia Commons
+sourceUrl=https://commons.wikimedia.org/wiki/File%3ACefalu_View_0832.jpg
+creator=Ludvig14
+license=CC BY-SA 4.0
+licenseUrl=https://creativecommons.org/licenses/by-sa/4.0
+commonsFile=Cefalu_View_0832.jpg
+assessment=
+originalWidth=5464
+originalHeight=3640
+checkedAt=2026-09-17
+checkedBy=Grokky
+method=DOC-009 AN-018 CHG-019
+notes=Rights traced to Commons file page (not Google/Pinterest). DEC-008 pending dual verification. No publish.

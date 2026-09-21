@@ -3,12 +3,13 @@ import { FavoritesProvider } from '@/components/favorites/favorites-provider';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'VacationWeb | Vakantievergelijking met focus op budget',
-  description: 'Vacations vergelijken op basis van totale waarde, prijs per dag, flexibiliteit en meerdere aanbieders.',
-  keywords: ['vakantie', 'vacationweb', 'prijs per dag', 'vakantievergelijking', 'budget vakantie'],
+  title: 'VacationWeb | Meer vakantie voor jouw budget',
+  description:
+    'Vergelijk vakanties van meerdere reisaanbieders in één zoekopdracht. Boek rechtstreeks bij de reisorganisatie.',
+  keywords: ['vakantie', 'vacationweb', 'vakantie vergelijken', 'vakantievergelijking', 'bestemmingen'],
   openGraph: {
-    title: 'VacationWeb | Vakantievergelijking met focus op budget',
-    description: 'Vergelijk vakanties op waarde, prijs per dag en flexibiliteit.',
+    title: 'VacationWeb | Meer vakantie voor jouw budget',
+    description: 'Vergelijk vakanties van meerdere reisaanbieders in één zoekopdracht.',
     type: 'website',
   },
 };

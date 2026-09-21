@@ -1,0 +1,1 @@
+AN-016 gap-fill. Gjirokastër Fortress clock tower. Place-truth: Pexels title/location "Gjirokaster, Gjirokastër County, Albania"; description "Gjirokaster Fortress with its iconic clock tower". Pending dual verification. No homepage publish.

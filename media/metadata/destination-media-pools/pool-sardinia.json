@@ -1,0 +1,370 @@
+﻿{
+    "schemaVersion":  1,
+    "updatedAt":  "2026-09-18",
+    "destinationId":  "sardinia",
+    "poolType":  "destination_media_pool_v1",
+    "method":  "DOC-012",
+    "analysis":  "AN-022",
+    "change":  "CHG-023",
+    "governance":  [
+                       "DOC-012",
+                       "DOC-011",
+                       "DOC-010",
+                       "DOC-009",
+                       "AN-022",
+                       "CHG-023",
+                       "DEC-008"
+                   ],
+    "humanReview":  "NOT requested â€” no review card/widget",
+    "publishStatus":  "not_published",
+    "notes":  "AN-020 six promoted; added Cala Luna, La Pelosa, Maddalena, Gorropu. Capriccioli Shutterstock = RIGHTS_REJECTED. Bosa/Alghero OPEN (Commons 429).",
+    "poolSize":  10,
+    "finalVerifiedUsableCount":  10,
+    "assets":  [
+                   {
+                       "assetId":  "vw-story-sardinia-emerald-coast-38146980",
+                       "destinationId":  "sardinia",
+                       "placeId":  "costa-smeralda",
+                       "storyElement":  "C-emerald-coast",
+                       "sourceAiHints":  [
+                                             "ChatGPT/COSTA SMERALDA*",
+                                             "Claude/Capriccioli Shutterstock RIGHTS_REJECTED"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sardinia-emerald-coast-38146980.jpg",
+                       "sourceUrl":  "https://www.pexels.com/photo/38146980/",
+                       "license":  "Pexels License",
+                       "creator":  "Bruno Storchi Bergmann",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Sardinia emerald coastal waters",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Pexels",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sardinia-cliff-beach-aerial-23962079",
+                       "destinationId":  "sardinia",
+                       "placeId":  "goloritze",
+                       "storyElement":  "A-cala-goloritze-aerial",
+                       "sourceAiHints":  [
+                                             "ChatGPT/CALA*",
+                                             "Claude/Cala*",
+                                             "Grokky GoloritzÃ¨ gap signal"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sardinia-cliff-beach-aerial-23962079.jpg",
+                       "sourceUrl":  "https://www.pexels.com/photo/23962079/",
+                       "license":  "Pexels License",
+                       "creator":  "Serhii Panasiuk",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "needs_human",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Cala GoloritzÃ© aerial â€” Baunei limestone cove (Aguglia coast)",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Pexels",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sardinia-cala-goloritze-aguglia-commons",
+                       "destinationId":  "sardinia",
+                       "placeId":  "goloritze",
+                       "storyElement":  "A-cala-goloritze-aguglia",
+                       "sourceAiHints":  [
+                                             "ChatGPT/CALA*",
+                                             "Claude/Cala*",
+                                             "Grokky GoloritzÃ¨ gap signal"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sardinia-cala-goloritze-aguglia-commons.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ASardegna_Cala_Goloritze.jpg",
+                       "license":  "CC BY 4.0",
+                       "creator":  "Unukorno",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Cala GoloritzÃ¨ Aguglia limestone pinnacle sunlit â€” place-proven spire",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sardinia-nuraghe-su-nuraxi-19",
+                       "destinationId":  "sardinia",
+                       "placeId":  "su-nuraxi",
+                       "storyElement":  "B-nuraghe",
+                       "sourceAiHints":  [
+                                             "Claude/Su-Nuraxi*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sardinia-nuraghe-su-nuraxi-19.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ANuraghe_Su_Nuraxi_-_Barumini_-_Sardinia_-_Italy_-_19.jpg",
+                       "license":  "CC BY-SA 3.0",
+                       "creator":  "Norbert Nagel",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Su Nuraxi Barumini complex aerial/high angle â€” QI Bronze Age nuraghe",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sardinia-piscinas-dunes-arbus10",
+                       "destinationId":  "sardinia",
+                       "placeId":  "piscinas",
+                       "storyElement":  "D-piscinas",
+                       "sourceAiHints":  [
+                                             "Grokky-only gap signal â†’ Commons/Pexels prior"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sardinia-piscinas-dunes-arbus10.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3AArbus_-_Dune_di_Piscinas_%2810%29.JPG",
+                       "license":  "CC BY-SA 4.0",
+                       "creator":  "Gianni Careddu",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Piscinas dune ripples Arbus â€” distinctive desert-meets-sea dunes",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sardinia-tavolara-profilo-commons",
+                       "destinationId":  "sardinia",
+                       "placeId":  "tavolara",
+                       "storyElement":  "E-tavolara",
+                       "sourceAiHints":  [
+                                             "Grokky-only gap signal"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sardinia-tavolara-profilo-commons.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ATavolara_profilo.jpg",
+                       "license":  "CC BY-SA 3.0",
+                       "creator":  "Roberto Mura",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Tavolara island profile with lenticular cloud cap â€” distinctive landmark",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-pool-sardinia-cala-luna",
+                       "destinationId":  "sardinia",
+                       "placeId":  "cala-luna",
+                       "storyElement":  "F-cala-luna",
+                       "sourceAiHints":  [
+                                             "ChatGPT/CALA LUNA*",
+                                             "Claude/Cala-Luna*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-sardinia-cala-luna.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Cala_Luna.jpg",
+                       "license":  "CC BY-SA 3.0",
+                       "creator":  "Sven Jungnickel",
+                       "commonsFile":  "Cala_Luna.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Cala Luna Gulf of Orosei â€” east-coast cave-beach distinct from GoloritzÃ¨",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) â€” discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-sardinia-la-pelosa",
+                       "destinationId":  "sardinia",
+                       "placeId":  "la-pelosa",
+                       "storyElement":  "I-la-pelosa",
+                       "sourceAiHints":  [
+                                             "ChatGPT/LA PELOSA*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-sardinia-la-pelosa.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:La_Pelosa.jpg",
+                       "license":  "CC BY-SA 4.0",
+                       "creator":  "Antonello Masala",
+                       "commonsFile":  "La_Pelosa.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "La Pelosa Stintino turquoise shallow â€” NW beach identity",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) â€” discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-sardinia-maddalena",
+                       "destinationId":  "sardinia",
+                       "placeId":  "maddalena",
+                       "storyElement":  "J-maddalena",
+                       "sourceAiHints":  [
+                                             "ChatGPT/MADDALENA*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-sardinia-maddalena.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:La_Maddalena.jpg",
+                       "license":  "CC BY-SA 4.0",
+                       "creator":  "Tiuliano",
+                       "commonsFile":  "La_Maddalena.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "La Maddalena archipelago â€” NE island cluster story",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) â€” discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-sardinia-gorropu",
+                       "destinationId":  "sardinia",
+                       "placeId":  "gorropu",
+                       "storyElement":  "K-gorropu",
+                       "sourceAiHints":  [
+                                             "ChatGPT/GORROPU*",
+                                             "ChatGPT/SUPRAMONTE*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-sardinia-gorropu.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Gola_di_Gorropu_02.jpg",
+                       "license":  "CC BY 4.0",
+                       "creator":  "Unukorno",
+                       "commonsFile":  "Gola_di_Gorropu_02.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Gorropu gorge â€” inland Supramonte canyon vs beach set",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) â€” discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-story-sardinia-porto-pino-35142345",
+                       "destinationId":  "sardinia",
+                       "placeId":  "porto-pino",
+                       "storyElement":  "porto-pino-white-dunes-turquoise-sea",
+                       "sourceAiHints":  [
+                                             "ChatGPT/COSTA SMERALDA*",
+                                             "Claude/Capriccioli Shutterstock RIGHTS_REJECTED"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sardinia-porto-pino-35142345.jpg",
+                       "sourceUrl":  "https://www.pexels.com/",
+                       "license":  "Pexels License; verify source record",
+                       "creator":  "see original candidate provenance",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "P5 internal: pristine dunes and turquoise sea; strongest Sardinia WOW hero.",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "P5 promoted from existing candidate; DEC-008 dual verification pending",
+                       "sourceName":  "Pexels",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sardinia-tavolara-18660972",
+                       "destinationId":  "sardinia",
+                       "placeId":  "tavolara",
+                       "storyElement":  "tavolara-island-profile-turquoise-sea",
+                       "sourceAiHints":  [
+                                             "ChatGPT/COSTA SMERALDA*",
+                                             "Claude/Capriccioli Shutterstock RIGHTS_REJECTED"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sardinia-tavolara-18660972.jpg",
+                       "sourceUrl":  "https://www.pexels.com/",
+                       "license":  "Pexels License; verify source record",
+                       "creator":  "see original candidate provenance",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "P5 internal: iconic limestone island with crystal water; strong second hero.",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "P5 promoted from existing candidate; DEC-008 dual verification pending",
+                       "sourceName":  "Pexels",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   }
+               ]
+}

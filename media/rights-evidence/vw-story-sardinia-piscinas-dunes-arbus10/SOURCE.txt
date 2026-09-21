@@ -1,0 +1,13 @@
+sourceName=Wikimedia Commons
+sourceUrl=https://commons.wikimedia.org/wiki/File%3AArbus_-_Dune_di_Piscinas_%2810%29.JPG
+creator=Gianni Careddu
+license=CC BY-SA 4.0
+licenseUrl=https://creativecommons.org/licenses/by-sa/4.0
+commonsFile=Arbus_-_Dune_di_Piscinas_(10).JPG
+assessment=
+originalWidth=5184
+originalHeight=3456
+checkedAt=2026-09-17
+checkedBy=Grokky
+method=DOC-009 AN-018 CHG-019
+notes=Rights traced to Commons file page (not Google/Pinterest). DEC-008 pending dual verification. No publish.

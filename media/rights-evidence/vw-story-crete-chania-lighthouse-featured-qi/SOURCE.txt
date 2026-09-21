@@ -1,0 +1,13 @@
+sourceName=Wikimedia Commons
+sourceUrl=https://commons.wikimedia.org/wiki/File%3ALighthouse_in_Chania._Crete%2C_Greece.jpg
+creator=Ввласенко
+license=CC BY-SA 3.0
+licenseUrl=https://creativecommons.org/licenses/by-sa/3.0
+commonsFile=Lighthouse_in_Chania._Crete,_Greece.jpg
+assessment=featured|quality
+originalWidth=5507
+originalHeight=3709
+checkedAt=2026-09-17
+checkedBy=Grokky
+method=DOC-009 AN-018 CHG-019
+notes=Rights traced to Commons file page (not Google/Pinterest). DEC-008 pending dual verification. No publish.

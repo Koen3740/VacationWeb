@@ -5,7 +5,6 @@ import {
   DurationIcon,
   LocationIcon,
   PlaneIcon,
-  SearchButtonIcon,
   TravelersIcon,
 } from '@/components/home/home-search-icons';
 import { DepartureAirportPopup } from '@/components/search/departure-airport-popup/departure-airport-popup';
@@ -67,26 +66,26 @@ function SearchField({
 }) {
   return (
     <div
-      className={`flex min-h-[60px] min-w-0 flex-1 items-center gap-2.5 px-3.5 py-2 ${className}`}
+      className={`flex min-h-[52px] min-w-0 flex-1 items-center gap-2.5 px-3 py-2 lg:h-full lg:min-h-0 lg:px-3.5 ${className}`}
     >
       {icon}
       <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold uppercase tracking-[0.05em] text-[#94A3B8]">
+        <span className="block text-[12px] font-bold leading-none tracking-tight text-[#0A2D62]">
           {label}
         </span>
         <span
-          className={`mt-0.5 block text-[13px] font-semibold leading-snug text-[#0A2D62] ${valueClassName}`}
+          className={`mt-1 block text-[13.5px] font-medium leading-snug text-[#64748B] ${valueClassName}`}
         >
           {value}
         </span>
-        <span className="mt-0.5 block text-[11px] leading-snug text-[#94A3B8]">{hint}</span>
+        <span className="sr-only">{hint}</span>
       </span>
     </div>
   );
 }
 
 function Divider() {
-  return <div className="hidden w-px shrink-0 self-stretch bg-[#E8ECF2] lg:block" aria-hidden="true" />;
+  return <div className="hidden w-px shrink-0 self-stretch bg-[#E0E2E7] lg:block" aria-hidden="true" />;
 }
 
 type HomeSearchProps = {
@@ -142,10 +141,10 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
   ]);
 
   const destinationValue =
-    selectedCountries.length === 0 ? 'Kies bestemming' : formatSelectedCountriesLabel(selectedCountries);
+    selectedCountries.length === 0 ? 'Waar wil je naartoe?' : formatSelectedCountriesLabel(selectedCountries);
   const destinationHint =
     selectedCountries.length === 0
-      ? 'Land of regio'
+      ? 'Land of regio — jij kiest'
       : selectedCountries.length === 1
         ? '1 land'
         : `${selectedCountries.length} landen`;
@@ -155,11 +154,18 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
     departureEnd,
     flexibilityDays,
   });
-  const departureValue = departureDisplay.label ?? 'Kies periode';
-  const departureHint = departureDisplay.hint ?? 'Kies een datum of periode';
+  const departureValue = departureDisplay.label ?? 'Data flexibel';
+  const departureHint = departureDisplay.hint ?? 'Datum of periode';
 
-  const durationValue = formatSelectedDurationsLabel(selectedDurations);
-  const airportValue = formatSelectedDepartureAirportsLabel(selectedDepartureAirports);
+  const durationValue =
+    selectedDurations.length === 0
+      ? '7–14 nachten'
+      : formatSelectedDurationsLabel(selectedDurations);
+  const airportRaw = formatSelectedDepartureAirportsLabel(selectedDepartureAirports);
+  const airportValue =
+    selectedDepartureAirports.length === 0 || airportRaw === 'Alle luchthavens' || airportRaw === 'Luchthaven'
+      ? 'Vanaf Amsterdam'
+      : airportRaw;
   const travelersValue = formatTravelersLabel(travelers);
   const travelersHint = formatRoomsLabel(travelers);
 
@@ -220,13 +226,13 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
 
   return (
     <>
-      <div className="rounded-[16px] bg-white p-1 shadow-[0_10px_28px_rgba(10,45,98,0.12)] ring-1 ring-black/[0.04]">
-        <div className="flex flex-col gap-0 lg:flex-row lg:items-stretch">
-          <div className="flex min-w-0 flex-1 flex-col divide-y divide-[#EEF2F6] lg:flex-row lg:divide-x lg:divide-y-0">
+      <div className="mx-auto box-border w-[80vw] rounded-[16px] bg-[#FEFAF6] p-1 shadow-[0_12px_32px_rgba(10,45,98,0.12)] ring-1 ring-black/[0.06] lg:h-[98px] lg:min-h-[98px] lg:p-1">
+        <div className="flex flex-col gap-0 lg:h-full lg:flex-row lg:items-stretch">
+          <div className="flex min-w-0 flex-1 flex-col divide-y divide-[#E0E2E7] lg:h-full lg:flex-row lg:divide-x lg:divide-y-0 lg:divide-[#E0E2E7]">
             <button
               type="button"
               onClick={() => setDestinationPopupOpen(true)}
-              className={`${fieldButtonClass} lg:flex-[1.05]`}
+              className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
                 label="Bestemming"
@@ -241,7 +247,7 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
             <button
               type="button"
               onClick={openDeparturePopup}
-              className={`${fieldButtonClass} lg:min-w-[11.5rem] lg:flex-[1.45]`}
+              className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
                 label="Wanneer"
@@ -261,9 +267,9 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
               className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
-                label="Reisduur"
+                label="Duur"
                 value={durationValue}
-                hint="Flexibel"
+                hint="Bijv. 7–14 nachten"
                 icon={<DurationIcon />}
               />
             </button>
@@ -273,12 +279,12 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
             <button
               type="button"
               onClick={() => setAirportPopupOpen(true)}
-              className={`${fieldButtonClass} lg:min-w-[9rem] lg:flex-[1.15]`}
+              className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
                 label="Luchthaven"
                 value={airportValue}
-                hint="Flexibel"
+                hint="Vanaf Amsterdam"
                 icon={<PlaneIcon />}
                 valueClassName="whitespace-normal sm:whitespace-nowrap"
               />
@@ -300,16 +306,15 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
             </button>
           </div>
 
-          <div className="flex shrink-0 items-center p-1 lg:pl-2">
+          <div className="flex shrink-0 items-center p-1 lg:h-full lg:pl-2">
             <button
               type="button"
               onClick={handleSearch}
               disabled={searchBusy}
               aria-busy={searchBusy}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[12px] bg-[#0A2D62] px-6 text-sm font-semibold text-white transition hover:bg-[#082452] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] disabled:cursor-wait disabled:opacity-80 lg:h-[52px] lg:w-auto lg:min-w-[11.5rem] lg:px-7"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[12px] bg-[#3779B3] px-5 text-[13.5px] font-semibold text-white transition hover:bg-[#2F6A9E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3779B3] disabled:cursor-wait disabled:opacity-80 lg:h-[56px] lg:w-[250px] lg:min-w-[250px] lg:px-4"
             >
-              <SearchButtonIcon />
-              {searchBusy ? 'Zoeken…' : 'Vakanties zoeken'}
+              {searchBusy ? 'Zoeken…' : (<>Vakanties vergelijken <span aria-hidden>→</span></>)}
             </button>
           </div>
         </div>

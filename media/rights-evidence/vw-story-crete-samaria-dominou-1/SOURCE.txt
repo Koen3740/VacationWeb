@@ -1,0 +1,7 @@
+assetId: vw-story-crete-samaria-dominou-1
+sourceUrl: https://commons.wikimedia.org/wiki/File%3AK.Dominou-Samaria_gorge_1.jpg
+commonsFile: K.Dominou-Samaria_gorge_1.jpg
+license: CC BY-SA 4.0
+creator: Katerina Dominou
+checkedAt: 2026-09-18
+note: license_ok_pending_review; truth unverified; not published

@@ -1,0 +1,430 @@
+﻿{
+    "schemaVersion":  1,
+    "updatedAt":  "2026-09-18",
+    "destinationId":  "albania",
+    "poolType":  "destination_media_pool_v1",
+    "method":  "DOC-012",
+    "analysis":  "AN-022",
+    "change":  "CHG-023",
+    "governance":  [
+                       "DOC-012",
+                       "DOC-011",
+                       "DOC-010",
+                       "DOC-009",
+                       "AN-022",
+                       "CHG-023",
+                       "DEC-008"
+                   ],
+    "humanReview":  "NOT requested â€” no review card/widget",
+    "publishStatus":  "not_published",
+    "notes":  "Albania rights pass executed (locked shortlist did NOT skip rights). Reduced Gjirokaster overweight; added Berat/Theth/Rozafa/Llogara/Himara/Butrint via Commons replacements. Depositphotos Blue Eye = RIGHTS_REJECTED (benchmark).",
+    "poolSize":  12,
+    "finalVerifiedUsableCount":  11,
+    "assets":  [
+                   {
+                       "assetId":  "vw-story-albania-gjirokaster-cityscape-pudelek-fp",
+                       "destinationId":  "albania",
+                       "placeId":  "gjirokaster",
+                       "storyElement":  "B-slate-roofs-establishing",
+                       "sourceAiHints":  [
+                                             "Claude/Gjirokaster*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-albania-gjirokaster-cityscape-pudelek-fp.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Gjirokast%D1%91r_(by_Pudelek).JPG",
+                       "license":  "CC BY-SA 3.0",
+                       "creator":  "Pudelek (Marcin Szala)",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "GjirokastÃ«r UNESCO stone-city panorama â€” sea of slate roofs + mountain valley (Featured Picture)",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-albania-gjirokaster-clock-tower-pudelek5",
+                       "destinationId":  "albania",
+                       "placeId":  "gjirokaster",
+                       "storyElement":  "A-fortress-clock-tower",
+                       "sourceAiHints":  [
+                                             "Claude/Gjirokaster*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-albania-gjirokaster-clock-tower-pudelek5.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Gjirokast%C3%ABr_Castle_(by_Pudelek)_5_-_Clock_Tower.JPG",
+                       "license":  "CC BY-SA 4.0",
+                       "creator":  "Pudelek (Marcin Szala)",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "GjirokastÃ«r Fortress clock tower establishing â€” clean Quality image + mountain backdrop",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending ; second Gjiro beat (fortress vs roofs) intentionally kept",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-albania-blue-eye-commons",
+                       "destinationId":  "albania",
+                       "placeId":  "blue-eye",
+                       "storyElement":  "blue-eye-spring",
+                       "sourceAiHints":  [
+                                             "ChatGPT/BLUE EYE*",
+                                             "Claude/Blue-eye* (Depositphotos RIGHTS_REJECTED â€” replaced by Commons)"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-albania-blue-eye-commons.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Albania_Blue_Eye.jpg",
+                       "license":  "CC BY-SA 4.0",
+                       "creator":  "Holger Adams",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Syri i KaltÃ«r (Blue Eye) â€” karst spring wow",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-albania-ksamil-sunset-33079364",
+                       "destinationId":  "albania",
+                       "placeId":  "ksamil",
+                       "storyElement":  "ksamil-sunset",
+                       "sourceAiHints":  [
+                                             "ChatGPT/KSAMIL*",
+                                             "Claude/Ksamil*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-albania-ksamil-sunset-33079364.jpg",
+                       "sourceUrl":  "https://www.pexels.com/photo/33079364/",
+                       "license":  "Pexels License",
+                       "creator":  "Arlind_Dervishaj",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Ksamil sunset beach â€” turquoise Ionian",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Pexels",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-albania-dhermi-framed-33396275",
+                       "destinationId":  "albania",
+                       "placeId":  "dhermi",
+                       "storyElement":  "dhermi-framed",
+                       "sourceAiHints":  [
+                                             "ChatGPT/HIMARE*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-albania-dhermi-framed-33396275.jpg",
+                       "sourceUrl":  "https://www.pexels.com/photo/33396275/",
+                       "license":  "Pexels License",
+                       "creator":  "Sabina Kallari",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "DhÃ«rmi beach framed by greenery â€” Riviera",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Pexels",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-pool-albania-berat-unesco-2016",
+                       "destinationId":  "albania",
+                       "placeId":  "berat",
+                       "storyElement":  "A-berat-thousand-windows",
+                       "sourceAiHints":  [
+                                             "ChatGPT/BERAT1-3.jfif",
+                                             "Claude/Berat*.jpg"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-albania-berat-unesco-2016.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Berat_UNESCO_2016_Albania.jpg",
+                       "license":  "CC BY-SA 2.0",
+                       "creator":  "my_cottage",
+                       "commonsFile":  "Berat_UNESCO_2016_Albania.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "UNESCO Berat city-of-a-thousand-windows from castle â€” missing from Gjirokaster-heavy shortlist",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) â€” discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-albania-theth-national-park-2017",
+                       "destinationId":  "albania",
+                       "placeId":  "theth",
+                       "storyElement":  "E-theth-alps-valley",
+                       "sourceAiHints":  [
+                                             "ChatGPT/THETH*.jfif",
+                                             "ChatGPT/ALPS*.jfif",
+                                             "Claude/Albanian-Alps*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-albania-theth-national-park-2017.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Theth_and_Theth_National_Park,_Albania_2017.jpg",
+                       "license":  "CC BY 2.0",
+                       "creator":  "Peter Chovanec",
+                       "commonsFile":  "Theth_and_Theth_National_Park,_Albania_2017.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Albanian Alps / Theth valley â€” highland story missing from locked shortlist",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) â€” discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-albania-rozafa",
+                       "destinationId":  "albania",
+                       "placeId":  "rozafa",
+                       "storyElement":  "G-rozafa-castle",
+                       "sourceAiHints":  [
+                                             "Claude/Rozafa*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-albania-rozafa.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Rozafa_Castle.jpg",
+                       "license":  "CC BY 3.0",
+                       "creator":  "Tscakir",
+                       "commonsFile":  "Rozafa_Castle.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Rozafa/Shkodra north-gate castle â€” geographic north of destination map",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) â€” discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-albania-llogara",
+                       "destinationId":  "albania",
+                       "placeId":  "llogara",
+                       "storyElement":  "I-llogara-pass",
+                       "sourceAiHints":  [
+                                             "ChatGPT/LLOGARA*.jfif"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-albania-llogara.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Llogara.jpg",
+                       "license":  "CC BY 2.0",
+                       "creator":  "godo godaj",
+                       "commonsFile":  "Llogara.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Llogara pass panorama â€” Riviera approach / mountain-to-sea beat",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) â€” discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-albania-himara",
+                       "destinationId":  "albania",
+                       "placeId":  "himare",
+                       "storyElement":  "K-himare-dhermi-riviera",
+                       "sourceAiHints":  [
+                                             "ChatGPT/HIMARE*.jfif"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-albania-himara.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Himara_Albania.jpg",
+                       "license":  "CC BY 2.0",
+                       "creator":  "Michael Sujka",
+                       "commonsFile":  "Himara_Albania.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "uncertain",
+                       "truthNote":  "Commons caption: DhÃ«rmi Beach; filename Himara â€” dual-verify place label",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "DhÃ«rmi/Himara Riviera beach (Commons caption) â€” complements Dhermi framed Pexels",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) â€” discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-albania-butrint",
+                       "destinationId":  "albania",
+                       "placeId":  "butrint",
+                       "storyElement":  "F-butrint-archaeology",
+                       "sourceAiHints":  [
+                                             "Claude/Butrint*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-albania-butrint.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Butrint.jpg",
+                       "license":  "RIGHTS_UNCERTAIN_PENDING_API",
+                       "creator":  null,
+                       "commonsFile":  "Butrint.jpg",
+                       "rightsStatus":  "uncertain",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "RIGHTS_UNCERTAIN",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Butrint archaeology â€” UNESCO south story; license re-check required (redirect ambiguity)",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) â€” discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-albania-lake-koman",
+                       "destinationId":  "albania",
+                       "placeId":  "lake-koman",
+                       "storyElement":  "H-lake-koman",
+                       "sourceAiHints":  [
+                                             "ChatGPT/KOMAN*",
+                                             "ChatGPT/LAKE KOMAN*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-albania-lake-koman.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Liqeni_i_Komanit.jpg",
+                       "license":  "CC BY-SA 4.0",
+                       "creator":  "Mensur Gashi",
+                       "commonsFile":  "Liqeni_i_Komanit.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Lake Koman ferry fjord â€” north Albania water corridor story",
+                       "alternativesConsidered":  [
+                                                      "ChatGPT Lake Koman series"
+                                                  ],
+                       "redundancyNote":  "Commons candidate; license confirm in AN-022",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "DEC-008 dual-verify pending"
+                   },
+                   {
+                       "assetId":  "vw-story-albania-ksamil-bay-crop-p5",
+                       "destinationId":  "albania",
+                       "placeId":  "ksamil",
+                       "storyElement":  "ksamil-bay-turquoise-islands",
+                       "sourceAiHints":  [
+                                             "ChatGPT/KSAMIL*",
+                                             "Claude/Ksamil*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-albania-ksamil-bay-crop-p5.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/",
+                       "license":  "CC0; inherited from source master vw-story-albania-ksamil-beach-cc0-commons",
+                       "creator":  "see source asset",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CROPPED_CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "P5 internal: Ksamil turquoise bay; green pier removed by natural crop; benchmark-level travel impact.",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "P5 derived crop; rights inherited; DEC-008 dual verification pending.",
+                       "sourceName":  "Pexels",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-albania-blue-eye-crop-p5",
+                       "destinationId":  "albania",
+                       "placeId":  "blue-eye",
+                       "storyElement":  "blue-eye-spring",
+                       "sourceAiHints":  [
+                                             "ChatGPT/BLUE EYE*",
+                                             "Claude/Blue-eye* (Depositphotos RIGHTS_REJECTED â€” replaced by Commons)"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-albania-blue-eye-crop-p5.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Albania_Blue_Eye.jpg",
+                       "license":  "CC BY-SA 4.0",
+                       "creator":  "Holger Adams",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CROPPED_CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "P5 internal: Blue Eye spring; observation platform removed by natural crop.",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "P5 derived crop; rights inherited from Commons source; DEC-008 pending.",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   }
+               ]
+}

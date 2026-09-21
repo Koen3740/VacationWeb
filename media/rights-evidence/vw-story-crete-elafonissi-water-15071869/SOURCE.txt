@@ -1,0 +1,7 @@
+assetId: vw-story-crete-elafonissi-water-15071869
+sourceUrl: https://www.pexels.com/photo/15071869/
+commonsFile: 
+license: Pexels License
+creator: Nektaria Kleopoulos
+checkedAt: 2026-09-18
+note: license_ok_pending_review; truth unverified; not published

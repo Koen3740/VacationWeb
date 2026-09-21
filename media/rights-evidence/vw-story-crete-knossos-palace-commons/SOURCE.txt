@@ -1,0 +1,7 @@
+assetId: vw-story-crete-knossos-palace-commons
+sourceUrl: https://commons.wikimedia.org/wiki/File:Knossos_palace.jpg
+commonsFile: Knossos_palace.jpg
+license: CC BY-SA 4.0
+creator: Theofanis Ampatzidis (User:Theampatz)
+checkedAt: 2026-09-18
+note: license_ok_pending_review; truth unverified; not published

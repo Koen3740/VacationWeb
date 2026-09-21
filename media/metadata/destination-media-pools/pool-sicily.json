@@ -1,0 +1,313 @@
+{
+    "schemaVersion":  1,
+    "updatedAt":  "2026-09-18",
+    "destinationId":  "sicily",
+    "poolType":  "destination_media_pool_v1",
+    "method":  "DOC-012",
+    "analysis":  "AN-022",
+    "change":  "CHG-023",
+    "governance":  [
+                       "DOC-012",
+                       "DOC-011",
+                       "DOC-010",
+                       "DOC-009",
+                       "AN-022",
+                       "CHG-023",
+                       "DEC-008"
+                   ],
+    "humanReview":  "NOT requested — no review card/widget",
+    "publishStatus":  "not_published",
+    "notes":  "AN-020 six promoted; added Ortigia, Scala dei Turchi, Alcantara. Etna covered via Taormina+Etna frame; dedicated Etna/Noto/Zingaro/Stromboli OPEN (rate-limit / quality).",
+    "poolSize":  10,
+    "finalVerifiedUsableCount":  10,
+    "assets":  [
+                   {
+                       "assetId":  "vw-story-sicily-cefalu-waterfront-18453312",
+                       "destinationId":  "sicily",
+                       "placeId":  "cefalu",
+                       "storyElement":  "A-cefalu-waterfront",
+                       "sourceAiHints":  [
+                                             "ChatGPT/CEFALU*",
+                                             "Claude/Cefalu*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sicily-cefalu-waterfront-18453312.jpg",
+                       "sourceUrl":  "https://www.pexels.com/photo/18453312/",
+                       "license":  "Pexels License",
+                       "creator":  "Efrem Efre",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Cefalù waterfront with mountain backdrop",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Pexels",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sicily-cefalu-view-0832-commons",
+                       "destinationId":  "sicily",
+                       "placeId":  "cefalu",
+                       "storyElement":  "A-cefalu-rocca-townscape",
+                       "sourceAiHints":  [
+                                             "ChatGPT/CEFALU*",
+                                             "Claude/Cefalu*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sicily-cefalu-view-0832-commons.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ACefalu_View_0832.jpg",
+                       "license":  "CC BY-SA 4.0",
+                       "creator":  "Ludvig14",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Cefalù orange-tile rooftops under La Rocca + Mediterranean — settlement establishing",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sicily-taormina-teatro-etna-commons",
+                       "destinationId":  "sicily",
+                       "placeId":  "taormina",
+                       "storyElement":  "B-taormina-theatre-etna",
+                       "sourceAiHints":  [
+                                             "ChatGPT/TAORMINA*",
+                                             "Claude/Taormina*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sicily-taormina-teatro-etna-commons.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ASicily_Taormina_Teatro_Greco_Etna.jpg",
+                       "license":  "CC0",
+                       "creator":  "Grey48",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Ancient Theatre of Taormina with snow-capped Etna — iconic landmark",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sicily-concordia-temple-37261506",
+                       "destinationId":  "sicily",
+                       "placeId":  "valle-templi",
+                       "storyElement":  "C-concordia-close",
+                       "sourceAiHints":  [
+                                             "ChatGPT/VALLE*",
+                                             "Claude/Valle*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sicily-concordia-temple-37261506.jpg",
+                       "sourceUrl":  "https://www.pexels.com/photo/37261506/",
+                       "license":  "Pexels License",
+                       "creator":  "Brett A",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Ancient Greek temple Agrigento",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Pexels",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sicily-concordia-valle-2024-commons",
+                       "destinationId":  "sicily",
+                       "placeId":  "valle-templi",
+                       "storyElement":  "C-valle-concordia-landscape",
+                       "sourceAiHints":  [
+                                             "ChatGPT/VALLE*",
+                                             "Claude/Valle*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sicily-concordia-valle-2024-commons.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ATempio_della_Concordia%2C_Valle_dei_Templi%2C_Agrigento%2C_Sicilia%2C_Italia_2024.jpg",
+                       "license":  "CC BY 2.0",
+                       "creator":  "Sharon Hahn Darlin",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Temple of Concordia in Valle dei Templi olive landscape toward sea",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-story-sicily-isola-bella-37105275",
+                       "destinationId":  "sicily",
+                       "placeId":  "isola-bella",
+                       "storyElement":  "D-isola-bella",
+                       "sourceAiHints":  [
+                                             "Claude/Isola*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-story-sicily-isola-bella-37105275.jpg",
+                       "sourceUrl":  "https://www.pexels.com/photo/37105275/",
+                       "license":  "Pexels License",
+                       "creator":  "Alejandro De Roa",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Isola Bella aerial Taormina",
+                       "alternativesConsidered":  [
+
+                                                  ],
+                       "redundancyNote":  "Promoted from prior shortlist (AN-017/019/020/021); DEC-008 dual-verify still pending",
+                       "sourceName":  "Pexels",
+                       "promotedFrom":  "shortlist_repass",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "rightsStatus remains pending dual human verification; not commercial-final-cleared"
+                   },
+                   {
+                       "assetId":  "vw-pool-sicily-ortigia",
+                       "destinationId":  "sicily",
+                       "placeId":  "ortigia",
+                       "storyElement":  "F-ortigia",
+                       "sourceAiHints":  [
+                                             "Claude/Ortigia*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-sicily-ortigia.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Ortigia.jpg",
+                       "license":  "CC BY 2.0",
+                       "creator":  "Denis Simonet",
+                       "commonsFile":  "Ortigia.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Ortigia/Syracuse island town — south-east urban story missing from Cefalu/Taormina/Agrigento set",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) — discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-sicily-scala-dei-turchi",
+                       "destinationId":  "sicily",
+                       "placeId":  "scala-turchi",
+                       "storyElement":  "G-scala-dei-turchi",
+                       "sourceAiHints":  [
+                                             "Claude/Scala*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-sicily-scala-dei-turchi.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Scala_dei_Turchi.jpg",
+                       "license":  "Public domain",
+                       "creator":  "Vegafi",
+                       "commonsFile":  "Scala_dei_Turchi.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "White cliff stair — unique geological WOW vs temples/coast towns",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) — discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-sicily-alcantara",
+                       "destinationId":  "sicily",
+                       "placeId":  "alcantara",
+                       "storyElement":  "K-alcantara-gorges",
+                       "sourceAiHints":  [
+                                             "ChatGPT/ALCANTARA*.jfif"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-sicily-alcantara.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Gole_Alcantara.jpg",
+                       "license":  "CC0",
+                       "creator":  "Luscorpion71",
+                       "commonsFile":  "Gole_Alcantara.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "truthNote":  null,
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Alcantara basalt gorges — inland Etna-region water story",
+                       "alternativesConsidered":  [
+                                                      "AI benchmark files (Claude/ChatGPT) — discovery only, not publishable without rights"
+                                                  ],
+                       "redundancyNote":  "Replacement with concrete Commons license for benchmark story function",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "optional":  false,
+                       "dec008Note":  "DEC-008 dual-verify pending; publishStatus=not_published"
+                   },
+                   {
+                       "assetId":  "vw-pool-sicily-noto-duomo",
+                       "destinationId":  "sicily",
+                       "placeId":  "noto",
+                       "storyElement":  "I-noto-baroque",
+                       "sourceAiHints":  [
+                                             "ChatGPT/NOTO*"
+                                         ],
+                       "masterPath":  "media/masters/candidates/photo/vw-pool-sicily-noto-duomo.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File:Cattedrale_di_Noto.jpg",
+                       "license":  "CC BY-SA 4.0",
+                       "creator":  "Dariolp83",
+                       "commonsFile":  "Cattedrale_di_Noto.jpg",
+                       "rightsStatus":  "license_ok_pending_review",
+                       "truthStatus":  "unverified",
+                       "watermarkClass":  "CLEAN",
+                       "pipelineStatus":  "FINAL_VERIFIED_USABLE",
+                       "publishStatus":  "not_published",
+                       "whyPhoto":  "Noto Cathedral baroque facade — SE Sicily baroque town beat",
+                       "alternativesConsidered":  [
+                                                      "AI ChatGPT Noto series — rights unproven"
+                                                  ],
+                       "redundancyNote":  "Commons replacement for ChatGPT Noto story",
+                       "sourceName":  "Wikimedia Commons",
+                       "promotedFrom":  "commons_replacement_AN022",
+                       "masterPresentInPackage":  true,
+                       "dec008Note":  "DEC-008 dual-verify pending"
+                   }
+               ],
+    "openPoints":  [
+                       "Zingaro: user MUST STAY visual GO; licensed Commons/Pexels master still OPEN (AN-023)"
+                   ]
+}

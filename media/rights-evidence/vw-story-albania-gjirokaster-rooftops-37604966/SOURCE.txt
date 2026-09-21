@@ -1,0 +1,13 @@
+assetId=vw-story-albania-gjirokaster-rooftops-37604966
+sourceName=Pexels
+sourceUrl=https://www.pexels.com/photo/37604966/
+creator=Alban Mehmeti
+license=Pexels License
+licenseUrl=https://www.pexels.com/license/
+rightsStatus=license_ok_pending_review
+truthStatus=unverified
+reviewStatus=pending_visual_review
+publishStatus=not_published
+checkedAt=2026-09-17 Europe/Brussels
+checkedBy=Grokky
+note=DEC-008: AI does not self dual-verify/publish. CHG-018 Albania re-pass.
