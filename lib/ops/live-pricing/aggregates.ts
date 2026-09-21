@@ -196,6 +196,55 @@ export function buildIncidentPeriodAggregate(
   };
 }
 
+export type CockpitIncidentViewFilters = {
+  /** `'ALL'` or exact provider name (e.g. Sunweb). */
+  provider: string;
+  /** `'ALL'` or zoneAtDetection (YELLOW | ORANGE | RED). */
+  zone: string;
+};
+
+/**
+ * Cockpit VIEW filter: one incident set → counts + timeline + list.
+ * Does not re-evaluate live-pricing health / ownerStatus.
+ */
+export function applyCockpitIncidentViewFilters(
+  periodView: {
+    incidents: readonly OpsIncident[];
+    sinceMs: number;
+    untilMs: number;
+    timelineGranularity: 'hour' | 'day';
+  },
+  filters: CockpitIncidentViewFilters,
+): {
+  incidents: OpsIncident[];
+  counts: IncidentZoneCounts;
+  timeline: IncidentTimelineBucket[];
+  timelineGranularity: 'hour' | 'day';
+} {
+  const incidents = periodView.incidents.filter((inc) => {
+    if (filters.provider !== 'ALL' && (inc.provider ?? '') !== filters.provider) {
+      return false;
+    }
+    if (filters.zone !== 'ALL' && inc.zoneAtDetection !== filters.zone) {
+      return false;
+    }
+    return true;
+  });
+  const counts = countIncidentsByZone(incidents);
+  const timeline = buildTimelineFromFiltered(
+    incidents,
+    periodView.sinceMs,
+    periodView.untilMs,
+    periodView.timelineGranularity,
+  );
+  return {
+    incidents: incidents.map((i) => ({ ...i, story: [...i.story] })),
+    counts,
+    timeline,
+    timelineGranularity: periodView.timelineGranularity,
+  };
+}
+
 /** @deprecated — use buildIncidentPeriodAggregate('24h').timeline */
 export function buildHourlyIncidentBuckets(
   incidents: readonly OpsIncident[],

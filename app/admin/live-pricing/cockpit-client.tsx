@@ -9,6 +9,7 @@ import type {
   ProviderOpsRow,
 } from '@/lib/ops/live-pricing/types';
 import {
+  applyCockpitIncidentViewFilters,
   humanActionSummary,
   humanProblemSummary,
 } from '@/lib/ops/live-pricing/aggregates';
@@ -104,8 +105,18 @@ export function LivePricingOpsCockpitClient({
 
   const theme = STATUS_THEME[snapshot.ownerStatus];
   const periodView = period === '24h' ? snapshot.incidentView24h : snapshot.incidentView7d;
-  const incidentCounts = periodView.counts;
-  const timelineBuckets = periodView.timeline;
+  /** One filtered incident dataset drives counts, timeline, donut, and list (view filter only). */
+  const dashboardIncidents = useMemo(
+    () =>
+      applyCockpitIncidentViewFilters(periodView, {
+        provider: providerFilter,
+        zone: zoneFilter,
+      }),
+    [periodView, providerFilter, zoneFilter],
+  );
+  const incidentCounts = dashboardIncidents.counts;
+  const timelineBuckets = dashboardIncidents.timeline;
+  const filteredIncidents = dashboardIncidents.incidents;
   const remediationCounts =
     period === '24h' ? snapshot.remediationsLast24h : snapshot.remediationsLast7d;
 
@@ -146,25 +157,17 @@ export function LivePricingOpsCockpitClient({
         if (!res.ok) {
           throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
         }
+        // POST snapshot is authoritative — do not GET-refresh (Preview may lose process-local sim).
         const data = (await res.json()) as { snapshot: LivePricingCockpitSnapshot };
         setSnapshot(data.snapshot);
-        await refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         setBusy(false);
       }
     },
-    [refresh],
+    [],
   );
-
-  const filteredIncidents = useMemo(() => {
-    return periodView.incidents.filter((inc) => {
-      if (providerFilter !== 'ALL' && (inc.provider ?? '') !== providerFilter) return false;
-      if (zoneFilter !== 'ALL' && inc.zoneAtDetection !== zoneFilter) return false;
-      return true;
-    });
-  }, [periodView.incidents, providerFilter, zoneFilter]);
 
   const providers = useMemo(() => {
     if (providerFilter === 'ALL') return snapshot.providers;
@@ -345,11 +348,11 @@ export function LivePricingOpsCockpitClient({
           >
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                Tijdlijn ({periodView.timelineGranularity === 'hour' ? 'per uur' : 'per dag'})
+                Tijdlijn ({dashboardIncidents.timelineGranularity === 'hour' ? 'per uur' : 'per dag'})
               </div>
               <StackedHourlyChart
                 buckets={timelineBuckets}
-                granularity={periodView.timelineGranularity}
+                granularity={dashboardIncidents.timelineGranularity}
                 emptyLabel="Geen incidenten in deze periode"
               />
             </div>

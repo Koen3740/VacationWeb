@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  applyCockpitIncidentViewFilters,
   buildIncidentPeriodAggregate,
   sumTimelineCounts,
 } from '@/lib/ops/live-pricing/aggregates';
@@ -161,6 +162,54 @@ test('TEST E/F — 24h vs 7d filters use distinct windows; counts≡timeline', (
   assert.equal(d7.counts.RED, 1);
   assert.equal(d7.timelineGranularity, 'day');
   assert.deepEqual(sumTimelineCounts(d7.timeline), d7.counts);
+});
+
+test('provider/zone view filters share one dataset for counts, timeline, and list', () => {
+  const now = Date.parse('2026-09-20T20:00:00.000Z');
+  const incidents = [
+    makeIncident({ id: 'y-sun', zone: 'YELLOW', startedAt: '2026-09-20T19:00:00.000Z' }),
+    makeIncident({ id: 'o-sun', zone: 'ORANGE', startedAt: '2026-09-20T18:00:00.000Z' }),
+    {
+      ...makeIncident({ id: 'r-cor', zone: 'RED', startedAt: '2026-09-20T17:00:00.000Z' }),
+      provider: 'Corendon',
+    },
+  ];
+  const periodView = buildIncidentPeriodAggregate(incidents, '24h', now);
+  assert.equal(periodView.counts.total, 3);
+
+  const byProvider = applyCockpitIncidentViewFilters(periodView, {
+    provider: 'Sunweb',
+    zone: 'ALL',
+  });
+  assert.equal(byProvider.incidents.length, 2);
+  assert.equal(byProvider.counts.total, 2);
+  assert.equal(byProvider.counts.YELLOW, 1);
+  assert.equal(byProvider.counts.ORANGE, 1);
+  assert.equal(byProvider.counts.RED, 0);
+  assert.deepEqual(sumTimelineCounts(byProvider.timeline), byProvider.counts);
+  assert.deepEqual(
+    byProvider.incidents.map((i) => i.id).sort(),
+    ['o-sun', 'y-sun'],
+  );
+
+  const byZone = applyCockpitIncidentViewFilters(periodView, {
+    provider: 'ALL',
+    zone: 'RED',
+  });
+  assert.equal(byZone.incidents.length, 1);
+  assert.equal(byZone.counts.RED, 1);
+  assert.equal(byZone.counts.total, 1);
+  assert.deepEqual(sumTimelineCounts(byZone.timeline), byZone.counts);
+  assert.equal(byZone.incidents[0]?.id, 'r-cor');
+
+  const both = applyCockpitIncidentViewFilters(periodView, {
+    provider: 'Sunweb',
+    zone: 'YELLOW',
+  });
+  assert.equal(both.incidents.length, 1);
+  assert.equal(both.counts.YELLOW, 1);
+  assert.equal(both.counts.total, 1);
+  assert.deepEqual(sumTimelineCounts(both.timeline), both.counts);
 });
 
 test('current-hour RED incidents are not dropped from timeline (N-065.1 root cause)', () => {

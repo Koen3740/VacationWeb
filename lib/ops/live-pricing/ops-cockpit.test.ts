@@ -15,7 +15,9 @@ import {
   runOpsSimulation,
 } from '@/lib/ops/live-pricing';
 import { LIVE_PRICE_C_RATE_ALARM_THRESHOLD } from '@/lib/search/live-price-observability';
-import { OPS_C_RATE_RED } from '@/lib/ops/live-pricing/thresholds';
+import { OPS_C_RATE_ORANGE, OPS_C_RATE_RED, OPS_C_RATE_YELLOW } from '@/lib/ops/live-pricing/thresholds';
+import { evaluateOpsZoneTriggers } from '@/lib/ops/live-pricing/zones';
+import { resolveEvaluationInput } from '@/lib/ops/live-pricing/evaluate';
 
 test('concurrency guard unchanged 8/5/5', () => {
   assert.equal(CORENDON_LIVE_MATCHSET_CONCURRENCY, 8);
@@ -49,23 +51,36 @@ test('TEST 1 GREEN — product goal met, no action', () => {
   clearOpsSimulation();
 });
 
-test('TEST 2 YELLOW — incident + remediation + no owner notification', () => {
+test('TEST 2 YELLOW — ownerStatus YELLOW; cRate in [YELLOW, ORANGE)', () => {
   resetOpsSimulationStateForTests();
   const snap = runOpsSimulation('YELLOW');
-  assert.ok(['YELLOW', 'ORANGE', 'RED'].includes(snap.ownerStatus));
+  assert.equal(snap.ownerStatus, 'YELLOW');
+  assert.equal(snap.technicalHealthZone, 'YELLOW');
+  assert.ok(snap.bac.cRate >= OPS_C_RATE_YELLOW);
+  assert.ok(snap.bac.cRate < OPS_C_RATE_ORANGE);
   assert.ok(listOpsIncidents().length >= 1);
   assert.ok(listOpsRemediations().length >= 1);
-  if (snap.ownerStatus === 'YELLOW') {
-    assert.equal(snap.actionRequired.answer, 'NEE');
-    assert.equal(snap.notifications.length, 0);
-  }
+  assert.equal(snap.actionRequired.answer, 'NEE');
+  assert.equal(snap.notifications.length, 0);
+  clearOpsSimulation();
+});
+
+test('YELLOW scenario does not fire independent ORANGE/RED triggers', () => {
+  resetOpsSimulationStateForTests();
+  runOpsSimulation('YELLOW');
+  const triggers = evaluateOpsZoneTriggers(resolveEvaluationInput());
+  assert.ok(triggers.every((t) => t.zone === 'YELLOW' || t.zone === 'GREEN'));
+  assert.equal(
+    triggers.some((t) => t.zone === 'ORANGE' || t.zone === 'RED'),
+    false,
+  );
   clearOpsSimulation();
 });
 
 test('TEST 3 ORANGE — action JA + notification', () => {
   resetOpsSimulationStateForTests();
   const snap = runOpsSimulation('ORANGE');
-  assert.ok(snap.ownerStatus === 'ORANGE' || snap.ownerStatus === 'RED');
+  assert.equal(snap.ownerStatus, 'ORANGE');
   assert.equal(snap.actionRequired.answer, 'JA');
   assert.ok(snap.notifications.some((n) => n.zone === 'ORANGE' || n.zone === 'RED'));
   clearOpsSimulation();
@@ -78,6 +93,15 @@ test('TEST 4 RED — protect + escalate', () => {
   assert.equal(snap.actionRequired.answer, 'JA');
   assert.ok(snap.remediations.some((r) => r.playbookId === 'protect_no_config_change'));
   assert.equal(snap.concurrencyGuard.sunweb, 5);
+  clearOpsSimulation();
+});
+
+test('scenario labels match ownerStatus: GREEN→YELLOW→ORANGE→RED', () => {
+  resetOpsSimulationStateForTests();
+  assert.equal(runOpsSimulation('GREEN').ownerStatus, 'GREEN');
+  assert.equal(runOpsSimulation('YELLOW').ownerStatus, 'YELLOW');
+  assert.equal(runOpsSimulation('ORANGE').ownerStatus, 'ORANGE');
+  assert.equal(runOpsSimulation('RED').ownerStatus, 'RED');
   clearOpsSimulation();
 });
 

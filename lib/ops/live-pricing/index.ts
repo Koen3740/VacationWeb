@@ -41,6 +41,7 @@ export {
   countIncidentsByZoneSince,
   buildHourlyIncidentBuckets,
   buildIncidentPeriodAggregate,
+  applyCockpitIncidentViewFilters,
   sumTimelineCounts,
   INCIDENT_COUNT_RULE,
   humanActionSummary,

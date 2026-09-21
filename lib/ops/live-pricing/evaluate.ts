@@ -267,17 +267,18 @@ function scenarioDefaults(scenario: SimulatedOpsInput['scenario']): SimulatedOps
         circuitOpens: 0,
       };
     case 'YELLOW':
+      // cRate = 10/100 = 0.10 → YELLOW band [0.05, 0.15); no ORANGE+ independent triggers.
       return {
         scenario: 'YELLOW',
         attempts: 100,
-        b: 70,
-        a: 12,
-        c: 18,
+        b: 85,
+        a: 5,
+        c: 10,
         provider: 'Sunweb',
         transportErrorCode: 'UND_ERR_CONNECT_TIMEOUT',
-        presentableB: 120,
-        s6StopReason: 'matchset_exhausted',
-        circuitOpens: 1,
+        presentableB: 150,
+        s6StopReason: 'target_met',
+        circuitOpens: 0,
       };
     case 'ORANGE':
       return {
