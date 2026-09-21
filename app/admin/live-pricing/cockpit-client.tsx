@@ -12,6 +12,7 @@ import {
   humanActionSummary,
   humanProblemSummary,
 } from '@/lib/ops/live-pricing/aggregates';
+import { buildOpsClientAuthHeaders } from '@/lib/ops/live-pricing/client-auth-headers';
 import {
   CoverageProgress,
   HorizontalBars,
@@ -20,6 +21,13 @@ import {
   StackedHourlyChart,
   ZONE_COLORS,
 } from './cockpit-charts';
+
+/** Attach ?token= from the current URL as Bearer auth for cockpit API fetches. */
+function opsFetchAuthHeaders(extra?: Record<string, string>): HeadersInit {
+  const fromQuery =
+    typeof window !== 'undefined' ? buildOpsClientAuthHeaders(window.location.search) : {};
+  return { ...fromQuery, ...extra };
+}
 
 type TrendPoint = {
   at: string;
@@ -105,7 +113,10 @@ export function LivePricingOpsCockpitClient({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/live-pricing', { cache: 'no-store' });
+      const res = await fetch('/api/admin/live-pricing', {
+        cache: 'no-store',
+        headers: opsFetchAuthHeaders(),
+      });
       if (!res.ok) {
         throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
       }
@@ -129,7 +140,7 @@ export function LivePricingOpsCockpitClient({
       try {
         const res = await fetch('/api/admin/live-pricing/simulate', {
           method: 'POST',
-          headers: { 'content-type': 'application/json' },
+          headers: opsFetchAuthHeaders({ 'content-type': 'application/json' }),
           body: JSON.stringify(scenario === 'clear' ? { clear: true } : { scenario }),
         });
         if (!res.ok) {
