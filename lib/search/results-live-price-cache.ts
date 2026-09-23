@@ -5,6 +5,12 @@ import {
   corendonListingCacheKey,
   rankCorendonListings,
 } from '../providers/corendon/listing-selection';
+import {
+  isLivePriceL2Enabled,
+  readLivePriceL2Record,
+  writeLivePriceL2Record,
+} from './live-price-l2-store';
+import { noteLivePriceL2Event } from './live-price-l2-observability';
 
 export type ResultsLivePriceOverlay = Pick<
   TravelOffer,
@@ -132,11 +138,16 @@ export function getResultsLivePriceOverlay(
   params: LivePriceCacheParams,
 ): ResultsLivePriceOverlay | undefined {
   const entry = readEntry(offerId, params);
-  return entry ? toOverlay(entry) : undefined;
+  if (entry) {
+    noteLivePriceL2Event('L1_HIT');
+    return toOverlay(entry);
+  }
+  return undefined;
 }
 
 export function hasResultsLivePriceOverlay(offerId: string, params: LivePriceCacheParams): boolean {
   if (readEntry(offerId, params)) {
+    noteLivePriceL2Event('L1_HIT');
     return true;
   }
   if (params.listingKey) {
@@ -151,9 +162,72 @@ export function hasResultsLivePriceOverlay(offerId: string, params: LivePriceCac
       cache.delete(key);
       continue;
     }
+    noteLivePriceL2Event('L1_HIT');
     return true;
   }
   return false;
+}
+
+/**
+ * Apply an L2 record into L1 only (no write-back to L2).
+ * Used after hydrate / lock-wait hit.
+ */
+export function seedResultsLivePriceOverlayFromL2(
+  offerId: string,
+  params: LivePriceCacheParams,
+  overlay: ResultsLivePriceOverlay,
+  options: { cachedAtMs: number; ttlMs: number },
+): void {
+  cache.set(livePriceCacheKey(offerId, params), {
+    ...overlay,
+    cachedAtMs: options.cachedAtMs,
+    ttlMs: options.ttlMs,
+  });
+}
+
+/**
+ * Batch L2 → L1 hydrate for offer ids under the given occupancy params.
+ * Keeps existing sync get/has/apply paths unchanged after this await.
+ */
+export async function hydrateResultsLivePriceOverlaysFromL2(
+  offerIds: readonly string[],
+  params: LivePriceCacheParams,
+  options: { concurrency?: number } = {},
+): Promise<{ hydrated: number; checked: number }> {
+  if (!isLivePriceL2Enabled() || offerIds.length === 0) {
+    return { hydrated: 0, checked: 0 };
+  }
+
+  const uniqueIds = [...new Set(offerIds.filter(Boolean))];
+  const pending = uniqueIds.filter((id) => !readEntry(id, params));
+  if (pending.length === 0) {
+    return { hydrated: 0, checked: uniqueIds.length };
+  }
+
+  const concurrency = Math.max(1, Math.min(options.concurrency ?? 12, pending.length));
+  let hydrated = 0;
+  let cursor = 0;
+
+  async function worker(): Promise<void> {
+    while (cursor < pending.length) {
+      const index = cursor;
+      cursor += 1;
+      const offerId = pending[index]!;
+      const cacheKey = livePriceCacheKey(offerId, params);
+      const record = await readLivePriceL2Record(cacheKey);
+      if (!record) {
+        continue;
+      }
+      seedResultsLivePriceOverlayFromL2(offerId, params, record.overlay as ResultsLivePriceOverlay, {
+        cachedAtMs: record.cachedAtMs,
+        ttlMs: record.ttlMs,
+      });
+      hydrated += 1;
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  return { hydrated, checked: uniqueIds.length };
 }
 
 export function setResultsLivePriceOverlay(
@@ -162,11 +236,21 @@ export function setResultsLivePriceOverlay(
   overlay: ResultsLivePriceOverlay,
   options?: { cachedAtMs?: number; ttlMs?: number },
 ): void {
-  cache.set(livePriceCacheKey(offerId, params), {
+  const cachedAtMs = options?.cachedAtMs ?? nowMs();
+  const ttlMs = options?.ttlMs ?? RESULTS_LIVE_PRICE_TTL_MS;
+  const key = livePriceCacheKey(offerId, params);
+  cache.set(key, {
     ...overlay,
-    cachedAtMs: options?.cachedAtMs ?? nowMs(),
+    cachedAtMs,
     ...(options?.ttlMs != null ? { ttlMs: options.ttlMs } : {}),
   });
+
+  // Write-through to L2 (best-effort, non-blocking). Soft-fail on store errors.
+  if (isLivePriceL2Enabled()) {
+    void writeLivePriceL2Record(key, overlay, { cachedAtMs, ttlMs }).catch(() => {
+      noteLivePriceL2Event('STORE_ERROR');
+    });
+  }
 }
 
 function applyOverlay(offer: TravelOffer, overlay: ResultsLivePriceOverlay): TravelOffer {

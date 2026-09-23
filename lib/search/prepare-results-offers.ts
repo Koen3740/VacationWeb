@@ -16,6 +16,7 @@ import { rankResultsOffers } from './rank-results-offers';
 import {
   applyResultsLivePriceOverlays,
   hasResultsLivePriceOverlay,
+  hydrateResultsLivePriceOverlaysFromL2,
 } from './results-live-price-cache';
 import { scheduleResultsMatchsetLivePricing } from './schedule-results-matchset-live-pricing';
 import {
@@ -163,6 +164,11 @@ export async function prepareResultsOffers(
     const liveWindow = selectLivePricingCandidateWindow(catalogRanked, params);
     const workset = selectLivePricingInitialWorkset(liveWindow, params);
     const tail = livePricingBrowseRemainder(catalogRanked, liveWindow);
+    // Hydrate L2→L1 before deciding whether the workset still needs provider work.
+    await hydrateResultsLivePriceOverlaysFromL2(
+      workset.map((offer) => offer.id),
+      params,
+    );
     const worksetPending = workset.some((offer) => offerNeedsLivePriceWork(offer, params));
 
     if (!worksetPending) {
