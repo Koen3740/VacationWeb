@@ -2,7 +2,7 @@ import { paginateResults, RESULTS_PAGE_SIZE_DEFAULT } from '@/lib/search/paginat
 import {
   filterToResultsListableOffers,
   hasValidPresentablePrice,
-  isResultsListableOffer,
+  isResultsLivePriceCandidateOffer,
 } from '@/lib/search/presentable-price';
 import { applyResultsLivePriceOverlays } from '@/lib/search/results-live-price-cache';
 import type { SearchParams, TravelOffer } from '@/types/travel';
@@ -16,7 +16,7 @@ export type RankedCatalogResultsPage = {
 export type ResultsPipelineCounts = {
   /** Ranked pool after filter + sort (before listability). */
   afterCatalogFilter: number;
-  /** Offers admitted for provisional overlay (catalog / unset / proven presentable). */
+  /** Presentable B pool (card admission). */
   afterListabilityFilter: number;
   /** Offers with cached proven live p.p. + total. */
   afterPresentableFilter: number;
@@ -34,7 +34,7 @@ export const PAGE1_OVERLAY_RESERVE = 40;
 
 /**
  * Max extra ranked offers to scan past the primary page window when collecting
- * listable paint/overlay candidates. Does not change membership or paginationTotal.
+ * live-price overlay candidates. Does not change matchset membership.
  */
 export const PAGE_OVERLAY_SCAN_LIMIT = 120;
 
@@ -42,9 +42,10 @@ export const PAGE_OVERLAY_SCAN_LIMIT = 120;
  * Display ordering helper for a ranked filter matchset.
  *
  * Membership is ALWAYS the full ranked set (same IDs as `filterOffers` + sort).
- * Live overlays may only change relative order (presentable → pending → settled)
- * for paint priority — never add/remove members. Sort mode must not change
- * which offers belong to the resultset.
+ * Live overlays may only change relative order
+ * (presentable B → live-price candidates → A/parked) for paint priority —
+ * never add/remove members. Sort mode must not change which offers belong to
+ * the resultset.
  */
 export function orderCatalogPageCandidates(
   ranked: readonly TravelOffer[],
@@ -54,28 +55,28 @@ export function orderCatalogPageCandidates(
     ? applyResultsLivePriceOverlays(ranked as TravelOffer[], params)
     : (ranked as TravelOffer[]);
   const presentable: TravelOffer[] = [];
-  const pending: TravelOffer[] = [];
-  const settled: TravelOffer[] = [];
+  const candidates: TravelOffer[] = [];
+  const excluded: TravelOffer[] = [];
 
   for (const offer of overlaid) {
     if (hasValidPresentablePrice(offer)) {
       presentable.push(offer);
       continue;
     }
-    if (isResultsListableOffer(offer)) {
-      pending.push(offer);
+    if (isResultsLivePriceCandidateOffer(offer)) {
+      candidates.push(offer);
       continue;
     }
-    settled.push(offer);
+    excluded.push(offer);
   }
 
-  return [...presentable, ...pending, ...settled];
+  return [...presentable, ...candidates, ...excluded];
 }
 
 /**
- * Collect listable paint/overlay candidates in ranked sort order.
- * Skips settled non-listable shells so reserve can backfill cards without
- * shrinking the filter matchset used for counts/pagination.
+ * Collect live-price overlay candidates in ranked sort order.
+ * Includes pending / C / B (not A) so overlays can start and Cap can backfill
+ * presentable B without shrinking the filter matchset used for heading counts.
  */
 export function collectListablePaintWindow(
   ranked: readonly TravelOffer[],
@@ -94,7 +95,7 @@ export function collectListablePaintWindow(
   const selected: TravelOffer[] = [];
   for (let index = Math.max(startIndex, 0); index < end && selected.length < need; index += 1) {
     const offer = overlaid[index];
-    if (isResultsListableOffer(offer)) {
+    if (isResultsLivePriceCandidateOffer(offer)) {
       selected.push(offer);
     }
   }
@@ -107,7 +108,9 @@ export function measureResultsPipelineCounts(
   page: number,
   pageSize: number,
 ): ResultsPipelineCounts {
-  const listable = filterToResultsListableOffers(ranked as TravelOffer[]);
+  const listable = filterToResultsListableOffers(
+    applyResultsLivePriceOverlays(ranked as TravelOffer[], params),
+  );
   const overlaid = applyResultsLivePriceOverlays(ranked as TravelOffer[], params);
   const ordered = orderCatalogPageCandidates(ranked, params);
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
@@ -123,9 +126,9 @@ export function measureResultsPipelineCounts(
 }
 
 /**
- * Bookable Results membership for pagination:
- * ranked filter matchset → apply live overlays → drop provider-confirmed A →
- * paginate. C / pending / B stay. A never occupies a page slot.
+ * Presentable Results membership for pagination (B only):
+ * ranked filter matchset → apply live overlays → keep proven presentable B.
+ * A / C / Pending stay in the underlying matchset but never occupy a page slot.
  */
 export function bookableResultsMembership(
   ranked: readonly TravelOffer[],
@@ -138,10 +141,10 @@ export function bookableResultsMembership(
 }
 
 /**
- * Page slice of the bookable (non-A) Results membership.
+ * Page slice of the presentable (B) Results pool.
  *
- * Paginate in sort order (not live-presentable-first) so price sorts keep their
- * ordering. paginationTotal is the bookable pool — A is excluded before slice.
+ * Paginate in sort order (not live-presentable-first reorder of the matchset)
+ * so price sorts keep their ordering. paginationTotal is the B pool length.
  */
 export function sliceRankedCatalogResultsPage(
   ranked: readonly TravelOffer[],

@@ -149,7 +149,7 @@ export function isUnpricedResultsOffer(offer: TravelOffer): boolean {
 
 /**
  * Live-price overlay gate: the card may show an actuele € only when this is true.
- * Not a Results list-admission gate. Catalog cards stay visible without this.
+ * Alias of presentable B — same admission as {@link isResultsListableOffer}.
  */
 export function isResultsVisibleOffer(offer: TravelOffer): boolean {
   return hasValidPresentablePrice(offer);
@@ -160,19 +160,33 @@ export function filterToResultsVisibleOffers(offers: TravelOffer[]): TravelOffer
 }
 
 /**
- * Results list admission (A/B/C):
- * - Parked providers → not listable
- * - A (provider-confirmed unavailable) → not listable / not bookable card
- * - B (proven presentable) → listable
- * - pending / catalog / unset → listable (provisional UI)
- * - C (technical failure, often stamped livePriceStatus=unavailable with
- *   timeout/stale_context/network_error/…) → listable; no fake €
- * - unpriced / proven-without-total → listable; no fake €
+ * Results presentable-pool / card admission (owner A/B/C rule):
+ * - B (proven presentable) → presentable card
+ * - A (provider-confirmed unavailable) → not presentable
+ * - C (technical unresolved) → not presentable
+ * - Pending / catalog / unpriced → not presentable
  *
- * Live pricing must NOT remove catalog matches from Results membership.
- * Only true provider-confirmed unavailable (A) leaves bookable presentation.
+ * A/C/Pending stay in the underlying filter matchset for later pricing retries
+ * (TTL / circuit / next run). They must not occupy a Results card slot.
  */
 export function isResultsListableOffer(offer: TravelOffer): boolean {
+  if (isParkedResultsProvider(offer.provider)) {
+    return false;
+  }
+  return hasValidPresentablePrice(offer);
+}
+
+export function filterToResultsListableOffers(offers: TravelOffer[]): TravelOffer[] {
+  return offers.filter(isResultsListableOffer);
+}
+
+/**
+ * Live-price overlay / work-window eligibility (not card paint).
+ * Excludes parked + provider-confirmed A. Pending / C / B remain eligible so
+ * overlays can start and C can retry after TTL — without admitting them to the
+ * presentable card pool.
+ */
+export function isResultsLivePriceCandidateOffer(offer: TravelOffer): boolean {
   if (isParkedResultsProvider(offer.provider)) {
     return false;
   }
@@ -182,8 +196,10 @@ export function isResultsListableOffer(offer: TravelOffer): boolean {
   return true;
 }
 
-export function filterToResultsListableOffers(offers: TravelOffer[]): TravelOffer[] {
-  return offers.filter(isResultsListableOffer);
+export function filterToResultsLivePriceCandidateOffers(
+  offers: TravelOffer[],
+): TravelOffer[] {
+  return offers.filter(isResultsLivePriceCandidateOffer);
 }
 
 /**

@@ -111,16 +111,12 @@ beforeEach(() => {
   clearLivePriceInflightForTests();
 });
 
-test('TEST 1: catalog offer without proven live price still renders a Result card', () => {
+test('TEST 1: catalog offer without proven live price is not a Result card', () => {
   const offer = makeCorendon({ livePriceStatus: 'catalog', livePriceSource: 'feed' });
   assert.equal(hasValidPresentablePrice(offer), false);
-  assert.equal(isResultsListableOffer(offer), true);
-  // Pending/missing live € must not hide a valid match (provisional or settled stream).
+  assert.equal(isResultsListableOffer(offer), false);
   for (const provisional of [true, false]) {
-    const html = cardHtml(offer, provisional);
-    assert.match(html, /Test Hotel/, `provisional=${provisional}`);
-    assert.match(html, new RegExp(RESULTS_PRICE_COPY.pending), `provisional=${provisional}`);
-    assert.doesNotMatch(html, />€/, `provisional=${provisional}`);
+    assert.equal(cardHtml(offer, provisional), '', `provisional=${provisional}`);
   }
 });
 
@@ -168,7 +164,7 @@ test('Sunweb unavailable_trip catalog offer is not a Results card', () => {
   assert.equal(html, '');
 });
 
-test('TEST 2: live-price timeout (C) stays a Results card after settle (no fake €)', async () => {
+test('TEST 2: live-price timeout (C) is not a Result card after settle', async () => {
   const offer = makeCorendon();
   const overlays = startCatalogPageLiveOverlays([offer], { adults: 2 }, {
     fetchImpl: async () => {
@@ -178,15 +174,11 @@ test('TEST 2: live-price timeout (C) stays a Results card after settle (no fake 
     },
   });
   assert.equal(overlays[0].pending, true);
-  assert.equal(isResultsListableOffer(overlays[0].catalog), true);
+  assert.equal(isResultsListableOffer(overlays[0].catalog), false);
   const settled = await overlays[0].live;
-  assert.equal(isResultsListableOffer(settled), true);
+  assert.equal(isResultsListableOffer(settled), false);
   assert.equal(hasValidPresentablePrice(settled), false);
-  const html = cardHtml(settled, false);
-  assert.match(html, /Test Hotel/);
-  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable));
-  assert.doesNotMatch(html, new RegExp(RESULTS_PRICE_COPY.pending));
-  assert.doesNotMatch(html, />€\s*\d/);
+  assert.equal(cardHtml(settled, false), '');
 });
 
 test('TEST 3: HTTP 204 provider-unavailable is not a Results card', async () => {
@@ -259,7 +251,7 @@ test('TEST 6: proven live total stays on the existing upsales total mapping', as
   assert.equal(settled.livePriceSource, 'upsales');
 });
 
-test('TEST 7: catalog feed € is never shown as proven; pending card stays visible', () => {
+test('TEST 7: catalog feed € is never shown; pending is not presentable', () => {
   const offer = makeCorendon({
     livePriceStatus: 'catalog',
     livePriceSource: 'feed',
@@ -267,14 +259,12 @@ test('TEST 7: catalog feed € is never shown as proven; pending card stays visi
   });
   assert.equal(resultsPricePresentation(offer), 'pending');
   assert.equal(hasValidPresentablePrice(offer), false);
-  assert.equal(isResultsListableOffer(offer), true);
-  // Missing live price ≠ remove match: both provisional and settled streams keep the card.
-  assert.match(cardHtml(offer, true), new RegExp(RESULTS_PRICE_COPY.pending));
-  assert.match(cardHtml(offer, false), new RegExp(RESULTS_PRICE_COPY.pending));
-  assert.doesNotMatch(cardHtml(offer, false), />€/);
+  assert.equal(isResultsListableOffer(offer), false);
+  assert.equal(cardHtml(offer, true), '');
+  assert.equal(cardHtml(offer, false), '');
 });
 
-test('TEST 8: pp × pax is not a live total — listable without inventing €', () => {
+test('TEST 8: pp × pax is not a live total — not presentable', () => {
   const derived = makeCorendon({
     livePriceStatus: 'proven',
     livePriceSource: 'upsales',
@@ -284,24 +274,18 @@ test('TEST 8: pp × pax is not a live total — listable without inventing €',
   });
   assert.equal(hasProvenLiveTotalPrice(derived), false);
   assert.equal(hasValidPresentablePrice(derived), false);
-  assert.equal(isResultsListableOffer(derived), true);
-  const html = cardHtml(derived, false);
-  assert.match(html, /./);
-  assert.doesNotMatch(html, />€\s*669/);
-  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unpriced));
-  assert.doesNotMatch(html, new RegExp(RESULTS_PRICE_COPY.pending));
+  assert.equal(isResultsListableOffer(derived), false);
+  assert.equal(cardHtml(derived, false), '');
 });
 
-test('TEST 9: first page uses the normal catalog page-size', () => {
+test('TEST 9: first page presentable pool is empty until B overlays exist', () => {
   const ranked = Array.from({ length: 249 }, (_, index) =>
     makeCorendon({ id: `offer-${index + 1}`, hotelName: `Hotel ${index + 1}` }),
   );
   const page = sliceRankedCatalogResultsPage(ranked, 1, RESULTS_PRODUCT_PAGE_SIZE);
   assert.equal(RESULTS_PRODUCT_PAGE_SIZE, 10);
-  assert.equal(page.offers.length, 10);
-  assert.equal(page.paginationTotal, 249);
-  assert.equal(page.offers[0].id, 'offer-1');
-  assert.equal(page.offers[9].id, 'offer-10');
+  assert.equal(page.offers.length, 0);
+  assert.equal(page.paginationTotal, 0);
 });
 
 test('TEST 10: pending live pricing does not block catalog presented/document rendering', () => {
@@ -336,15 +320,14 @@ test('TEST 11: a 15s Corendon call does not block the catalog Results page', () 
   });
   const elapsed = Date.now() - started;
   assert.ok(elapsed < 100, `page construction waited ${elapsed}ms`);
-  assert.equal(isResultsListableOffer(overlays[0].catalog), true);
-  assert.match(cardHtml(overlays[0].catalog, true), /Test Hotel/);
+  assert.equal(isResultsListableOffer(overlays[0].catalog), false);
+  assert.equal(cardHtml(overlays[0].catalog, true), '');
 });
 
-test('TEST 12: image loading failure does not block Result-card rendering', () => {
+test('TEST 12: image loading failure does not make a non-B offer presentable', () => {
   const offer = makeCorendon({ imageUrl: '' });
-  assert.equal(isResultsListableOffer(offer), true);
-  const html = cardHtml(offer, true);
-  assert.match(html, /Test Hotel/);
+  assert.equal(isResultsListableOffer(offer), false);
+  assert.equal(cardHtml(offer, true), '');
 });
 
 test('TEST 13: catalog Corendon overlays keep existing page-1 concurrency of 5', async () => {
@@ -375,7 +358,7 @@ test('TEST 13: catalog Corendon overlays keep existing page-1 concurrency of 5',
   assert.ok(maxInFlight >= 2, `expected parallel Corendon work, got ${maxInFlight}`);
 });
 
-test('presentable offers are prioritized for paint; page slice keeps sort order', () => {
+test('presentable offers are prioritized for paint; page slice is B-only', () => {
   const provenFields = {
     livePriceStatus: 'proven' as const,
     livePriceSource: 'upsales' as const,
@@ -390,17 +373,16 @@ test('presentable offers are prioritized for paint; page slice keeps sort order'
     makeCorendon({ id: 'catalog-c', livePriceStatus: 'catalog', price: 420 }),
   ];
   const ordered = orderCatalogPageCandidates(ranked, { adults: 2 });
-  assert.equal(ordered[0].id, 'proven-z');
-  // Pagination follows ranked sort order — not live-presentable-first —
-  // so price sorts keep their ordering while membership stays intact.
+  assert.equal(ordered[0]!.id, 'proven-z');
   const page = sliceRankedCatalogResultsPage(ranked, 1, 3, { adults: 2 });
   assert.deepEqual(
     page.offers.map((offer) => offer.id),
-    ['catalog-a', 'catalog-b', 'proven-z'],
+    ['proven-z'],
   );
+  assert.equal(page.paginationTotal, 1);
 });
 
-test('settled A offers remain in ordered matchset but are excluded before pagination', () => {
+test('settled A/C/pending remain in ordered matchset but are excluded from presentable page', () => {
   const ranked = [
     makeCorendon({ id: 'visible', livePriceStatus: 'catalog' }),
     makeCorendon({
@@ -416,14 +398,11 @@ test('settled A offers remain in ordered matchset but are excluded before pagina
     ['hidden', 'visible'],
   );
   const page = sliceRankedCatalogResultsPage(ranked, 1, 10, { adults: 2 });
-  assert.equal(page.paginationTotal, 1);
-  assert.deepEqual(
-    page.offers.map((offer) => offer.id),
-    ['visible'],
-  );
+  assert.equal(page.paginationTotal, 0);
+  assert.deepEqual(page.offers.map((offer) => offer.id), []);
 });
 
-test('pipeline counts distinguish catalog, listable, and presentable stages', () => {
+test('pipeline counts distinguish catalog, presentable B, and matchset order', () => {
   const provenFields = {
     livePriceStatus: 'proven' as const,
     livePriceSource: 'upsales' as const,
@@ -447,9 +426,9 @@ test('pipeline counts distinguish catalog, listable, and presentable stages', ()
 
   const counts = measureResultsPipelineCounts(ranked, { adults: 2 }, 1, 10);
   assert.equal(counts.afterCatalogFilter, 13);
-  assert.equal(counts.afterListabilityFilter, 12);
+  assert.equal(counts.afterListabilityFilter, 1);
   assert.equal(counts.afterPresentableFilter, 1);
-  // Pagination membership equals the ranked filter matchset (includes settled).
+  // Pagination order membership equals the ranked filter matchset (includes settled).
   assert.equal(counts.afterPaginationOrder, 13);
   assert.equal(counts.pageSliceSize, 10);
 });

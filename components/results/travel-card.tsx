@@ -153,9 +153,8 @@ export function TravelCard({
   provisional?: boolean;
   searchParams?: SearchParams;
 }) {
-  // Provider-confirmed unavailable / parked / non-listable → not a bookable Results card.
-  // Listable matches WITHOUT a proven live price MUST still render (pending) —
-  // missing price ≠ removed from the filtered matchset.
+  // Presentable pool only (B). A / C / Pending / parked → no Results card.
+  // They stay in the underlying matchset for later pricing retries.
   if (!isResultsListableOffer(offer)) {
     return null;
   }

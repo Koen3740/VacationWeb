@@ -21,8 +21,7 @@ async function OverlayTravelCard({
   searchParams?: SearchParams;
 }) {
   const priced = await live;
-  // Only A (provider-confirmed) / parked → not a bookable card.
-  // C / pending / unpriced stay listable without inventing a live €.
+  // Presentable B only — A / C / Pending settle without a card.
   if (!isResultsListableOffer(priced)) {
     return null;
   }
@@ -33,8 +32,7 @@ async function OverlayTravelCard({
   ) {
     return null;
   }
-  // Settled overlay: provisional only while in-flight (Suspense fallback).
-  // Settled C / unpriced / B must not be painted as PENDING.
+  // Settled B only — never paint pending / C as a provisional card.
   return (
     <TravelCard
       offer={priced}
@@ -70,16 +68,10 @@ function renderCatalogOfferSlot(
     );
   }
 
+  // Pending is not presentable: no provisional card while live pricing runs.
+  // Cap backfills from reserve when this slot settles as B.
   return (
-    <Suspense
-      fallback={
-        <TravelCard
-          offer={overlay.catalog}
-          provisional
-          searchParams={searchParams}
-        />
-      }
-    >
+    <Suspense fallback={null}>
       <OverlayTravelCard
         catalog={overlay.catalog}
         live={overlay.live}

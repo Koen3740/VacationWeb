@@ -89,9 +89,9 @@ function assemblePriceSortRanking(
 }
 
 /**
- * Paginate the bookable (non-A) pool in sort order.
- * Provider-confirmed A is removed before the page slice so A never occupies a
- * slot. C / pending / B stay. paginationTotal is the bookable pool length.
+ * Paginate the presentable (B) pool in sort order.
+ * A / C / Pending are excluded from card slots; they remain in the underlying
+ * matchset for later pricing retries. paginationTotal is the B pool length.
  */
 export function slicePriceSortPoolPage(
   ranked: readonly TravelOffer[],

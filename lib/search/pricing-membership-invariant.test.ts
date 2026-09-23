@@ -11,7 +11,6 @@ import {
 } from '@/lib/search/prepare-results-offers';
 import { filterOffers, sortOffers } from '@/lib/search/filtering';
 import {
-  RESULTS_PRICE_COPY,
   hasValidPresentablePrice,
   isResultsListableOffer,
 } from '@/lib/search/presentable-price';
@@ -75,7 +74,7 @@ function seedUnavailable(id: string): void {
   });
 }
 
-test('A. pending pricing: listable match stays in set, pageable, and renders', async () => {
+test('A. pending pricing: stays in matchset but not presentable until B', async () => {
   clearResultsLivePriceCache();
   const catalog = [
     makeOffer({ id: 'pending-a', price: 400 }),
@@ -93,34 +92,31 @@ test('A. pending pricing: listable match stays in set, pageable, and renders', a
 
   for (const offer of prepared.offers) {
     assert.equal(hasValidPresentablePrice(offer), false);
-    assert.equal(isResultsListableOffer(offer), true);
-    const html = cardHtml(offer, false);
-    assert.match(html, new RegExp(`Hotel ${offer.id}`));
-    assert.match(html, new RegExp(RESULTS_PRICE_COPY.pending));
+    assert.equal(isResultsListableOffer(offer), false);
+    assert.equal(cardHtml(offer, false), '');
   }
 
   const page = slicePriceSortPoolPage(prepared.offers, 1, 10, {
     provisional: false,
     params: { ...baseParams, sort: 'price' },
   });
-  assert.equal(page.paginationTotal, 2);
-  assert.equal(page.visibleOffers.length, 2);
+  assert.equal(page.paginationTotal, 0);
+  assert.equal(page.visibleOffers.length, 0);
 });
 
-test('B. slow pricing: match remains until proven overlay arrives', async () => {
+test('B. slow pricing: match remains in set; card appears when B overlay arrives', async () => {
   clearResultsLivePriceCache();
   const offer = makeOffer({ id: 'slow', price: 450 });
   const prepared = await prepareResultsOffers([offer], { ...baseParams, sort: 'value' });
   assert.equal(prepared.offers.length, 1);
-  assert.match(cardHtml(prepared.offers[0], false), new RegExp(RESULTS_PRICE_COPY.pending));
-
+  assert.equal(cardHtml(prepared.offers[0]!, false), '');
 
   clearResultsLivePriceCache();
   seedProven('slow', 420);
   const ranked = rankLivePricedCandidatePool(prepared.offers, baseParams);
   assert.equal(ranked.length, 1);
-  assert.equal(hasValidPresentablePrice(ranked[0]), true);
-  assert.match(cardHtml(ranked[0], false), /\u20AC/);
+  assert.equal(hasValidPresentablePrice(ranked[0]!), true);
+  assert.match(cardHtml(ranked[0]!, false), /\u20AC/);
 });
 
 test('C. live pricing A: removed from bookable pagination; catalog prepare keeps filter set', async () => {
@@ -147,7 +143,7 @@ test('C. live pricing A: removed from bookable pagination; catalog prepare keeps
   assert.match(cardHtml(page.visibleOffers[0]!), /Hotel ok/);
 });
 
-test('D. intermediate page stays filled when many prices are pending', () => {
+test('D. intermediate page only shows presentable B (pending excluded)', () => {
   clearResultsLivePriceCache();
   // 12 proven (front-loaded by price-sort ranking) + 30 catalog pending.
   const ranked = [
@@ -171,18 +167,18 @@ test('D. intermediate page stays filled when many prices are pending', () => {
 
   const ordered = rankLivePricedCandidatePool(ranked, { ...baseParams, sort: 'price' });
   assert.equal(ordered.length, 42);
-  assert.ok(hasValidPresentablePrice(ordered[0]));
-  assert.equal(ordered[12].livePriceStatus, 'catalog');
+  assert.ok(hasValidPresentablePrice(ordered[0]!));
+  assert.equal(ordered[12]!.livePriceStatus, 'catalog');
 
   const page2 = slicePriceSortPoolPage(ordered, 2, 10, {
     provisional: false,
     params: { ...baseParams, sort: 'price' },
   });
-  assert.equal(page2.paginationTotal, 42);
-  // Page 2 must not collapse to ~2 cards: pending catalog remains renderable.
-  assert.ok(page2.visibleOffers.length >= 10, `got ${page2.visibleOffers.length}`);
-  const renderable = page2.visibleOffers.filter((offer) => cardHtml(offer, false).includes('Hotel'));
-  assert.ok(renderable.length >= 10, `renderable=${renderable.length}`);
+  // Presentable pool = 12 B → page 2 has 2 cards.
+  assert.equal(page2.paginationTotal, 12);
+  assert.equal(page2.visibleOffers.length, 2);
+  assert.ok(page2.visibleOffers.every((offer) => hasValidPresentablePrice(offer)));
+  assert.ok(page2.visibleOffers.every((offer) => cardHtml(offer, false).includes('Hotel')));
 });
 
 test('E. sort modes share identical offer membership', async () => {
@@ -258,7 +254,7 @@ function seedTechnicalFailure(id: string, reason: 'stale_context' | 'timeout' | 
   });
 }
 
-test('G. Abora-shaped stale_context: 1 match → 1 visible card, no fake €', () => {
+test('G. Abora-shaped stale_context: stays in matchset, not presentable', () => {
   clearResultsLivePriceCache();
   const offer = makeOffer({
     id: 'corendon-8985-BRULPA-150926-7-DZA',
@@ -270,57 +266,55 @@ test('G. Abora-shaped stale_context: 1 match → 1 visible card, no fake €', (
   seedTechnicalFailure(offer.id, 'stale_context');
   const overlaid = rankLivePricedCandidatePool([offer], baseParams);
   assert.equal(overlaid.length, 1);
-  assert.equal(isResultsListableOffer(overlaid[0]), true);
-  assert.equal(hasValidPresentablePrice(overlaid[0]), false);
-  const html = cardHtml(overlaid[0], false);
-  assert.match(html, /Abora Catarina/);
-  assert.match(html, new RegExp(RESULTS_PRICE_COPY.unavailable));
-  assert.doesNotMatch(html, new RegExp(RESULTS_PRICE_COPY.pending));
-  assert.doesNotMatch(html, />€\s*\d/);
+  assert.equal(isResultsListableOffer(overlaid[0]!), false);
+  assert.equal(hasValidPresentablePrice(overlaid[0]!), false);
+  assert.equal(cardHtml(overlaid[0]!, false), '');
 });
 
-test('H. pagination membership: A excluded before slice (37 − 3 A → 34 → 10/10/10/4)', () => {
+test('H. pagination membership: only B presentable (24 B → 10/10/4)', () => {
   clearResultsLivePriceCache();
   const ranked = Array.from({ length: 37 }, (_, index) =>
     makeOffer({ id: `m-${index}`, price: 300 + index }),
   );
-  // Mix: B on first 10, C on next 10, pending on rest, A on last 3.
-  for (let i = 0; i < 10; i += 1) seedProven(`m-${i}`, 300 + i);
-  for (let i = 10; i < 20; i += 1) seedTechnicalFailure(`m-${i}`, 'stale_context');
+  // Mix: B on first 24, C on next 10, A on last 3.
+  for (let i = 0; i < 24; i += 1) seedProven(`m-${i}`, 300 + i);
+  for (let i = 24; i < 34; i += 1) seedTechnicalFailure(`m-${i}`, 'stale_context');
   for (let i = 34; i < 37; i += 1) seedUnavailable(`m-${i}`);
 
-  const pageSizes = [1, 2, 3, 4].map((page) => {
+  const pageSizes = [1, 2, 3].map((page) => {
     const slice = slicePriceSortPoolPage(ranked, page, 10, {
       provisional: false,
       params: baseParams,
     });
-    assert.equal(slice.paginationTotal, 34);
+    assert.equal(slice.paginationTotal, 24);
     return slice.visibleOffers.length;
   });
-  assert.deepEqual(pageSizes, [10, 10, 10, 4]);
+  assert.deepEqual(pageSizes, [10, 10, 4]);
 
-  const page4 = slicePriceSortPoolPage(ranked, 4, 10, { provisional: false, params: baseParams });
-  assert.equal(page4.visibleOffers.length, 4);
-  assert.ok(page4.visibleOffers.every((offer) => isResultsListableOffer(offer)));
-  assert.ok(page4.visibleOffers.every((offer) => cardHtml(offer, false).includes('Hotel')));
+  const page3 = slicePriceSortPoolPage(ranked, 3, 10, { provisional: false, params: baseParams });
+  assert.equal(page3.visibleOffers.length, 4);
+  assert.ok(page3.visibleOffers.every((offer) => isResultsListableOffer(offer)));
+  assert.ok(page3.visibleOffers.every((offer) => cardHtml(offer, false).includes('Hotel')));
 });
 
-test('I. property: C/pending keep bookable count; mixes without A stay full', () => {
+test('I. property: matchset stays full; presentable pool is B-only', () => {
   clearResultsLivePriceCache();
   const catalog = Array.from({ length: 21 }, (_, index) =>
     makeOffer({ id: `p-${index}`, price: 400 + index }),
   );
   const expectedIds = membershipIds(catalog);
 
-  const mixes: Array<() => void> = [
+  const mixes: Array<() => number> = [
     () => {
       for (const offer of catalog) seedProven(offer.id, offer.price);
+      return 21;
     },
     () => {
       catalog.forEach((offer, index) => {
         if (index % 2 === 0) seedProven(offer.id, offer.price);
         else seedTechnicalFailure(offer.id, 'timeout');
       });
+      return 11;
     },
     () => {
       catalog.forEach((offer, index) => {
@@ -330,6 +324,7 @@ test('I. property: C/pending keep bookable count; mixes without A stay full', ()
           seedTechnicalFailure(offer.id, 'stale_context');
         }
       });
+      return 0;
     },
     () => {
       catalog.forEach((offer, index) => {
@@ -337,26 +332,19 @@ test('I. property: C/pending keep bookable count; mixes without A stay full', ()
         else if (index % 3 === 1) seedTechnicalFailure(offer.id, 'network_error');
         // else pending
       });
+      return 7;
     },
   ];
 
   for (const applyMix of mixes) {
     clearResultsLivePriceCache();
-    applyMix();
+    const expectedB = applyMix();
     const ranked = rankLivePricedCandidatePool(catalog, { ...baseParams, sort: 'price' });
     assert.equal(ranked.length, 21);
     assert.deepEqual(membershipIds(ranked), expectedIds);
     const page1 = slicePriceSortPoolPage(ranked, 1, 10, { provisional: false, params: baseParams });
-    const page2 = slicePriceSortPoolPage(ranked, 2, 10, { provisional: false, params: baseParams });
-    const page3 = slicePriceSortPoolPage(ranked, 3, 10, { provisional: false, params: baseParams });
-    assert.equal(page1.paginationTotal, 21);
-    assert.equal(page1.visibleOffers.length, 10);
-    assert.equal(page2.visibleOffers.length, 10);
-    assert.equal(page3.visibleOffers.length, 1);
-    assert.deepEqual(
-      [...page1.visibleOffers, ...page2.visibleOffers, ...page3.visibleOffers].map((o) => o.id).sort(),
-      expectedIds,
-    );
+    assert.equal(page1.paginationTotal, expectedB);
+    assert.ok(page1.visibleOffers.every((offer) => hasValidPresentablePrice(offer)));
   }
 });
 
@@ -380,34 +368,39 @@ test('J. sort modes share matchCount for same filters (incl. technical C)', asyn
   assert.ok(counts.every((count) => count === counts[0]));
 });
 
-test('K. page-size edges keep stable membership lengths', () => {
+test('K. page-size edges: presentable B pool paginates; C/pending do not fill slots', () => {
   clearResultsLivePriceCache();
   for (const total of [1, 9, 10, 11, 20, 21, 37, 40]) {
     const ranked = Array.from({ length: total }, (_, index) =>
       makeOffer({
         id: `e-${total}-${index}`,
         price: 200 + index,
-        livePriceStatus: index % 2 === 0 ? 'catalog' : 'unavailable',
-        livePriceFailureReason: index % 2 === 0 ? undefined : 'timeout',
+        livePriceStatus: 'catalog',
       }),
     );
-    for (const offer of ranked) {
-      if (offer.livePriceFailureReason === 'timeout') {
-        seedTechnicalFailure(offer.id, 'timeout');
+    // Seed every other offer as B so presentable count is ceil(total/2) or floor.
+    let bCount = 0;
+    for (let index = 0; index < ranked.length; index += 1) {
+      if (index % 2 === 0) {
+        seedProven(ranked[index]!.id, ranked[index]!.price);
+        bCount += 1;
+      } else {
+        seedTechnicalFailure(ranked[index]!.id, 'timeout');
       }
     }
-    const pages = Math.ceil(total / 10);
+    const pages = Math.max(1, Math.ceil(bCount / 10));
     let seen = 0;
     for (let page = 1; page <= pages; page += 1) {
       const slice = slicePriceSortPoolPage(ranked, page, 10, {
         provisional: false,
         params: baseParams,
       });
-      assert.equal(slice.paginationTotal, total);
-      const expected = page < pages ? 10 : total - (pages - 1) * 10;
+      assert.equal(slice.paginationTotal, bCount);
+      const expected =
+        bCount === 0 ? 0 : page < pages ? 10 : bCount - (pages - 1) * 10;
       assert.equal(slice.visibleOffers.length, expected, `total=${total} page=${page}`);
       seen += slice.visibleOffers.length;
     }
-    assert.equal(seen, total);
+    assert.equal(seen, bCount);
   }
 });

@@ -677,7 +677,7 @@ test('3. UNAVAILABLE → kaart niet zichtbaar', () => {
   assert.equal(resultsPricePresentation(offer), 'unavailable');
 });
 
-test('3b. A not listable; C (timeout/stale_context) stays listable without fake €', () => {
+test('3b. A/C/Pending are not presentable; only B is listable', () => {
   const confirmed = makeCorendonOffer({
     livePriceStatus: 'unavailable',
     livePriceFailureReason: 'no_trip',
@@ -690,7 +690,7 @@ test('3b. A not listable; C (timeout/stale_context) stays listable without fake 
     livePriceFailureReason: 'timeout',
     price: 458,
   });
-  assert.equal(isResultsListableOffer(timedOut), true);
+  assert.equal(isResultsListableOffer(timedOut), false);
   assert.equal(resultsPricePresentation(timedOut), 'unavailable');
   assert.equal(hasValidPresentablePrice(timedOut), false);
 
@@ -699,9 +699,16 @@ test('3b. A not listable; C (timeout/stale_context) stays listable without fake 
     livePriceFailureReason: 'stale_context',
     price: 458,
   });
-  assert.equal(isResultsListableOffer(stale), true);
+  assert.equal(isResultsListableOffer(stale), false);
   assert.equal(resultsPricePresentation(stale), 'unavailable');
   assert.equal(hasValidPresentablePrice(stale), false);
+
+  const pending = makeCorendonOffer({
+    livePriceStatus: 'catalog',
+    livePriceSource: 'feed',
+    price: 458,
+  });
+  assert.equal(isResultsListableOffer(pending), false);
 });
 
 test('4. ERROR → kaart niet zichtbaar', () => {

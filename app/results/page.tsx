@@ -122,7 +122,8 @@ export default async function ResultsPage({
 
   const prepared = await prepareResultsOffers(offers, filteringParams);
   // Catalog filter matchset (sort-invariant) drives the heading / facets.
-  // Bookable membership drops only provider-confirmed A inside page slicing.
+  // Presentable card pool is B-only inside page slicing; A/C/Pending stay in
+  // the matchset for later pricing retries.
   const filtered = prepared.offers;
   const matchCount = filtered.length;
   const carRentalCount = countCarRentalFacet(filtered, filteringParams);
@@ -208,8 +209,14 @@ export default async function ResultsPage({
   const overlayCandidates = isPage1
     ? selectPage1OverlayCandidates(filtered, pageSize, undefined, filteringParams)
     : selectPageOverlayCandidates(filtered, page, pageSize, undefined, filteringParams);
+  // Drive overlays from the live-price candidate window (pending/C/B, not A).
+  // Presentable paint stays B-only via TravelCard; Cap backfills as B settles.
+  const streamOffers =
+    catalogPage.offers.length > 0
+      ? catalogPage.offers
+      : overlayCandidates.slice(0, pageSize);
   const overlays = startCatalogPageLiveOverlays(
-    overlayCandidates.length > 0 ? overlayCandidates : catalogPage.offers,
+    overlayCandidates.length > 0 ? overlayCandidates : streamOffers,
     params,
   );
 
@@ -218,9 +225,9 @@ export default async function ResultsPage({
       {...pageShell}
       resultCount={matchCount}
       results={
-        catalogPage.offers.length > 0 ? (
+        streamOffers.length > 0 || overlayCandidates.length > 0 ? (
           <Page1ResultsStream
-            catalogOffers={catalogPage.offers}
+            catalogOffers={streamOffers.length > 0 ? streamOffers : overlayCandidates}
             candidateOffers={overlayCandidates}
             displayLimit={pageSize}
             overlays={overlays}

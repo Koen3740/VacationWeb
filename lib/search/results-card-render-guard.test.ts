@@ -93,11 +93,12 @@ test('count/pagination keep full matchset; cards skip settled via listability', 
 
   const pageSize = 10;
   const page = sliceRankedCatalogResultsPage(ranked, 1, pageSize, params);
-  assert.equal(page.paginationTotal, 35);
-  // Sort-order page may include settled shells; card layer filters them.
+  // Presentable pool = B only.
+  assert.equal(page.paginationTotal, 5);
   assert.equal(page.offers.filter(isResultsListableOffer).length, 5);
+  assert.equal(page.offers.length, 5);
 
-  // Overlay window skips settled shells and still reaches the presentable offers.
+  // Overlay window skips A shells and still reaches the presentable offers.
   const overlayWindow = selectPage1OverlayCandidates(ordered, pageSize, undefined, params);
   assert.equal(overlayWindow.length, 5);
   assert.ok(overlayWindow.every(isResultsListableOffer));

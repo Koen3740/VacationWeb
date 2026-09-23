@@ -44,26 +44,25 @@ function makeProven(id: string, overrides: Partial<TravelOffer> = {}): TravelOff
   });
 }
 
-test('pending page-1 slots render the catalog TravelCard, not an empty hole', () => {
-  assert.equal(page1PendingSlotUsesCardFallback(), true);
+test('pending page-1 slots do not paint a provisional TravelCard', () => {
+  assert.equal(page1PendingSlotUsesCardFallback(), false);
   const streamSource = readFileSync(
     join(ROOT, 'components/results/page1-receipt-stream.tsx'),
     'utf8',
   );
   assert.equal(streamSource.includes('TravelCardReceiptFallback'), false);
-  assert.match(streamSource, /fallback=\{\s*<TravelCard/);
-  assert.doesNotMatch(streamSource, /fallback=\{null\}/);
+  assert.match(streamSource, /fallback=\{null\}/);
 });
 
-test('catalog offers without a proven live price still count as visible TravelCards', () => {
+test('catalog offers without a proven live price are not visible TravelCards', () => {
   const slots: Page1RenderSlot[] = Array.from({ length: 10 }, (_, index) => ({
     kind: 'immediate',
     offer: makeCatalog(`catalog-${index + 1}`),
   }));
-  assert.equal(collectPage1VisibleTravelCards({ slots }).length, 10);
+  assert.equal(collectPage1VisibleTravelCards({ slots }).length, 0);
 });
 
-test('timeout live overlay keeps the catalog card; provider-unavailable does not', () => {
+test('timeout and pending settle without a card; only B is visible', () => {
   const first = makeCatalog('corendon-1');
   const second = makeCatalog('corendon-2', { imageUrl: '' });
   const third = makeCatalog('corendon-3');
@@ -86,36 +85,38 @@ test('timeout live overlay keeps the catalog card; provider-unavailable does not
         }),
         catalogOffer: third,
       },
-      ...Array.from({ length: 7 }, (_, index) => ({
+      {
+        kind: 'pending',
+        settledOffer: makeProven('corendon-4'),
+        catalogOffer: makeCatalog('corendon-4'),
+      },
+      ...Array.from({ length: 6 }, (_, index) => ({
         kind: 'pending' as const,
         settledOffer: null,
-        catalogOffer: makeCatalog(`catalog-${index + 4}`),
+        catalogOffer: makeCatalog(`catalog-${index + 5}`),
       })),
     ],
   });
-  assert.equal(visible.length, 9);
-  assert.equal(visible[0].id, 'corendon-1');
-  assert.equal(visible[1].id, 'corendon-2');
-  assert.ok(!visible.some((offer) => offer.id === 'corendon-3'));
+  assert.equal(visible.length, 1);
+  assert.equal(visible[0]!.id, 'corendon-4');
 });
 
-test('a catalog card without an image stays in the page-1 list', () => {
+test('a catalog card without an image is still not presentable without B', () => {
   const offer = makeCatalog('corendon-no-photo', { imageUrl: '' });
   const visible = collectPage1VisibleTravelCards({
     slots: [{ kind: 'immediate', offer }],
   });
-  assert.equal(visible.length, 1);
-  assert.equal(visible[0].id, 'corendon-no-photo');
+  assert.equal(visible.length, 0);
 });
 
-test('proven live overlay replaces the catalog price but does not shrink the list', () => {
+test('proven live overlay is the only visible card for a pending slot', () => {
   const catalog = makeCatalog('corendon-1');
   const proven = makeProven('corendon-1');
   const visible = collectPage1VisibleTravelCards({
     slots: [{ kind: 'pending', settledOffer: proven, catalogOffer: catalog }],
   });
   assert.equal(visible.length, 1);
-  assert.equal(visible[0].livePriceStatus, 'proven');
+  assert.equal(visible[0]!.livePriceStatus, 'proven');
 });
 
 test('parked Prijsvrij is still not a Results card', () => {

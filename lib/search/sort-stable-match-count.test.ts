@@ -125,7 +125,7 @@ test('orderCatalogPageCandidates keeps full matchset membership (reorder only)',
   assert.ok(page.visibleOffers.every(isResultsListableOffer));
 });
 
-test('live-price A failures shrink bookable pagination; C stays', () => {
+test('live-price A/C failures shrink presentable pagination to B only', () => {
   clearResultsLivePriceCache();
   const matched = [
     makeOffer({ id: 'ok', price: 400 }),
@@ -232,7 +232,7 @@ test('membership(standard) == membership(price) == membership(price-per-day)', a
 
     assert.deepEqual(membershipIds(ranked), filterIds, `prepare ${sort}`);
     assert.deepEqual(membershipIds(ordered), filterIds, `order ${sort}`);
-    // A (pricey) excluded before pagination — bookable = 3.
+    // Presentable pool = B only (cheap, mid, day-cheap) — pricey is A.
     assert.equal(catalogPage.paginationTotal, 3, `catalog page ${sort}`);
     assert.equal(pricePage.paginationTotal, 3, `price page ${sort}`);
     assert.ok(pricePage.visibleOffers.every((offer) => filterIds.includes(offer.id)));

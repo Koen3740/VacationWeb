@@ -8,9 +8,8 @@ export type Page1RenderSlot =
 /**
  * Visible TravelCards for a Results page.
  *
- * Catalog offers are listable without a proven live price.
- * Provider-confirmed unavailable settled offers are not listable and must not
- * fall back to the catalog card. Technical live failures remain listable.
+ * Presentable pool = B only. Pending catalog shells and settled A/C must not
+ * count as visible cards. Matchset membership is separate from this paint set.
  */
 export function collectPage1VisibleTravelCards(args: {
   slots: readonly Page1RenderSlot[];
@@ -32,10 +31,8 @@ export function collectPage1VisibleTravelCards(args: {
       push(slot.offer);
       continue;
     }
+    // Pending: only a settled presentable B counts — never the catalog shell.
     push(slot.settledOffer);
-    if (slot.settledOffer == null) {
-      push(slot.catalogOffer);
-    }
   }
 
   for (const offer of args.trailingOffers ?? []) {
@@ -45,7 +42,7 @@ export function collectPage1VisibleTravelCards(args: {
   return visible;
 }
 
-/** Pending live overlay uses the catalog TravelCard, not an empty hole. */
+/** Pending live overlay must not paint a provisional Results card. */
 export function page1PendingSlotUsesCardFallback(): boolean {
-  return true;
+  return false;
 }
