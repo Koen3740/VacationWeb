@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "node scripts/clean-next.cjs && next dev",
     "build": "next build",
+    "build:clean": "node scripts/clean-next.cjs && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "import:corendon": "tsc -p tsconfig.import.json && node dist/import/scripts/import-corendon-xml.js",
