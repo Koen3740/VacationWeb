@@ -3,6 +3,13 @@ export const CORENDON_PROVIDER_NAME = 'Corendon';
 export const CORENDON_FE_BASE_URL = 'https://api-fe.corendonresources.com';
 /** Observed FE version from coverage audit 2026-08-13 — not a product SLA. */
 export const CORENDON_FE_VERSION = '382.0.0.3';
+/**
+ * Upsales FE `version` query. `CORENDON_FE_VERSION` (382.x) returns
+ * `{ result: null }` for current package trips; site-compatible `1` returns
+ * prices (AN-080 verify 2026-09-22: Atrium CGN total €1850).
+ * Keep lowestpricesacco on CORENDON_FE_VERSION.
+ */
+export const CORENDON_UPSALES_FE_VERSION = '1';
 /** Proven BE host from Sub 17-1 / Bijbel v0.1.5. */
 export const CORENDON_FE_HOST = 'www.corendon.be';
 /** Host already present on Corendon.nl feed productURLs (campaign 38108). */

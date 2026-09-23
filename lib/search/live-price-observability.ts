@@ -281,7 +281,9 @@ export function isRetryableTechnicalLivePriceFailure(input: LivePriceFailureInpu
   }
   if (
     classified.reason === LIVE_PRICE_ATTEMPT_REASON.missing_context ||
-    classified.reason === LIVE_PRICE_ATTEMPT_REASON.circuit_open
+    classified.reason === LIVE_PRICE_ATTEMPT_REASON.circuit_open ||
+    // Business trip mismatch (wrong airport/date vs listing) — listable C, must not open circuit.
+    classified.reason === LIVE_PRICE_ATTEMPT_REASON.stale_context
   ) {
     return false;
   }

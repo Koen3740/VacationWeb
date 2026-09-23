@@ -6,6 +6,7 @@ import {
   CORENDON_FE_HOST,
   CORENDON_FE_VERSION,
   CORENDON_TWO_ROOM_2A_PARTY,
+  CORENDON_UPSALES_FE_VERSION,
 } from './constants';
 import type { CorendonLowestHop } from './lowestpricesacco-client';
 import type { CorendonLiveContext } from './offer-context';
@@ -229,10 +230,11 @@ test('upsales input uses party DOBs and lowest hop hash, not placeholder tokens'
   assert.equal(JSON.stringify(input).includes('1-1-19860'), false);
 });
 
-test('upsales URL is the proven FE path with host + version', () => {
+test('upsales URL is the proven FE path with host + upsales version', () => {
   const url = new URL(buildCorendonUpsalesUrl(ctx(), HOP) ?? '');
   assert.equal(url.pathname, '/fe/api/prices/upsales');
-  assert.equal(url.searchParams.get('version'), CORENDON_FE_VERSION);
+  assert.equal(url.searchParams.get('version'), CORENDON_UPSALES_FE_VERSION);
+  assert.notEqual(url.searchParams.get('version'), CORENDON_FE_VERSION);
   assert.equal(url.searchParams.get('originalHost'), CORENDON_FE_HOST);
   assert.equal(url.searchParams.get('browserHost'), CORENDON_FE_HOST);
   const decoded = JSON.parse(

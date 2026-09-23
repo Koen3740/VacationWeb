@@ -7,11 +7,13 @@ import {
 } from './constants';
 import {
   buildCorendonLowestpricesaccoUrl,
+  buildCorendonPriceTableHashPayload,
   fetchCorendonLowestpricesaccoPrice,
 } from './lowestpricesacco-client';
 import type { CorendonLiveContext } from './offer-context';
 
 const FRAGMENT = '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U';
+const FILTERED_HASH_PAYLOAD = `[filters]BEL/BRU.*.*.*.0|||${FRAGMENT}|||true`;
 
 function ctx(overrides: Partial<CorendonLiveContext> = {}): CorendonLiveContext {
   return {
@@ -51,7 +53,35 @@ function okBody(overrides: {
   });
 }
 
-test('buildCorendonLowestpricesaccoUrl: proven query shape', () => {
+test('buildCorendonPriceTableHashPayload: pins departure airport like Corendon site', () => {
+  assert.equal(buildCorendonPriceTableHashPayload(ctx().fragment), FILTERED_HASH_PAYLOAD);
+  assert.equal(
+    buildCorendonPriceTableHashPayload({
+      raw: '8188.RHATP.CGNRHO.211026.7.DZG-F..',
+      hotelId: '8188',
+      accommodationCode: 'RHATP',
+      airportRoute: 'CGNRHO',
+      dateYymmdd: '211026',
+      durationNights: '7',
+      roomBoard: 'DZG-F',
+    }),
+    '[filters]DEU/CGN.*.*.*.0|||8188.RHATP.CGNRHO.211026.7.DZG-F..|||true',
+  );
+  assert.equal(
+    buildCorendonPriceTableHashPayload({
+      raw: '10716.KOIKO.AMSKGS.041026.7.3B1-X..',
+      hotelId: '10716',
+      accommodationCode: 'KOIKO',
+      airportRoute: 'AMSKGS',
+      dateYymmdd: '041026',
+      durationNights: '7',
+      roomBoard: '3B1-X',
+    }),
+    '[filters]NLD/AMS.*.*.*.0|||10716.KOIKO.AMSKGS.041026.7.3B1-X..|||true',
+  );
+});
+
+test('buildCorendonLowestpricesaccoUrl: proven query shape with filtered priceTableHash', () => {
   const url = new URL(buildCorendonLowestpricesaccoUrl(ctx()));
   assert.equal(url.pathname, '/fe/api/prices/lowestpricesacco');
   assert.equal(url.searchParams.get('version'), CORENDON_FE_VERSION);
@@ -66,7 +96,7 @@ test('buildCorendonLowestpricesaccoUrl: proven query shape', () => {
   );
   assert.equal(
     url.searchParams.get('priceTableHash'),
-    Buffer.from(FRAGMENT, 'utf8').toString('base64'),
+    Buffer.from(FILTERED_HASH_PAYLOAD, 'utf8').toString('base64'),
   );
 });
 

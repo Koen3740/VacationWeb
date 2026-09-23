@@ -2,7 +2,7 @@ import type { FetchLike } from '../prijsvrij/auth';
 import { extractTransportErrorCode } from '@/lib/http/transport-error-code';
 import {
   CORENDON_FE_BASE_URL,
-  CORENDON_FE_VERSION,
+  CORENDON_UPSALES_FE_VERSION,
   CORENDON_LIVE_TIMEOUT_MS,
 } from './constants';
 import {
@@ -92,7 +92,7 @@ export function buildCorendonUpsalesUrl(ctx: CorendonLiveContext, hop: CorendonL
   const host = encodeURIComponent(ctx.feHost);
   return (
     `${CORENDON_FE_BASE_URL}/fe/api/prices/upsales` +
-    `?version=${CORENDON_FE_VERSION}` +
+    `?version=${CORENDON_UPSALES_FE_VERSION}` +
     `&originalHost=${host}` +
     `&browserHost=${host}` +
     `&input=${encoded}`

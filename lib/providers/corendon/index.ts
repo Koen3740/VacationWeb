@@ -6,6 +6,7 @@ export {
   CORENDON_FE_HOST_BE_FR,
   CORENDON_FE_HOST_NL,
   CORENDON_FE_VERSION,
+  CORENDON_UPSALES_FE_VERSION,
   CORENDON_LIVE_PAGE1_CONCURRENCY,
   CORENDON_LIVE_MATCHSET_CONCURRENCY,
   CORENDON_LIVE_TIMEOUT_MS,
@@ -24,6 +25,7 @@ export {
 } from './listing-selection';
 export {
   buildCorendonLowestpricesaccoUrl,
+  buildCorendonPriceTableHashPayload,
   fetchCorendonLowestpricesaccoPrice,
   type CorendonLivePriceResult,
 } from './lowestpricesacco-client';

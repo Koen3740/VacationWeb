@@ -1,5 +1,7 @@
 import '@/lib/http/prefer-ipv4';
 import { extractTransportErrorCode } from '@/lib/http/transport-error-code';
+import type { AirportCountryCode } from '@/lib/search/canonical-airports';
+import { getCanonicalAirportByIata } from '@/lib/search/canonical-airports';
 import type { FetchLike } from '../prijsvrij/auth';
 import {
   CORENDON_DEFAULT_2A_PARTY,
@@ -7,7 +9,19 @@ import {
   CORENDON_FE_VERSION,
   CORENDON_LIVE_TIMEOUT_MS,
 } from './constants';
-import type { CorendonLiveContext } from './offer-context';
+import type { CorendonLiveContext, CorendonUrlFragment } from './offer-context';
+
+/**
+ * Corendon FE filter country codes (ISO-3166 alpha-3) as used in site
+ * `tripUrlHash` / `priceTableHash` payloads (`[filters]BEL/BRU…`, `DEU/CGN…`, `NLD/AMS…`).
+ */
+const CORENDON_FILTER_COUNTRY_ISO3: Record<AirportCountryCode, string> = {
+  BE: 'BEL',
+  NL: 'NLD',
+  DE: 'DEU',
+  FR: 'FRA',
+  LU: 'LUX',
+};
 
 export type CorendonLivePriceSource = 'lowestpricesacco' | 'upsales';
 
@@ -66,13 +80,42 @@ function isTimeoutError(error: unknown): boolean {
   return name === 'TimeoutError' || name === 'AbortError' || /timeout|aborted/i.test(message);
 }
 
-function fragmentToPriceTableHash(fragment: string): string {
-  return Buffer.from(fragment, 'utf8').toString('base64');
+function toBase64PriceTableHash(payload: string): string {
+  return Buffer.from(payload, 'utf8').toString('base64');
+}
+
+/**
+ * Site-proven `priceTableHash` plaintext (before Base64).
+ *
+ * Bare deeplink fragment alone makes `lowestpricesacco` return the hotel's
+ * absolute cheapest trip (often another departure airport). Wrapping with
+ * `[filters]{ISO3}/{IATA}.*.*.*.0|||{fragment}|||true` pins the departure
+ * airport the way Corendon.be/nl does in Network → lowestpricesacco.
+ *
+ * Evidence: AN-079 / F12 Atrium RHATP 2026-09-22 (CGN → €889 CGNRHO with
+ * filter hash; bare fragment → €874 DUSRHO).
+ */
+export function buildCorendonPriceTableHashPayload(fragment: CorendonUrlFragment): string {
+  const raw = fragment.raw;
+  if (!raw) {
+    return raw;
+  }
+  const iata = (fragment.airportRoute.slice(0, 3) || '').toUpperCase();
+  if (!/^[A-Z]{3}$/.test(iata)) {
+    return raw;
+  }
+  const airport = getCanonicalAirportByIata(iata);
+  const filterKey = airport
+    ? `${CORENDON_FILTER_COUNTRY_ISO3[airport.countryCode]}/${iata}.*.*.*.0`
+    : `${iata}.*.*.*.0`;
+  return `[filters]${filterKey}|||${raw}|||true`;
 }
 
 export function buildCorendonLowestpricesaccoUrl(ctx: CorendonLiveContext): string {
   const party = encodeURIComponent(JSON.stringify(ctx.partyComposition ?? CORENDON_DEFAULT_2A_PARTY));
-  const hash = encodeURIComponent(fragmentToPriceTableHash(ctx.fragment.raw));
+  const hash = encodeURIComponent(
+    toBase64PriceTableHash(buildCorendonPriceTableHashPayload(ctx.fragment)),
+  );
   const host = encodeURIComponent(ctx.feHost);
   return (
     `${CORENDON_FE_BASE_URL}/fe/api/prices/lowestpricesacco` +

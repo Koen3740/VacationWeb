@@ -4,6 +4,7 @@ import type { TravelOffer } from '../../feeds/canonical/travel-offer';
 import { CORENDON_DEFAULT_2A_PARTY, CORENDON_FE_HOST_NL, CORENDON_FE_VERSION } from './constants';
 import {
   buildCorendonLowestpricesaccoUrl,
+  buildCorendonPriceTableHashPayload,
   fetchCorendonLowestpricesaccoPrice,
 } from './lowestpricesacco-client';
 import {
@@ -117,7 +118,11 @@ test('NL hash request uses www.corendon.nl host and same lowestpricesacco contra
   );
   assert.equal(
     url.searchParams.get('priceTableHash'),
-    Buffer.from(NL_FRAGMENT, 'utf8').toString('base64'),
+    Buffer.from(buildCorendonPriceTableHashPayload(ctx.fragment), 'utf8').toString('base64'),
+  );
+  assert.equal(
+    buildCorendonPriceTableHashPayload(ctx.fragment),
+    `[filters]NLD/EIN.*.*.*.0|||${NL_FRAGMENT}|||true`,
   );
 });
 
