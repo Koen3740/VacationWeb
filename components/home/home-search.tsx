@@ -32,6 +32,7 @@ import {
   formatTravelersLabel,
   type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
+import { requestHomeLivePricePrefetch } from '@/components/home/home-live-price-prefetch-client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 
@@ -92,9 +93,16 @@ type HomeSearchProps = {
   countryCounts: Record<string, number>;
   departureAirports: string[];
   totalOffersLabel: string;
+  /** AN-077 — server-resolved `HOME_LIVE_PRICE_PREFETCH_ENABLED` (default off). */
+  livePricePrefetchEnabled?: boolean;
 };
 
-export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel }: HomeSearchProps) {
+export function HomeSearch({
+  countryCounts,
+  departureAirports,
+  totalOffersLabel,
+  livePricePrefetchEnabled = false,
+}: HomeSearchProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const initialState = getInitialHomeSearchState();
@@ -120,8 +128,8 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
 
   const searchBusy = isSearching || isPending;
 
-  useEffect(() => {
-    saveSharedSearchState({
+  const sharedState = useMemo(
+    () => ({
       selectedCountries,
       departureStart,
       departureEnd,
@@ -129,16 +137,36 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
       selectedDurations,
       selectedDepartureAirports,
       travelers,
+    }),
+    [
+      departureEnd,
+      departureStart,
+      flexibilityDays,
+      selectedCountries,
+      selectedDepartureAirports,
+      selectedDurations,
+      travelers,
+    ],
+  );
+
+  const popupsOpen =
+    destinationPopupOpen ||
+    departurePopupOpen ||
+    durationPopupOpen ||
+    airportPopupOpen ||
+    travelersPopupOpen;
+
+  useEffect(() => {
+    saveSharedSearchState(sharedState);
+  }, [sharedState]);
+
+  // AN-077: fire-and-forget live-price prefetch when context is definitive and settled.
+  useEffect(() => {
+    requestHomeLivePricePrefetch(sharedState, {
+      enabled: livePricePrefetchEnabled,
+      popupsOpen,
     });
-  }, [
-    departureEnd,
-    departureStart,
-    flexibilityDays,
-    selectedCountries,
-    selectedDepartureAirports,
-    selectedDurations,
-    travelers,
-  ]);
+  }, [livePricePrefetchEnabled, popupsOpen, sharedState]);
 
   const destinationValue =
     selectedCountries.length === 0 ? 'Waar wil je naartoe?' : formatSelectedCountriesLabel(selectedCountries);
@@ -216,6 +244,11 @@ export function HomeSearch({ countryCounts, departureAirports, totalOffersLabel 
     }
     searchStartedRef.current = true;
     setIsSearching(true);
+    // Best-effort last chance prefetch; never awaited.
+    requestHomeLivePricePrefetch(sharedState, {
+      enabled: livePricePrefetchEnabled,
+      popupsOpen: false,
+    });
     startTransition(() => {
       router.push(searchHref);
     });

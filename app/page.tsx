@@ -11,6 +11,7 @@ import { HomeTrustStrip } from '@/components/home/home-trust-strip';
 import { HomeValueSection } from '@/components/home/home-value-section';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 import { loadFilterOptions } from '@/lib/offers/load-filter-options';
+import { isHomeLivePricePrefetchEnabled } from '@/lib/search/home-live-price-prefetch-context';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -36,6 +37,7 @@ export default async function HomePage() {
   const popularDestinations = filterOptions.popularDestinations ?? [];
   const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? 0);
   const discoverDestinations = getHomepageDiscoverDestinations({ limit: 5 });
+  const livePricePrefetchEnabled = isHomeLivePricePrefetchEnabled();
 
   return (
     <main
@@ -46,6 +48,7 @@ export default async function HomePage() {
         countryCounts={countryCounts}
         departureAirports={filterOptions.departureAirports}
         totalOffersLabel={totalOffersLabel}
+        livePricePrefetchEnabled={livePricePrefetchEnabled}
       />
       <HomeTrustStrip />
       <HomeDiscoverTeaser destinations={discoverDestinations} />

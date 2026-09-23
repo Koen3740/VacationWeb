@@ -9,6 +9,7 @@ type HomeHeroProps = {
   countryCounts: Record<string, number>;
   departureAirports: string[];
   totalOffersLabel: string;
+  livePricePrefetchEnabled?: boolean;
 };
 
 /**
@@ -16,7 +17,12 @@ type HomeHeroProps = {
  * mood image + commercial belofte + floating search.
  * No Wait—where? badge, no misdirect/reveal copy, no Discover CTAs in hero.
  */
-export function HomeHero({ countryCounts, departureAirports, totalOffersLabel }: HomeHeroProps) {
+export function HomeHero({
+  countryCounts,
+  departureAirports,
+  totalOffersLabel,
+  livePricePrefetchEnabled = false,
+}: HomeHeroProps) {
   return (
     <>
       <HomeHeader />
@@ -69,6 +75,7 @@ export function HomeHero({ countryCounts, departureAirports, totalOffersLabel }:
             countryCounts={countryCounts}
             departureAirports={departureAirports}
             totalOffersLabel={totalOffersLabel}
+            livePricePrefetchEnabled={livePricePrefetchEnabled}
           />
         </div>
       </section>
