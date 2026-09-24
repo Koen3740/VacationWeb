@@ -1,5 +1,6 @@
 'use client';
 
+
 import {
   RESULTS_BORDER,
   RESULTS_NAVY,
@@ -101,8 +102,8 @@ function parseFilters(searchParams: URLSearchParams) {
 type FilterSidebarProps = FilterOptions & {
   countryCounts: Record<string, number>;
   totalOffersLabel: string;
-  carRentalCount: number;
-  roadtripCount: number;
+  carRentalCount: number | ReactNode;
+  roadtripCount: number | ReactNode;
 };
 
 function Chevron({ open }: { open: boolean }) {

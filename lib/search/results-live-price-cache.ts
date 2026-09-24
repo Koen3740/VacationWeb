@@ -189,39 +189,100 @@ export function seedResultsLivePriceOverlayFromL2(
  * Batch L2 → L1 hydrate for offer ids under the given occupancy params.
  * Keeps existing sync get/has/apply paths unchanged after this await.
  */
+export type HydrateResultsLivePriceFromL2Options = {
+  concurrency?: number;
+  /**
+   * Optional offer objects for the same ids. When provided, Corendon ids also
+   * probe listingKey-scoped L2 records (write path uses listingKey; bare-id
+   * hydrate alone cannot hit those objects — GO3).
+   */
+  offers?: readonly TravelOffer[];
+};
+
+type HydrateAttempt = {
+  offerId: string;
+  params: LivePriceCacheParams;
+};
+
+/**
+ * Batch L2 → L1 hydrate for offer ids under the given occupancy params.
+ * Keeps existing sync get/has/apply paths unchanged after this await.
+ *
+ * GO3: when `offers` is passed, Corendon entries also try listingKey variants
+ * so L2 keys match the write path (`setResultsLivePriceOverlay` + listingKey).
+ */
 export async function hydrateResultsLivePriceOverlaysFromL2(
   offerIds: readonly string[],
   params: LivePriceCacheParams,
-  options: { concurrency?: number } = {},
+  options: HydrateResultsLivePriceFromL2Options = {},
 ): Promise<{ hydrated: number; checked: number }> {
   if (!isLivePriceL2Enabled() || offerIds.length === 0) {
     return { hydrated: 0, checked: 0 };
   }
 
   const uniqueIds = [...new Set(offerIds.filter(Boolean))];
-  const pending = uniqueIds.filter((id) => !readEntry(id, params));
-  if (pending.length === 0) {
+  const offerById = new Map(
+    (options.offers ?? []).filter((offer) => Boolean(offer?.id)).map((offer) => [offer.id, offer]),
+  );
+
+  const attempts: HydrateAttempt[] = [];
+  const seenKeys = new Set<string>();
+  for (const offerId of uniqueIds) {
+    const bare: HydrateAttempt = { offerId, params };
+    const bareKey = livePriceCacheKey(offerId, bare.params);
+    if (!readEntry(offerId, bare.params) && !seenKeys.has(bareKey)) {
+      seenKeys.add(bareKey);
+      attempts.push(bare);
+    }
+
+    const offer = offerById.get(offerId);
+    if (!offer || offer.provider !== CORENDON_PROVIDER_NAME) {
+      continue;
+    }
+    for (const listing of rankCorendonListings(offer, params)) {
+      const listingParams: LivePriceCacheParams = {
+        ...params,
+        listingKey: corendonListingCacheKey(listing),
+      };
+      if (readEntry(offerId, listingParams)) {
+        continue;
+      }
+      const key = livePriceCacheKey(offerId, listingParams);
+      if (seenKeys.has(key)) {
+        continue;
+      }
+      seenKeys.add(key);
+      attempts.push({ offerId, params: listingParams });
+    }
+  }
+
+  if (attempts.length === 0) {
     return { hydrated: 0, checked: uniqueIds.length };
   }
 
-  const concurrency = Math.max(1, Math.min(options.concurrency ?? 12, pending.length));
+  const concurrency = Math.max(1, Math.min(options.concurrency ?? 12, attempts.length));
   let hydrated = 0;
   let cursor = 0;
 
   async function worker(): Promise<void> {
-    while (cursor < pending.length) {
+    while (cursor < attempts.length) {
       const index = cursor;
       cursor += 1;
-      const offerId = pending[index]!;
-      const cacheKey = livePriceCacheKey(offerId, params);
+      const attempt = attempts[index]!;
+      const cacheKey = livePriceCacheKey(attempt.offerId, attempt.params);
       const record = await readLivePriceL2Record(cacheKey);
       if (!record) {
         continue;
       }
-      seedResultsLivePriceOverlayFromL2(offerId, params, record.overlay as ResultsLivePriceOverlay, {
-        cachedAtMs: record.cachedAtMs,
-        ttlMs: record.ttlMs,
-      });
+      seedResultsLivePriceOverlayFromL2(
+        attempt.offerId,
+        attempt.params,
+        record.overlay as ResultsLivePriceOverlay,
+        {
+          cachedAtMs: record.cachedAtMs,
+          ttlMs: record.ttlMs,
+        },
+      );
       hydrated += 1;
     }
   }

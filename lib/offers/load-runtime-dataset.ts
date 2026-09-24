@@ -17,8 +17,12 @@ import {
   type CatalogShardPointer,
   type CurrentPointer,
 } from '@/lib/offers/generation-types';
-import type { FilterOptions } from '@/types/travel';
-import type { TravelOffer } from '@/types/travel';
+import type { FilterOptions, TravelOffer } from '@/types/travel';
+import {
+  buildCatalogFilterIndex,
+  getActiveCatalogFilterIndex,
+  type CatalogFilterIndex,
+} from '@/lib/offers/catalog-filter-index';
 import {
   getOffersObject,
   getStorageObject,
@@ -35,6 +39,8 @@ export type RuntimeDataset = {
   pointer: CurrentPointer | null;
   offers: TravelOffer[];
   filterOptions: FilterOptions;
+  /** GO6: in-memory selective filter indexes (built with the cached dataset). */
+  filterIndex: CatalogFilterIndex;
 };
 
 let cachedDataset: RuntimeDataset | null = null;
@@ -259,6 +265,7 @@ async function loadLegacyDataset(): Promise<RuntimeDataset> {
     pointer: null,
     offers,
     filterOptions: loadFilterOptions(),
+    filterIndex: buildCatalogFilterIndex(offers),
   };
 }
 
@@ -337,6 +344,7 @@ async function loadGenerationDataset(
     pointer,
     offers,
     filterOptions: canonicalizeFilterOptions(parsedFilters),
+    filterIndex: buildCatalogFilterIndex(offers),
   };
 }
 
@@ -398,3 +406,13 @@ export async function readGenerationDetailObject(
 }
 
 export { FEED_PATHS };
+
+
+/** GO6: selective filter index — request-local override, else cached dataset index. */
+export function getCatalogFilterIndex(offers?: readonly TravelOffer[]): CatalogFilterIndex | null {
+  if (offers) {
+    const active = getActiveCatalogFilterIndex(offers);
+    if (active) return active;
+  }
+  return cachedDataset?.filterIndex ?? null;
+}

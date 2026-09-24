@@ -1,6 +1,5 @@
+import { Suspense } from 'react';
 import { FilterSidebar } from '@/components/results/filter-sidebar';
-import { NoResults } from '@/components/results/no-results';
-import { ResultsPagination } from '@/components/results/results-pagination';
 import { SortSelector } from '@/components/results/sort-selector';
 import { ResultsPageClient } from '@/components/results-v2/results-page-client';
 import { getDepartureDisplay } from '@/components/search/departure-display';
@@ -9,33 +8,25 @@ import {
   formatSelectedDurationsLabel,
 } from '@/components/search/duration-popup/duration-popup-utils';
 import { loadPresentedFilterOptions } from '@/lib/offers/present-active-filter-options';
-import { loadOffers } from '@/lib/offers/load-offers';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
-import {
-  Page1PaginationStream,
-  Page1ResultsStream,
-} from '@/components/results/page1-receipt-stream';
-import {
-  RESULTS_PRODUCT_PAGE_SIZE,
-  startCatalogPageLiveOverlays,
-} from '@/lib/providers/prijsvrij';
-import {
-  selectCatalogPageHydrationIds,
-  selectPage1OverlayCandidates,
-  selectPaintAlignedPageOverlayCandidates,
-  sliceRankedCatalogResultsPage,
-} from '@/lib/search/results-catalog-page';
-import { hydrateResultsLivePriceOverlaysFromL2 } from '@/lib/search/results-live-price-cache';
+import { RESULTS_PRODUCT_PAGE_SIZE } from '@/lib/providers/prijsvrij';
 import '@/lib/http/prefer-ipv4';
-import { countCarRentalFacet, countRoadtripFacet } from '@/lib/search/filtering';
 import {
   ACCOMMODATION_TYPE_FILTER_VALUES,
   effectiveAccommodationTypesForFilter,
   parseAccommodationTypesParam,
 } from '@/lib/search/accommodation-type-filter';
-import { excludeParkedResultsProviders } from '@/lib/search/presentable-price';
-import { isPriceDependentSort, prepareResultsOffers } from '@/lib/search/prepare-results-offers';
-import { PriceSortResultsStream } from '@/components/results/price-sort-live-stream';
+import { isPriceDependentSort } from '@/lib/search/prepare-results-offers';
+import { PriceSortPreparedSection } from '@/components/results/price-sort-prepared-section';
+import { CatalogLiveSection } from '@/components/results/catalog-live-section';
+import {
+  PresentableResultsCount,
+  PriceSortPresentableCount,
+} from '@/components/results/presentable-results-count';
+import {
+  CarRentalFacetCount,
+  RoadtripFacetCount,
+} from '@/components/results/results-facet-counts';
 import { parseSearchParams } from '@/lib/search/parse-search-params';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
 import { attachSiteMarket } from '@/lib/search/site-market';
@@ -93,8 +84,8 @@ export default async function ResultsPage({
     parseSearchParams(searchParams),
     headers().get('x-forwarded-host') ?? headers().get('host'),
   );
-  const offers = excludeParkedResultsProviders(await loadOffers());
-
+  // GO9: shell skips the catalog offer load on the critical path (O(catalog)).
+  // Filter options come from the cached runtime dataset; prepare loads offers inside Suspense.
   const filterOptions = await loadPresentedFilterOptions();
   const citiesByCountry = filterOptions.citiesByCountry ?? {};
   const accommodationTypes = filterOptions.accommodationTypes ?? [];
@@ -117,19 +108,23 @@ export default async function ResultsPage({
     })(),
   };
   const countryCounts = filterOptions.countryCounts ?? {};
-  const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? offers.length);
+  const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? 0);
   const pageSize = RESULTS_PRODUCT_PAGE_SIZE;
   const page = params.page ?? 1;
   const isPage1 = !Number.isFinite(page) || Math.floor(page) <= 1;
 
-  const prepared = await prepareResultsOffers(offers, filteringParams);
-  // Catalog filter matchset (sort-invariant) drives the heading / facets.
-  // Presentable card pool is B-only inside page slicing; A/C/Pending stay in
-  // the matchset for later pricing retries.
-  const filtered = prepared.offers;
-  const matchCount = filtered.length;
-  const carRentalCount = countCarRentalFacet(filtered, filteringParams);
-  const roadtripCount = countRoadtripFacet(filtered, filteringParams);
+  // GO6: shell must not await prepare/filter/rank — that made TTFB scale with pool.
+  // prepareResultsOffers runs inside Suspense via loadPreparedResultsOffers (React cache).
+  if (process.env.VACATIONWEB_RESULTS_TIMING === '1') {
+    console.info(
+      '[results-timing]',
+      JSON.stringify({
+        phase: 'results-shell',
+        catalogOffers: filterOptions.totalOffers ?? 0,
+        note: 'prepare deferred into Suspense; shell skips catalog offer load',
+      }),
+    );
+  }
 
   const pageShell = {
     departureAirports: filterOptions.departureAirports,
@@ -140,129 +135,123 @@ export default async function ResultsPage({
         {...filterOptions}
         citiesByCountry={citiesByCountry}
         accommodationTypes={accommodationTypes}
-        countryCounts={countryCounts}
+        countryCounts={countryCounts} /* GO8 audit: destination popup metadata only; not numeric sidebar badges */
         totalOffersLabel={totalOffersLabel}
-        carRentalCount={carRentalCount}
-        roadtripCount={roadtripCount}
+        /* GO8: B-only presentable facet counts (same source as heading/cards). */
+        carRentalCount={
+          <Suspense fallback="…">
+            <CarRentalFacetCount
+              filteringParams={filteringParams}
+              params={params}
+              page={page}
+              pageSize={pageSize}
+              isPage1={isPage1}
+            />
+          </Suspense>
+        }
+        roadtripCount={
+          <Suspense fallback="…">
+            <RoadtripFacetCount
+              filteringParams={filteringParams}
+              params={params}
+              page={page}
+              pageSize={pageSize}
+              isPage1={isPage1}
+            />
+          </Suspense>
+        }
       />
     ),
   };
 
+  // GO7: price-sort prepare also deferred into Suspense (shared cache).
   if (isPriceDependentSort(params.sort)) {
-    if (filtered.length === 0) {
-      return (
-        <ResultsPageClient
-          {...pageShell}
-          resultCount={matchCount}
-          results={<NoResults />}
-          pagination={
-            <ResultsPagination
-              params={{ ...params, pageSize }}
-              totalResults={0}
-            />
-          }
-        />
-      );
-    }
-
     return (
       <ResultsPageClient
         {...pageShell}
-        resultCount={matchCount}
+        resultCount={0}
+        heroTitle={
+          <Suspense fallback="…">
+            <PriceSortPresentableCount
+              filteringParams={filteringParams}
+              params={params}
+              page={page}
+              pageSize={pageSize}
+              summaryLine={pageShell.summaryLine}
+              variant="hero"
+            />
+          </Suspense>
+        }
+        sectionHeading={
+          <Suspense fallback="…">
+            <PriceSortPresentableCount
+              filteringParams={filteringParams}
+              params={params}
+              page={page}
+              pageSize={pageSize}
+              summaryLine={pageShell.summaryLine}
+              variant="section"
+            />
+          </Suspense>
+        }
         results={
-          <PriceSortResultsStream
-            provisionalOffers={prepared.offers}
-            exactOffers={prepared.exactOffers}
-            priceSortPending={prepared.priceSortPending}
-            params={{ ...params, pageSize }}
-            page={page}
-            pageSize={pageSize}
-          />
+          <Suspense fallback="Vakanties laden…">
+            <PriceSortPreparedSection
+              filteringParams={filteringParams}
+              params={params}
+              page={page}
+              pageSize={pageSize}
+            />
+          </Suspense>
         }
         pagination={null}
       />
     );
   }
 
-  // Catalog first-paint. Full-matchset live pricing was scheduled in
-  // prepareResultsOffers (not awaited). Page overlays join cache / in-flight.
-  if (filtered.length === 0) {
-    return (
-      <ResultsPageClient
-        {...pageShell}
-        resultCount={matchCount}
-        results={<NoResults />}
-        pagination={
-          <ResultsPagination
-            params={{ ...params, pageSize }}
-            totalResults={0}
-          />
-        }
-      />
-    );
-  }
-
-  // GO2 defect 1: L2→L1 hydrate bounded candidate IDs before B-pool page slice.
-  // Page 1 FREEZE / page1Ids / selectPage1OverlayCandidates stay on their existing path.
-  const hydrationIds = selectCatalogPageHydrationIds(
-    filtered,
-    isPage1 ? 1 : page,
-    pageSize,
-    undefined,
-    filteringParams,
-  );
-  await hydrateResultsLivePriceOverlaysFromL2(hydrationIds, filteringParams);
-
-  const catalogPage = sliceRankedCatalogResultsPage(
-    filtered,
-    isPage1 ? 1 : page,
-    pageSize,
-    filteringParams,
-  );
-  const overlayCandidates = isPage1
-    ? selectPage1OverlayCandidates(filtered, pageSize, undefined, filteringParams)
-    : selectPaintAlignedPageOverlayCandidates(
-        filtered,
-        catalogPage.offers,
-        pageSize,
-        undefined,
-        filteringParams,
-      );
-  // Drive overlays from the live-price candidate window (pending/C/B, not A).
-  // Presentable paint stays B-only via TravelCard; Cap backfills as B settles.
-  const streamOffers =
-    catalogPage.offers.length > 0
-      ? catalogPage.offers
-      : overlayCandidates.slice(0, pageSize);
-  const overlays = startCatalogPageLiveOverlays(
-    overlayCandidates.length > 0 ? overlayCandidates : streamOffers,
-    params,
-  );
-
+  // GO6: shell flushes without matchset; prepare+hydrate+B-slice inside Suspense.
   return (
     <ResultsPageClient
       {...pageShell}
-      resultCount={matchCount}
-      results={
-        streamOffers.length > 0 || overlayCandidates.length > 0 ? (
-          <Page1ResultsStream
-            catalogOffers={streamOffers.length > 0 ? streamOffers : overlayCandidates}
-            candidateOffers={overlayCandidates}
-            displayLimit={pageSize}
-            overlays={overlays}
-            searchParams={{ ...params, pageSize }}
+      resultCount={0}
+      heroTitle={
+        <Suspense fallback="…">
+          <PresentableResultsCount
+            filteringParams={filteringParams}
+            params={params}
+            page={page}
+            pageSize={pageSize}
+            isPage1={isPage1}
+            summaryLine={pageShell.summaryLine}
+            refinementRequired={false}
+            variant="hero"
           />
-        ) : (
-          <NoResults />
-        )
+        </Suspense>
       }
-      pagination={
-        <Page1PaginationStream
-          params={{ ...params, pageSize }}
-          page1Ids={catalogPage.page1Ids}
-          paginationTotal={catalogPage.paginationTotal}
+      sectionHeading={
+        <Suspense fallback="…">
+          <PresentableResultsCount
+            filteringParams={filteringParams}
+            params={params}
+            page={page}
+            pageSize={pageSize}
+            isPage1={isPage1}
+            summaryLine={pageShell.summaryLine}
+            refinementRequired={false}
+            variant="section"
+          />
+        </Suspense>
+      }
+      results={
+        <CatalogLiveSection
+          filteringParams={filteringParams}
+          params={params}
+          page={page}
+          pageSize={pageSize}
+          isPage1={isPage1}
         />
       }
+      pagination={null}
     />
   );
 }

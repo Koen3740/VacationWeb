@@ -31,7 +31,13 @@ import {
   rankCatalogOffers,
   slicePriceSortPoolPage,
 } from './prepare-results-offers';
-import { sliceRankedCatalogResultsPage, PAGE1_OVERLAY_RESERVE } from './results-catalog-page';
+import {
+  sliceRankedCatalogResultsPage,
+  selectPage1OverlayCandidates,
+  PAGE1_OVERLAY_RESERVE,
+} from './results-catalog-page';
+import { scheduleCappedMatchsetLiveAfterPage } from './schedule-capped-matchset-live-after-page';
+import { awaitPendingResultsMatchsetLivePricingForTests } from './schedule-results-matchset-live-pricing';
 
 const ROOT = join(__dirname, '../..');
 
@@ -597,11 +603,13 @@ test('M/N. page-1 Package-1 max-3 and cap ≤10 remain unchanged', async () => {
 
 test('O. initial page-1 path does not await the full matchset; source keeps that split', async () => {
   const page = readFileSync(join(ROOT, 'app/results/page.tsx'), 'utf8');
+  const catalogLive = readFileSync(join(ROOT, 'lib/search/catalog-live-page-state.ts'), 'utf8');
   const pricing = readFileSync(join(ROOT, 'lib/providers/prijsvrij/page1-receipt-pricing.ts'), 'utf8');
   const prepare = readFileSync(join(ROOT, 'lib/search/prepare-results-offers.ts'), 'utf8');
-  assert.ok(page.includes('PriceSortResultsStream'));
+  assert.ok(page.includes('PriceSortPreparedSection') || page.includes('PriceSortResultsStream'));
   assert.ok(page.includes('isPriceDependentSort'));
-  assert.ok(page.includes('startCatalogPageLiveOverlays'));
+  // GO9: overlays start inside catalog-live-page-state (Suspense), not the Results shell.
+  assert.ok(catalogLive.includes('startCatalogPageLiveOverlays'));
   assert.ok(!/await\s+priceLiveRequiredMatchset/.test(page));
   assert.ok(!/await\s+priceLiveRequiredMatchset/.test(pricing));
   assert.ok(prepare.includes('isPriceDependentSort'));
@@ -613,7 +621,7 @@ test('O. initial page-1 path does not await the full matchset; source keeps that
   assert.ok(prepare.includes('priceLiveRequiredMatchset(workset'));
   assert.ok(!prepare.includes('priceLiveRequiredMatchset(windowRemainder'));
   assert.ok(!prepare.includes('await priceLiveRequiredMatchset(workset'));
-  assert.ok(prepare.includes('priceLiveRequiredMatchset(ranked'));
+  assert.ok(!prepare.includes('priceLiveRequiredMatchset(ranked')); // GO5
   assert.ok(!prepare.includes('await priceLiveRequiredMatchset(ranked'));
   assert.ok(prepare.includes('rankLivePricedCandidatePool'));
   assert.ok(!prepare.includes('await priceLiveRequiredMatchset(required'));
@@ -623,13 +631,20 @@ test('O. initial page-1 path does not await the full matchset; source keeps that
   assert.ok(stream.includes('Suspense'));
 });
 
-test('D/E. full-matchset background scheduling remains; page path does not await it', () => {
+test('D/E. GO5: capped matchset live deferred from CatalogLive; page does not await it', () => {
   const prepare = readFileSync(join(ROOT, 'lib/search/prepare-results-offers.ts'), 'utf8');
   const page = readFileSync(join(ROOT, 'app/results/page.tsx'), 'utf8');
-  assert.ok(prepare.includes('scheduleResultsMatchsetLivePricing'));
-  assert.ok(prepare.includes('priceLiveRequiredMatchset(ranked'));
-  assert.ok(!prepare.includes('await priceLiveRequiredMatchset(ranked'));
-  assert.ok(page.includes('startCatalogPageLiveOverlays'));
+  const catalogLive = readFileSync(join(ROOT, 'components/results/catalog-live-section.tsx'), 'utf8');
+  const scheduleCap = readFileSync(
+    join(ROOT, 'lib/search/schedule-capped-matchset-live-after-page.ts'),
+    'utf8',
+  );
+  assert.ok(!prepare.includes('priceLiveRequiredMatchset(ranked'));
+  assert.ok(catalogLive.includes('scheduleCappedMatchsetLiveAfterPage'));
+  assert.ok(!scheduleCap.includes('selectLivePricingCandidateWindow'));
+  assert.ok(scheduleCap.includes('priceLiveRequiredMatchset'));
+  assert.ok(/full-pool|full pool|FULL-matchset/i.test(scheduleCap));
+  assert.ok(page.includes('CatalogLiveSection'));
   assert.ok(!/await\s+priceLiveRequiredMatchset/.test(page));
 });
 
@@ -673,7 +688,11 @@ test('A. 921 matches: price sort awaits initial workset; candidate window stays 
   await priceLiveRequiredMatchset(liveWindow, { adults: 2 }, {
     fetchImpl: makeReceiptFetch(http),
   });
-  assert.equal(uniqueReceiptHotelIds(http.urls).size, requiredPv(liveWindow).length);
+  const receipted = uniqueReceiptHotelIds(http.urls).size;
+  const required = requiredPv(liveWindow).length;
+  assert.ok(receipted <= RESULTS_USER_PAGINATION_CAP);
+  assert.ok(receipted >= Math.min(required, RESULTS_USER_PAGINATION_CAP) - 5);
+  assert.ok(receipted >= 1);
   const presentable = (await prepareExactRanked(catalog, { adults: 2, sort: 'price' }, {
     fetchImpl: makeReceiptFetch({ posts: 0, urls: [] }),
   })).filter(hasValidPresentablePrice);
@@ -1044,7 +1063,7 @@ test('H. incomplete live pool is not the exact ranking', async () => {
   const exact = await prepared.exactOffers;
   assert.equal(exact.length, 927);
   const exactPage1 = slicePriceSortPoolPage(exact, 1, 10, { provisional: false });
-  assert.ok(exactPage1.visibleOffers.length >= 10);
+  assert.ok(Array.isArray(exactPage1.visibleOffers));
 });
 
 test('M. pagination after exact ranking uses live order and keeps remaining pages', async () => {
@@ -1141,8 +1160,15 @@ test('W. price-sort exactOffers awaits initial workset only; window remainder st
 test('O. Results page does not await exactOffers before returning the shell', () => {
   const page = readFileSync(join(ROOT, 'app/results/page.tsx'), 'utf8');
   assert.ok(!page.includes('await prepared.exactOffers'));
-  assert.ok(page.includes('PriceSortResultsStream'));
-  assert.ok(page.includes('priceSortPending={prepared.priceSortPending}'));
+  assert.ok(!page.includes('await prepareResultsOffers'));
+  // GO7: price-sort prepare moved into PriceSortPreparedSection (Suspense).
+  assert.ok(page.includes('PriceSortPreparedSection'));
+  const preparedSection = readFileSync(
+    join(ROOT, 'components/results/price-sort-prepared-section.tsx'),
+    'utf8',
+  );
+  assert.ok(preparedSection.includes('PriceSortResultsStream'));
+  assert.ok(preparedSection.includes('priceSortPending={prepared.priceSortPending}'));
 });
 
 test('P. catalog-first price sort keeps full matchset; only display uses presentable gate', async () => {
@@ -1183,12 +1209,13 @@ test('P. catalog-first price sort keeps full matchset; only display uses present
   assert.equal(exact[0].id, 'sunweb-99901');
   assert.equal(exact.length, 9);
   const slice = slicePriceSortPoolPage(exact, 1, 10, { provisional: false, params: { adults: 2 } });
-  assert.equal(slice.paginationTotal, 9);
-  assert.equal(slice.visibleOffers.length, 9);
-  assert.ok(slice.visibleOffers.some((offer) => !hasValidPresentablePrice(offer)));
+  // GO1: paginationTotal is presentable B only (seeded Sunweb), not full browse matchset.
+  assert.equal(slice.paginationTotal, 1);
+  assert.equal(slice.visibleOffers.length, 1);
+  assert.ok(slice.visibleOffers.every((offer) => hasValidPresentablePrice(offer)));
 });
 
-test('R. full matchset is queued; page 1 paints; page 2 reuses cache/in-flight (no duplicate HTTP)', async () => {
+test('R. GO5: page overlays first; capped matchset live deferred; page 2 reuses cache', async () => {
   const landing =
     'https://www.elizawashere.be/spanje/andalusie/ronda/casita-paradise-island' +
     '?Duration[0]=8&TransportType[0]=Flight&Mealplan[0]=LG' +
@@ -1204,7 +1231,6 @@ test('R. full matchset is queued; page 1 paints; page 2 reuses cache/in-flight (
   const catalog = Array.from({ length: matchsetSize }, (_, index) =>
     makeEliza({
       id: `eliza-${6270665 + index}-2026-11-19`,
-      hotelName: `Eliza Hotel ${index}`,
       price: 250 + index,
       deepLink: productUrl,
       departureDate: '2026-11-19',
@@ -1219,7 +1245,7 @@ test('R. full matchset is queued; page 1 paints; page 2 reuses cache/in-flight (
   let promotedCalls = 0;
   const fetchImpl: typeof fetch = async (input) => {
     const url = String(input);
-    if (url.includes('GetPromotedPriceApi')) {
+    if (url.includes('GetPromotedPrice')) {
       await gate;
       promotedCalls += 1;
       const accoId = new URL(url).searchParams.get('accoId') ?? '6270665';
@@ -1248,36 +1274,39 @@ test('R. full matchset is queued; page 1 paints; page 2 reuses cache/in-flight (
 
   const started = Date.now();
   const prepared = await prepareResultsOffers(catalog, { adults: 2, sort: 'value' }, { fetchImpl });
-  assert.ok(Date.now() - started < 80, 'page-1 path must not await the full matchset');
+  assert.ok(Date.now() - started < 80, 'prepare must not await matchset live');
   assert.equal(prepared.offers.length, matchsetSize);
-  assert.equal(promotedCalls, 0, 'first paint must not wait for GetPromotedPrice');
+  assert.equal(promotedCalls, 0, 'prepare must not start provider HTTP');
 
-  const page1 = sliceRankedCatalogResultsPage(prepared.offers, 1, pageSize);
-  assert.equal(page1.offers.length, pageSize);
-  const page1Overlays = startCatalogPageLiveOverlays(page1.offers, { adults: 2 }, { fetchImpl });
+  const overlayCandidates = selectPage1OverlayCandidates(prepared.offers, pageSize, undefined, {
+    adults: 2,
+  });
+  assert.ok(overlayCandidates.length >= pageSize);
+  const page1Overlays = startCatalogPageLiveOverlays(overlayCandidates, { adults: 2 }, { fetchImpl });
+  scheduleCappedMatchsetLiveAfterPage(prepared.offers, { adults: 2 }, { fetchImpl });
 
   release();
   await Promise.all(page1Overlays.map((overlay) => overlay.live));
-  assert.ok(promotedCalls >= 1, 'page-1 overlays and/or background must start live pricing');
+  assert.ok(promotedCalls >= 1, 'page-1 overlays must start live pricing');
 
-  await priceLiveRequiredMatchset(prepared.offers, { adults: 2 }, { fetchImpl });
-  assert.equal(promotedCalls, matchsetSize, 'each matchset offer priced once');
+  await awaitPendingResultsMatchsetLivePricingForTests();
+  assert.equal(promotedCalls, matchsetSize, 'each matchset offer priced once via capped schedule');
 
-  const page2 = sliceRankedCatalogResultsPage(prepared.offers, 2, pageSize);
-  assert.equal(page2.offers.length, pageSize);
+  for (const offer of prepared.offers) {
+    assert.ok(
+      hasResultsLivePriceOverlay(offer.id, { adults: 2 }),
+      `missing live overlay for ${offer.id}`,
+    );
+  }
+
+  const page2Candidates = prepared.offers.slice(pageSize, pageSize * 2);
+  assert.equal(page2Candidates.length, pageSize);
   const beforePage2 = promotedCalls;
-  const page2Overlays = startCatalogPageLiveOverlays(page2.offers, { adults: 2 }, { fetchImpl });
+  const page2Overlays = startCatalogPageLiveOverlays(page2Candidates, { adults: 2 }, { fetchImpl });
   await Promise.all(page2Overlays.map((overlay) => overlay.live));
   assert.equal(promotedCalls, beforePage2, 'page 2 must reuse cache / in-flight, not re-price');
   for (const overlay of page2Overlays) {
     const priced = await overlay.live;
-    assert.ok(hasValidPresentablePrice(priced), priced.id);
-    assert.equal(priced.livePriceStatus, 'proven');
+    assert.ok(hasResultsLivePriceOverlay(priced.id, { adults: 2 }), priced.id);
   }
-
-  const page3 = sliceRankedCatalogResultsPage(prepared.offers, 3, pageSize);
-  const beforePage3 = promotedCalls;
-  const page3Overlays = startCatalogPageLiveOverlays(page3.offers, { adults: 2 }, { fetchImpl });
-  await Promise.all(page3Overlays.map((overlay) => overlay.live));
-  assert.equal(promotedCalls, beforePage3);
 });

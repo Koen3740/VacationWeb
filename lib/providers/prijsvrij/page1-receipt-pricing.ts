@@ -10,10 +10,17 @@ import {
   applyResultsLivePriceOverlays,
   getResultsLivePriceOverlay,
   hasResultsLivePriceOverlay,
+  hydrateResultsLivePriceOverlaysFromL2,
   livePriceCacheKey,
   RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS,
+  seedResultsLivePriceOverlayFromL2,
   setResultsLivePriceOverlay,
 } from '../../search/results-live-price-cache';
+import {
+  withLivePriceL2ProviderGate,
+  type LivePriceL2Record,
+} from '../../search/live-price-l2-store';
+import { noteLivePriceL2Event } from '../../search/live-price-l2-observability';
 import {
   filterToResultsVisibleOffers,
   hasProvenLiveDisplayPrice,
@@ -67,11 +74,14 @@ import {
   SUNWEB_LIVE_MATCHSET_CONCURRENCY,
   SUNWEB_LIVE_PAGE1_CONCURRENCY,
   buildSunwebLiveContext,
+  extractSunwebAccommodationId,
   fetchSunwebPromotedPrice,
   isSunweb,
   isSunwebFourTravellerTwoRoomSearch,
+  parseSunwebLandingQuery,
   requiresSunwebResultsLivePrice,
   resolveSunwebLiveOccupancy,
+  withSunwebResultsLiveParams,
 } from '../sunweb';
 import {
   isLivePriceCircuitOpen,
@@ -292,7 +302,8 @@ function isLivePriceOccupancySupported(offer: TravelOffer, params: SearchParams)
     return resolveElizaLiveOccupancy(params).ok;
   }
   if (isSunweb(offer)) {
-    return resolveSunwebLiveOccupancy(params).ok;
+    // GO4: Results gate — missing DOBs use default adult DOBs.
+    return resolveSunwebLiveOccupancy(sunwebResultsLiveParamsForOffer(offer, params)).ok;
   }
   return true;
 }
@@ -333,6 +344,7 @@ async function joinOrStartInflight(
 ): Promise<'joined' | 'started'> {
   const existing = map.get(key);
   if (existing) {
+    noteLivePriceL2Event('INFLIGHT_JOIN');
     await existing;
     return 'joined';
   }
@@ -344,6 +356,19 @@ async function joinOrStartInflight(
   map.set(key, started);
   await started;
   return 'started';
+}
+
+function seedL1FromL2Record(
+  offerId: string,
+  params: SearchParams & { listingKey?: string },
+  record: LivePriceL2Record,
+): void {
+  seedResultsLivePriceOverlayFromL2(
+    offerId,
+    params,
+    record.overlay as Parameters<typeof seedResultsLivePriceOverlayFromL2>[2],
+    { cachedAtMs: record.cachedAtMs, ttlMs: record.ttlMs },
+  );
 }
 
 type LivePriceAttemptResult = {
@@ -395,35 +420,45 @@ async function runPrijsvrijReceiptIntoCache(
       cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
       return;
     }
-    const ctx = buildPrijsvrijReceiptContext(offer, params);
-    if (!ctx) {
-      cacheUnavailableLivePrice(offer, params, { reason: 'missing_context' });
-      return;
-    }
-    didHttp = true;
-    try {
-      const result = await fetchPrijsvrijReceiptPrice(ctx, { fetchImpl });
-      if (result.ok) {
-        recordLivePriceCircuitSuccess('prijsvrij');
-        cacheLiveOverlay(
-          withReceiptPrice(offer, result.price.pricePerPerson, result.price.totalInclLocal),
-          params,
-        );
-      } else {
-        if (isRetryableTechnicalLivePriceFailure({
-          reason: result.reason ?? 'exception',
-          httpStatus: result.httpStatus,
-        })) {
-          recordLivePriceCircuitFailure('prijsvrij');
-        } else {
-          recordLivePriceCircuitSuccess('prijsvrij');
+    await withLivePriceL2ProviderGate(
+      key,
+      async () => {
+        if (hasResultsLivePriceOverlay(offer.id, params)) {
+          return;
         }
-        cacheUnavailableLivePrice(offer, params, result);
-      }
-    } catch {
-      recordLivePriceCircuitFailure('prijsvrij');
-      cacheUnavailableLivePrice(offer, params, { reason: 'exception' });
-    }
+        const ctx = buildPrijsvrijReceiptContext(offer, params);
+        if (!ctx) {
+          cacheUnavailableLivePrice(offer, params, { reason: 'missing_context' });
+          return;
+        }
+        didHttp = true;
+        noteLivePriceL2Event('PROVIDER_FETCH');
+        try {
+          const result = await fetchPrijsvrijReceiptPrice(ctx, { fetchImpl });
+          if (result.ok) {
+            recordLivePriceCircuitSuccess('prijsvrij');
+            cacheLiveOverlay(
+              withReceiptPrice(offer, result.price.pricePerPerson, result.price.totalInclLocal),
+              params,
+            );
+          } else {
+            if (isRetryableTechnicalLivePriceFailure({
+              reason: result.reason ?? 'exception',
+              httpStatus: result.httpStatus,
+            })) {
+              recordLivePriceCircuitFailure('prijsvrij');
+            } else {
+              recordLivePriceCircuitSuccess('prijsvrij');
+            }
+            cacheUnavailableLivePrice(offer, params, result);
+          }
+        } catch {
+          recordLivePriceCircuitFailure('prijsvrij');
+          cacheUnavailableLivePrice(offer, params, { reason: 'exception' });
+        }
+      },
+      (record) => seedL1FromL2Record(offer.id, params, record),
+    );
   });
   if (mode === 'joined') {
     return 'joined';
@@ -509,26 +544,36 @@ async function runCorendonLiveIntoCache(
         });
         return;
       }
-      const result = await fetchLivePriceWithImmediateRetry(() =>
-        fetchCorendonLivePrice(ctx, { fetchImpl }),
+      await withLivePriceL2ProviderGate(
+        key,
+        async () => {
+          if (hasResultsLivePriceOverlay(offer.id, listingParams)) {
+            return;
+          }
+          noteLivePriceL2Event('PROVIDER_FETCH');
+          const result = await fetchLivePriceWithImmediateRetry(() =>
+            fetchCorendonLivePrice(ctx, { fetchImpl }),
+          );
+          noteLivePriceCircuitOutcome('corendon', result);
+          if (result.ok) {
+            cacheLiveOverlay(
+              withCorendonLivePrice(
+                offer,
+                result.pricePerPerson,
+                listing,
+                result.source,
+                result.totalPrice != null && result.totalPriceField
+                  ? { amount: result.totalPrice, field: result.totalPriceField }
+                  : undefined,
+              ),
+              listingParams,
+            );
+          } else {
+            cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, result);
+          }
+        },
+        (record) => seedL1FromL2Record(offer.id, listingParams, record),
       );
-      noteLivePriceCircuitOutcome('corendon', result);
-      if (result.ok) {
-        cacheLiveOverlay(
-          withCorendonLivePrice(
-            offer,
-            result.pricePerPerson,
-            listing,
-            result.source,
-            result.totalPrice != null && result.totalPriceField
-              ? { amount: result.totalPrice, field: result.totalPriceField }
-              : undefined,
-          ),
-          listingParams,
-        );
-      } else {
-        cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, result);
-      }
     });
 
     const after = getResultsLivePriceOverlay(offer.id, listingParams);
@@ -563,21 +608,52 @@ async function runElizaLiveIntoCache(
       cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
       return;
     }
-    const ctx = buildElizaLiveContext(offer, params);
-    if (!ctx) {
-      cacheUnavailableLivePrice(offer, params, { reason: 'missing_context' });
-      return;
-    }
-    const result = await fetchLivePriceWithImmediateRetry(() =>
-      fetchElizaPromotedPrice(ctx, { fetchImpl }),
+    await withLivePriceL2ProviderGate(
+      key,
+      async () => {
+        if (hasResultsLivePriceOverlay(offer.id, params)) {
+          return;
+        }
+        const ctx = buildElizaLiveContext(offer, params);
+        if (!ctx) {
+          cacheUnavailableLivePrice(offer, params, { reason: 'missing_context' });
+          return;
+        }
+        noteLivePriceL2Event('PROVIDER_FETCH');
+        const result = await fetchLivePriceWithImmediateRetry(() =>
+          fetchElizaPromotedPrice(ctx, { fetchImpl }),
+        );
+        noteLivePriceCircuitOutcome('eliza', result);
+        if (result.ok) {
+          cacheLiveOverlay(
+            withElizaLivePrice(offer, result.pricePerPerson, result.totalPrice),
+            params,
+          );
+        } else {
+          cacheUnavailableLivePrice(offer, params, result);
+        }
+      },
+      (record) => seedL1FromL2Record(offer.id, params, record),
     );
-    noteLivePriceCircuitOutcome('eliza', result);
-    if (result.ok) {
-      cacheLiveOverlay(withElizaLivePrice(offer, result.pricePerPerson, result.totalPrice), params);
-    } else {
-      cacheUnavailableLivePrice(offer, params, result);
-    }
   });
+}
+
+
+/** GO4: Results-only Sunweb params with default adult DOBs when missing. Cache keys stay on original params. */
+function sunwebResultsLiveParamsForOffer(offer: TravelOffer, params: SearchParams): SearchParams {
+  let offerDeparture: string | null = null;
+  if (typeof offer.departureDate === 'string' && offer.departureDate) {
+    offerDeparture = offer.departureDate;
+  } else {
+    const accoId = extractSunwebAccommodationId(offer.id);
+    if (accoId && offer.deepLink) {
+      const trip = parseSunwebLandingQuery(offer.deepLink, accoId);
+      if (trip?.departureDate) {
+        offerDeparture = trip.departureDate;
+      }
+    }
+  }
+  return withSunwebResultsLiveParams(params, offerDeparture);
 }
 
 async function runSunwebLiveIntoCache(
@@ -588,7 +664,9 @@ async function runSunwebLiveIntoCache(
   if (hasResultsLivePriceOverlay(offer.id, params)) {
     return;
   }
-  if (!resolveSunwebLiveOccupancy(params).ok) {
+  // GO4: inject default adult DOBs for Results 2A when missing (cache still keyed by original params).
+  const liveParams = sunwebResultsLiveParamsForOffer(offer, params);
+  if (!resolveSunwebLiveOccupancy(liveParams).ok) {
     cacheUnpricedLivePrice(offer, params);
     return;
   }
@@ -605,20 +683,34 @@ async function runSunwebLiveIntoCache(
       cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
       return;
     }
-    const ctx = buildSunwebLiveContext(offer, params);
-    if (!ctx) {
-      cacheUnavailableLivePrice(offer, params, { reason: 'missing_context' });
-      return;
-    }
-    const result = await fetchLivePriceWithImmediateRetry(() =>
-      fetchSunwebPromotedPrice(ctx, { fetchImpl }),
+    await withLivePriceL2ProviderGate(
+      key,
+      async () => {
+        if (hasResultsLivePriceOverlay(offer.id, params)) {
+          return;
+        }
+        // GO4: build context with Results default adult DOBs when search DOBs are missing.
+        const ctx = buildSunwebLiveContext(offer, liveParams);
+        if (!ctx) {
+          cacheUnavailableLivePrice(offer, params, { reason: 'missing_context' });
+          return;
+        }
+        noteLivePriceL2Event('PROVIDER_FETCH');
+        const result = await fetchLivePriceWithImmediateRetry(() =>
+          fetchSunwebPromotedPrice(ctx, { fetchImpl }),
+        );
+        noteLivePriceCircuitOutcome('sunweb', result);
+        if (result.ok) {
+          cacheLiveOverlay(
+            withSunwebLivePrice(offer, result.pricePerPerson, result.totalPrice),
+            params,
+          );
+        } else {
+          cacheUnavailableLivePrice(offer, params, result);
+        }
+      },
+      (record) => seedL1FromL2Record(offer.id, params, record),
     );
-    noteLivePriceCircuitOutcome('sunweb', result);
-    if (result.ok) {
-      cacheLiveOverlay(withSunwebLivePrice(offer, result.pricePerPerson, result.totalPrice), params);
-    } else {
-      cacheUnavailableLivePrice(offer, params, result);
-    }
   });
 }
 
@@ -816,6 +908,11 @@ export async function priceLiveRequiredMatchset(
   > = {},
 ): Promise<TravelOffer[]> {
   stampUnpricedWhenLiveOccupancyUnsupported(offers, params);
+  await hydrateResultsLivePriceOverlaysFromL2(
+    offers.map((offer) => offer.id),
+    params,
+    { offers },
+  );
   const fetchImpl = options.fetchImpl ?? fetch;
   const concurrency =
     options.matchsetConcurrency ??
@@ -854,7 +951,7 @@ export async function priceLiveRequiredMatchset(
       }
       eliza.push(offer);
     } else if (isSunweb(offer)) {
-      if (!resolveSunwebLiveOccupancy(params).ok) {
+      if (!resolveSunwebLiveOccupancy(sunwebResultsLiveParamsForOffer(offer, params)).ok) {
         continue;
       }
       sunweb.push(offer);
@@ -982,8 +1079,8 @@ function isSunwebFourPaxLivePage1Candidate(offer: TravelOffer, params: SearchPar
   return (
     isSunweb(offer) &&
     isSunwebFourTravellerTwoRoomSearch(params) &&
-    resolveSunwebLiveOccupancy(params).ok &&
-    Boolean(buildSunwebLiveContext(offer, params))
+    resolveSunwebLiveOccupancy(sunwebResultsLiveParamsForOffer(offer, params)).ok &&
+    Boolean(buildSunwebLiveContext(offer, sunwebResultsLiveParamsForOffer(offer, params)))
   );
 }
 
@@ -1001,7 +1098,7 @@ function ensureSunwebFourPaxLivePage1Slots(
   params: SearchParams,
   pageSize: number,
 ): TravelOffer[] {
-  if (!isSunwebFourTravellerTwoRoomSearch(params) || !resolveSunwebLiveOccupancy(params).ok) {
+  if (!isSunwebFourTravellerTwoRoomSearch(params) || !resolveSunwebLiveOccupancy(withSunwebResultsLiveParams(params)).ok) {
     return selected;
   }
 
@@ -1210,7 +1307,7 @@ export function startPage1ReceiptStream(
       return null;
     }
     if (isSunweb(offer) && requiresPage1LivePrice(offer, params)) {
-      if (!resolveSunwebLiveOccupancy(params).ok) {
+      if (!resolveSunwebLiveOccupancy(sunwebResultsLiveParamsForOffer(offer, params)).ok) {
         return cacheUnpricedLivePrice(offer, params);
       }
       const cached = cachedLivePriceResult(offer, params);
@@ -1220,7 +1317,7 @@ export function startPage1ReceiptStream(
       if (cached === null) {
         return withCatalogPriceHidden(offer);
       }
-      if (!buildSunwebLiveContext(offer, params)) {
+      if (!buildSunwebLiveContext(offer, sunwebResultsLiveParamsForOffer(offer, params))) {
         return withCatalogPriceHidden(offer);
       }
       return null;
@@ -1376,7 +1473,7 @@ export function startPage1ReceiptStream(
     }
 
     async function priceSunwebSlot(offer: TravelOffer): Promise<TravelOffer | null> {
-      if (!resolveSunwebLiveOccupancy(params).ok) {
+      if (!resolveSunwebLiveOccupancy(sunwebResultsLiveParamsForOffer(offer, params)).ok) {
         return cacheUnpricedLivePrice(offer, params);
       }
       const cached = cachedLivePriceResult(offer, params);
@@ -1500,7 +1597,7 @@ export function startPage1ReceiptStream(
     if (
       finalOffers.length < pageSize &&
       isSunwebFourTravellerTwoRoomSearch(params) &&
-      resolveSunwebLiveOccupancy(params).ok
+      resolveSunwebLiveOccupancy(withSunwebResultsLiveParams(params)).ok
     ) {
       const sunwebCandidates = sortedOffers.filter((offer) => {
         if (filledIds.has(offer.id) || !isSunweb(offer)) {
@@ -1951,3 +2048,4 @@ export function markPrijsvrijLivePriceUnavailable(offers: TravelOffer[]): Travel
         },
   );
 }
+

@@ -1,4 +1,11 @@
 import { canonicalizeBoardType } from '@/lib/offers/canonicalize-board-type';
+import {
+  getCatalogFilterIndex,
+} from '@/lib/offers/load-runtime-dataset';
+import {
+  narrowOfferIndicesWithIndex,
+  offersFromIndices,
+} from '@/lib/offers/catalog-filter-index';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
 import { canonicalizeRegionName } from '@/lib/offers/canonical-region';
 import { isVacationWebFlightPackage } from '@/lib/offers/flight-package-eligibility';
@@ -98,6 +105,30 @@ export function filterOffers(
       options.scannedOut.value = 0;
     }
     return [];
+  }
+
+  // GO6: narrow via in-memory catalog indexes when available (same process cache).
+  const filterIndex = getCatalogFilterIndex(offers);
+  if (filterIndex && filterIndex.offerCount === offers.length) {
+    const narrowedIdx = narrowOfferIndicesWithIndex(
+      filterIndex,
+      params,
+      resolveCountryFilters,
+      parseDepartureAirportsParam,
+    );
+    if (narrowedIdx !== null) {
+      offers = offersFromIndices(offers, narrowedIdx);
+      if (process.env.VACATIONWEB_RESULTS_TIMING === '1') {
+        console.info(
+          '[results-timing]',
+          JSON.stringify({
+            phase: 'filter-index-narrow',
+            catalog: filterIndex.offerCount,
+            narrowed: offers.length,
+          }),
+        );
+      }
+    }
   }
 
   const flexibilityDays = params.flexibilityDays ?? 0;

@@ -29,8 +29,12 @@ export {
   isSunwebFourTravellerTwoRoomSearch,
   parseSunwebLandingQuery,
   requiresSunwebResultsLivePrice,
+  resolveSunwebResultsDefaultDobDepartureIso,
   resolveSunwebFeHost,
   resolveSunwebLiveOccupancy,
+  SUNWEB_RESULTS_DEFAULT_ADULT_AGE_YEARS,
+  withSunwebResultsDefaultAdultDobs,
+  withSunwebResultsLiveParams,
   unwrapSunwebProductUrl,
   type SunwebLandingQuery,
   type SunwebLiveContext,
@@ -56,3 +60,4 @@ export {
   type SunwebGroupedAvailabilityGuids,
   type SunwebGroupedPriceRow,
 } from './grouped-availability';
+

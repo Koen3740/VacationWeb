@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react';
+
 export type ResultsIntroContent = {
-  heroTitle: string;
+  heroTitle: ReactNode;
   heroSubtitle: string;
 };
 

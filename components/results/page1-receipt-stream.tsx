@@ -134,7 +134,7 @@ export function Page1PaginationStream({
 }) {
   return (
     <>
-      <SyncPage1IdsToUrl page1Ids={page1Ids} replaceExisting={Boolean(params.page1Ids?.length)} />
+      <SyncPage1IdsToUrl page1Ids={page1Ids} replaceExisting={true} />
       <ResultsPagination
         params={{ ...params, pageSize: RESULTS_PRODUCT_PAGE_SIZE, page1Ids }}
         totalResults={paginationTotal}

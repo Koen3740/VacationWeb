@@ -1,4 +1,9 @@
-import { paginateResults, RESULTS_PAGE_SIZE_DEFAULT } from '@/lib/search/pagination';
+import {
+  paginateResults,
+  RESULTS_LIVE_PRICING_CANDIDATE_CAP,
+  RESULTS_USER_PAGINATION_CAP,
+  RESULTS_PAGE_SIZE_DEFAULT,
+} from '@/lib/search/pagination';
 import {
   filterToResultsListableOffers,
   hasValidPresentablePrice,
@@ -153,12 +158,15 @@ export function sliceRankedCatalogResultsPage(
   params?: SearchParams,
 ): RankedCatalogResultsPage {
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  // GO11: B membership over the FULL matchset; browse/display cap = 150 cards.
+  // Heading uses pool size separately (results-pool-count) — not this total.
   const bookable = bookableResultsMembership(ranked, params);
-  const offers = paginateResults(bookable, safePage, pageSize);
+  const browsable = bookable.slice(0, RESULTS_USER_PAGINATION_CAP);
+  const offers = paginateResults(browsable, safePage, pageSize);
   return {
     offers,
-    page1Ids: paginateResults(bookable, 1, pageSize).map((offer) => offer.id),
-    paginationTotal: bookable.length,
+    page1Ids: paginateResults(browsable, 1, pageSize).map((offer) => offer.id),
+    paginationTotal: browsable.length,
   };
 }
 

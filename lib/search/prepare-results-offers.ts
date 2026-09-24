@@ -2,7 +2,7 @@ import type { FetchLike } from '../providers/prijsvrij/auth';
 import { priceLiveRequiredMatchset, stampUnpricedWhenLiveOccupancyUnsupported } from '../providers/prijsvrij/page1-receipt-pricing';
 import type { SearchParams, TravelOffer } from '../../types/travel';
 import { filterOffers, sortOffers } from './filtering';
-import { paginateResults } from './pagination';
+import { paginateResults, RESULTS_USER_PAGINATION_CAP } from './pagination';
 import { requiresSunwebResultsLivePrice } from '../providers/sunweb';
 import {
   CORENDON_PROVIDER_NAME,
@@ -19,6 +19,7 @@ import {
   hydrateResultsLivePriceOverlaysFromL2,
 } from './results-live-price-cache';
 import { scheduleResultsMatchsetLivePricing } from './schedule-results-matchset-live-pricing';
+import { scheduleCappedMatchsetLiveAfterPage } from './schedule-capped-matchset-live-after-page';
 import {
   livePricingBrowseRemainder,
   selectLivePricingCandidateWindow,
@@ -80,12 +81,12 @@ export function offerNeedsLivePriceWork(offer: TravelOffer, params: SearchParams
 }
 
 function assemblePriceSortRanking(
-  liveWindow: TravelOffer[],
-  tail: TravelOffer[],
+  catalogRanked: TravelOffer[],
   params: SearchParams,
 ): TravelOffer[] {
-  // Live refine applies to the technical window only; tail stays in the user set.
-  return [...rankLivePricedCandidatePool(liveWindow, params), ...tail];
+  // GO11: price sort orders the WHOLE matchset by proven live price (B first),
+  // not merely the technical ≤150 window. Unpriced/A/C/Pending follow in catalog order.
+  return rankLivePricedCandidatePool(catalogRanked, params);
 }
 
 /**
@@ -108,11 +109,13 @@ export function slicePriceSortPoolPage(
     ? applyResultsLivePriceOverlays(ranked as TravelOffer[], options.params)
     : (ranked as TravelOffer[]);
   const bookable = filterToResultsListableOffers(overlaid);
-  const visibleOffers = paginateResults(bookable, safePage, pageSize);
+  // GO11: browsable cards capped at 150 (15×10); pool/heading stay uncapped.
+  const browsable = bookable.slice(0, RESULTS_USER_PAGINATION_CAP);
+  const visibleOffers = paginateResults(browsable, safePage, pageSize);
   return {
     visibleOffers,
-    page1Ids: paginateResults(bookable, 1, pageSize).map((offer) => offer.id),
-    paginationTotal: bookable.length,
+    page1Ids: paginateResults(browsable, 1, pageSize).map((offer) => offer.id),
+    paginationTotal: browsable.length,
   };
 }
 
@@ -165,15 +168,21 @@ export async function prepareResultsOffers(
     const workset = selectLivePricingInitialWorkset(liveWindow, params);
     const tail = livePricingBrowseRemainder(catalogRanked, liveWindow);
     // Hydrate L2→L1 before deciding whether the workset still needs provider work.
+    // GO9/GO3: pass workset offers so Corendon listingKey L2 rows hydrate (bare id misses).
     await hydrateResultsLivePriceOverlaysFromL2(
       workset.map((offer) => offer.id),
       params,
+      { offers: workset },
     );
     const worksetPending = workset.some((offer) => offerNeedsLivePriceWork(offer, params));
 
     if (!worksetPending) {
       scheduleS6Refill(catalogRanked, params, options.fetchImpl);
-      const exact = assemblePriceSortRanking(liveWindow, tail, params);
+      // GO11: warm remaining pool beyond S6's 150-B display target (non-blocking).
+      scheduleCappedMatchsetLiveAfterPage(catalogRanked, params, {
+        fetchImpl: options.fetchImpl,
+      });
+      const exact = assemblePriceSortRanking(catalogRanked, params);
       return {
         offers: exact,
         exactOffers: Promise.resolve(exact),
@@ -189,8 +198,12 @@ export async function prepareResultsOffers(
     // S6 continues past the workset (skips settled overlays) until 150 B.
     // Replaces blind full-window remainder pricing as the coverage engine.
     scheduleS6Refill(catalogRanked, params, options.fetchImpl, worksetWork);
+      // GO11: warm remaining pool beyond S6's 150-B display target (non-blocking).
+      scheduleCappedMatchsetLiveAfterPage(catalogRanked, params, {
+        fetchImpl: options.fetchImpl,
+      });
 
-    const exactOffers = worksetWork.then(() => assemblePriceSortRanking(liveWindow, tail, params));
+    const exactOffers = worksetWork.then(() => assemblePriceSortRanking(catalogRanked, params));
     return {
       // Preserve catalog browse order while price-sort is pending (AN-061).
       offers: catalogRanked,
@@ -200,11 +213,10 @@ export async function prepareResultsOffers(
   }
 
   const ranked = rankResultsOffers(offers, params);
-  if (ranked.length > 0) {
-    scheduleResultsMatchsetLivePricing(
-      priceLiveRequiredMatchset(ranked, params, { fetchImpl: options.fetchImpl }),
-    );
-  }
+  // GO5: do NOT schedule matchset-wide live here. That started O(matchset) L2
+  // hydrate + provider HTTP before Suspense/page overlays, so Page1 waited
+  // behind matchset work (Greece 700+). CatalogLiveBody starts page overlays
+  // first, then scheduleCappedMatchsetLiveAfterPage (GO11: full pool, deferred).
   return {
     offers: ranked,
     exactOffers: Promise.resolve(ranked),

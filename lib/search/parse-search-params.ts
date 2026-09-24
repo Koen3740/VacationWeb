@@ -88,8 +88,18 @@ export function parseSearchParams(searchParams: ResultsSearchParamsInput): Searc
       if (!parsed) {
         return undefined;
       }
-      if (typeof searchParams.dob !== 'string') {
-        return undefined;
+      // GO7: allow party from adults/children when dob is blank; only require dob string
+      // when it carries real tokens (legacy quirk kept for ISO DOB URLs).
+      const dobRaw = typeof searchParams.dob === 'string' ? searchParams.dob : undefined;
+      const dobHasToken =
+        typeof dobRaw === 'string' && dobRaw.split(',').some((token) => token.trim().length > 0);
+      if (dobRaw !== undefined && !dobHasToken) {
+        // blank dob= → party from adults/children parse result
+        return travelersStateToParty(parsed);
+      }
+      if (dobRaw === undefined) {
+        // no dob param: party only if adults/children produced parsed state
+        return travelersStateToParty(parsed);
       }
       return travelersStateToParty(parsed);
     })(),

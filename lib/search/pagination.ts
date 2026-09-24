@@ -7,7 +7,7 @@ export const RESULTS_PAGE_SIZE_MIN = 1;
 export const RESULTS_PAGE_SIZE_MAX = 100;
 /**
  * Technical live-pricing / price-sort candidate window after filter+sort.
- * Never a user-browse, matchCount, or paginationTotal cap.
+ * GO11: technical live-pricing *priority window* / browse presentable cap — NEVER the matchset/pool size or heading.
  * Full window may continue pricing in the background after the initial workset.
  */
 export const RESULTS_LIVE_PRICING_CANDIDATE_CAP = 150;
@@ -25,6 +25,19 @@ export const RESULTS_LIVE_PRICING_INITIAL_WORKSET = 50;
  * Not a user-resultset / browse limit.
  */
 export const RESULTS_USER_PAGINATION_CAP = RESULTS_LIVE_PRICING_CANDIDATE_CAP;
+
+/**
+ * GO11: max browsable pages (10 cards × 15 = 150 presentable B).
+ * Matchset/pool size is uncapped; only the card browse window uses this.
+ */
+export const RESULTS_MAX_BROWSE_PAGES = 15;
+
+/**
+ * GO11: display browse cap for presentable B cards (== USER_PAGINATION_CAP).
+ * Alias kept explicit so call sites do not confuse pool size with browse size.
+ */
+export const RESULTS_BROWSE_PRESENTABLE_CAP = RESULTS_USER_PAGINATION_CAP;
+
 
 /**
  * First `cap` offers of an already-ranked matchset for live-pricing work only.
@@ -106,7 +119,8 @@ export function getResultsTotalPages(totalResults: number, pageSize: number): nu
     return 1;
   }
 
-  return Math.ceil(totalResults / pageSize);
+  const pages = Math.ceil(totalResults / pageSize);
+  return Math.min(pages, RESULTS_MAX_BROWSE_PAGES);
 }
 
 export function buildResultsSearchQuery(params: SearchParams, page: number): URLSearchParams {

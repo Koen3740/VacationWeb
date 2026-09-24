@@ -18,9 +18,12 @@ import {
 } from '@/lib/providers/eliza';
 import {
   buildSunwebLiveContext,
+  extractSunwebAccommodationId,
   isSunweb,
+  parseSunwebLandingQuery,
   requiresSunwebResultsLivePrice,
   resolveSunwebLiveOccupancy,
+  withSunwebResultsLiveParams,
 } from '@/lib/providers/sunweb';
 import {
   buildPrijsvrijReceiptContext,
@@ -73,10 +76,20 @@ export function canAttemptLivePrice(offer: TravelOffer, params: SearchParams): b
   }
 
   if (isSunweb(offer)) {
-    if (!resolveSunwebLiveOccupancy(params).ok) {
+    // GO4: Results path — default adult DOBs when missing so 2A is attemptable.
+    let offerDeparture: string | null =
+      typeof offer.departureDate === 'string' ? offer.departureDate : null;
+    if (!offerDeparture && offer.deepLink) {
+      const accoId = extractSunwebAccommodationId(offer.id);
+      if (accoId) {
+        offerDeparture = parseSunwebLandingQuery(offer.deepLink, accoId)?.departureDate ?? null;
+      }
+    }
+    const liveParams = withSunwebResultsLiveParams(params, offerDeparture);
+    if (!resolveSunwebLiveOccupancy(liveParams).ok) {
       return false;
     }
-    return buildSunwebLiveContext(offer, params) != null;
+    return buildSunwebLiveContext(offer, liveParams) != null;
   }
 
   if (offer.provider === PRIJSVRIJ_PROVIDER_NAME) {

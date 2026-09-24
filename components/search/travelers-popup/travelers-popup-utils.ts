@@ -418,6 +418,12 @@ export function parseTravelersFromQuery(input: {
 }): TravelersState | null {
   if (typeof input.dob === 'string') {
     const tokens = input.dob.split(',');
+    // GO7: `dob=` / `dob=,` (no ISO tokens) must not invent a 1-person party —
+    // that aborted Page1 Suspense streams. Fall through to adults/children.
+    const hasIsoOrPlaceholderSlot = tokens.some((token) => token.trim().length > 0);
+    if (!hasIsoOrPlaceholderSlot) {
+      // continue to legacy adults/children below
+    } else {
     const travellers: Traveller[] = [];
     for (const token of tokens) {
       if (travellers.length >= MAX_TOTAL_TRAVELERS) {
@@ -457,6 +463,7 @@ export function parseTravelersFromQuery(input: {
       roomCount,
       roomAssignments: normalizeAssignments(parsedRooms, travellers.length, roomCount),
     };
+    } // end hasIsoOrPlaceholderSlot
   }
 
   const adults = Number(input.adults);

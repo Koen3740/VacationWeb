@@ -10,7 +10,11 @@ import type { ReactNode } from 'react';
 
 type ResultsPageClientProps = {
   departureAirports: string[];
-  resultCount: number;
+  resultCount?: number;
+  /** GO5: streamed hero title (presentable B count). */
+  heroTitle?: ReactNode;
+  /** GO5: streamed section heading (presentable B count). */
+  sectionHeading?: ReactNode;
   summaryLine: string;
   sortControl: ReactNode;
   filters: ReactNode;
@@ -47,7 +51,9 @@ function buildHeroTitle(
 
 export function ResultsPageClient({
   departureAirports,
-  resultCount,
+  resultCount = 0,
+  heroTitle,
+  sectionHeading,
   summaryLine,
   sortControl,
   filters,
@@ -55,14 +61,22 @@ export function ResultsPageClient({
   pagination,
   refinementRequired = false,
 }: ResultsPageClientProps) {
-  const heroTitle = buildHeroTitle(resultCount, summaryLine, refinementRequired);
+  const resolvedHeroTitle =
+    heroTitle ?? buildHeroTitle(resultCount, summaryLine, refinementRequired);
+  const resolvedSectionHeading =
+    sectionHeading ??
+    (refinementRequired
+      ? REFINEMENT_HEADING
+      : resultCount > 0
+        ? `${resultCount} vakanties gevonden`
+        : 'Geen vakanties gevonden');
 
   return (
     <div className="min-h-screen bg-[#F3F5F8] text-slate-900">
       <ResultsSiteHeader />
       <ResultsHero
         intro={{
-          heroTitle,
+          heroTitle: resolvedHeroTitle,
           heroSubtitle: DEFAULT_RESULTS_HERO_SUBTITLE,
         }}
         searchBar={<ResultsSearchBar departureAirports={departureAirports} />}
@@ -76,9 +90,7 @@ export function ResultsPageClient({
             <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <h2 className="text-[22px] font-bold tracking-tight text-[#0A2D62]">
-                  {refinementRequired
-                    ? REFINEMENT_HEADING
-                    : `${resultCount} vakanties gevonden`}
+                  {resolvedSectionHeading}
                 </h2>
                 {summaryLine ? (
                   <p className="mt-1.5 text-[13px] text-[#64748B]">{summaryLine}</p>

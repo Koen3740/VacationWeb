@@ -206,11 +206,127 @@ export function resolveSunwebLiveOccupancy(
   return { ok: false, reason: 'invalid_occupancy' };
 }
 
+
+/** Results-only default adult age when DOBs are absent (GO4). Detail must not use this. */
+export const SUNWEB_RESULTS_DEFAULT_ADULT_AGE_YEARS = 35;
+
+function isSunwebResultsTwoAdultsOneRoom(
+  params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms'>,
+): boolean {
+  const adults = params.adults ?? 2;
+  const children = params.children ?? 0;
+  const babies = params.babies ?? 0;
+  const rooms = params.rooms ?? 1;
+  return adults === 2 && children === 0 && babies === 0 && rooms === 1;
+}
+
+/** True when party is absent/empty or both travellers lack ISO DOBs (dob=,). */
+function sunwebResultsPartyDobsMissing(party: SearchParams['party']): boolean {
+  if (!party || party.length === 0) {
+    return true;
+  }
+  if (party.length !== 2) {
+    return false;
+  }
+  return party.every((traveller) => !isIsoDob(traveller.dateOfBirth));
+}
+
+function sunwebDobAtAgeOnDeparture(departureIso: string, ageYears: number): string | null {
+  if (!ISO_DATE.test(departureIso)) {
+    return null;
+  }
+  const [year, month, day] = departureIso.split('-').map(Number);
+  const departure = new Date(Date.UTC(year, month - 1, day));
+  if (
+    departure.getUTCFullYear() !== year ||
+    departure.getUTCMonth() !== month - 1 ||
+    departure.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  const birth = new Date(Date.UTC(year - ageYears, month - 1, day));
+  const iso = `${String(birth.getUTCFullYear()).padStart(4, '0')}-${String(birth.getUTCMonth() + 1).padStart(2, '0')}-${String(birth.getUTCDate()).padStart(2, '0')}`;
+  return ISO_DATE.test(iso) ? iso : null;
+}
+
+/**
+ * GO4 — Results-only pure helper.
+ * When search is 2 adults / 0 children / 0 babies / 1 room and DOBs are missing
+ * (incl. `dob=,`), fill both adults with DOB = age 35 on departureIso.
+ * Real ISO DOBs are never replaced. Does not mutate `params`.
+ * Must not be used for Detail / click-out / deeplink building.
+ */
+export function withSunwebResultsDefaultAdultDobs(
+  params: SearchParams,
+  departureIso: string,
+): SearchParams {
+  if (!isSunwebResultsTwoAdultsOneRoom(params)) {
+    return params;
+  }
+  if (!sunwebResultsPartyDobsMissing(params.party)) {
+    return params;
+  }
+  const dateOfBirth = sunwebDobAtAgeOnDeparture(
+    departureIso,
+    SUNWEB_RESULTS_DEFAULT_ADULT_AGE_YEARS,
+  );
+  if (!dateOfBirth) {
+    return params;
+  }
+  return {
+    ...params,
+    adults: 2,
+    children: 0,
+    babies: 0,
+    rooms: 1,
+    party: [
+      { dateOfBirth, roomIndex: 0 },
+      { dateOfBirth, roomIndex: 0 },
+    ],
+  };
+}
+
+/**
+ * Departure ISO used to synthesize Results default adult DOBs.
+ * Prefer offer trip date, then search window, then a stable gate-only fallback.
+ */
+export function resolveSunwebResultsDefaultDobDepartureIso(
+  params: Pick<SearchParams, 'departureStart' | 'departureEnd'>,
+  offerDepartureIso?: string | null,
+): string {
+  if (typeof offerDepartureIso === 'string' && ISO_DATE.test(offerDepartureIso)) {
+    return offerDepartureIso;
+  }
+  if (typeof params.departureStart === 'string' && ISO_DATE.test(params.departureStart)) {
+    return params.departureStart;
+  }
+  if (typeof params.departureEnd === 'string' && ISO_DATE.test(params.departureEnd)) {
+    return params.departureEnd;
+  }
+  return '2099-01-01';
+}
+
+/** Results live params: apply GO4 default adult DOBs when missing. */
+export function withSunwebResultsLiveParams(
+  params: SearchParams,
+  offerDepartureIso?: string | null,
+): SearchParams {
+  return withSunwebResultsDefaultAdultDobs(
+    params,
+    resolveSunwebResultsDefaultDobDepartureIso(params, offerDepartureIso),
+  );
+}
+
 /** Proven Sunweb occupancies that Results may live-price (matches Detail). */
 export function requiresSunwebResultsLivePrice(
-  params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
+  params: Pick<
+    SearchParams,
+    'adults' | 'children' | 'babies' | 'rooms' | 'party' | 'departureStart' | 'departureEnd'
+  >,
 ): boolean {
-  return resolveSunwebLiveOccupancy(params).ok;
+  // GO4: missing DOBs must not block Results live pricing for 2A/1R.
+  const liveParams = withSunwebResultsLiveParams(params as SearchParams);
+  return resolveSunwebLiveOccupancy(liveParams).ok;
 }
 
 function readParam(url: URL, indexed: string, plain: string): string {
