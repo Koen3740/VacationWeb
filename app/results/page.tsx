@@ -20,10 +20,12 @@ import {
   startCatalogPageLiveOverlays,
 } from '@/lib/providers/prijsvrij';
 import {
+  selectCatalogPageHydrationIds,
   selectPage1OverlayCandidates,
-  selectPageOverlayCandidates,
+  selectPaintAlignedPageOverlayCandidates,
   sliceRankedCatalogResultsPage,
 } from '@/lib/search/results-catalog-page';
+import { hydrateResultsLivePriceOverlaysFromL2 } from '@/lib/search/results-live-price-cache';
 import '@/lib/http/prefer-ipv4';
 import { countCarRentalFacet, countRoadtripFacet } from '@/lib/search/filtering';
 import {
@@ -200,6 +202,17 @@ export default async function ResultsPage({
     );
   }
 
+  // GO2 defect 1: L2→L1 hydrate bounded candidate IDs before B-pool page slice.
+  // Page 1 FREEZE / page1Ids / selectPage1OverlayCandidates stay on their existing path.
+  const hydrationIds = selectCatalogPageHydrationIds(
+    filtered,
+    isPage1 ? 1 : page,
+    pageSize,
+    undefined,
+    filteringParams,
+  );
+  await hydrateResultsLivePriceOverlaysFromL2(hydrationIds, filteringParams);
+
   const catalogPage = sliceRankedCatalogResultsPage(
     filtered,
     isPage1 ? 1 : page,
@@ -208,7 +221,13 @@ export default async function ResultsPage({
   );
   const overlayCandidates = isPage1
     ? selectPage1OverlayCandidates(filtered, pageSize, undefined, filteringParams)
-    : selectPageOverlayCandidates(filtered, page, pageSize, undefined, filteringParams);
+    : selectPaintAlignedPageOverlayCandidates(
+        filtered,
+        catalogPage.offers,
+        pageSize,
+        undefined,
+        filteringParams,
+      );
   // Drive overlays from the live-price candidate window (pending/C/B, not A).
   // Presentable paint stays B-only via TravelCard; Cap backfills as B settles.
   const streamOffers =

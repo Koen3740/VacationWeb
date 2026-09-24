@@ -190,3 +190,85 @@ export function selectPageOverlayCandidates(
   const startIndex = (safePage - 1) * pageSize;
   return collectListablePaintWindow(ordered, startIndex, pageSize + reserve, params);
 }
+
+/**
+ * Bounded offer IDs to L2→L1 hydrate before catalog page slice (GO2 defect 1).
+ * Covers early live-price candidates that can enter the B pool up to this page,
+ * plus reserve — not a full-matchset hydrate.
+ */
+export function selectCatalogPageHydrationIds(
+  ranked: readonly TravelOffer[],
+  page: number,
+  pageSize: number,
+  reserve: number = PAGE1_OVERLAY_RESERVE,
+  params?: SearchParams,
+): string[] {
+  const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  const need = safePage * Math.max(0, pageSize) + Math.max(0, reserve);
+  if (need <= 0) {
+    return [];
+  }
+  return collectListablePaintWindow(ranked, 0, need, params).map((offer) => offer.id);
+}
+
+/**
+ * GO2 Page 2+: overlay candidates aligned to the painted B-only page.
+ *
+ * PRIMARY = exact offers on `paintedPage` (B IDs that Results paints).
+ * RESERVE = further live-price candidates (Pending/C/B, not A) from the matchset
+ * AFTER the last painted offer — preserves Cap/reserve without making the window
+ * B-only, and without the absolute `(page-1)*pageSize` matchset offset that
+ * pulled earlier Page-1 B offers into the leading reserve.
+ *
+ * Page 1 continues to use {@link selectPage1OverlayCandidates}.
+ * {@link selectPageOverlayCandidates} remains the legacy absolute-offset helper.
+ */
+export function selectPaintAlignedPageOverlayCandidates(
+  ranked: readonly TravelOffer[],
+  paintedPage: readonly TravelOffer[],
+  pageSize: number,
+  reserve: number = PAGE1_OVERLAY_RESERVE,
+  params?: SearchParams,
+): TravelOffer[] {
+  const need = Math.max(0, pageSize) + Math.max(0, reserve);
+  if (need <= 0) {
+    return [];
+  }
+
+  const overlaidRanked = params
+    ? applyResultsLivePriceOverlays(ranked as TravelOffer[], params)
+    : (ranked as TravelOffer[]);
+  const overlaidPainted = params
+    ? applyResultsLivePriceOverlays(paintedPage as TravelOffer[], params)
+    : (paintedPage as TravelOffer[]);
+
+  const primaryOffers = overlaidPainted.filter(isResultsLivePriceCandidateOffer);
+  const primaryIds = new Set(primaryOffers.map((offer) => offer.id));
+
+  let startScan = 0;
+  if (overlaidPainted.length > 0) {
+    const lastId = overlaidPainted[overlaidPainted.length - 1]!.id;
+    const lastIdx = overlaidRanked.findIndex((offer) => offer.id === lastId);
+    startScan = lastIdx >= 0 ? lastIdx + 1 : overlaidRanked.length;
+  } else {
+    // Empty B page: scan after the last presentable B so Cap can still discover
+    // Pending/C beyond the current B pool (not matchset page-offset).
+    let lastBIdx = -1;
+    for (let index = 0; index < overlaidRanked.length; index += 1) {
+      if (hasValidPresentablePrice(overlaidRanked[index]!)) {
+        lastBIdx = index;
+      }
+    }
+    startScan = lastBIdx >= 0 ? lastBIdx + 1 : 0;
+  }
+
+  const reserveNeed = Math.max(0, need - primaryOffers.length);
+  const reserveOffers = collectListablePaintWindow(
+    overlaidRanked,
+    startScan,
+    reserveNeed,
+    undefined,
+  ).filter((offer) => !primaryIds.has(offer.id));
+
+  return [...primaryOffers, ...reserveOffers].slice(0, need);
+}

@@ -3,6 +3,11 @@ import test from 'node:test';
 import type { TravelOffer } from '@/types/travel';
 import { slicePriceSortPoolPage } from '@/lib/search/prepare-results-offers';
 import { PAGE1_OVERLAY_RESERVE, selectPageOverlayCandidates } from '@/lib/search/results-catalog-page';
+import {
+  clearResultsLivePriceCache,
+  setResultsLivePriceOverlay,
+} from '@/lib/search/results-live-price-cache';
+import type { SearchParams } from '@/types/travel';
 
 function makeOffer(index: number): TravelOffer {
   return {
@@ -50,11 +55,25 @@ test('intermediate overlay windows are larger than pageSize so Page1ResultsCap c
 });
 
 test('slicePriceSortPoolPage is exact membership page slice (no paint reserve)', () => {
+  clearResultsLivePriceCache();
+  const params: SearchParams = { adults: 2 };
   const ranked = Array.from({ length: 200 }, (_, i) => makeOffer(i));
+  // GO1: presentable pool is B-only — seed proven live overlays.
+  for (const offer of ranked) {
+    setResultsLivePriceOverlay(offer.id, params, {
+      price: offer.price,
+      pricePerDay: offer.pricePerDay,
+      livePriceStatus: 'proven',
+      livePriceSource: 'upsales',
+      liveTotalPrice: offer.price * 2,
+      liveTotalPriceField: 'upsales.totalPrice',
+    });
+  }
   const pageSize = 10;
 
   const page1 = slicePriceSortPoolPage(ranked, 1, pageSize, {
     provisional: false,
+    params,
   });
   assert.equal(page1.paginationTotal, 200);
   assert.equal(page1.visibleOffers.length, 10);
@@ -62,11 +81,11 @@ test('slicePriceSortPoolPage is exact membership page slice (no paint reserve)',
 
   const page4 = slicePriceSortPoolPage(ranked, 4, pageSize, {
     provisional: false,
+    params,
   });
   assert.equal(page4.paginationTotal, 200);
-  // Overlay reserve lives in selectPageOverlayCandidates — not in membership slice.
+  // Overlay reserve lives in selectPageOverlayCandidates - not in membership slice.
   assert.equal(page4.visibleOffers.length, 10);
   assert.equal(page4.visibleOffers[0]?.id, 'offer-30');
   assert.equal(page4.visibleOffers[9]?.id, 'offer-39');
 });
-
