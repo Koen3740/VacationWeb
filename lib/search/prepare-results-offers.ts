@@ -1,7 +1,7 @@
 import type { FetchLike } from '../providers/prijsvrij/auth';
 import { priceLiveRequiredMatchset, stampUnpricedWhenLiveOccupancyUnsupported } from '../providers/prijsvrij/page1-receipt-pricing';
 import type { SearchParams, TravelOffer } from '../../types/travel';
-import { filterOffers, sortOffers } from './filtering';
+import { filterOffers, offerMatchesBudget, sortOffers } from './filtering';
 import { paginateResults, RESULTS_USER_PAGINATION_CAP } from './pagination';
 import { requiresSunwebResultsLivePrice } from '../providers/sunweb';
 import {
@@ -108,7 +108,13 @@ export function slicePriceSortPoolPage(
   const overlaid = options.params
     ? applyResultsLivePriceOverlays(ranked as TravelOffer[], options.params)
     : (ranked as TravelOffer[]);
-  const bookable = filterToResultsListableOffers(overlaid);
+  const listable = filterToResultsListableOffers(overlaid);
+  // Budget invariant: budgetMin <= displayed live p.p. price <= budgetMax. The matchset
+  // budget filter runs on the catalog price; re-check on the live price shown on the card.
+  const params = options.params;
+  const bookable = params
+    ? listable.filter((offer) => offerMatchesBudget(offer, params))
+    : listable;
   // GO11: browsable cards capped at 150 (15×10); pool/heading stay uncapped.
   const browsable = bookable.slice(0, RESULTS_USER_PAGINATION_CAP);
   const visibleOffers = paginateResults(browsable, safePage, pageSize);
