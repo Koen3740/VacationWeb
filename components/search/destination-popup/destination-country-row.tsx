@@ -8,7 +8,7 @@ type DestinationCountryRowProps = {
 
 export function DestinationCountryRow({ country, selected, onToggle }: DestinationCountryRowProps) {
   return (
-    <label className="flex cursor-pointer items-center gap-3 rounded py-2.5 transition-colors hover:bg-[#F3F4F6]">
+    <label className="relative flex cursor-pointer items-center gap-3 rounded py-2.5 transition-colors hover:bg-[#F3F4F6]">
       <span
         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] text-xs ${
           selected
