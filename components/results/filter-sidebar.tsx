@@ -65,11 +65,6 @@ import {
 } from '@/lib/search/budget-generation';
 import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
 import { parseHasCarRentalParam, serializeHasCarRentalParam } from '@/lib/offers/has-car-rental';
-import {
-  SEARCH_PROGRESS_DELAY_MS,
-  SearchProgressOverlay,
-  useDelayedBusyOverlay,
-} from '@/components/search/search-progress-feedback';
 import { FilterOptions } from '@/types/travel';
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -268,8 +263,8 @@ export function FilterSidebar({
     center: true,
   });
 
+  // Owner 25-09 23:03: no fullscreen loading overlay in the Results flow; busy only drives this control.
   const filterBusy = isNavigating || isPending;
-  const showProgressOverlay = useDelayedBusyOverlay(filterBusy, SEARCH_PROGRESS_DELAY_MS);
 
   useEffect(() => {
     setFilters(parseFilters(new URLSearchParams(searchParams.toString())));
@@ -553,7 +548,6 @@ export function FilterSidebar({
 
   return (
     <aside>
-      {showProgressOverlay ? <SearchProgressOverlay /> : null}
       <div
         className="rounded-[16px] border px-4"
         style={{

@@ -1,10 +1,5 @@
 'use client';
 
-import {
-  SEARCH_PROGRESS_DELAY_MS,
-  SearchProgressOverlay,
-  useDelayedBusyOverlay,
-} from '@/components/search/search-progress-feedback';
 import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
@@ -26,8 +21,8 @@ export function SortSelector({ currentSort }: { currentSort: string }) {
   const [isNavigating, setIsNavigating] = useState(false);
   const navigationLockRef = useRef(false);
 
+  // Owner 25-09 23:03: no fullscreen loading overlay in the Results flow; busy only drives this control.
   const sortBusy = isNavigating || isPending;
-  const showProgressOverlay = useDelayedBusyOverlay(sortBusy, SEARCH_PROGRESS_DELAY_MS);
 
   useEffect(() => {
     navigationLockRef.current = false;
@@ -64,7 +59,6 @@ export function SortSelector({ currentSort }: { currentSort: string }) {
 
   return (
     <>
-      {showProgressOverlay ? <SearchProgressOverlay /> : null}
       <label className="inline-flex items-center gap-2 text-[13px] text-[#64748B]">
         <span>Sorteren op:</span>
         <select

@@ -8,7 +8,8 @@ export const SEARCH_PROGRESS_MESSAGE =
 
 /**
  * Homepage search shows progress immediately (no delay).
- * Results filter/sort/param navigations use this threshold before overlay.
+ * The Results flow renders no fullscreen overlay (owner 25-09 23:03); its loading feedback is the
+ * compact notice above the cards (price-sort-live-stream.tsx PriceSortPendingNotice).
  */
 export const SEARCH_PROGRESS_DELAY_MS = 2000;
 
@@ -36,7 +37,7 @@ export function SearchProgressFeedback({ className = '' }: SearchProgressFeedbac
   );
 }
 
-/** Full-viewport overlay while a search navigation is in flight. */
+/** Full-viewport overlay while a search navigation is in flight. Homepage search only (home-search.tsx). */
 export function SearchProgressOverlay() {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgba(243,245,248,0.92)] p-4">

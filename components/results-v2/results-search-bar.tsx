@@ -11,11 +11,6 @@ import { DepartureAirportPopup } from '@/components/search/departure-airport-pop
 import { formatSelectedDepartureAirportsLabel } from '@/components/search/departure-airport-popup/departure-airport-popup-utils';
 import { formatSelectedDurationsLabel } from '@/components/search/duration-popup/duration-popup-utils';
 import { saveSharedSearchState } from '@/components/search/shared-search-state';
-import {
-  SEARCH_PROGRESS_DELAY_MS,
-  SearchProgressOverlay,
-  useDelayedBusyOverlay,
-} from '@/components/search/search-progress-feedback';
 import { TravelersPopup } from '@/components/search/travelers-popup/travelers-popup';
 import {
   formatRoomsLabel,
@@ -108,8 +103,8 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
 
   stateRef.current = state;
 
+  // Owner 25-09 23:03: no fullscreen loading overlay in the Results flow; busy only drives this control.
   const searchBusy = isSearching || isPending;
-  const showProgressOverlay = useDelayedBusyOverlay(searchBusy, SEARCH_PROGRESS_DELAY_MS);
 
   useEffect(() => {
     const synced = stateFromUrl(new URLSearchParams(searchParams.toString()));
@@ -233,8 +228,6 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
           </div>
         </div>
       </div>
-
-      {showProgressOverlay ? <SearchProgressOverlay /> : null}
 
       <DeparturePeriodPopup
         open={departureOpen}

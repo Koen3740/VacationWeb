@@ -1,11 +1,6 @@
 'use client';
 
 import {
-  SEARCH_PROGRESS_DELAY_MS,
-  SearchProgressOverlay,
-  useDelayedBusyOverlay,
-} from '@/components/search/search-progress-feedback';
-import {
   buildResultsPageHref,
   getResultsTotalPages,
   RESULTS_PAGE_DEFAULT,
@@ -51,8 +46,8 @@ export function ResultsPagination({ params, totalResults, hasMore }: ResultsPagi
   const [isNavigating, setIsNavigating] = useState(false);
   const navigationLockRef = useRef(false);
 
+  // Owner 25-09 23:03: no fullscreen loading overlay in the Results flow; busy only drives this control.
   const pageBusy = isNavigating || isPending;
-  const showProgressOverlay = useDelayedBusyOverlay(pageBusy, SEARCH_PROGRESS_DELAY_MS);
 
   useEffect(() => {
     navigationLockRef.current = false;
@@ -84,7 +79,6 @@ export function ResultsPagination({ params, totalResults, hasMore }: ResultsPagi
 
   return (
     <>
-      {showProgressOverlay ? <SearchProgressOverlay /> : null}
       <nav
         aria-label="Paginatie"
         data-has-more={hasNext ? 'true' : 'false'}
