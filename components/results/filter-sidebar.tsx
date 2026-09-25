@@ -58,6 +58,11 @@ import {
   type VacationType,
 } from '@/lib/search/vacation-type';
 import { writeBudgetParams } from '@/lib/search/budget-params';
+import {
+  BUDGET_GENERATION_NAVIGATION,
+  isNewBudgetGeneration,
+  nextBudgetDraft,
+} from '@/lib/search/budget-generation';
 import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
 import { parseHasCarRentalParam, serializeHasCarRentalParam } from '@/lib/offers/has-car-rental';
 import {
@@ -515,12 +520,15 @@ export function FilterSidebar({
 
   const commitBudget = () => {
     const next = draftBudgetRef.current;
-    if (next.min === filters.budgetMin && next.max === filters.budgetMax) {
+    if (!isNewBudgetGeneration({ min: filters.budgetMin, max: filters.budgetMax }, next)) {
       return;
     }
+    // Budget generation (owner 25-09 22:24): every handle release is a new query. It is
+    // not dropped while an older navigation is in flight (the router discards the older
+    // one) and it builds its own Page 1 (no page1Ids carried over from an older query).
     updateFilters(
       { ...filters, budgetMin: next.min, budgetMax: next.max },
-      { preservePage1Ids: true },
+      BUDGET_GENERATION_NAVIGATION,
     );
   };
 
@@ -630,10 +638,7 @@ export function FilterSidebar({
                 onChange={(event) => {
                   const nextBudgetMin = Number(event.target.value);
                   setDraftBudget((current) => {
-                    const next = {
-                      min: nextBudgetMin,
-                      max: Math.max(current.max, nextBudgetMin),
-                    };
+                    const next = nextBudgetDraft(current, 'min', nextBudgetMin);
                     draftBudgetRef.current = next;
                     return next;
                   });
@@ -651,10 +656,7 @@ export function FilterSidebar({
                 onChange={(event) => {
                   const nextBudgetMax = Number(event.target.value);
                   setDraftBudget((current) => {
-                    const next = {
-                      max: nextBudgetMax,
-                      min: Math.min(current.min, nextBudgetMax),
-                    };
+                    const next = nextBudgetDraft(current, 'max', nextBudgetMax);
                     draftBudgetRef.current = next;
                     return next;
                   });

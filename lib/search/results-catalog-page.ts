@@ -9,6 +9,7 @@ import {
   hasValidPresentablePrice,
   isResultsLivePriceCandidateOffer,
 } from '@/lib/search/presentable-price';
+import { offerMatchesBudget } from '@/lib/search/filtering';
 import { applyResultsLivePriceOverlays } from '@/lib/search/results-live-price-cache';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
@@ -134,6 +135,12 @@ export function measureResultsPipelineCounts(
  * Presentable Results membership for pagination (B only):
  * ranked filter matchset → apply live overlays → keep proven presentable B.
  * A / C / Pending stay in the underlying matchset but never occupy a page slot.
+ *
+ * Budget (owner 25-09-2026 22:24): an active budget range is a hard invariant on the
+ * live p.p. price shown on the card (budgetMin <= price <= budgetMax). The matchset
+ * budget filter runs on the catalog price; a B whose live price is outside the range
+ * is not presentable, so it is not counted in paginationTotal / hasMore, takes no page
+ * slot and a frozen page-1 id with such a price is dropped + refilled by GO10 repair.
  */
 export function bookableResultsMembership(
   ranked: readonly TravelOffer[],
@@ -142,7 +149,8 @@ export function bookableResultsMembership(
   const overlaid = params
     ? applyResultsLivePriceOverlays(ranked as TravelOffer[], params)
     : (ranked as TravelOffer[]);
-  return filterToResultsListableOffers(overlaid);
+  const listable = filterToResultsListableOffers(overlaid);
+  return params ? listable.filter((offer) => offerMatchesBudget(offer, params)) : listable;
 }
 
 /**
