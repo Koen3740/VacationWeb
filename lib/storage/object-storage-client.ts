@@ -16,7 +16,28 @@ import {
 
 let cachedClient: { fingerprint: string; client: S3Client } | null = null;
 
-function createS3Client(config: ObjectStorageConfig): S3Client {
+/**
+ * D-v2 S8 (owner GO 25-09 17:10; review timeout table row F): catalogue client bounds.
+ * Separate from the live-price L2 client (`LIVE_PRICE_L2_R2_CLIENT_OPTIONS`, unchanged).
+ * connect 3000 ms, 15000 ms per attempt (throw on request timeout), 1 retry
+ * (maxAttempts 2) -> max ~30 s (+ SDK backoff) for a cold-process catalogue read.
+ * On timeout the SDK error propagates to the existing catalogue failure path
+ * (`load-runtime-dataset.ts`, unchanged).
+ */
+export const CATALOG_STORAGE_CONNECT_TIMEOUT_MS = 3_000;
+export const CATALOG_STORAGE_REQUEST_TIMEOUT_MS = 15_000;
+export const CATALOG_STORAGE_MAX_ATTEMPTS = 2;
+
+export const CATALOG_STORAGE_CLIENT_OPTIONS = {
+  requestHandler: {
+    connectionTimeout: CATALOG_STORAGE_CONNECT_TIMEOUT_MS,
+    requestTimeout: CATALOG_STORAGE_REQUEST_TIMEOUT_MS,
+    throwOnRequestTimeout: true,
+  },
+  maxAttempts: CATALOG_STORAGE_MAX_ATTEMPTS,
+} as const;
+
+export function buildCatalogStorageS3Client(config: ObjectStorageConfig): S3Client {
   return new S3Client({
     region: config.region,
     credentials: {
@@ -25,7 +46,13 @@ function createS3Client(config: ObjectStorageConfig): S3Client {
     },
     endpoint: config.endpoint,
     forcePathStyle: Boolean(config.endpoint),
+    requestHandler: { ...CATALOG_STORAGE_CLIENT_OPTIONS.requestHandler },
+    maxAttempts: CATALOG_STORAGE_CLIENT_OPTIONS.maxAttempts,
   });
+}
+
+function createS3Client(config: ObjectStorageConfig): S3Client {
+  return buildCatalogStorageS3Client(config);
 }
 
 function getS3Client(): { config: ObjectStorageConfig; client: S3Client } {

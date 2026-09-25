@@ -8,6 +8,7 @@ import {
 import {
   applyResultsLivePriceOverlay,
   applyResultsLivePriceOverlays,
+  awaitInflightL2ReadsForOffer,
   getResultsLivePriceOverlay,
   hasResultsLivePriceOverlay,
   hydrateResultsLivePriceOverlaysFromL2,
@@ -1819,14 +1820,21 @@ export function startCatalogPageLiveOverlays(
       return { catalog, live: Promise.resolve(catalog), pending: false };
     }
 
+    // D-v2 S6: join an R2 read already in flight for this offer BEFORE the provider
+    // limiter (no limiter slot held while waiting; a hit seeds L1 so the run below
+    // returns without a provider call). Limiters and DEC-011 unchanged.
     const live = (async (): Promise<TravelOffer> => {
       if (isCorendon(catalog)) {
+        await awaitInflightL2ReadsForOffer(catalog, params);
         await limitCorendon(() => runCorendonLiveIntoCache(catalog, params, fetchImpl));
       } else if (isEliza(catalog)) {
+        await awaitInflightL2ReadsForOffer(catalog, params);
         await limitEliza(() => runElizaLiveIntoCache(catalog, params, fetchImpl));
       } else if (isSunweb(catalog) && requiresPage1LivePrice(catalog, params)) {
+        await awaitInflightL2ReadsForOffer(catalog, params);
         await limitSunweb(() => runSunwebLiveIntoCache(catalog, params, fetchImpl));
       } else if (isPrijsvrij(catalog)) {
+        await awaitInflightL2ReadsForOffer(catalog, params);
         await runPrijsvrijReceiptIntoCache(catalog, params, fetchImpl);
       }
 

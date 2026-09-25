@@ -38,6 +38,29 @@ export const RESULTS_MAX_BROWSE_PAGES = 15;
  */
 export const RESULTS_BROWSE_PRESENTABLE_CAP = RESULTS_USER_PAGINATION_CAP;
 
+/**
+ * D-v2 hasMore (owner decision 25-09-2026 18:50, closes A-39): true when the current
+ * valid presentable pool holds MORE B offers than the current page window shows.
+ * Only B counts (A / C / Pending are never in a presentable pool). Not coupled to
+ * Pending, C, provider responses, raw matchset or catalogue counts.
+ * - `presentableCount`: B offers in the valid (browse-capped; page1Ids-excluded for
+ *   page 2+ with a freeze) presentable pool.
+ * - `windowEnd`: pool index just after the current page window.
+ * Page 1, pageSize 10: 0-10 B -> false; > 10 B -> true.
+ */
+export function resultsHasMore(args: {
+  presentableCount: number;
+  windowEnd: number;
+  page: number;
+}): boolean {
+  const count = Number.isFinite(args.presentableCount)
+    ? Math.max(0, Math.floor(args.presentableCount))
+    : 0;
+  const windowEnd = Number.isFinite(args.windowEnd) ? Math.max(0, Math.floor(args.windowEnd)) : 0;
+  const page = Number.isFinite(args.page) && args.page >= 1 ? Math.floor(args.page) : 1;
+  return page < RESULTS_MAX_BROWSE_PAGES && count > windowEnd;
+}
+
 
 /**
  * First `cap` offers of an already-ranked matchset for live-pricing work only.

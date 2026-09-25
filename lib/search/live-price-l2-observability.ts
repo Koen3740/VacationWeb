@@ -12,7 +12,15 @@ export type LivePriceL2Event =
   | 'LOCK_CLAIM'
   | 'LOCK_WAIT'
   | 'STORE_ERROR'
-  | 'L2_WRITE';
+  | 'L2_WRITE'
+  /** D-v2 S2: R2 read hit its deadline (also counted as STORE_ERROR). */
+  | 'L2_TIMEOUT'
+  /** D-v2 S2: R2 op skipped because the R2 circuit is open. */
+  | 'L2_SKIPPED'
+  /** D-v2 S2: R2 circuit transitioned to open. */
+  | 'L2_CIRCUIT_OPEN'
+  /** D-v2 S2: record read joined an in-flight read (single-flight). */
+  | 'L2_READ_JOIN';
 
 const counts: Record<LivePriceL2Event, number> = {
   L1_HIT: 0,
@@ -24,6 +32,10 @@ const counts: Record<LivePriceL2Event, number> = {
   LOCK_WAIT: 0,
   STORE_ERROR: 0,
   L2_WRITE: 0,
+  L2_TIMEOUT: 0,
+  L2_SKIPPED: 0,
+  L2_CIRCUIT_OPEN: 0,
+  L2_READ_JOIN: 0,
 };
 
 export function noteLivePriceL2Event(event: LivePriceL2Event): void {

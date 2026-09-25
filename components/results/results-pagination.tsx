@@ -18,6 +18,11 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 type ResultsPaginationProps = {
   params: SearchParams;
   totalResults: number;
+  /**
+   * D-v2 hasMore (owner 25-09 18:50): more presentable B beyond the current page window.
+   * When given it decides "Volgende >"; otherwise the existing page-count rule applies.
+   */
+  hasMore?: boolean;
 };
 
 function pageItems(current: number, total: number): Array<number | 'ellipsis'> {
@@ -39,7 +44,7 @@ function pageItems(current: number, total: number): Array<number | 'ellipsis'> {
   return items;
 }
 
-export function ResultsPagination({ params, totalResults }: ResultsPaginationProps) {
+export function ResultsPagination({ params, totalResults, hasMore }: ResultsPaginationProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -58,11 +63,12 @@ export function ResultsPagination({ params, totalResults }: ResultsPaginationPro
   const pageSize = params.pageSize ?? RESULTS_PAGE_SIZE_DEFAULT;
   const totalPages = getResultsTotalPages(totalResults, pageSize);
 
-  if (totalPages <= 1) {
+  const hasNext = hasMore ?? currentPage < totalPages;
+
+  if (totalPages <= 1 && !hasNext) {
     return null;
   }
 
-  const hasNext = currentPage < totalPages;
   const items = pageItems(currentPage, totalPages);
 
   const goToPage = (page: number) => {
@@ -79,7 +85,11 @@ export function ResultsPagination({ params, totalResults }: ResultsPaginationPro
   return (
     <>
       {showProgressOverlay ? <SearchProgressOverlay /> : null}
-      <nav aria-label="Paginatie" className="mt-8 flex flex-wrap items-center justify-center gap-2">
+      <nav
+        aria-label="Paginatie"
+        data-has-more={hasNext ? 'true' : 'false'}
+        className="mt-8 flex flex-wrap items-center justify-center gap-2"
+      >
         {items.map((item, index) =>
           item === 'ellipsis' ? (
             <span key={`e-${index}`} className="px-1 text-sm text-[#94A3B8]">

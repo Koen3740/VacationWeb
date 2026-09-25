@@ -7,7 +7,8 @@ import {
 } from '../providers/corendon/listing-selection';
 import {
   isLivePriceL2Enabled,
-  readLivePriceL2Record,
+  joinInflightLivePriceL2Read,
+  readLivePriceL2RecordResult,
   writeLivePriceL2Record,
 } from './live-price-l2-store';
 import { noteLivePriceL2Event } from './live-price-l2-observability';
@@ -197,7 +198,44 @@ export type HydrateResultsLivePriceFromL2Options = {
    * hydrate alone cannot hit those objects — GO3).
    */
   offers?: readonly TravelOffer[];
+  /**
+   * D-v2 S6 (from D-v1): overall time budget (ms). When it elapses the call returns:
+   * no new GETs start; GETs already in flight keep running and still seed L1 (not
+   * awaited; overlays join them via `awaitInflightL2ReadsForOffer`).
+   * Undefined = await every attempt (each read bounded at 2000 ms + circuit).
+   */
+  budgetMs?: number;
 };
+
+export type HydrateResultsLivePriceFromL2Stats = {
+  hydrated: number;
+  checked: number;
+  /** D-v2 S6: L2 keys attempted (ids + Corendon listingKey variants). */
+  attempts?: number;
+  /** D-v2 S6: attempts not finished when the call returned (budget elapsed). */
+  timedOut?: number;
+  /** D-v2 S6: attempts whose read ended as 'timeout' before the call returned. */
+  getTimeouts?: number;
+  budgetHit?: boolean;
+};
+
+/**
+ * D-v2 S6 (plan: 1-s budget, from D-v1; scope applied in catalog-live-page-state): time budget for the page-window L2 hydrate on
+ * an UNFROZEN page 1 only. After it the page state continues (overlays start); reads in
+ * flight keep running and seed L1, and each slot joins its own in-flight read before the
+ * provider limiter (`awaitInflightL2ReadsForOffer`), so a record within the 2000 ms read
+ * bound is still used. Frozen page 1 and page 2+ await the full hydrate (each read
+ * bounded at 2000 ms + R2 circuit). Timing mechanism only: no sort / selection rule.
+ */
+export const RESULTS_PAGE_L2_HYDRATE_BUDGET_MS = 1000;
+
+/** D-v2 S6: hydrate budget scope (T16): unfrozen page 1 only. */
+export function resultsPageL2HydrateBudgetMs(
+  isPage1: boolean,
+  frozenIds: readonly string[] | undefined,
+): number | undefined {
+  return isPage1 && !(frozenIds?.length ?? 0) ? RESULTS_PAGE_L2_HYDRATE_BUDGET_MS : undefined;
+}
 
 type HydrateAttempt = {
   offerId: string;
@@ -215,7 +253,7 @@ export async function hydrateResultsLivePriceOverlaysFromL2(
   offerIds: readonly string[],
   params: LivePriceCacheParams,
   options: HydrateResultsLivePriceFromL2Options = {},
-): Promise<{ hydrated: number; checked: number }> {
+): Promise<HydrateResultsLivePriceFromL2Stats> {
   if (!isLivePriceL2Enabled() || offerIds.length === 0) {
     return { hydrated: 0, checked: 0 };
   }
@@ -263,14 +301,26 @@ export async function hydrateResultsLivePriceOverlaysFromL2(
   const concurrency = Math.max(1, Math.min(options.concurrency ?? 12, attempts.length));
   let hydrated = 0;
   let cursor = 0;
+  let completed = 0;
+  let getTimeouts = 0;
+  let budgetHit = false;
+  const budgetMs =
+    typeof options.budgetMs === 'number' && Number.isFinite(options.budgetMs) && options.budgetMs > 0
+      ? Math.floor(options.budgetMs)
+      : null;
 
   async function worker(): Promise<void> {
-    while (cursor < attempts.length) {
+    while (!budgetHit && cursor < attempts.length) {
       const index = cursor;
       cursor += 1;
       const attempt = attempts[index]!;
       const cacheKey = livePriceCacheKey(attempt.offerId, attempt.params);
-      const record = await readLivePriceL2Record(cacheKey);
+      const result = await readLivePriceL2RecordResult(cacheKey);
+      completed += 1;
+      if (result.status === 'timeout') {
+        getTimeouts += 1;
+      }
+      const record = result.record;
       if (!record) {
         continue;
       }
@@ -287,8 +337,87 @@ export async function hydrateResultsLivePriceOverlaysFromL2(
     }
   }
 
-  await Promise.all(Array.from({ length: concurrency }, () => worker()));
-  return { hydrated, checked: uniqueIds.length };
+  const workers = Promise.all(Array.from({ length: concurrency }, () => worker()));
+  if (budgetMs == null) {
+    await workers;
+  } else {
+    let budgetTimer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      workers,
+      new Promise<void>((resolve) => {
+        budgetTimer = setTimeout(() => {
+          budgetHit = true;
+          resolve();
+        }, budgetMs);
+      }),
+    ]);
+    if (budgetTimer) {
+      clearTimeout(budgetTimer);
+    }
+  }
+  const stats: HydrateResultsLivePriceFromL2Stats = {
+    hydrated,
+    checked: uniqueIds.length,
+    attempts: attempts.length,
+    timedOut: attempts.length - completed,
+    getTimeouts,
+    budgetHit,
+  };
+  if (process.env.VACATIONWEB_RESULTS_TIMING === '1' && (budgetHit || getTimeouts > 0)) {
+    console.info(
+      '[results-timing]',
+      JSON.stringify({ phase: 'l2-hydrate-timeout', budgetMs, ...stats }),
+    );
+  }
+  return stats;
+}
+
+/**
+ * D-v2 S6: wait for L2 record reads that are ALREADY in flight for this offer (same keys
+ * as the hydrate: bare key + Corendon listingKey variants) and seed L1 on a hit. Never
+ * starts a read, never calls a provider. Used by a Page-1 slot before its provider
+ * limiter, so a record that lands after the 1 s page-state budget (but within the 2 s
+ * read bound) is still used and the wait occupies no limiter slot.
+ */
+export async function awaitInflightL2ReadsForOffer(
+  offer: TravelOffer,
+  params: LivePriceCacheParams,
+): Promise<number> {
+  if (!isLivePriceL2Enabled() || !offer?.id) {
+    return 0;
+  }
+  const keyParams: LivePriceCacheParams[] = [params];
+  if (offer.provider === CORENDON_PROVIDER_NAME && !params.listingKey) {
+    for (const listing of rankCorendonListings(offer, params)) {
+      keyParams.push({ ...params, listingKey: corendonListingCacheKey(listing) });
+    }
+  }
+  const joins: Array<Promise<boolean>> = [];
+  for (const attemptParams of keyParams) {
+    const shared = joinInflightLivePriceL2Read(livePriceCacheKey(offer.id, attemptParams));
+    if (!shared) {
+      continue;
+    }
+    joins.push(
+      shared.then((result) => {
+        if (result.status !== 'found' || !result.record) {
+          return false;
+        }
+        seedResultsLivePriceOverlayFromL2(
+          offer.id,
+          attemptParams,
+          result.record.overlay as ResultsLivePriceOverlay,
+          { cachedAtMs: result.record.cachedAtMs, ttlMs: result.record.ttlMs },
+        );
+        return true;
+      }),
+    );
+  }
+  if (joins.length === 0) {
+    return 0;
+  }
+  const outcomes = await Promise.all(joins);
+  return outcomes.filter(Boolean).length;
 }
 
 export function setResultsLivePriceOverlay(
