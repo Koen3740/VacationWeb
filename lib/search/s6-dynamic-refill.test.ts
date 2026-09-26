@@ -102,6 +102,24 @@ function makeCorendon(id: string, hotelId: string, price: number): TravelOffer {
   };
 }
 
+function makeEliza(id: string, price: number): TravelOffer {
+  return {
+    id,
+    provider: 'Eliza was here',
+    hotelName: 'Eliza Hotel',
+    destinationCountry: 'Spanje',
+    departureDate: '2026-08-20',
+    departureAirport: 'BRU',
+    nights: 8,
+    flightIncluded: 'true',
+    price,
+    pricePerDay: Math.round(price / 8),
+    boardType: 'All Inclusive',
+    imageUrl: 'https://example.com/a.jpg',
+    deepLink: `https://www.elizawashere.nl/reis/${id}`,
+  };
+}
+
 function seedPresentableB(offer: TravelOffer, params: SearchParams, total: number): void {
   setResultsLivePriceOverlay(offer.id, params, {
     price: offer.price,
@@ -110,6 +128,18 @@ function seedPresentableB(offer: TravelOffer, params: SearchParams, total: numbe
     livePriceSource: 'receipt',
     liveTotalPrice: total,
     liveTotalPriceField: 'receipt.TotalInclLocal',
+  });
+}
+
+/** Card-presentable B overlay (Eliza / Sunweb — not parked). */
+function seedCardPresentableB(offer: TravelOffer, params: SearchParams, total: number): void {
+  setResultsLivePriceOverlay(offer.id, params, {
+    price: offer.price,
+    pricePerDay: offer.pricePerDay,
+    livePriceStatus: 'proven',
+    livePriceSource: 'getPromotedPrice',
+    liveTotalPrice: total,
+    liveTotalPriceField: 'getPromotedPrice.totalPrice',
   });
 }
 
@@ -135,12 +165,10 @@ test('S6 product target is 150 B not 10/20', () => {
   assert.equal(S6_TARGET_PRESENTABLE_B, 150);
 });
 
-test('Scenario A — enough B: stop at target without extra HTTP', async () => {
-  const catalog = Array.from({ length: 160 }, (_, i) =>
-    makePv(`prijsvrij-${1000 + i}-2026-08-20-8-900-LG`, 100 + i),
-  );
+test('Scenario A — enough card B: stop at target without extra HTTP', async () => {
+  const catalog = Array.from({ length: 160 }, (_, i) => makeEliza(`eliza-${1000 + i}`, 100 + i));
   for (const offer of catalog.slice(0, 150)) {
-    seedPresentableB(offer, params, 800);
+    seedCardPresentableB(offer, params, 800);
   }
   assert.equal(countPresentableB(catalog, params), 150);
   const http = { posts: 0, urls: [] as string[] };
@@ -154,12 +182,28 @@ test('Scenario A — enough B: stop at target without extra HTTP', async () => {
   assert.equal(result.telemetry.presentableB, 150);
 });
 
-test('Scenario B — A/C do not stop: continue until target or exhausted', async () => {
-  // 20 PV: first 10 fail (empty receipt → A-like unavailable), next 10 succeed as B.
-  // Target 5 B → must continue past failures.
+test('parked Prijsvrij never counts toward S6 target', () => {
   const catalog = Array.from({ length: 20 }, (_, i) =>
+    makePv(`prijsvrij-${1100 + i}-2026-08-20-8-900-LG`, 100 + i),
+  );
+  for (const offer of catalog) {
+    seedPresentableB(offer, params, 800);
+  }
+  assert.equal(countPresentableB(catalog, params), 0);
+});
+
+test('Scenario B — A/C do not stop: continue until target or exhausted', async () => {
+  // Mix: 10 PV failures (parked, never cards) + 10 card-presentable Eliza already B.
+  // Target 5 card B → already met from Eliza; no need to wait on parked PV.
+  const pv = Array.from({ length: 10 }, (_, i) =>
     makePv(`prijsvrij-${2000 + i}-2026-08-20-8-900-LG`, 100 + i),
   );
+  const eliza = Array.from({ length: 10 }, (_, i) => makeEliza(`eliza-b-${2000 + i}`, 200 + i));
+  for (const offer of eliza.slice(0, 5)) {
+    seedCardPresentableB(offer, params, 900);
+  }
+  const catalog = [...pv, ...eliza];
+  assert.equal(countPresentableB(catalog, params), 5);
   const failIds = new Set(Array.from({ length: 10 }, (_, i) => String(2000 + i)));
   const http = { posts: 0, urls: [] as string[] };
   const result = await runS6DynamicRefill(catalog, params, {
@@ -168,23 +212,46 @@ test('Scenario B — A/C do not stop: continue until target or exhausted', async
     maxNewAttempts: 40,
   });
   assert.ok(result.telemetry.presentableB >= 5, `B=${result.telemetry.presentableB}`);
-  assert.equal(result.telemetry.stopReason, 'target_met');
-  assert.ok(result.telemetry.attempts > 5, 'must price past A/empty before enough B');
+  assert.equal(result.telemetry.stopReason, 'already_met');
+  assert.equal(result.telemetry.attempts, 0);
 });
 
-test('Scenario C — cached B counts; no HTTP for that offer', async () => {
-  const cached = makePv('prijsvrij-3001-2026-08-20-8-900-LG', 100);
-  const next = makePv('prijsvrij-3002-2026-08-20-8-900-LG', 110);
-  seedPresentableB(cached, params, 900);
+test('Scenario B2 — pricing continues past failures; parked success still does not meet target', async () => {
+  // Only Prijsvrij: receipts may succeed, but parked B never reaches the card target.
+  const catalog = Array.from({ length: 20 }, (_, i) =>
+    makePv(`prijsvrij-${2100 + i}-2026-08-20-8-900-LG`, 100 + i),
+  );
+  const failIds = new Set(Array.from({ length: 10 }, (_, i) => String(2100 + i)));
+  const http = { posts: 0, urls: [] as string[] };
+  const result = await runS6DynamicRefill(catalog, params, {
+    fetchImpl: makeReceiptFetch(http, failIds),
+    targetB: 5,
+    maxNewAttempts: 40,
+  });
+  assert.equal(result.telemetry.presentableB, 0);
+  assert.ok(result.telemetry.attempts > 5, 'must price past A/empty even when parked');
+  assert.ok(
+    result.telemetry.stopReason === 'matchset_exhausted' ||
+      result.telemetry.stopReason === 'no_eligible_candidates' ||
+      result.telemetry.stopReason === 'no_progress' ||
+      result.telemetry.stopReason === 'max_attempts',
+  );
+});
+
+test('Scenario C — cached card B counts; no HTTP for that offer', async () => {
+  const cached = makeEliza('eliza-3001', 100);
+  const next = makeEliza('eliza-3002', 110);
+  seedCardPresentableB(cached, params, 900);
+  seedCardPresentableB(next, params, 910);
   const http = { posts: 0, urls: [] as string[] };
   const result = await runS6DynamicRefill([cached, next], params, {
     fetchImpl: makeReceiptFetch(http),
     targetB: 2,
   });
   assert.ok(hasResultsLivePriceOverlay(cached.id, params));
-  assert.ok(!http.urls.some((u) => u.includes('/3001/')));
+  assert.equal(http.posts, 0);
   assert.ok(result.telemetry.presentableB >= 2);
-  assert.equal(result.telemetry.stopReason, 'target_met');
+  assert.equal(result.telemetry.stopReason, 'already_met');
 });
 
 test('Scenario D — missing context skipped; cursor continues', () => {

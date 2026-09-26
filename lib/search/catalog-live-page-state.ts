@@ -14,6 +14,9 @@ import {
   selectPage1OverlayCandidates,
   selectPage2PlusHydrationPlan,
   selectPaintAlignedPageOverlayCandidates,
+  selectResultsBrowsePool,
+  selectSharedPoolExcludedIds,
+  sharedPoolPriceCeiling,
   sliceRankedCatalogResultsPage,
   type RankedCatalogResultsPage,
 } from '@/lib/search/results-catalog-page';
@@ -132,8 +135,9 @@ async function hydrateDiscoverPrefixUntilBrowseCap(args: {
       skipBareWhenListingAttemptsExist: true,
     });
     stats = mergeHydrateStats(stats, chunkStats);
-    const browsableLen = bookableResultsMembership(args.filtered, args.filteringParams).slice(
-      0,
+    const browsableLen = selectResultsBrowsePool(
+      args.filtered,
+      args.filteringParams,
       args.browseCap,
     ).length;
     if (browsableLen >= args.browseCap) {
@@ -179,9 +183,9 @@ export const loadCatalogLivePageState = cache(
     const pendingFrozenForPlan = new Map<string, TravelOffer>();
     if (!isPage1 && !isColdPage2 && frozenParamIds.length > 0) {
       const l1BrowsableIds = new Set(
-        bookableResultsMembership(filtered, filteringParams)
-          .slice(0, browseCap)
-          .map((offer) => offer.id),
+        selectResultsBrowsePool(filtered, filteringParams, browseCap, frozenParamIds).map(
+          (offer) => offer.id,
+        ),
       );
       const matchsetById = new Map(filtered.map((offer) => [offer.id, offer]));
       for (const id of frozenParamIds) {
@@ -244,12 +248,15 @@ export const loadCatalogLivePageState = cache(
 
     // GO11: B membership over the FULL matchset (pool). Browse/display cap = 150
     // presentable cards (not a pool/heading cap). Page hydrate stays page-scoped above.
+    // Default / Laag → Hoog: shared live-pricing pool (lowest live B, frozen page 1 pinned).
     const bookable = bookableResultsMembership(filtered, filteringParams);
-    const browsable = bookable.slice(0, browseCap);
+    const browsable = selectResultsBrowsePool(bookable, filteringParams, browseCap, frozenParamIds);
+    const poolExcludedIds = selectSharedPoolExcludedIds(bookable, filteringParams, browsable);
+    const poolPriceCeiling = sharedPoolPriceCeiling(browsable, filteringParams, browseCap);
     // D-v2 S4: same membership/cap, evaluated when called (Page-1 settle time), so a
     // temporary cold B=0 at request start never freezes paginationTotal at 0.
     const computeBrowseTotal = () =>
-      bookableResultsMembership(filtered, filteringParams).slice(0, browseCap).length;
+      selectResultsBrowsePool(filtered, filteringParams, browseCap).length;
 
     // D-v2 S5 (GO10 amendment, review C): frozen ids that are in the matchset but not
     // (yet) in the B pool with an UNKNOWN live status stay as pending anchors; known
@@ -339,11 +346,13 @@ export const loadCatalogLivePageState = cache(
     }
 
     const page2ExcludedIds = new Set(page2Page1Ids);
+    const overlayRanked =
+      poolExcludedIds.size > 0 ? filtered.filter((offer) => !poolExcludedIds.has(offer.id)) : filtered;
     const overlayCandidates =
       isPage1 || isColdPage2
-        ? selectPage1OverlayCandidates(filtered, safePageSize, undefined, filteringParams)
+        ? selectPage1OverlayCandidates(overlayRanked, safePageSize, undefined, filteringParams)
         : selectPaintAlignedPageOverlayCandidates(
-            filtered,
+            overlayRanked,
             catalogPage.offers,
             safePageSize,
             undefined,
@@ -393,12 +402,15 @@ export const loadCatalogLivePageState = cache(
 
     // D-v2 S4: deadline counted from overlay start (plan: PAGE1_SETTLE_DEADLINE_MS).
     const visibleParams: SearchParams = { ...params, pageSize: safePageSize };
+    const frozenIdSet = new Set(frozenParamIds);
     const page1Settle = page1Slots
       ? createPage1SettleController({
           slotOffers: page1Slots.slotOffers,
           overlays,
           pageSize: safePageSize,
-          isPresentable: (offer) => isPage1VisibleOffer(offer, visibleParams),
+          isPresentable: (offer) =>
+            isPage1VisibleOffer(offer, visibleParams) &&
+            (offer.price <= poolPriceCeiling || frozenIdSet.has(offer.id)),
         })
       : undefined;
 
@@ -441,9 +453,11 @@ export const loadCatalogLivePageState = cache(
 
     const recomputeBrowsePage = isColdPage2
       ? (excludedPage1Ids: readonly string[] = []) => {
-          const nowBrowsable = bookableResultsMembership(filtered, filteringParams).slice(
-            0,
+          const nowBrowsable = selectResultsBrowsePool(
+            filtered,
+            filteringParams,
             browseCap,
+            excludedPage1Ids,
           );
           if (excludedPage1Ids.length === 0) {
             return {

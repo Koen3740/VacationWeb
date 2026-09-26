@@ -17,11 +17,8 @@ import {
   isLivePriceProviderOffer,
 } from '@/lib/search/live-price-context-gate';
 import { isOfferLivePriceCircuitOpen } from '@/lib/search/live-pricing-workset';
-import {
-  applyResultsLivePriceOverlays,
-  hasResultsLivePriceOverlay,
-} from '@/lib/search/results-live-price-cache';
-import { hasValidPresentablePrice } from '@/lib/search/presentable-price';
+import { hasResultsLivePriceOverlay } from '@/lib/search/results-live-price-cache';
+import { bookableResultsMembership } from '@/lib/search/results-catalog-page';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
 /** Product stop: 15 pages × 10 cards with proven live B. */
@@ -65,13 +62,16 @@ export type S6RefillResult = {
   telemetry: S6RefillTelemetry;
 };
 
+/**
+ * Presentable B toward the S6 target: same membership as Result cards
+ * ({@link bookableResultsMembership} = listable B + live budget).
+ * Parked providers (Prijsvrij) never count — they cannot become cards.
+ */
 export function countPresentableB(
   offers: readonly TravelOffer[],
   params: SearchParams,
 ): number {
-  return applyResultsLivePriceOverlays(offers as TravelOffer[], params).filter(
-    hasValidPresentablePrice,
-  ).length;
+  return bookableResultsMembership(offers, params).length;
 }
 
 /**

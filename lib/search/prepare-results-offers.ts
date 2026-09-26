@@ -1,13 +1,12 @@
 import type { FetchLike } from '../providers/prijsvrij/auth';
 import { priceLiveRequiredMatchset, stampUnpricedWhenLiveOccupancyUnsupported } from '../providers/prijsvrij/page1-receipt-pricing';
 import type { SearchParams, TravelOffer } from '../../types/travel';
-import { filterOffers, offerMatchesBudget, sortOffers } from './filtering';
+import { filterOffers, sortOffers } from './filtering';
 import { paginateResults, RESULTS_USER_PAGINATION_CAP } from './pagination';
 import { requiresSunwebResultsLivePrice } from '../providers/sunweb';
 import {
   CORENDON_PROVIDER_NAME,
   ELIZA_PROVIDER_NAME,
-  filterToResultsListableOffers,
   hasValidPresentablePrice,
   PRIJSVRIJ_PROVIDER_NAME,
   SUNWEB_PROVIDER_NAME,
@@ -26,6 +25,7 @@ import {
   selectLivePricingInitialWorkset,
 } from './live-pricing-workset';
 import { countPresentableB, runS6DynamicRefill } from './s6-dynamic-refill';
+import { bookableResultsMembership, selectResultsBrowsePool } from './results-catalog-page';
 
 const PRICE_DEPENDENT_SORTS = new Set(['price', 'price-desc', 'price-per-day']);
 
@@ -105,18 +105,12 @@ export function slicePriceSortPoolPage(
   paginationTotal: number;
 } {
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
-  const overlaid = options.params
-    ? applyResultsLivePriceOverlays(ranked as TravelOffer[], options.params)
-    : (ranked as TravelOffer[]);
-  const listable = filterToResultsListableOffers(overlaid);
-  // Budget invariant: budgetMin <= displayed live p.p. price <= budgetMax. The matchset
-  // budget filter runs on the catalog price; re-check on the live price shown on the card.
-  const params = options.params;
-  const bookable = params
-    ? listable.filter((offer) => offerMatchesBudget(offer, params))
-    : listable;
-  // GO11: browsable cards capped at 150 (15×10); pool/heading stay uncapped.
-  const browsable = bookable.slice(0, RESULTS_USER_PAGINATION_CAP);
+  // Budget invariant: budgetMin <= displayed live p.p. price <= budgetMax (checked on
+  // the live price inside bookableResultsMembership). GO11: browsable cards capped at
+  // 150 (15×10); pool/heading stay uncapped. Laag → Hoog = shared live-pricing pool.
+  const browsable = options.params
+    ? selectResultsBrowsePool(ranked, options.params, RESULTS_USER_PAGINATION_CAP)
+    : bookableResultsMembership(ranked).slice(0, RESULTS_USER_PAGINATION_CAP);
   const visibleOffers = paginateResults(browsable, safePage, pageSize);
   return {
     visibleOffers,

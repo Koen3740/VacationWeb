@@ -13,6 +13,7 @@ import {
   PAGE1_DEADLINE_EMPTY_STATUS_TEXT,
 } from '@/lib/search/page-settle';
 import { buildResultsPageHref } from '@/lib/search/pagination';
+import { isSharedLivePricingPoolSort } from '@/lib/search/results-catalog-page';
 import { loadPreparedResultsOffers } from '@/lib/search/prepared-results-request';
 import { scheduleCappedMatchsetLiveAfterPage } from '@/lib/search/schedule-capped-matchset-live-after-page';
 import { scheduleResultsMatchsetLivePricing } from '@/lib/search/schedule-results-matchset-live-pricing';
@@ -58,8 +59,10 @@ export async function CatalogLiveBody({
   const { catalogPage, overlayCandidates, streamOffers, overlays, page1Settle } = state;
 
   // GO11-followup: full-pool live waits for page overlays (or 1.5s head-start); not awaited here.
+  // Default = shared live-pricing pool: S6 + full pool cheap-first by catalogue price.
   scheduleCappedMatchsetLiveAfterPage(filtered, filteringParams, {
     afterPageOverlays: Promise.all(overlays.map((overlay) => overlay.live)),
+    cheapestFirst: isSharedLivePricingPoolSort(filteringParams.sort),
   });
   // D-v2 S7 (B4 30-08: waitUntil = cache-warming only): keep the page overlays' live
   // pricing alive after the response (Vercel waitUntil; locally the pending set holds

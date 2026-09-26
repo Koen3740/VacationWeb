@@ -158,6 +158,103 @@ export function bookableResultsMembership(
 }
 
 /**
+ * Shared live-pricing pool for default and price sort: the `cap` lowest live p.p.
+ * prices among {@link bookableResultsMembership} (B-only + live budget), returned in
+ * the order of `ranked`. Default passes catalogue order; price sort its live-ranked
+ * order. The pool is recomputed per call, so a cheaper B found later replaces the
+ * most expensive member.
+ *
+ * `pinnedIds` (frozen page-1 ids) that are still bookable always stay in the pool so
+ * a definitive page-1 freeze is never dropped because cheaper B arrived later.
+ */
+export function selectSharedLivePricingPool(
+  ranked: readonly TravelOffer[],
+  params?: SearchParams,
+  cap: number = RESULTS_USER_PAGINATION_CAP,
+  pinnedIds?: readonly string[],
+): TravelOffer[] {
+  const bookable = bookableResultsMembership(ranked, params);
+  const limit = Number.isFinite(cap) ? Math.max(0, Math.floor(cap)) : 0;
+  if (bookable.length <= limit) {
+    return bookable;
+  }
+
+  const keep = new Set<string>();
+  const pinned = new Set(pinnedIds ?? []);
+  if (pinned.size > 0) {
+    for (const offer of bookable) {
+      if (keep.size >= limit) break;
+      if (pinned.has(offer.id)) keep.add(offer.id);
+    }
+  }
+  const byLivePrice = bookable
+    .map((offer, index) => ({ offer, index }))
+    .filter(({ offer }) => !keep.has(offer.id))
+    .sort((a, b) => a.offer.price - b.offer.price || a.index - b.index);
+  for (const { offer } of byLivePrice) {
+    if (keep.size >= limit) break;
+    keep.add(offer.id);
+  }
+  return bookable.filter((offer) => keep.has(offer.id));
+}
+
+/** Default (catalogue order) and Laag → Hoog present the same shared live-pricing pool. */
+export function isSharedLivePricingPoolSort(sort?: string): boolean {
+  return !sort || sort === 'value' || sort === 'price';
+}
+
+/**
+ * Browse pool (≤ cap B cards) for the active sort: the shared live-pricing pool for
+ * Default / Laag → Hoog; other sorts keep the first `cap` B in their own sort order.
+ */
+export function selectResultsBrowsePool(
+  ranked: readonly TravelOffer[],
+  params?: SearchParams,
+  cap: number = RESULTS_USER_PAGINATION_CAP,
+  pinnedIds?: readonly string[],
+): TravelOffer[] {
+  if (isSharedLivePricingPoolSort(params?.sort)) {
+    return selectSharedLivePricingPool(ranked, params, cap, pinnedIds);
+  }
+  return bookableResultsMembership(ranked, params).slice(0, Math.max(0, Math.floor(cap)));
+}
+
+/**
+ * Offer ids of known B outside the current shared pool (a full pool already holds
+ * `cap` cheaper B). Page-1 overlay/settle must not admit them as default cards.
+ */
+export function selectSharedPoolExcludedIds(
+  ranked: readonly TravelOffer[],
+  params: SearchParams | undefined,
+  pool: readonly TravelOffer[],
+): Set<string> {
+  if (!isSharedLivePricingPoolSort(params?.sort)) {
+    return new Set();
+  }
+  const poolIds = new Set(pool.map((offer) => offer.id));
+  const excluded = new Set<string>();
+  for (const offer of bookableResultsMembership(ranked, params)) {
+    if (!poolIds.has(offer.id)) excluded.add(offer.id);
+  }
+  return excluded;
+}
+
+/**
+ * Highest live p.p. price in a full shared pool (`pool.length >= cap`); `Infinity`
+ * while the pool still has room. A newly settled B above it cannot enter the pool.
+ */
+export function sharedPoolPriceCeiling(
+  pool: readonly TravelOffer[],
+  params: SearchParams | undefined,
+  cap: number,
+): number {
+  if (!isSharedLivePricingPoolSort(params?.sort) || pool.length < cap || pool.length === 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return pool.reduce((max, offer) => Math.max(max, offer.price), Number.NEGATIVE_INFINITY);
+}
+
+/**
  * Page slice of the presentable (B) Results pool.
  *
  * Paginate in sort order (not live-presentable-first reorder of the matchset)
@@ -172,8 +269,7 @@ export function sliceRankedCatalogResultsPage(
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
   // GO11: B membership over the FULL matchset; browse/display cap = 150 cards.
   // Heading uses pool size separately (results-pool-count) — not this total.
-  const bookable = bookableResultsMembership(ranked, params);
-  const browsable = bookable.slice(0, RESULTS_USER_PAGINATION_CAP);
+  const browsable = selectResultsBrowsePool(ranked, params, RESULTS_USER_PAGINATION_CAP);
   const offers = paginateResults(browsable, safePage, pageSize);
   return {
     offers,
@@ -277,7 +373,7 @@ export function selectPage2PlusHydrationPlan(args: {
   const browseCap = Math.max(0, Math.floor(args.browseCap) || 0);
   const page1Ids = (args.page1Ids ?? []).filter((id) => typeof id === 'string' && id.length > 0);
 
-  const browsable = bookableResultsMembership(args.ranked, args.params).slice(0, browseCap);
+  const browsable = selectResultsBrowsePool(args.ranked, args.params, browseCap, page1Ids);
   const repaired = repairPage2Page1Membership({
     presentableOrdered: browsable,
     frozenIds: page1Ids,
