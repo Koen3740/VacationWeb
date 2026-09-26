@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { sortOffers } from './filtering';
 import {
+  getResultsBrowsePageCount,
   getResultsTotalPages,
   limitLivePricingInitialWorkset,
   limitRankedResultsForPagination,
   paginateResults,
+  RESULTS_BROWSE_PRESENTABLE_CAP,
   RESULTS_LIVE_PRICING_INITIAL_WORKSET,
+  RESULTS_MAX_BROWSE_PAGES,
   RESULTS_PAGE_SIZE_DEFAULT,
   RESULTS_USER_PAGINATION_CAP,
   buildOfferDetailHref,
@@ -64,7 +67,7 @@ test('A. 921 matches: full user result set; live-pricing window separately cappe
   assert.equal(ranked.length, 921);
   const liveWindow = limitRankedResultsForPagination(ranked);
   assert.equal(liveWindow.length, RESULTS_USER_PAGINATION_CAP);
-  assert.equal(getResultsTotalPages(ranked.length, RESULTS_PAGE_SIZE_DEFAULT), 93);
+  assert.equal(getResultsTotalPages(ranked.length, RESULTS_PAGE_SIZE_DEFAULT), RESULTS_MAX_BROWSE_PAGES);
   assert.equal(paginateResults(ranked, 16, RESULTS_PAGE_SIZE_DEFAULT).length, 10);
   assert.equal(paginateResults(liveWindow, 16, RESULTS_PAGE_SIZE_DEFAULT).length, 0);
 });
@@ -110,10 +113,20 @@ test('D. stars: live window takes top 150 after full ranking', () => {
 test('M. page 16 exists for full user set; live window alone stops at 15 pages', () => {
   const ranked = sortOffers(ranked921(), 'price');
   const liveWindow = limitRankedResultsForPagination(ranked);
-  assert.equal(getResultsTotalPages(ranked.length, 10), 93);
+  assert.equal(getResultsTotalPages(ranked.length, 10), RESULTS_MAX_BROWSE_PAGES);
   assert.equal(getResultsTotalPages(liveWindow.length, 10), 15);
   assert.equal(paginateResults(ranked, 16, 10).length, 10);
   assert.deepEqual(paginateResults(liveWindow, 16, 10), []);
+});
+
+test('stable browse UI page count is always cap÷pageSize (not live B growth)', () => {
+  assert.equal(RESULTS_BROWSE_PRESENTABLE_CAP, 150);
+  assert.equal(RESULTS_MAX_BROWSE_PAGES, 15);
+  assert.equal(getResultsBrowsePageCount(10), 15);
+  assert.equal(getResultsBrowsePageCount(RESULTS_PAGE_SIZE_DEFAULT), 15);
+  // Independent of how many B are already presentable:
+  assert.equal(getResultsTotalPages(40, 10), 4);
+  assert.equal(getResultsBrowsePageCount(10), 15);
 });
 
 test('offer detail href keeps occupancy and dates from Results params', () => {

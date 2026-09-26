@@ -11,6 +11,10 @@ import {
 } from '@/lib/search/presentable-price';
 import { offerMatchesBudget } from '@/lib/search/filtering';
 import { applyResultsLivePriceOverlays } from '@/lib/search/results-live-price-cache';
+import {
+  repairPage2Page1Membership,
+  selectBrowsePageWithPage1Freeze,
+} from '@/lib/search/page1-freeze-repair';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
 export type RankedCatalogResultsPage = {
@@ -211,6 +215,10 @@ export function selectPageOverlayCandidates(
  * Bounded offer IDs to L2→L1 hydrate before catalog page slice (GO2 defect 1).
  * Covers early live-price candidates that can enter the B pool up to this page,
  * plus reserve — not a full-matchset hydrate.
+ *
+ * LP-001: Page 1 / cold page 2 keep this prefix formula. Frozen page 2+ uses
+ * {@link selectPage2PlusHydrationPlan} so the set does not grow as `N×pageSize`
+ * when L1 already knows enough B to paint the page.
  */
 export function selectCatalogPageHydrationIds(
   ranked: readonly TravelOffer[],
@@ -225,6 +233,120 @@ export function selectCatalogPageHydrationIds(
     return [];
   }
   return collectListablePaintWindow(ranked, 0, need, params).map((offer) => offer.id);
+}
+
+export type Page2PlusHydrationPlan = {
+  /**
+   * `page-local`: L1 already has enough B to serve this page — hydrate only
+   * page1Ids + painted page + paint-aligned reserve (Option B).
+   * `discover-prefix`: L1 B pool too thin — hydrate matchset prefix to discover
+   * B up to the browse cap (capped; chunked early-stop in catalog-live-page-state).
+   */
+  mode: 'page-local' | 'discover-prefix';
+  ids: string[];
+  /** Expected painted offers for this page from current L1 membership (may be empty). */
+  paintedIds: string[];
+};
+
+/**
+ * LP-001 Option B: Page 2+ hydration ID plan from L1-only B membership.
+ *
+ * Does not perform R2 I/O. Callers hydrate `ids` (discover-prefix may be chunked
+ * with early-stop once `bookable.length >= browseCap`).
+ */
+export function selectPage2PlusHydrationPlan(args: {
+  ranked: readonly TravelOffer[];
+  page: number;
+  pageSize: number;
+  page1Ids: readonly string[];
+  browseCap: number;
+  reserve?: number;
+  params?: SearchParams;
+  /**
+   * Optional page-1 membership repair inputs (pending unknown frozen anchors).
+   * When omitted, freeze repair uses presentable pool only.
+   */
+  pendingFrozen?: ReadonlyMap<string, TravelOffer>;
+}): Page2PlusHydrationPlan {
+  const pageSize = Math.max(0, Math.floor(args.pageSize) || 0);
+  const page = Number.isFinite(args.page) && args.page >= 2 ? Math.floor(args.page) : 2;
+  const reserve =
+    typeof args.reserve === 'number' && Number.isFinite(args.reserve)
+      ? Math.max(0, Math.floor(args.reserve))
+      : PAGE1_OVERLAY_RESERVE;
+  const browseCap = Math.max(0, Math.floor(args.browseCap) || 0);
+  const page1Ids = (args.page1Ids ?? []).filter((id) => typeof id === 'string' && id.length > 0);
+
+  const browsable = bookableResultsMembership(args.ranked, args.params).slice(0, browseCap);
+  const repaired = repairPage2Page1Membership({
+    presentableOrdered: browsable,
+    frozenIds: page1Ids,
+    pageSize,
+    pendingFrozen: args.pendingFrozen,
+  });
+
+  const page1ForBrowse = repaired.usedFreeze
+    ? repaired.page1Ids
+    : browsable.slice(0, pageSize).map((offer) => offer.id);
+
+  const remainingPage = selectBrowsePageWithPage1Freeze({
+    browsable,
+    page1Ids: page1ForBrowse,
+    page,
+    pageSize,
+    browseCap,
+  });
+
+  const start = (page - 2) * pageSize;
+  const expectedCount = Math.max(
+    0,
+    Math.min(pageSize, remainingPage.remaining.length - start),
+  );
+  // Enough L1 B to reach this page window (or a full browse-cap past-end empty page).
+  // Empty L1 must NOT count as page-local (that would skip discover-prefix on cold loads).
+  const minBForThisPage = Math.min(
+    browseCap,
+    page1ForBrowse.length + Math.max(0, page - 1) * pageSize,
+  );
+  const canServeFromL1 =
+    browsable.length >= minBForThisPage && remainingPage.offers.length >= expectedCount;
+
+  if (canServeFromL1) {
+    const painted = remainingPage.offers;
+    const overlayIds = selectPaintAlignedPageOverlayCandidates(
+      args.ranked,
+      painted,
+      pageSize,
+      reserve,
+      args.params,
+    ).map((offer) => offer.id);
+    const ids = [...new Set([...page1Ids, ...painted.map((offer) => offer.id), ...overlayIds])];
+    return {
+      mode: 'page-local',
+      ids,
+      paintedIds: painted.map((offer) => offer.id),
+    };
+  }
+
+  // L1 too thin for this page: keep the historical prefix (page×pageSize+reserve)
+  // so early pages do not suddenly hydrate the full browse-cap (page-2 regression).
+  // Cap at browseCap+reserve so page numbers inside the browse window never exceed
+  // what the B pool can display (page 15 ≈ 150+reserve, not unbounded growth).
+  const maxDiscoverPage =
+    browseCap > 0 && pageSize > 0 ? Math.ceil(browseCap / pageSize) : page;
+  const discoverPage = Math.min(page, maxDiscoverPage);
+  const prefixIds = selectCatalogPageHydrationIds(
+    args.ranked,
+    discoverPage,
+    pageSize,
+    reserve,
+    args.params,
+  );
+  return {
+    mode: 'discover-prefix',
+    ids: [...new Set([...page1Ids, ...prefixIds])],
+    paintedIds: [],
+  };
 }
 
 /**

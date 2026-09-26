@@ -146,6 +146,24 @@ export function getResultsTotalPages(totalResults: number, pageSize: number): nu
   return Math.min(pages, RESULTS_MAX_BROWSE_PAGES);
 }
 
+/**
+ * Stable Results browse page count for the pagination UI.
+ * Always derived from the browse cap (150 ÷ pageSize ≤ 15), never from the
+ * live B pool size — so the control does not grow 4 → 8 → 15 as prices arrive.
+ */
+export function getResultsBrowsePageCount(
+  pageSize: number = RESULTS_PAGE_SIZE_DEFAULT,
+): number {
+  const size =
+    Number.isFinite(pageSize) && pageSize > 0
+      ? Math.floor(pageSize)
+      : RESULTS_PAGE_SIZE_DEFAULT;
+  return Math.min(
+    RESULTS_MAX_BROWSE_PAGES,
+    Math.max(1, Math.ceil(RESULTS_BROWSE_PRESENTABLE_CAP / size)),
+  );
+}
+
 export function buildResultsSearchQuery(params: SearchParams, page: number): URLSearchParams {
   const query = new URLSearchParams();
 

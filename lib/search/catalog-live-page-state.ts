@@ -12,6 +12,7 @@ import {
   bookableResultsMembership,
   selectCatalogPageHydrationIds,
   selectPage1OverlayCandidates,
+  selectPage2PlusHydrationPlan,
   selectPaintAlignedPageOverlayCandidates,
   sliceRankedCatalogResultsPage,
   type RankedCatalogResultsPage,
@@ -20,6 +21,7 @@ import {
   applyResultsLivePriceOverlay,
   hydrateResultsLivePriceOverlaysFromL2,
   resultsPageL2HydrateBudgetMs,
+  type HydrateResultsLivePriceFromL2Stats,
 } from '@/lib/search/results-live-price-cache';
 import {
   isFrozenPage1StatusUnknown,
@@ -88,6 +90,56 @@ function browseCapValue(): number {
     : RESULTS_USER_PAGINATION_CAP;
 }
 
+/** LP-001: discover-prefix chunk size (≈2 concurrent R2 waves at concurrency 12). */
+const PAGE2_DISCOVER_HYDRATE_CHUNK = 24;
+
+function emptyHydrateStats(): HydrateResultsLivePriceFromL2Stats {
+  return { hydrated: 0, checked: 0, attempts: 0, timedOut: 0, getTimeouts: 0, budgetHit: false };
+}
+
+function mergeHydrateStats(
+  a: HydrateResultsLivePriceFromL2Stats,
+  b: HydrateResultsLivePriceFromL2Stats,
+): HydrateResultsLivePriceFromL2Stats {
+  return {
+    hydrated: a.hydrated + b.hydrated,
+    checked: a.checked + b.checked,
+    attempts: (a.attempts ?? 0) + (b.attempts ?? 0),
+    timedOut: (a.timedOut ?? 0) + (b.timedOut ?? 0),
+    getTimeouts: (a.getTimeouts ?? 0) + (b.getTimeouts ?? 0),
+    budgetHit: Boolean(a.budgetHit || b.budgetHit),
+  };
+}
+
+/**
+ * LP-001: hydrate discover-prefix in chunks; stop starting new GETs once L1 has a
+ * full browse-cap B pool (paginationComplete). Does not time-box (Option A);
+ * only skips unnecessary tail reads when B discovery finishes early.
+ */
+async function hydrateDiscoverPrefixUntilBrowseCap(args: {
+  ids: readonly string[];
+  filteringParams: SearchParams;
+  filtered: TravelOffer[];
+  browseCap: number;
+}): Promise<HydrateResultsLivePriceFromL2Stats> {
+  let stats = emptyHydrateStats();
+  for (let offset = 0; offset < args.ids.length; offset += PAGE2_DISCOVER_HYDRATE_CHUNK) {
+    const chunk = args.ids.slice(offset, offset + PAGE2_DISCOVER_HYDRATE_CHUNK);
+    const chunkStats = await hydrateResultsLivePriceOverlaysFromL2(chunk, args.filteringParams, {
+      offers: args.filtered,
+    });
+    stats = mergeHydrateStats(stats, chunkStats);
+    const browsableLen = bookableResultsMembership(args.filtered, args.filteringParams).slice(
+      0,
+      args.browseCap,
+    ).length;
+    if (browsableLen >= args.browseCap) {
+      break;
+    }
+  }
+  return stats;
+}
+
 function resultsTimingEnabled(): boolean {
   return process.env.VACATIONWEB_RESULTS_TIMING === '1';
 }
@@ -113,29 +165,83 @@ export const loadCatalogLivePageState = cache(
   ): Promise<CatalogLivePageState> => {
     const t0 = Date.now();
     const safePageSize = pageSize || RESULTS_PRODUCT_PAGE_SIZE;
-    const windowHydrationIds = selectCatalogPageHydrationIds(
-      filtered,
-      isPage1 ? 1 : page,
-      safePageSize,
-      undefined,
-      filteringParams,
-    );
-    // D-v2 S6 (plan section 10): frozen page1Ids are hydrated too, so a frozen anchor
-    // outside the window is known (B / A / C) instead of unknown when R2 answers.
-    const hydrationIds = [...new Set([...windowHydrationIds, ...(params.page1Ids ?? [])])];
-    const hydrateBudgetMs = resultsPageL2HydrateBudgetMs(isPage1, params.page1Ids);
+    const browseCap = browseCapValue();
+    const frozenParamIds = params.page1Ids ?? [];
+    // D-v2 S5: page 2+ without any page1Ids param = cold page 2 (Master Plan r.706).
+    // LP-001: resolve before hydrate so cold page 2 uses page-1-sized hydrate (50), not N×pageSize.
+    const isColdPage2 = !isPage1 && frozenParamIds.length === 0;
+    const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+
+    // Pending-unknown frozen anchors (L1-only) so page-local plan can keep them.
+    const pendingFrozenForPlan = new Map<string, TravelOffer>();
+    if (!isPage1 && !isColdPage2 && frozenParamIds.length > 0) {
+      const l1BrowsableIds = new Set(
+        bookableResultsMembership(filtered, filteringParams)
+          .slice(0, browseCap)
+          .map((offer) => offer.id),
+      );
+      const matchsetById = new Map(filtered.map((offer) => [offer.id, offer]));
+      for (const id of frozenParamIds) {
+        if (l1BrowsableIds.has(id) || pendingFrozenForPlan.has(id)) continue;
+        const offer = matchsetById.get(id);
+        if (offer && isFrozenPage1StatusUnknown(applyResultsLivePriceOverlay(offer, filteringParams))) {
+          pendingFrozenForPlan.set(id, offer);
+        }
+      }
+    }
+
+    let hydrationIds: string[];
+    let hydrateStats: HydrateResultsLivePriceFromL2Stats;
+    let hydrateMode: 'page1' | 'cold-page2' | 'page-local' | 'discover-prefix' = 'page1';
     const tHydrate0 = Date.now();
-    const hydrateStats = await hydrateResultsLivePriceOverlaysFromL2(
-      hydrationIds,
-      filteringParams,
-      { offers: filtered, budgetMs: hydrateBudgetMs },
-    );
+
+    if (isPage1 || isColdPage2) {
+      const windowHydrationIds = selectCatalogPageHydrationIds(
+        filtered,
+        1,
+        safePageSize,
+        undefined,
+        filteringParams,
+      );
+      hydrationIds = [...new Set([...windowHydrationIds, ...(isPage1 ? frozenParamIds : [])])];
+      hydrateMode = isPage1 ? 'page1' : 'cold-page2';
+      const hydrateBudgetMs = resultsPageL2HydrateBudgetMs(isPage1, params.page1Ids);
+      hydrateStats = await hydrateResultsLivePriceOverlaysFromL2(hydrationIds, filteringParams, {
+        offers: filtered,
+        budgetMs: hydrateBudgetMs,
+      });
+    } else {
+      // LP-001 Option B: frozen page 2+ — page-local when L1 can paint; else discover-prefix.
+      const plan = selectPage2PlusHydrationPlan({
+        ranked: filtered,
+        page: safePage,
+        pageSize: safePageSize,
+        page1Ids: frozenParamIds,
+        browseCap,
+        params: filteringParams,
+        pendingFrozen: pendingFrozenForPlan.size > 0 ? pendingFrozenForPlan : undefined,
+      });
+      hydrationIds = plan.ids;
+      hydrateMode = plan.mode;
+      if (plan.mode === 'page-local') {
+        hydrateStats = await hydrateResultsLivePriceOverlaysFromL2(hydrationIds, filteringParams, {
+          offers: filtered,
+        });
+      } else {
+        hydrateStats = await hydrateDiscoverPrefixUntilBrowseCap({
+          ids: hydrationIds,
+          filteringParams,
+          filtered,
+          browseCap,
+        });
+      }
+    }
     const hydrateMs = Date.now() - tHydrate0;
+    const hydrateBudgetMs = resultsPageL2HydrateBudgetMs(isPage1, params.page1Ids);
 
     // GO11: B membership over the FULL matchset (pool). Browse/display cap = 150
     // presentable cards (not a pool/heading cap). Page hydrate stays page-scoped above.
     const bookable = bookableResultsMembership(filtered, filteringParams);
-    const browseCap = browseCapValue();
     const browsable = bookable.slice(0, browseCap);
     // D-v2 S4: same membership/cap, evaluated when called (Page-1 settle time), so a
     // temporary cold B=0 at request start never freezes paginationTotal at 0.
@@ -146,7 +252,6 @@ export const loadCatalogLivePageState = cache(
     // (yet) in the B pool with an UNKNOWN live status stay as pending anchors; known
     // non-B (A / C / unpriced / parked) and ids outside the matchset are dropped (GO10).
     const pendingFrozen = new Map<string, TravelOffer>();
-    const frozenParamIds = params.page1Ids ?? [];
     if (frozenParamIds.length > 0) {
       const browsableIds = new Set(browsable.map((offer) => offer.id));
       const matchsetById = new Map(filtered.map((offer) => [offer.id, offer]));
@@ -159,9 +264,6 @@ export const loadCatalogLivePageState = cache(
       }
     }
 
-    const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
-    // D-v2 S5: page 2+ without any page1Ids param = cold page 2 (Master Plan r.706).
-    const isColdPage2 = !isPage1 && frozenParamIds.length === 0;
     let catalogPage: RankedCatalogResultsPage;
     let page2Page1Ids: string[] = [];
     let page2HasMore: boolean | undefined;
@@ -301,6 +403,7 @@ export const loadCatalogLivePageState = cache(
       phase: 'catalog-live-page-state',
       matchset: filtered.length,
       hydrationIds: hydrationIds.length,
+      hydrateMode,
       pageOffers: catalogPage.offers.length,
       paginationTotal: catalogPage.paginationTotal,
       overlayCandidates: overlayCandidates.length,
