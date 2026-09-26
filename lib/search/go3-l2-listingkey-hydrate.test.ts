@@ -88,10 +88,24 @@ test('GO3: bare hydrate misses Corendon listingKey L2 row; offers-aware hydrate 
   assert.equal(hasResultsLivePriceOverlay(offer.id, occupancy), false);
 
   clearResultsLivePriceCache();
-  const hit = await hydrateResultsLivePriceOverlaysFromL2([offer.id], occupancy, {
+  const normal = await hydrateResultsLivePriceOverlaysFromL2([offer.id], occupancy, {
     offers: [offer],
   });
+  assert.equal(normal.hydrated, 1);
+  assert.equal(normal.attempts, 2, 'normal hydration keeps the bare fallback probe');
+
+  clearResultsLivePriceCache();
+  const hit = await hydrateResultsLivePriceOverlaysFromL2([offer.id], occupancy, {
+    offers: [offer],
+    skipBareWhenListingAttemptsExist: true,
+  });
   assert.equal(hit.hydrated, 1);
+  assert.equal(hit.checked, 1);
+  assert.equal(
+    hit.attempts,
+    1,
+    'a Corendon offer with one listing must not spend an extra attempt on an impossible bare key',
+  );
   assert.equal(
     getResultsLivePriceOverlay(offer.id, { ...occupancy, listingKey })?.price,
     421,

@@ -193,6 +193,12 @@ export function seedResultsLivePriceOverlayFromL2(
 export type HydrateResultsLivePriceFromL2Options = {
   concurrency?: number;
   /**
+   * Discovery-only optimization: when an offer has listing-scoped attempts, skip
+   * its bare key. Safe only for callers discovering proven B membership; normal
+   * hydrates keep probing bare A/unpriced/fallback records.
+   */
+  skipBareWhenListingAttemptsExist?: boolean;
+  /**
    * Optional offer objects for the same ids. When provided, Corendon ids also
    * probe listingKey-scoped L2 records (write path uses listingKey; bare-id
    * hydrate alone cannot hit those objects — GO3).
@@ -266,18 +272,27 @@ export async function hydrateResultsLivePriceOverlaysFromL2(
   const attempts: HydrateAttempt[] = [];
   const seenKeys = new Set<string>();
   for (const offerId of uniqueIds) {
+    const offer = offerById.get(offerId);
+    const corendonListings =
+      offer?.provider === CORENDON_PROVIDER_NAME ? rankCorendonListings(offer, params) : [];
+    // Normal hydration still probes bare records (they can hold A/unpriced/fallback
+    // state). Cold B-discovery can explicitly skip them because proven Corendon B
+    // records are listing-scoped whenever listings exist.
     const bare: HydrateAttempt = { offerId, params };
     const bareKey = livePriceCacheKey(offerId, bare.params);
-    if (!readEntry(offerId, bare.params) && !seenKeys.has(bareKey)) {
+    if (
+      !(options.skipBareWhenListingAttemptsExist && corendonListings.length > 0) &&
+      !readEntry(offerId, bare.params) &&
+      !seenKeys.has(bareKey)
+    ) {
       seenKeys.add(bareKey);
       attempts.push(bare);
     }
 
-    const offer = offerById.get(offerId);
     if (!offer || offer.provider !== CORENDON_PROVIDER_NAME) {
       continue;
     }
-    for (const listing of rankCorendonListings(offer, params)) {
+    for (const listing of corendonListings) {
       const listingParams: LivePriceCacheParams = {
         ...params,
         listingKey: corendonListingCacheKey(listing),

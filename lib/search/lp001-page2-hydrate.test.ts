@@ -2,6 +2,7 @@
  * LP-001: Page 2+ / Page 15 R2 hydrate — Option B page-local vs discover-prefix.
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { beforeEach, test } from 'node:test';
 import { CORENDON_PROVIDER_NAME } from '@/lib/providers/corendon/constants';
 import {
@@ -130,4 +131,22 @@ test('LP-001 discover-prefix: cold L1 falls back to capped page×size+reserve', 
   const legacy = selectCatalogPageHydrationIds(ranked, 15, 10, PAGE1_OVERLAY_RESERVE, params);
   assert.ok(plan.ids.length >= legacy.length);
   assert.ok(plan.ids.length <= legacy.length + page1Ids.length);
+});
+
+test('LP-001 cold discovery uses one bounded 24-read R2 wave per chunk', () => {
+  const source = readFileSync(
+    new URL('./catalog-live-page-state.ts', import.meta.url),
+    'utf8',
+  );
+  assert.match(source, /PAGE2_DISCOVER_HYDRATE_CHUNK\s*=\s*24/);
+  assert.match(
+    source,
+    /PAGE2_DISCOVER_HYDRATE_CONCURRENCY\s*=\s*PAGE2_DISCOVER_HYDRATE_CHUNK/,
+  );
+  assert.match(
+    source,
+    /hydrateResultsLivePriceOverlaysFromL2\(chunk,[\s\S]*?concurrency:\s*PAGE2_DISCOVER_HYDRATE_CONCURRENCY/,
+  );
+  assert.match(source, /skipBareWhenListingAttemptsExist:\s*true/);
+  assert.match(source, /if \(browsableLen >= args\.browseCap\)\s*\{\s*break;/);
 });

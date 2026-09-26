@@ -90,8 +90,9 @@ function browseCapValue(): number {
     : RESULTS_USER_PAGINATION_CAP;
 }
 
-/** LP-001: discover-prefix chunk size (≈2 concurrent R2 waves at concurrency 12). */
+/** LP-001 follow-up: one bounded R2-only wave per discovery chunk. */
 const PAGE2_DISCOVER_HYDRATE_CHUNK = 24;
+const PAGE2_DISCOVER_HYDRATE_CONCURRENCY = PAGE2_DISCOVER_HYDRATE_CHUNK;
 
 function emptyHydrateStats(): HydrateResultsLivePriceFromL2Stats {
   return { hydrated: 0, checked: 0, attempts: 0, timedOut: 0, getTimeouts: 0, budgetHit: false };
@@ -127,6 +128,8 @@ async function hydrateDiscoverPrefixUntilBrowseCap(args: {
     const chunk = args.ids.slice(offset, offset + PAGE2_DISCOVER_HYDRATE_CHUNK);
     const chunkStats = await hydrateResultsLivePriceOverlaysFromL2(chunk, args.filteringParams, {
       offers: args.filtered,
+      concurrency: PAGE2_DISCOVER_HYDRATE_CONCURRENCY,
+      skipBareWhenListingAttemptsExist: true,
     });
     stats = mergeHydrateStats(stats, chunkStats);
     const browsableLen = bookableResultsMembership(args.filtered, args.filteringParams).slice(
