@@ -3,6 +3,7 @@
  * Built once when the runtime dataset is cached.
  */
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
+import { normalizeDepartureDateToIso } from '@/lib/search/departure-date';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
 export type CatalogFilterIndex = {
@@ -18,9 +19,11 @@ function normalizeCountry(value: string | undefined): string | null {
   return canonicalizeCountryName(value.trim()).toLowerCase();
 }
 
-function monthKey(departureDate: string | undefined): string | null {
-  if (!departureDate || departureDate.length < 7) return null;
-  return departureDate.slice(0, 7);
+/** YYYY-MM bucket; uses the same date normalizer as filterOffers (ISO + Corendon DD/MM/YYYY). */
+export function monthKey(departureDate: string | undefined): string | null {
+  const iso = normalizeDepartureDateToIso(departureDate);
+  if (!iso) return null;
+  return iso.slice(0, 7);
 }
 
 function airportTokens(offer: TravelOffer): string[] {
