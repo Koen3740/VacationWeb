@@ -1,6 +1,6 @@
 /**
  * Shared live-pricing pool: Default and Laag → Hoog present the same ≤150 lowest
- * live in-budget B (Default in catalogue order, Laag → Hoog by live price).
+ * live in-budget B (Default in B-arrival order, Laag → Hoog by live price).
  */
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
@@ -12,6 +12,7 @@ import { clearLivePriceObservabilityForTests } from '@/lib/search/live-price-obs
 import {
   clearResultsLivePriceCache,
   hasResultsLivePriceOverlay,
+  setResultsLivePriceNowMsForTests,
   setResultsLivePriceOverlay,
 } from '@/lib/search/results-live-price-cache';
 import {
@@ -43,6 +44,7 @@ import { awaitPendingResultsMatchsetLivePricingForTests } from '@/lib/search/sch
 
 afterEach(() => {
   clearResultsLivePriceCache();
+  setResultsLivePriceNowMsForTests(null);
   clearLivePriceInflightForTests();
   clearPrijsvrijReceiptTokenCache();
   clearLivePriceObservabilityForTests();
@@ -171,14 +173,22 @@ test('Default and Laag → Hoog share the same live B pool', () => {
   assert.deepEqual(new Set(defaultPool.map((offer) => offer.id)), expected);
 });
 
-test('Default presents the shared pool in catalogue order', () => {
+test('Default presents the shared pool in B-arrival order (not catalogue)', () => {
   const catalog = seed200B();
+  // Re-seed with staggered arrival times so catalogue order ≠ arrival order.
+  clearResultsLivePriceCache();
+  const t0 = Date.now();
+  catalog.forEach((offer, i) => {
+    // Reverse arrival: cheapest live (high i) arrives first.
+    setResultsLivePriceNowMsForTests(t0 + (199 - i));
+    seedB(offer, 1000 - i);
+  });
+  setResultsLivePriceNowMsForTests(t0 + 1_000);
   const page = sliceRankedCatalogResultsPage(catalog, 1, 150, defaultParams);
-  const catalogIndex = new Map(catalog.map((offer, i) => [offer.id, i]));
-  const indices = page.offers.map((offer) => catalogIndex.get(offer.id)!);
-  assert.deepEqual(indices, [...indices].sort((a, b) => a - b));
-  assert.equal(page.offers[0]?.id, catalog[50]?.id);
   assert.equal(page.paginationTotal, 150);
+  // Pool membership = cheapest 150 live = catalog[50..199]; arrival = reverse index order.
+  assert.equal(page.offers[0]?.id, catalog[199]?.id, 'earliest arrival among pool members');
+  assert.equal(page.offers[149]?.id, catalog[50]?.id, 'latest arrival among pool members');
 });
 
 test('Laag → Hoog sorts the same pool by live price', () => {
@@ -191,21 +201,27 @@ test('Laag → Hoog sorts the same pool by live price', () => {
   assert.equal(prices[149], 1000 - 50);
 });
 
-test('a later cheaper B enters the pool and replaces the most expensive member', () => {
+test('a later cheaper B enters the pool and appends on Default (no jump to front)', () => {
   const catalog = seed200B();
   const before = selectSharedLivePricingPool(catalog, defaultParams, 150);
   const mostExpensive = before.reduce((max, offer) => (offer.price > max.price ? offer : max));
   assert.equal(mostExpensive.id, catalog[50]?.id);
 
   // Catalogue item 0 (outside pool at live 1000) is re-priced far cheaper later.
+  setResultsLivePriceNowMsForTests(Date.now() + 60_000);
   seedB(catalog[0]!, 50);
+  setResultsLivePriceNowMsForTests(null);
   const after = selectSharedLivePricingPool(catalog, defaultParams, 150);
-  const afterIds = new Set(after.map((offer) => offer.id));
+  const afterIds = after.map((offer) => offer.id);
   assert.equal(after.length, 150);
-  assert.ok(afterIds.has(catalog[0]!.id), 'cheaper late B joins the pool');
-  assert.ok(!afterIds.has(mostExpensive.id), 'most expensive member leaves the pool');
-  // Default: the newcomer is first in catalogue order.
-  assert.equal(sliceRankedCatalogResultsPage(catalog, 1, 10, defaultParams).offers[0]?.id, catalog[0]!.id);
+  assert.ok(afterIds.includes(catalog[0]!.id), 'cheaper late B joins the pool');
+  assert.ok(!afterIds.includes(mostExpensive.id), 'most expensive member leaves the pool');
+  // Default: newcomer is last among arrivals (latest cachedAtMs), not first.
+  assert.equal(afterIds[afterIds.length - 1], catalog[0]!.id);
+  assert.notEqual(
+    sliceRankedCatalogResultsPage(catalog, 1, 10, defaultParams).offers[0]?.id,
+    catalog[0]!.id,
+  );
 });
 
 test('frozen page-1 ids stay pinned in the pool even when cheaper B exist', () => {
@@ -215,7 +231,7 @@ test('frozen page-1 ids stay pinned in the pool even when cheaper B exist', () =
   const ids = pool.map((offer) => offer.id);
   assert.equal(pool.length, 150);
   assert.deepEqual(ids.slice(0, 10), frozen);
-  // Remaining 140 are the cheapest non-pinned B.
+  // Remaining 140 are the cheapest non-pinned B (membership unchanged).
   assert.deepEqual(new Set(ids.slice(10)), new Set(catalog.slice(60).map((offer) => offer.id)));
 
   const plan = selectPage2PlusHydrationPlan({
@@ -227,7 +243,8 @@ test('frozen page-1 ids stay pinned in the pool even when cheaper B exist', () =
     params: defaultParams,
   });
   assert.equal(plan.mode, 'page-local');
-  assert.deepEqual(plan.paintedIds, catalog.slice(60, 70).map((offer) => offer.id));
+  // Page-2 paint = next 10 of Default pool after frozen head (arrival among remaining).
+  assert.deepEqual(plan.paintedIds, ids.slice(10, 20));
 });
 
 test('live budget stays a hard filter on the shared pool', () => {

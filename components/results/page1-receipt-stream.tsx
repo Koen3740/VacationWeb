@@ -88,8 +88,9 @@ export function Page1ResultsStream({
   overlays: CatalogPageLiveOverlay[];
   searchParams?: SearchParams;
   /**
-   * D-v2 S4 (page 1): slots come from the settle controller in catalogue/rank order;
-   * pending slots render their settle outcome and are CUT once the selection is final.
+   * D-v2 S4 (page 1): slots come from the settle controller; Default paint order is
+   * live B arrival (not discovery/catalogue rank). Cap shows the first `displayLimit`
+   * arrived B cards.
    */
   page1Settle?: Page1SettleController;
 }) {
@@ -97,7 +98,18 @@ export function Page1ResultsStream({
   let renderOffers: TravelOffer[];
   let useCap: boolean;
   if (page1Settle) {
-    renderOffers = [...page1Settle.slotOffers];
+    // Default display = B arrival order first, then remaining discovery slots for Cap backfill.
+    const byId = new Map(page1Settle.slotOffers.map((offer) => [offer.id, offer]));
+    const arrived: TravelOffer[] = [];
+    const seen = new Set<string>();
+    for (const id of page1Settle.arrivalIds()) {
+      const offer = byId.get(id);
+      if (!offer || seen.has(id)) continue;
+      seen.add(id);
+      arrived.push(offer);
+    }
+    const rest = page1Settle.slotOffers.filter((offer) => !seen.has(offer.id));
+    renderOffers = [...arrived, ...rest];
     useCap = renderOffers.length > displayLimit;
   } else {
     // Paint primary page members first, then reserve for A-settlement backfill.
@@ -114,7 +126,7 @@ export function Page1ResultsStream({
       return null;
     }
     return (
-      <div key={offer.id} data-page1-slot>
+      <div key={offer.id} data-page1-slot data-offer-id={offer.id}>
         {card}
       </div>
     );

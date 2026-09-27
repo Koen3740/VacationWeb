@@ -5,6 +5,10 @@ import { useEffect, useRef } from 'react';
 /**
  * Caps visible Result cards on page 1 while allowing reserve candidates to backfill
  * when primary slots settle without a presentable price.
+ *
+ * Default display = live B arrival order: slots are shown in the order their
+ * presentable card first appeared (not discovery/catalogue DOM order). Once
+ * `limit` cards are shown, later arrivals stay hidden (page-1 freeze / Cap).
  */
 export function Page1ResultsCap({
   children,
@@ -14,6 +18,8 @@ export function Page1ResultsCap({
   limit: number;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const arrivalOrderRef = useRef<string[]>([]);
+  const arrivalSeenRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const root = rootRef.current;
@@ -23,18 +29,38 @@ export function Page1ResultsCap({
 
     const applyCap = () => {
       const slots = Array.from(root.querySelectorAll<HTMLElement>('[data-page1-slot]'));
-      let shown = 0;
+      const arrivalOrder = arrivalOrderRef.current;
+      const arrivalSeen = arrivalSeenRef.current;
 
-      for (const slot of slots) {
+      slots.forEach((slot, index) => {
+        const id = slot.dataset.offerId || '';
+        const key = id || `anon:${index}`;
         const card = slot.querySelector('article');
-        if (!card) {
-          slot.style.display = 'none';
-          continue;
+        if (card && !arrivalSeen.has(key)) {
+          arrivalSeen.add(key);
+          arrivalOrder.push(key);
         }
-        if (shown < limit) {
-          slot.style.display = '';
-          shown += 1;
-        } else {
+      });
+
+      const slotByKey = new Map<string, HTMLElement>();
+      slots.forEach((slot, index) => {
+        const id = slot.dataset.offerId || '';
+        slotByKey.set(id || `anon:${index}`, slot);
+      });
+
+      const shownKeys = new Set<string>();
+      let shown = 0;
+      for (const key of arrivalOrder) {
+        if (shown >= limit) break;
+        const slot = slotByKey.get(key);
+        if (!slot?.querySelector('article')) continue;
+        slot.style.display = '';
+        shownKeys.add(key);
+        shown += 1;
+      }
+
+      for (const [key, slot] of slotByKey) {
+        if (!shownKeys.has(key)) {
           slot.style.display = 'none';
         }
       }

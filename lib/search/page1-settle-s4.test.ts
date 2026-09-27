@@ -130,40 +130,34 @@ async function isResolved<T>(p: Promise<T>): Promise<boolean> {
   return done;
 }
 
-test('S4-1 READY: 10 B with the preceding rank settled -> exactly 10 ids, definitive', async () => {
+test('S4-1 READY: pageSize B arrivals (earlier discovery pending does not block)', async () => {
   const h = harness(['P:p0', ...seq('b', 10), 'P:tail']);
   const dl = manualDeadline();
   const c = createPage1SettleController({ slotOffers: h.offers, overlays: h.overlays, scheduleDeadline: dl.schedule });
-  assert.equal(c.current().status, 'COLLECTING', 'earlier pending rank blocks READY');
-  h.resolve('p0', makeA('p0'));
+  // Default = arrival: 10 immediate B already arrived → READY without waiting for p0.
+  assert.equal(c.current().status, 'READY');
   const r = await c.selection;
   assert.equal(r.status, 'READY');
   assert.deepEqual(r.selectedIds, idList('b', 10));
-  assert.equal(dl.cancelled, true, 'deadline timer cleared on final');
+  assert.equal(dl.cancelled || dl.scheduledMs === undefined, true, 'deadline cleared or never armed when already final');
   assert.deepEqual(page1UrlIdsForSettle(r), { ids: idList('b', 10), freeze: 'DEFINITIVE' });
   assert.equal(await c.slotOutcome('tail'), null, 'tail slot CUT after final');
+  assert.equal(await c.slotOutcome('p0'), null, 'earlier pending CUT after arrival READY');
 });
 
-test('S4-2 DEADLINE 10+ B behind an earlier pending rank (option d): max 10 shown, NO page1Ids', async () => {
+test('S4-2 arrival READY with 10+ B while an earlier discovery rank is still pending', async () => {
   const h = harness(['B:b1', 'P:p2', ...seq('c', 11)]);
   const dl = manualDeadline();
   const c = createPage1SettleController({ slotOffers: h.offers, overlays: h.overlays, scheduleDeadline: dl.schedule });
-  assert.equal(c.current().status, 'COLLECTING');
-  dl.fire();
+  // Immediate B arrivals (b1 + c1..c11) → READY without waiting for p2.
   const r = await c.selection;
-  assert.equal(r.status, 'DEADLINE');
-  assert.deepEqual(r.selectedIds, ['b1', ...idList('c', 9)], 'max 10 settled B in rank order');
-  assert.deepEqual(r.pendingRanksBeforeLastSelected, [1]);
-  const out = resolvePage1SettleOutput({ result: r, browseTotal: 12 });
-  assert.deepEqual(out.page1Ids, [], 'option d: nothing written');
-  assert.equal(out.freeze, 'NONE');
-  assert.equal(out.showStatusLine, false);
-  assert.equal(out.showPagination, true);
-  assert.equal(await c.slotOutcome('p2'), null, 'pending rank CUT at deadline');
-  // Late settle after final never changes the selection.
+  assert.equal(r.status, 'READY');
+  assert.deepEqual(r.selectedIds.slice(0, 1), ['b1']);
+  assert.equal(r.selectedIds.length, 10);
+  assert.equal(await c.slotOutcome('p2'), null, 'pending discovery rank CUT after arrival READY');
   h.resolve('p2', makeB('p2'));
   await flush();
-  assert.deepEqual(c.current().selectedIds, r.selectedIds);
+  assert.deepEqual(c.current().selectedIds, r.selectedIds, 'late B does not reorder frozen page1');
 });
 
 test('S4-3 DEADLINE 9 B + pending -> 9-id anchor', async () => {
@@ -215,8 +209,9 @@ test('S4-6 EXHAUSTED: all settled, fewer than 10 B -> all B definitive', async (
   h.resolve('p4', makeC('p4'));
   const r = await c.selection;
   assert.equal(r.status, 'EXHAUSTED');
-  assert.deepEqual(r.selectedIds, ['p0', 'b1', 'b3']);
-  assert.deepEqual(page1UrlIdsForSettle(r), { ids: ['p0', 'b1', 'b3'], freeze: 'DEFINITIVE' });
+  // Arrival: immediate b1/b3 first, then p0 when it settles.
+  assert.deepEqual(r.selectedIds, ['b1', 'b3', 'p0']);
+  assert.deepEqual(page1UrlIdsForSettle(r), { ids: ['b1', 'b3', 'p0'], freeze: 'DEFINITIVE' });
 });
 
 test('S4-7 all settled with >= 10 B -> READY (rule table; owner listed it under EXHAUSTED)', async () => {
@@ -239,18 +234,24 @@ test('S4-8 pending after the 10th B does not block READY (A-25)', async () => {
   assert.deepEqual(r.pendingRanks, [10, 11]);
 });
 
-test('S4-9 catalogue rank order kept: live arrival order and snapshot B never re-rank', async () => {
+test('S4-9 Default display = live B arrival order (not discovery/rank order)', async () => {
   const h = harness(seq('p', 10, 'P'));
   const dl = manualDeadline();
   const c = createPage1SettleController({ slotOffers: h.offers, overlays: h.overlays, scheduleDeadline: dl.schedule });
+  // Resolve reverse discovery order → Default must follow arrival, not rank.
   for (let i = 10; i >= 1; i -= 1) {
     h.resolve(`p${i}`, makeB(`p${i}`));
     await flush();
   }
   const r = await c.selection;
-  assert.deepEqual(r.selectedIds, idList('p', 10), 'rank order, not arrival order');
+  assert.deepEqual(
+    r.selectedIds,
+    ['p10', 'p9', 'p8', 'p7', 'p6', 'p5', 'p4', 'p3', 'p2', 'p1'],
+    'arrival order, not discovery rank',
+  );
+  assert.deepEqual(c.arrivalIds(), r.selectedIds);
 
-  // Unfrozen slots: overlay window in rank order; snapshot B not put first.
+  // Unfrozen slots: overlay window still discovery-ranked for pricing; snapshot B not put first.
   const window = [makeCatalog('w1'), makeB('w2'), makeCatalog('w3')];
   const beyond = [makeB('x1'), makeB('x2')];
   const browsable = [makeB('w2'), ...beyond];

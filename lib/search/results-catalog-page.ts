@@ -10,7 +10,10 @@ import {
   isResultsLivePriceCandidateOffer,
 } from '@/lib/search/presentable-price';
 import { offerMatchesBudget } from '@/lib/search/filtering';
-import { applyResultsLivePriceOverlays } from '@/lib/search/results-live-price-cache';
+import {
+  applyResultsLivePriceOverlays,
+  getResultsLivePriceCachedAtMs,
+} from '@/lib/search/results-live-price-cache';
 import {
   repairPage2Page1Membership,
   selectBrowsePageWithPage1Freeze,
@@ -158,11 +161,42 @@ export function bookableResultsMembership(
 }
 
 /**
+ * Order shared-pool members for display:
+ * - Default (`value` / unset): live B arrival order (L1 cachedAtMs ascending).
+ * - Laag → Hoog (`price`): proven live price ascending.
+ * Discovery / catalogue order is never used as Default display order.
+ */
+export function orderSharedPoolForDisplay(
+  members: readonly TravelOffer[],
+  params?: SearchParams,
+): TravelOffer[] {
+  if (params?.sort === 'price') {
+    return [...members]
+      .map((offer, index) => ({ offer, index }))
+      .sort((a, b) => a.offer.price - b.offer.price || a.index - b.index)
+      .map(({ offer }) => offer);
+  }
+  return [...members]
+    .map((offer, index) => ({
+      offer,
+      index,
+      arrivedAt: params ? (getResultsLivePriceCachedAtMs(offer.id, params) ?? Number.MAX_SAFE_INTEGER) : index,
+    }))
+    .sort((a, b) => a.arrivedAt - b.arrivedAt || a.index - b.index)
+    .map(({ offer }) => offer);
+}
+
+/**
  * Shared live-pricing pool for default and price sort: the `cap` lowest live p.p.
- * prices among {@link bookableResultsMembership} (B-only + live budget), returned in
- * the order of `ranked`. Default passes catalogue order; price sort its live-ranked
- * order. The pool is recomputed per call, so a cheaper B found later replaces the
- * most expensive member.
+ * prices among {@link bookableResultsMembership} (B-only + live budget).
+ *
+ * Membership = up to `cap` cheapest proven B (pinned page-1 ids always kept).
+ * Display order (separate from discovery):
+ * - Default → B arrival order
+ * - Laag → Hoog → live price ascending
+ *
+ * The pool is recomputed per call, so a cheaper B found later replaces the
+ * most expensive member. Arrival order does not re-rank already-frozen page 1.
  *
  * `pinnedIds` (frozen page-1 ids) that are still bookable always stay in the pool so
  * a definitive page-1 freeze is never dropped because cheaper B arrived later.
@@ -175,30 +209,49 @@ export function selectSharedLivePricingPool(
 ): TravelOffer[] {
   const bookable = bookableResultsMembership(ranked, params);
   const limit = Number.isFinite(cap) ? Math.max(0, Math.floor(cap)) : 0;
+  let members: TravelOffer[];
   if (bookable.length <= limit) {
-    return bookable;
+    members = [...bookable];
+  } else {
+    const keep = new Set<string>();
+    const pinned = new Set(pinnedIds ?? []);
+    if (pinned.size > 0) {
+      for (const offer of bookable) {
+        if (keep.size >= limit) break;
+        if (pinned.has(offer.id)) keep.add(offer.id);
+      }
+    }
+    const byLivePrice = bookable
+      .map((offer, index) => ({ offer, index }))
+      .filter(({ offer }) => !keep.has(offer.id))
+      .sort((a, b) => a.offer.price - b.offer.price || a.index - b.index);
+    for (const { offer } of byLivePrice) {
+      if (keep.size >= limit) break;
+      keep.add(offer.id);
+    }
+    members = bookable.filter((offer) => keep.has(offer.id));
   }
 
-  const keep = new Set<string>();
-  const pinned = new Set(pinnedIds ?? []);
-  if (pinned.size > 0) {
-    for (const offer of bookable) {
-      if (keep.size >= limit) break;
-      if (pinned.has(offer.id)) keep.add(offer.id);
+  // Pinned freeze order stays at the front of Default so page-1 ids keep position
+  // in the pool array; remaining members follow B-arrival (or live price for sort=price).
+  if (pinnedIds && pinnedIds.length > 0 && params?.sort !== 'price') {
+    const pinnedSet = new Set(pinnedIds);
+    const byId = new Map(members.map((offer) => [offer.id, offer]));
+    const head: TravelOffer[] = [];
+    for (const id of pinnedIds) {
+      const offer = byId.get(id);
+      if (offer) head.push(offer);
     }
+    const tail = orderSharedPoolForDisplay(
+      members.filter((offer) => !pinnedSet.has(offer.id)),
+      params,
+    );
+    return [...head, ...tail];
   }
-  const byLivePrice = bookable
-    .map((offer, index) => ({ offer, index }))
-    .filter(({ offer }) => !keep.has(offer.id))
-    .sort((a, b) => a.offer.price - b.offer.price || a.index - b.index);
-  for (const { offer } of byLivePrice) {
-    if (keep.size >= limit) break;
-    keep.add(offer.id);
-  }
-  return bookable.filter((offer) => keep.has(offer.id));
+  return orderSharedPoolForDisplay(members, params);
 }
 
-/** Default (catalogue order) and Laag → Hoog present the same shared live-pricing pool. */
+/** Default and Laag → Hoog present the same shared live-pricing pool (different display orders). */
 export function isSharedLivePricingPoolSort(sort?: string): boolean {
   return !sort || sort === 'value' || sort === 'price';
 }

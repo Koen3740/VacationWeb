@@ -46,7 +46,7 @@ export type PageSettleStatus =
 export type PageSettleRankState = 'B' | 'NOT_PRESENTABLE' | 'PENDING';
 
 export type PageSettleInput = {
-  /** All candidates for this page in existing catalog/rank order (index = rank). */
+  /** All candidates for this page in discovery/overlay order (index = discovery rank). */
   slots: readonly Page1RenderSlot[];
   /** Explicit deadline signal from the caller (see `isPageSettleDeadlineReached`). */
   deadlineReached: boolean;
@@ -54,6 +54,12 @@ export type PageSettleInput = {
   pageSize?: number;
   /** Card admission. Default `isResultsListableOffer` (B only). */
   isPresentable?: (offer: TravelOffer) => boolean;
+  /**
+   * Default display = live B arrival order. When set, selected B follow this id
+   * sequence (intersect settled presentable B). Discovery/rank order is ignored
+   * for selection. Omit for legacy rank-order selection (tests / non-Default).
+   */
+  arrivalOrder?: readonly string[];
 };
 
 export type PageSettleResult = {
@@ -97,22 +103,19 @@ function slotOutcome(slot: Page1RenderSlot): TravelOffer | null | undefined {
 /**
  * Decide Page-1 selection for one snapshot.
  *
- * Rules:
+ * Default (arrivalOrder set):
+ * - B only, in live-arrival order; discovery/rank order is not the display order.
+ * - READY when `pageSize` B have arrived — does NOT wait for earlier discovery ranks.
+ * - Late cheaper B never jump ahead of earlier arrivals.
+ *
+ * Legacy rank mode (no arrivalOrder) — kept for non-Default / older tests:
  * - B only, rank order kept, never re-sorted; duplicate ids count once (first rank wins).
  * - READY when `pageSize` B are found and no unsettled rank precedes the last of them.
- * - An unsettled rank before that point blocks READY/EXHAUSTED until it settles or the
- *   deadline is reached.
  *
  * Precedence (highest first; owner correction 25-09 14:28, A-19 withdrawn):
- * 1. READY: `pageSize` B with no earlier unsettled rank (incl. all settled and >= pageSize B).
- *    A deadline never turns a blocked selection into READY.
+ * 1. READY: `pageSize` B (arrival mode: enough arrivals; rank mode: no earlier unsettled).
  * 2. EXHAUSTED: every rank settled and fewer than `pageSize` B (also empty input).
- * 3. DEADLINE: deadline reached, an unsettled rank blocks READY, >= 1 settled B.
- *    Selection = settled B in rank order capped at `pageSize` (the cards shown).
- *    Owner 25-09 16:49 option (d): with pageSize+ settled B behind an earlier unsettled
- *    rank these max-pageSize cards are shown but NO page1Ids are written (not a
- *    definitive freeze); with 1..pageSize-1 B the ids are written as anchor
- *    (see `page1UrlIdsForSettle`).
+ * 3. DEADLINE: deadline reached, blocked/incomplete, >= 1 settled B.
  * 4. DEADLINE_EMPTY: deadline reached, unsettled ranks left, 0 settled B.
  * 5. COLLECTING otherwise.
  */
@@ -126,6 +129,7 @@ export function settlePageSelection(input: PageSettleInput): PageSettleResult {
   const rankStates: PageSettleRankState[] = [];
   const pendingRanks: number[] = [];
   const settledB: Array<{ offer: TravelOffer; rank: number }> = [];
+  const settledById = new Map<string, { offer: TravelOffer; rank: number }>();
   const seenIds = new Set<string>();
   let firstPendingRank = -1;
 
@@ -141,19 +145,59 @@ export function settlePageSelection(input: PageSettleInput): PageSettleResult {
     }
     if (outcome && !seenIds.has(outcome.id) && isPresentable(outcome)) {
       seenIds.add(outcome.id);
-      settledB.push({ offer: outcome, rank });
+      const entry = { offer: outcome, rank };
+      settledB.push(entry);
+      settledById.set(outcome.id, entry);
       rankStates.push('B');
       return;
     }
     rankStates.push('NOT_PRESENTABLE');
   });
 
+  const useArrival = Array.isArray(input.arrivalOrder);
+  let orderedB: Array<{ offer: TravelOffer; rank: number }>;
+  if (useArrival) {
+    orderedB = [];
+    const used = new Set<string>();
+    for (const id of input.arrivalOrder!) {
+      const entry = settledById.get(id);
+      if (!entry || used.has(id)) continue;
+      used.add(id);
+      orderedB.push(entry);
+    }
+    for (const entry of settledB) {
+      if (used.has(entry.offer.id)) continue;
+      used.add(entry.offer.id);
+      orderedB.push(entry);
+    }
+  } else {
+    orderedB = settledB;
+  }
+
   const definitiveB =
-    firstPendingRank < 0 ? settledB : settledB.filter((entry) => entry.rank < firstPendingRank);
+    useArrival
+      ? orderedB
+      : firstPendingRank < 0
+        ? settledB
+        : settledB.filter((entry) => entry.rank < firstPendingRank);
 
   let status: PageSettleStatus;
   let selected: Array<{ offer: TravelOffer; rank: number }>;
-  if (definitiveB.length >= pageSize) {
+  if (useArrival) {
+    if (orderedB.length >= pageSize) {
+      status = 'READY';
+      selected = orderedB.slice(0, pageSize);
+    } else if (firstPendingRank < 0) {
+      status = 'EXHAUSTED';
+      selected = orderedB;
+    } else if (input.deadlineReached) {
+      selected = orderedB.slice(0, pageSize);
+      status = orderedB.length > 0 ? 'DEADLINE' : 'DEADLINE_EMPTY';
+    } else {
+      status = 'COLLECTING';
+      selected = orderedB.slice(0, pageSize);
+    }
+  } else if (definitiveB.length >= pageSize) {
     status = 'READY';
     selected = definitiveB.slice(0, pageSize);
   } else if (firstPendingRank < 0) {
@@ -183,8 +227,8 @@ export function settlePageSelection(input: PageSettleInput): PageSettleResult {
 
 // ---------------------------------------------------------------------------
 // D-v2 S4: Page-1 wiring helpers (owner GO 25-09 16:49, option d).
-// Default Results sort stays catalogue order: the slot list is the catalogue/rank
-// order and live arrival order never re-ranks it.
+// Default Results display = live B arrival order (not discovery/catalogue order).
+// Discovery order only decides which candidates are priced next.
 // ---------------------------------------------------------------------------
 
 /** Page-1 settle deadline, counted from overlay start (D-v2 plan; 8 s = measurement parameter, owner 13:44). */
@@ -206,18 +250,14 @@ export function isPage1VisibleOffer(offer: TravelOffer, searchParams?: SearchPar
 }
 
 /**
- * Page-1 slot offers in catalogue/rank order.
+ * Page-1 slot offers in discovery/overlay order (pricing window only).
  *
- * - No (valid) freeze: the page-1 overlay candidate window (existing
- *   `selectPage1OverlayCandidates`, ranked matchset order) followed by at most
- *   `pageSize` browse B that lie beyond that window (every B before the last window
- *   rank is already a window candidate, so the concatenation stays in rank order).
- *   The current B snapshot is NOT put first: a cold/partial snapshot must not decide
- *   Page 1 (catalogue order is the base for selection and recomposition).
- * - Valid freeze (`page1Ids` with >= 1 id still in the B pool): existing GO10
- *   `repairPage1FreezeOrder` result first (kept frozen ids in frozen order, then fill
- *   from the B pool in rank order), then the remaining window candidates in rank order.
- *   Once page1Ids are definitive they are therefore never re-ordered by later live data.
+ * Display order for Default is live B arrival (see {@link createPage1SettleController}),
+ * not this slot list. Slot list remains discovery-ranked so Cap/backfill can walk the
+ * unified overlay window; Page1ResultsStream reorders by arrival for paint.
+ *
+ * - No (valid) freeze: overlay candidates then extra browse B beyond the window.
+ * - Valid freeze: GO10 repair first, then remaining window candidates.
  */
 export function buildPage1SlotOffers(args: {
   browsable: readonly TravelOffer[];
@@ -277,8 +317,13 @@ export type PageSettleLiveOverlay = {
 export type Page1SettleController = {
   /** Cards per page used for the selection (and the anchor threshold). */
   pageSize: number;
-  /** Slot offers in rank order (render order of Page1ResultsStream). */
+  /** Slot offers in discovery/overlay order (pricing window; not Default display order). */
   slotOffers: readonly TravelOffer[];
+  /**
+   * Live B arrival ids in completion order (Default display). Grows as proven B
+   * settle; frozen after selection is final.
+   */
+  arrivalIds(): readonly string[];
   /** Resolves once with the final selection (READY / EXHAUSTED / DEADLINE / DEADLINE_EMPTY). */
   selection: Promise<PageSettleResult>;
   /** Latest evaluation (COLLECTING until final). */
@@ -316,10 +361,13 @@ function defaultScheduleDeadline(onDeadline: () => void, ms: number): () => void
 }
 
 /**
- * Stateful Page-1 settle: tracks each slot's live outcome, re-runs
- * `settlePageSelection` on every settle and at the deadline, and resolves `selection`
- * exactly once when final. A rejected live promise counts as settled without a card.
- * Deterministic for tests via `scheduleDeadline`.
+ * Stateful Page-1 settle: tracks each slot's live outcome, records Default B
+ * arrival order, re-runs `settlePageSelection` on every settle and at the deadline,
+ * and resolves `selection` exactly once when final. A rejected live promise counts
+ * as settled without a card. Deterministic for tests via `scheduleDeadline`.
+ *
+ * Default display = arrival order of proven B (not discovery rank). READY once
+ * `pageSize` B have arrived even if earlier discovery ranks are still pending.
  */
 export function createPage1SettleController(args: {
   slotOffers: readonly TravelOffer[];
@@ -328,8 +376,15 @@ export function createPage1SettleController(args: {
   deadlineMs?: number;
   isPresentable?: (offer: TravelOffer) => boolean;
   scheduleDeadline?: (onDeadline: () => void, ms: number) => () => void;
+  /**
+   * When false, keep legacy rank-order selection (no arrivalOrder). Default true:
+   * Default Results B-arrival display.
+   */
+  useArrivalOrder?: boolean;
 }): Page1SettleController {
   const pageSize = args.pageSize ?? RESULTS_PAGE_SIZE_DEFAULT;
+  const useArrivalOrder = args.useArrivalOrder !== false;
+  const isPresentable = args.isPresentable ?? isResultsListableOffer;
   const overlayById = new Map(args.overlays.map((overlay) => [overlay.catalog.id, overlay]));
   const slotOffers: TravelOffer[] = [];
   const seen = new Set<string>();
@@ -342,10 +397,19 @@ export function createPage1SettleController(args: {
   const slots: Page1RenderSlot[] = [];
   const slotDeferred = new Map<string, Deferred<TravelOffer | null>>();
   const selectionDeferred = deferred<PageSettleResult>();
+  const arrivalIds: string[] = [];
+  const arrivalSeen = new Set<string>();
   let deadlineReached = false;
   let final = false;
   let cancelDeadline: (() => void) | undefined;
   let latest!: PageSettleResult;
+
+  const noteArrival = (offer: TravelOffer | null | undefined) => {
+    if (!useArrivalOrder || !offer || arrivalSeen.has(offer.id)) return;
+    if (!isPresentable(offer)) return;
+    arrivalSeen.add(offer.id);
+    arrivalIds.push(offer.id);
+  };
 
   const evaluate = (): void => {
     if (final) return;
@@ -354,6 +418,7 @@ export function createPage1SettleController(args: {
       deadlineReached,
       pageSize,
       isPresentable: args.isPresentable,
+      ...(useArrivalOrder ? { arrivalOrder: arrivalIds } : {}),
     });
     if (!latest.final) return;
     final = true;
@@ -370,6 +435,7 @@ export function createPage1SettleController(args: {
     if (!overlay || !overlay.pending) {
       const settled = overlay?.catalog ?? offer;
       slots.push({ kind: 'immediate', offer: settled });
+      noteArrival(settled);
       d.resolve(settled);
       return;
     }
@@ -377,6 +443,7 @@ export function createPage1SettleController(args: {
     const settle = (outcome: TravelOffer | null) => {
       if (final) return;
       slots[index] = { kind: 'pending', settledOffer: outcome, catalogOffer: overlay.catalog };
+      noteArrival(outcome);
       d.resolve(outcome);
       evaluate();
     };
@@ -398,6 +465,7 @@ export function createPage1SettleController(args: {
   return {
     pageSize,
     slotOffers,
+    arrivalIds: () => arrivalIds,
     selection: selectionDeferred.promise,
     current: () => latest,
     slotOutcome: (offerId: string) =>

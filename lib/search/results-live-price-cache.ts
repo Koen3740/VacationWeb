@@ -146,6 +146,37 @@ export function getResultsLivePriceOverlay(
   return undefined;
 }
 
+/**
+ * L1 cache timestamp for a proven/settled overlay (ms). Used as Default B-arrival
+ * order across the shared pool. Returns undefined when no fresh overlay exists.
+ * Corendon listingKey variants are scanned like {@link getResultsLivePriceOverlay}.
+ */
+export function getResultsLivePriceCachedAtMs(
+  offerId: string,
+  params: LivePriceCacheParams,
+): number | undefined {
+  const direct = readEntry(offerId, params);
+  if (direct) {
+    return direct.cachedAtMs;
+  }
+  if (params.listingKey) {
+    return undefined;
+  }
+  const prefix = `${occupancyOfferPrefix(offerId, params)}|l:`;
+  let best: number | undefined;
+  for (const [key, entry] of cache) {
+    if (!key.startsWith(prefix)) continue;
+    if (!isFresh(entry)) {
+      cache.delete(key);
+      continue;
+    }
+    if (best == null || entry.cachedAtMs < best) {
+      best = entry.cachedAtMs;
+    }
+  }
+  return best;
+}
+
 export function hasResultsLivePriceOverlay(offerId: string, params: LivePriceCacheParams): boolean {
   if (readEntry(offerId, params)) {
     noteLivePriceL2Event('L1_HIT');

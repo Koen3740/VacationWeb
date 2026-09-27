@@ -205,8 +205,8 @@ export const loadCatalogLivePageState = cache(
     const tHydrate0 = Date.now();
 
     if (isPage1 || isColdPage2) {
-      // Unified discovery: shared-pool sorts walk catalogue-price ascending so a
-      // provider feed prefix cannot monopolize the ~50-slot page-1 window.
+      // Discovery order only (catalogue price ↑): which candidates to price / hydrate.
+      // Default display order is live B arrival — applied in settle + shared pool.
       const discoveryRanked = page1DiscoveryRanked(filtered, filteringParams);
       const windowHydrationIds = selectCatalogPageHydrationIds(
         discoveryRanked,
@@ -375,8 +375,8 @@ export const loadCatalogLivePageState = cache(
         ? catalogPage.offers
         : overlayCandidates.slice(0, safePageSize);
 
-    // D-v2 S4: Page-1 slots in catalogue/rank order (snapshot B never first unless a
-    // valid page1Ids freeze exists; GO10 repair kept inside buildPage1SlotOffers).
+    // D-v2 S4: Page-1 slots are the discovery overlay window (pricing order).
+    // Default card order = B arrival via createPage1SettleController (not discovery rank).
     // D-v2 S5: cold page 2 runs the same page-1 slot pipeline (unfrozen) once.
     const page1Slots =
       isPage1 || isColdPage2
