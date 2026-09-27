@@ -44,7 +44,9 @@ import {
   RESULTS_USER_PAGINATION_CAP,
   resultsHasMore,
 } from '@/lib/search/pagination';
+import { page1DiscoveryRanked } from '@/lib/search/schedule-capped-matchset-live-after-page';
 import type { SearchParams, TravelOffer } from '@/types/travel';
+
 
 export type CatalogLivePageState = {
   hydrationIds: string[];
@@ -203,8 +205,11 @@ export const loadCatalogLivePageState = cache(
     const tHydrate0 = Date.now();
 
     if (isPage1 || isColdPage2) {
+      // Unified discovery: shared-pool sorts walk catalogue-price ascending so a
+      // provider feed prefix cannot monopolize the ~50-slot page-1 window.
+      const discoveryRanked = page1DiscoveryRanked(filtered, filteringParams);
       const windowHydrationIds = selectCatalogPageHydrationIds(
-        filtered,
+        discoveryRanked,
         1,
         safePageSize,
         undefined,
@@ -346,8 +351,12 @@ export const loadCatalogLivePageState = cache(
     }
 
     const page2ExcludedIds = new Set(page2Page1Ids);
+    const discoveryRanked =
+      isPage1 || isColdPage2 ? page1DiscoveryRanked(filtered, filteringParams) : filtered;
     const overlayRanked =
-      poolExcludedIds.size > 0 ? filtered.filter((offer) => !poolExcludedIds.has(offer.id)) : filtered;
+      poolExcludedIds.size > 0
+        ? discoveryRanked.filter((offer) => !poolExcludedIds.has(offer.id))
+        : discoveryRanked;
     const overlayCandidates =
       isPage1 || isColdPage2
         ? selectPage1OverlayCandidates(overlayRanked, safePageSize, undefined, filteringParams)

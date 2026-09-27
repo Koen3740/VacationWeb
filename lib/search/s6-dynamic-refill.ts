@@ -4,8 +4,12 @@
  * Product target: {@link S6_TARGET_PRESENTABLE_B} proven live B's (not attempts).
  * AN-057 TARGET 10/20 were research-only and must not stop the product path.
  *
- * Cursor walks the catalog-ranked filter matchset; respects cache, DEC-011,
- * missing-context gate (CHG-039), and circuit-open skip (CHG-039).
+ * Cursor walks a **unified discovery-ordered** matchset (catalogue price ascending
+ * for shared-pool sorts — see {@link orderMatchsetForUnifiedLiveDiscovery}).
+ * Providers are not batched; A/C do not count toward 150; discovery continues
+ * past the 150th attempt until 150 B or a hard stop.
+ *
+ * Respects cache, DEC-011, missing-context gate (CHG-039), and circuit-open skip.
  * Does not reshuffle frozen page1 — runs after initial workset via background.
  */
 

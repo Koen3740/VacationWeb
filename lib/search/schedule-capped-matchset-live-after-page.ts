@@ -6,11 +6,17 @@
  *
  * GO11-followup: wait for page-1 overlay settlement OR a short head-start delay
  * BEFORE full-pool HTTP so cold page-1 is not starved. Still fire-and-forget.
+ *
+ * Unified live-pricing discovery (architecture):
+ * One matchset, all providers together, ordered by catalogue price ascending.
+ * Discovery prices along that order and collects proven B until 150 (S6) —
+ * never provider quotas, never feed/provider block order.
  */
 import type { FetchLike } from '../providers/prijsvrij/auth';
 import { priceLiveRequiredMatchset } from '../providers/prijsvrij/page1-receipt-pricing';
 import { scheduleResultsMatchsetLivePricing } from './schedule-results-matchset-live-pricing';
 import { runS6DynamicRefill } from './s6-dynamic-refill';
+import { isSharedLivePricingPoolSort } from './results-catalog-page';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
 /** Default head-start for page-1 overlays before full-pool live HTTP (ms). */
@@ -40,19 +46,51 @@ export type ScheduleMatchsetLiveAfterPageOptions = {
   /** Override head-start ms (default MATCHSET_LIVE_AFTER_PAGE_HEADSTART_MS). */
   headstartMs?: number;
   /**
-   * Shared live-pricing pool (Default): walk the matchset cheap-first by catalogue
-   * price — S6 refill toward 150 in-budget B first, then the full-pool warm in the
-   * same order. Cached / in-flight offers are skipped as usual.
+   * Shared live-pricing pool: walk the matchset in unified discovery order
+   * (catalogue price ascending) — S6 refill toward 150 B first, then full-pool
+   * warm in the same order. Cached / in-flight offers are skipped as usual.
    */
   cheapestFirst?: boolean;
 };
 
-/** Matchset in ascending catalogue price (stable; same offer objects). */
-export function orderMatchsetCheapestFirst(ranked: readonly TravelOffer[]): TravelOffer[] {
+/**
+ * Unified live-pricing discovery order: one matchset, catalogue price ascending,
+ * stable on ties. Provider is only an offer attribute — never a batch key.
+ */
+export function orderMatchsetForUnifiedLiveDiscovery(
+  ranked: readonly TravelOffer[],
+): TravelOffer[] {
   return ranked
     .map((offer, index) => ({ offer, index }))
     .sort((a, b) => a.offer.price - b.offer.price || a.index - b.index)
     .map(({ offer }) => offer);
+}
+
+/** @deprecated Alias — prefer {@link orderMatchsetForUnifiedLiveDiscovery}. */
+export function orderMatchsetCheapestFirst(ranked: readonly TravelOffer[]): TravelOffer[] {
+  return orderMatchsetForUnifiedLiveDiscovery(ranked);
+}
+
+/**
+ * Discovery ranking for shared-pool sorts (Default / Laag→Hoog): unified
+ * cheapest-first. Other sorts keep their own rank order.
+ */
+export function discoveryRankedForLivePricing(
+  ranked: readonly TravelOffer[],
+  params: SearchParams,
+): TravelOffer[] {
+  if (!isSharedLivePricingPoolSort(params.sort)) {
+    return ranked as TravelOffer[];
+  }
+  return orderMatchsetForUnifiedLiveDiscovery(ranked);
+}
+
+/** @deprecated Alias — prefer {@link discoveryRankedForLivePricing}. */
+export function page1DiscoveryRanked(
+  ranked: readonly TravelOffer[],
+  params: SearchParams,
+): TravelOffer[] {
+  return discoveryRankedForLivePricing(ranked, params);
 }
 
 /**
@@ -67,8 +105,10 @@ export function scheduleCappedMatchsetLiveAfterPage(
   if (ranked.length === 0) {
     return;
   }
-  const matchset = options.cheapestFirst
-    ? orderMatchsetCheapestFirst(ranked)
+  const useUnifiedDiscovery =
+    options.cheapestFirst === true || isSharedLivePricingPoolSort(params.sort);
+  const matchset = useUnifiedDiscovery
+    ? orderMatchsetForUnifiedLiveDiscovery(ranked)
     : (ranked as TravelOffer[]);
   const headstartMs =
     typeof options.headstartMs === 'number' && Number.isFinite(options.headstartMs)
@@ -94,11 +134,13 @@ export function scheduleCappedMatchsetLiveAfterPage(
             waitedMs: Date.now() - started,
             headstartMs,
             hadAfter: Boolean(options.afterPageOverlays),
-            cheapestFirst: Boolean(options.cheapestFirst),
+            cheapestFirst: useUnifiedDiscovery,
+            unifiedDiscovery: useUnifiedDiscovery,
           }),
         );
       }
-      if (options.cheapestFirst) {
+      if (useUnifiedDiscovery) {
+        // S6 walks discovery order until 150 proven B (A/C skipped; continues past 150 attempts).
         await runS6DynamicRefill(matchset, params, { fetchImpl: options.fetchImpl });
       }
       await priceLiveRequiredMatchset(matchset, params, {

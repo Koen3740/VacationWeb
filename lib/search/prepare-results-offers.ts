@@ -18,14 +18,21 @@ import {
   hydrateResultsLivePriceOverlaysFromL2,
 } from './results-live-price-cache';
 import { scheduleResultsMatchsetLivePricing } from './schedule-results-matchset-live-pricing';
-import { scheduleCappedMatchsetLiveAfterPage } from './schedule-capped-matchset-live-after-page';
+import {
+  discoveryRankedForLivePricing,
+  scheduleCappedMatchsetLiveAfterPage,
+} from './schedule-capped-matchset-live-after-page';
 import {
   livePricingBrowseRemainder,
   selectLivePricingCandidateWindow,
   selectLivePricingInitialWorkset,
 } from './live-pricing-workset';
 import { countPresentableB, runS6DynamicRefill } from './s6-dynamic-refill';
-import { bookableResultsMembership, selectResultsBrowsePool } from './results-catalog-page';
+import {
+  bookableResultsMembership,
+  isSharedLivePricingPoolSort,
+  selectResultsBrowsePool,
+} from './results-catalog-page';
 
 const PRICE_DEPENDENT_SORTS = new Set(['price', 'price-desc', 'price-per-day']);
 
@@ -122,6 +129,7 @@ export function slicePriceSortPoolPage(
 /**
  * Schedule S6 cursor refill toward 150 presentable B (background).
  * Does not block exactOffers / page1 freeze (AN-059 / S7).
+ * Shared-pool sorts: walk unified catalogue-price discovery order (not feed order).
  */
 function scheduleS6Refill(
   catalogRanked: readonly TravelOffer[],
@@ -129,14 +137,15 @@ function scheduleS6Refill(
   fetchImpl: FetchLike | undefined,
   after?: Promise<unknown>,
 ): void {
+  const discoveryRanked = discoveryRankedForLivePricing(catalogRanked, params);
   const run = async (): Promise<void> => {
     if (after) {
       await after;
     }
-    if (countPresentableB(catalogRanked, params) >= 150) {
+    if (countPresentableB(discoveryRanked, params) >= 150) {
       return;
     }
-    await runS6DynamicRefill(catalogRanked, params, { fetchImpl });
+    await runS6DynamicRefill(discoveryRanked, params, { fetchImpl });
   };
   scheduleResultsMatchsetLivePricing(run());
 }
@@ -181,6 +190,7 @@ export async function prepareResultsOffers(
       // GO11: warm remaining pool beyond S6's 150-B display target (non-blocking).
       scheduleCappedMatchsetLiveAfterPage(catalogRanked, params, {
         fetchImpl: options.fetchImpl,
+        cheapestFirst: isSharedLivePricingPoolSort(params.sort),
       });
       const exact = assemblePriceSortRanking(catalogRanked, params);
       return {
@@ -201,6 +211,7 @@ export async function prepareResultsOffers(
       // GO11: warm remaining pool beyond S6's 150-B display target (non-blocking).
       scheduleCappedMatchsetLiveAfterPage(catalogRanked, params, {
         fetchImpl: options.fetchImpl,
+        cheapestFirst: isSharedLivePricingPoolSort(params.sort),
       });
 
     const exactOffers = worksetWork.then(() => assemblePriceSortRanking(catalogRanked, params));
