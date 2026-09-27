@@ -147,9 +147,9 @@ export function getResultsTotalPages(totalResults: number, pageSize: number): nu
 }
 
 /**
- * Stable Results browse page count for the pagination UI.
- * Always derived from the browse cap (150 ÷ pageSize ≤ 15), never from the
- * live B pool size — so the control does not grow 4 → 8 → 15 as prices arrive.
+ * Stable Results browse page count for the pagination UI (cap ÷ pageSize).
+ * Prefer {@link getResultsTotalPages} with the effective browse total for the
+ * visible page list — that respects small provider pools (e.g. 3 → 1 page).
  */
 export function getResultsBrowsePageCount(
   pageSize: number = RESULTS_PAGE_SIZE_DEFAULT,
@@ -162,6 +162,49 @@ export function getResultsBrowsePageCount(
     RESULTS_MAX_BROWSE_PAGES,
     Math.max(1, Math.ceil(RESULTS_BROWSE_PRESENTABLE_CAP / size)),
   );
+}
+
+export type CompactPaginationItem = number | 'ellipsis';
+
+/**
+ * Compact page list with ellipses (max 15 pages still enforced by caller).
+ * Examples: 1 2 3 … 10 | 1 … 4 5 6 … 10 | 1 … 8 9 10
+ */
+export function buildCompactPaginationItems(
+  currentPage: number,
+  totalPages: number,
+): CompactPaginationItem[] {
+  if (!Number.isFinite(totalPages) || totalPages <= 0) {
+    return [];
+  }
+  const total = Math.floor(totalPages);
+  if (total === 1) {
+    return [1];
+  }
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, index) => index + 1);
+  }
+
+  const current = Math.min(Math.max(1, Math.floor(currentPage) || 1), total);
+
+  // Near start: 1 2 3 … N
+  if (current <= 3) {
+    return [1, 2, 3, 'ellipsis', total];
+  }
+  // Near end: 1 … N-2 N-1 N
+  if (current >= total - 2) {
+    return [1, 'ellipsis', total - 2, total - 1, total];
+  }
+  // Middle: 1 … c-1 c c+1 … N
+  return [1, 'ellipsis', current - 1, current, current + 1, 'ellipsis', total];
+}
+
+/** Clamp a requested page into 1..totalPages (empty pool → page 1). */
+export function clampResultsPage(page: number, totalPages: number): number {
+  const safeTotal =
+    Number.isFinite(totalPages) && totalPages >= 1 ? Math.floor(totalPages) : 1;
+  const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  return Math.min(safePage, safeTotal);
 }
 
 export function buildResultsSearchQuery(params: SearchParams, page: number): URLSearchParams {
@@ -278,6 +321,10 @@ export function buildResultsSearchQuery(params: SearchParams, page: number): URL
 
   if (params.hasCarRental === true) {
     query.set('hasCarRental', '1');
+  }
+
+  if (params.provider) {
+    query.set('provider', params.provider);
   }
 
   if (params.sort && params.sort !== 'value') {

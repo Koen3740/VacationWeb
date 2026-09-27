@@ -70,6 +70,12 @@ export interface SearchParams {
    * URL `hasCarRental=1` when selected; absent means no extra filter.
    */
   hasCarRental?: boolean;
+  /**
+   * Optional Results provider filter (sidebar "Vakantieaanbieder").
+   * Exact `TravelOffer.provider` string. URL `provider=…`; absent = all providers.
+   * Applied on the proven-B effective Results pool — not catalog/pre-live filtering.
+   */
+  provider?: string;
   sort?: string;
   page?: number;
   pageSize?: number;

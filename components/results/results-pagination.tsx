@@ -2,7 +2,9 @@
 
 import {
   buildResultsPageHref,
-  getResultsBrowsePageCount,
+  buildCompactPaginationItems,
+  clampResultsPage,
+  getResultsTotalPages,
   RESULTS_PAGE_DEFAULT,
   RESULTS_PAGE_SIZE_DEFAULT,
 } from '@/lib/search/pagination';
@@ -13,23 +15,16 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 type ResultsPaginationProps = {
   params: SearchParams;
   /**
-   * Current presentable browse total (B pool). Used only as a mount/ready signal
-   * (hide while still 0). Does NOT drive the visible page count — that is fixed
-   * to the browse cap (150 → 15 pages).
+   * Current presentable browse total (B pool for this Results context, ≤150).
+   * Drives visible page count: min(15, ceil(total / pageSize)).
    */
   totalResults: number;
   /**
-   * D-v2 hasMore (owner 25-09 18:50): more presentable B beyond the current page
-   * window / beyond the browse semantics. Kept for callers and `data-has-more`;
-   * the numbered page list is always the stable browse page count (1–15).
+   * D-v2 hasMore: more presentable B beyond the current page window.
+   * Kept for callers and `data-has-more`.
    */
   hasMore?: boolean;
 };
-
-/** Always list every browse page (no ellipsis growth/collapse). */
-function browsePageItems(totalPages: number): number[] {
-  return Array.from({ length: totalPages }, (_, i) => i + 1);
-}
 
 export function ResultsPagination({ params, totalResults, hasMore }: ResultsPaginationProps) {
   const router = useRouter();
@@ -48,11 +43,25 @@ export function ResultsPagination({ params, totalResults, hasMore }: ResultsPagi
 
   const currentPage = params.page ?? RESULTS_PAGE_DEFAULT;
   const pageSize = params.pageSize ?? RESULTS_PAGE_SIZE_DEFAULT;
-  // Product: stable 1..15 from browse cap — not live B growth.
-  const totalPages = getResultsBrowsePageCount(pageSize);
-  const items = browsePageItems(totalPages);
-  // "Volgende" stays within the fixed browse window (independent of live B growth).
+  const totalPages = getResultsTotalPages(totalResults, pageSize);
+  const items = buildCompactPaginationItems(currentPage, totalPages);
   const hasNext = currentPage < totalPages;
+
+  // Invalid ?page=N beyond the effective pool → correct to a valid page (no empty Results).
+  useEffect(() => {
+    if (totalResults <= 0 || pageBusy || navigationLockRef.current) {
+      return;
+    }
+    const clamped = clampResultsPage(currentPage, totalPages);
+    if (clamped === currentPage) {
+      return;
+    }
+    navigationLockRef.current = true;
+    setIsNavigating(true);
+    startTransition(() => {
+      router.replace(buildResultsPageHref(params, clamped));
+    });
+  }, [currentPage, totalPages, totalResults, pageBusy, params, router]);
 
   // Not ready / empty placeholder (e.g. price-sort shell with totalResults=0).
   if (totalResults <= 0) {
@@ -79,32 +88,42 @@ export function ResultsPagination({ params, totalResults, hasMore }: ResultsPagi
         aria-label="Paginatie"
         data-browse-pages={String(totalPages)}
         data-has-more={hasMore ? 'true' : 'false'}
-        className="mt-8 flex flex-wrap items-center justify-center gap-2"
+        className="mt-8 flex flex-wrap items-center justify-center gap-1.5"
       >
-        {items.map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => goToPage(item)}
-            disabled={pageBusy || item === currentPage}
-            aria-current={item === currentPage ? 'page' : undefined}
-            aria-busy={pageBusy}
-            className={`inline-flex h-10 min-w-10 items-center justify-center rounded-[10px] px-3 text-sm font-semibold disabled:cursor-wait ${
-              item === currentPage
-                ? 'bg-[#0A2D62] text-white'
-                : 'border border-[#D9E0EA] bg-white text-[#334155] hover:border-[#89ACD3] disabled:opacity-80'
-            }`}
-          >
-            {item}
-          </button>
-        ))}
+        {items.map((item, index) =>
+          item === 'ellipsis' ? (
+            <span
+              key={`ellipsis-${index}`}
+              aria-hidden
+              className="inline-flex h-9 min-w-7 items-center justify-center px-1 text-sm text-[#8A93A3]"
+            >
+              …
+            </span>
+          ) : (
+            <button
+              key={item}
+              type="button"
+              onClick={() => goToPage(item)}
+              disabled={pageBusy || item === currentPage}
+              aria-current={item === currentPage ? 'page' : undefined}
+              aria-busy={pageBusy}
+              className={`inline-flex h-9 min-w-9 items-center justify-center rounded-[8px] px-2.5 text-sm font-semibold disabled:cursor-wait ${
+                item === currentPage
+                  ? 'bg-[#0A2D62] text-white'
+                  : 'border border-[#D9E0EA] bg-white text-[#334155] hover:border-[#89ACD3] disabled:opacity-80'
+              }`}
+            >
+              {item}
+            </button>
+          ),
+        )}
         {hasNext ? (
           <button
             type="button"
             onClick={() => goToPage(currentPage + 1)}
             disabled={pageBusy}
             aria-busy={pageBusy}
-            className="ml-1 inline-flex h-10 items-center rounded-[10px] px-3 text-sm font-semibold text-[#0A2D62] disabled:cursor-wait disabled:opacity-80"
+            className="ml-1 inline-flex h-9 items-center rounded-[8px] px-2.5 text-sm font-semibold text-[#0A2D62] disabled:cursor-wait disabled:opacity-80"
           >
             Volgende &gt;
           </button>

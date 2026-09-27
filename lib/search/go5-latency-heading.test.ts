@@ -43,7 +43,7 @@ test('GO5: technical live window helper cap remains 150 (priority window, not po
   assert.equal(RESULTS_LIVE_PRICING_CANDIDATE_CAP, 150);
 });
 
-test('GO5/GO11: heading uses PresentableResultsCount (pool); cards use paginationTotal', () => {
+test('GO5/GO11: heading uses PresentableResultsCount (proven B); cards use paginationTotal', () => {
   const pageSrc = readFileSync(join(ROOT, 'app/results/page.tsx'), 'utf8');
   const presentableSrc = readFileSync(
     join(ROOT, 'components/results/presentable-results-count.tsx'),
@@ -54,6 +54,7 @@ test('GO5/GO11: heading uses PresentableResultsCount (pool); cards use paginatio
   assert.ok(pageSrc.includes('PresentableResultsCount'));
   assert.ok(presentableSrc.includes('countResultsPool'));
   assert.ok(presentableSrc.includes('loadPreparedResultsOffers'));
+  assert.ok(presentableSrc.includes('exactOffers'));
   assert.ok(!presentableSrc.includes('loadPresentableResultsCount'));
   assert.ok(catalogLive.includes('paginationTotal'));
   assert.ok(stateSrc.includes('cache('));

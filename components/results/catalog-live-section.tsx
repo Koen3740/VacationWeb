@@ -12,7 +12,7 @@ import {
   coldPage2RedirectPage1Ids,
   PAGE1_DEADLINE_EMPTY_STATUS_TEXT,
 } from '@/lib/search/page-settle';
-import { buildResultsPageHref } from '@/lib/search/pagination';
+import { buildResultsPageHref, getResultsTotalPages, clampResultsPage } from '@/lib/search/pagination';
 import { isSharedLivePricingPoolSort } from '@/lib/search/results-catalog-page';
 import { loadPreparedResultsOffers } from '@/lib/search/prepared-results-request';
 import { scheduleCappedMatchsetLiveAfterPage } from '@/lib/search/schedule-capped-matchset-live-after-page';
@@ -31,7 +31,7 @@ export type CatalogLiveBodyProps = {
  * GO3/GO5/GO6: prepare (filter+rank) + L2->L1 hydrate + B-slice + streams.
  * Inside Suspense so the Results shell flushes before matchset work.
  * GO5: page overlays first; matchset live deferred (non-blocking).
- * GO11: background live covers full pool; browse cards capped at 150; heading = pool.
+ * GO11: background live covers full pool; browse cards capped at 150; heading = proven B.
  */
 export async function CatalogLiveBody({
   filteringParams,
@@ -57,6 +57,16 @@ export async function CatalogLiveBody({
   );
 
   const { catalogPage, overlayCandidates, streamOffers, overlays, page1Settle } = state;
+
+  // Effective browse pool may be smaller than ?page= (e.g. provider=Corendon → 1 page).
+  // Correct invalid pages before painting an empty Results section.
+  if (catalogPage.paginationTotal > 0) {
+    const totalPages = getResultsTotalPages(catalogPage.paginationTotal, pageSize);
+    const clampedPage = clampResultsPage(page, totalPages);
+    if (clampedPage !== page) {
+      redirect(buildResultsPageHref(params, clampedPage));
+    }
+  }
 
   // GO11-followup: full-pool live waits for page overlays (or 1.5s head-start); not awaited here.
   // Default = shared live-pricing pool: S6 + full pool cheap-first by catalogue price.
@@ -126,7 +136,7 @@ export async function CatalogLiveBody({
       : overlayCandidates.length > 0
         ? overlayCandidates
         : catalogPage.offers;
-  // GO11: heading = pool size; Geen only when matchset empty (handled above).
+  // GO11: heading = proven B; Geen only when matchset empty (handled above).
   // Do not show Geen merely because B/browse is still settling (paginationTotal 0).
   const showEmpty = false;
 

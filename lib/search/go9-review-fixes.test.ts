@@ -20,22 +20,15 @@ function read(rel: string): string {
 
 
 
-test('GO9/GO11 F1: price-sort path streams pool heading (same as default sort)', () => {
-
+test('GO9/GO11 F1: price-sort path streams proven-B heading (same membership as default)', () => {
   const page = read('app/results/page.tsx');
-
   assert.ok(page.includes('PriceSortPresentableCount') || page.includes('isPriceDependentSort'));
-
   const presentable = read('components/results/presentable-results-count.tsx');
-
   assert.ok(presentable.includes('export async function PriceSortPresentableCount'));
-
   assert.ok(presentable.includes('countResultsPool'));
-
-  assert.ok(!/await\s+prepared\.exactOffers/.test(presentable));
-
+  // Proven-B heading awaits exactOffers so workset live overlays are included.
+  assert.ok(/await\s+prepared\.exactOffers/.test(presentable));
   assert.ok(!presentable.includes('slicePriceSortPoolPage'));
-
 });
 
 

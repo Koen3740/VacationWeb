@@ -27,6 +27,10 @@ import {
   CarRentalFacetCount,
   RoadtripFacetCount,
 } from '@/components/results/results-facet-counts';
+import {
+  ProviderFilterFromPool,
+  ProviderFilterSelectFallback,
+} from '@/components/results/provider-filter-from-pool';
 import { parseSearchParams } from '@/lib/search/parse-search-params';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
 import { attachSiteMarket } from '@/lib/search/site-market';
@@ -157,6 +161,18 @@ export default async function ResultsPage({
               page={page}
               pageSize={pageSize}
               isPage1={isPage1}
+            />
+          </Suspense>
+        }
+        providerFilter={
+          <Suspense
+            fallback={
+              <ProviderFilterSelectFallback selectedProvider={params.provider} />
+            }
+          >
+            <ProviderFilterFromPool
+              filteringParams={filteringParams}
+              selectedProvider={params.provider}
             />
           </Suspense>
         }

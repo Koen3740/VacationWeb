@@ -119,14 +119,15 @@ test('M. page 16 exists for full user set; live window alone stops at 15 pages',
   assert.deepEqual(paginateResults(liveWindow, 16, 10), []);
 });
 
-test('stable browse UI page count is always cap÷pageSize (not live B growth)', () => {
+test('stable browse UI page count helper remains cap÷pageSize; visible UI uses effective total', () => {
   assert.equal(RESULTS_BROWSE_PRESENTABLE_CAP, 150);
   assert.equal(RESULTS_MAX_BROWSE_PAGES, 15);
   assert.equal(getResultsBrowsePageCount(10), 15);
   assert.equal(getResultsBrowsePageCount(RESULTS_PAGE_SIZE_DEFAULT), 15);
-  // Independent of how many B are already presentable:
+  // Visible pagination uses effective presentable total (capped at 15):
   assert.equal(getResultsTotalPages(40, 10), 4);
-  assert.equal(getResultsBrowsePageCount(10), 15);
+  assert.equal(getResultsTotalPages(3, 10), 1);
+  assert.equal(getResultsTotalPages(29, 10), 3);
 });
 
 test('offer detail href keeps occupancy and dates from Results params', () => {

@@ -13,6 +13,7 @@ import {
 } from '@/lib/search/pagination';
 import { parseStarsParam } from '@/lib/search/stars-param';
 import { parseHasCarRentalParam } from '@/lib/offers/has-car-rental';
+import { parseProviderParam } from '@/lib/search/provider-filter';
 import { parseVacationTypesParam } from '@/lib/search/vacation-type';
 import {
   parseTravelersFromQuery,
@@ -168,6 +169,9 @@ export function parseSearchParams(searchParams: ResultsSearchParamsInput): Searc
     })(),
     hasCarRental: parseHasCarRentalParam(
       typeof searchParams.hasCarRental === 'string' ? searchParams.hasCarRental : undefined,
+    ),
+    provider: parseProviderParam(
+      typeof searchParams.provider === 'string' ? searchParams.provider : undefined,
     ),
     sort: typeof searchParams.sort === 'string' ? searchParams.sort : 'value',
     page: parseResultsPageParam(

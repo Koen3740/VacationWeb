@@ -189,11 +189,7 @@ export function HomeSearch({
     selectedDurations.length === 0
       ? '7–14 nachten'
       : formatSelectedDurationsLabel(selectedDurations);
-  const airportRaw = formatSelectedDepartureAirportsLabel(selectedDepartureAirports);
-  const airportValue =
-    selectedDepartureAirports.length === 0 || airportRaw === 'Alle luchthavens' || airportRaw === 'Luchthaven'
-      ? 'Vanaf Amsterdam'
-      : airportRaw;
+  const airportValue = formatSelectedDepartureAirportsLabel(selectedDepartureAirports);
   const travelersValue = formatTravelersLabel(travelers);
   const travelersHint = formatRoomsLabel(travelers);
 
@@ -317,7 +313,7 @@ export function HomeSearch({
               <SearchField
                 label="Luchthaven"
                 value={airportValue}
-                hint="Vanaf Amsterdam"
+                hint="Flexibel"
                 icon={<PlaneIcon />}
                 valueClassName="whitespace-normal sm:whitespace-nowrap"
               />

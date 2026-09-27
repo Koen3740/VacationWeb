@@ -182,8 +182,8 @@ test('hasMore consistency with option d / DEADLINE / DEADLINE_EMPTY (DEADLINE_EM
 
 test('hasMore source: wired through page state, section, stream and pagination UI only', () => {
   const ui = read('components/results/results-pagination.tsx');
-  // Page count is browse-cap stable (1–15); hasMore is data attribute only (not page growth).
-  assert.match(ui, /getResultsBrowsePageCount/);
+  // Page count follows effective browse total (capped at 15); hasMore is data attribute.
+  assert.match(ui, /getResultsTotalPages/);
   assert.match(ui, /data-has-more=\{hasMore \? 'true' : 'false'\}/);
   assert.match(ui, /const hasNext = currentPage < totalPages;/);
   const stream = read('components/results/page1-receipt-stream.tsx');

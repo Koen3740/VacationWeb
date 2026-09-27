@@ -45,6 +45,10 @@ import {
   resultsHasMore,
 } from '@/lib/search/pagination';
 import { page1DiscoveryRanked } from '@/lib/search/schedule-capped-matchset-live-after-page';
+import {
+  offerMatchesProviderFilter,
+  scopeOffersToProviderFilter,
+} from '@/lib/search/provider-filter';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
 
@@ -182,6 +186,7 @@ export const loadCatalogLivePageState = cache(
     const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
 
     // Pending-unknown frozen anchors (L1-only) so page-local plan can keep them.
+    // Skip ids outside the active provider filter (stale freeze from a prior provider).
     const pendingFrozenForPlan = new Map<string, TravelOffer>();
     if (!isPage1 && !isColdPage2 && frozenParamIds.length > 0) {
       const l1BrowsableIds = new Set(
@@ -193,7 +198,11 @@ export const loadCatalogLivePageState = cache(
       for (const id of frozenParamIds) {
         if (l1BrowsableIds.has(id) || pendingFrozenForPlan.has(id)) continue;
         const offer = matchsetById.get(id);
-        if (offer && isFrozenPage1StatusUnknown(applyResultsLivePriceOverlay(offer, filteringParams))) {
+        if (
+          offer &&
+          offerMatchesProviderFilter(offer, filteringParams.provider) &&
+          isFrozenPage1StatusUnknown(applyResultsLivePriceOverlay(offer, filteringParams))
+        ) {
           pendingFrozenForPlan.set(id, offer);
         }
       }
@@ -207,7 +216,10 @@ export const loadCatalogLivePageState = cache(
     if (isPage1 || isColdPage2) {
       // Discovery order only (catalogue price ↑): which candidates to price / hydrate.
       // Default display order is live B arrival — applied in settle + shared pool.
-      const discoveryRanked = page1DiscoveryRanked(filtered, filteringParams);
+      // Provider filter: Page-1 hydrate/slots stay inside the same effective provider pool
+      // as heading (bookableResultsMembership). Full-matchset live still runs in background.
+      const pageScopedMatchset = scopeOffersToProviderFilter(filtered, filteringParams);
+      const discoveryRanked = page1DiscoveryRanked(pageScopedMatchset, filteringParams);
       const windowHydrationIds = selectCatalogPageHydrationIds(
         discoveryRanked,
         1,
@@ -266,6 +278,7 @@ export const loadCatalogLivePageState = cache(
     // D-v2 S5 (GO10 amendment, review C): frozen ids that are in the matchset but not
     // (yet) in the B pool with an UNKNOWN live status stay as pending anchors; known
     // non-B (A / C / unpriced / parked) and ids outside the matchset are dropped (GO10).
+    // Provider filter: foreign-provider freeze ids are never pending anchors.
     const pendingFrozen = new Map<string, TravelOffer>();
     if (frozenParamIds.length > 0) {
       const browsableIds = new Set(browsable.map((offer) => offer.id));
@@ -273,7 +286,11 @@ export const loadCatalogLivePageState = cache(
       for (const id of frozenParamIds) {
         if (browsableIds.has(id) || pendingFrozen.has(id)) continue;
         const offer = matchsetById.get(id);
-        if (offer && isFrozenPage1StatusUnknown(applyResultsLivePriceOverlay(offer, filteringParams))) {
+        if (
+          offer &&
+          offerMatchesProviderFilter(offer, filteringParams.provider) &&
+          isFrozenPage1StatusUnknown(applyResultsLivePriceOverlay(offer, filteringParams))
+        ) {
           pendingFrozen.set(id, offer);
         }
       }
@@ -351,8 +368,14 @@ export const loadCatalogLivePageState = cache(
     }
 
     const page2ExcludedIds = new Set(page2Page1Ids);
+    // Page-1 / cold-page-2 overlay window: same provider scope as hydrate + heading.
     const discoveryRanked =
-      isPage1 || isColdPage2 ? page1DiscoveryRanked(filtered, filteringParams) : filtered;
+      isPage1 || isColdPage2
+        ? page1DiscoveryRanked(
+            scopeOffersToProviderFilter(filtered, filteringParams),
+            filteringParams,
+          )
+        : scopeOffersToProviderFilter(filtered, filteringParams);
     const overlayRanked =
       poolExcludedIds.size > 0
         ? discoveryRanked.filter((offer) => !poolExcludedIds.has(offer.id))

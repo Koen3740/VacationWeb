@@ -104,6 +104,8 @@ type FilterSidebarProps = FilterOptions & {
   totalOffersLabel: string;
   carRentalCount: number | ReactNode;
   roadtripCount: number | ReactNode;
+  /** Optional "Vakantieaanbieder" block (effective B-pool counts). */
+  providerFilter?: ReactNode;
 };
 
 function Chevron({ open }: { open: boolean }) {
@@ -235,6 +237,7 @@ export function FilterSidebar({
   totalOffersLabel,
   carRentalCount,
   roadtripCount,
+  providerFilter,
 }: FilterSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -605,6 +608,8 @@ export function FilterSidebar({
             </div>
           </div>
         </Accordion>
+
+        {providerFilter}
 
         <Accordion
           title="Wat mag het kosten?"

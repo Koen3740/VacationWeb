@@ -5,10 +5,11 @@ import { test } from 'node:test';
 
 const ROOT = process.cwd();
 
-test('GO8/GO11: Results facet badges count whole pool (not B-only ≤150)', () => {
+test('GO8/GO11: Results facet badges count proven B via countResultsPool (uncapped)', () => {
   const facetSrc = readFileSync(join(ROOT, 'components/results/results-facet-counts.tsx'), 'utf8');
   assert.ok(facetSrc.includes('countResultsPool'));
   assert.ok(facetSrc.includes('loadPreparedResultsOffers'));
+  assert.ok(facetSrc.includes('hydrateResultsLivePriceOverlaysFromL2'));
   assert.ok(!facetSrc.includes('loadPresentableResultsCount'));
 });
 

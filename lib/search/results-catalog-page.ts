@@ -10,6 +10,7 @@ import {
   isResultsLivePriceCandidateOffer,
 } from '@/lib/search/presentable-price';
 import { offerMatchesBudget } from '@/lib/search/filtering';
+import { offerMatchesProviderFilter } from '@/lib/search/provider-filter';
 import {
   applyResultsLivePriceOverlays,
   getResultsLivePriceCachedAtMs,
@@ -157,7 +158,14 @@ export function bookableResultsMembership(
     ? applyResultsLivePriceOverlays(ranked as TravelOffer[], params)
     : (ranked as TravelOffer[]);
   const listable = filterToResultsListableOffers(overlaid);
-  return params ? listable.filter((offer) => offerMatchesBudget(offer, params)) : listable;
+  const budgeted = params
+    ? listable.filter((offer) => offerMatchesBudget(offer, params))
+    : listable;
+  // Provider filter: subset of the proven-B pool only (not catalog/pre-live).
+  if (params?.provider) {
+    return budgeted.filter((offer) => offerMatchesProviderFilter(offer, params.provider));
+  }
+  return budgeted;
 }
 
 /**
@@ -321,7 +329,7 @@ export function sliceRankedCatalogResultsPage(
 ): RankedCatalogResultsPage {
   const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
   // GO11: B membership over the FULL matchset; browse/display cap = 150 cards.
-  // Heading uses pool size separately (results-pool-count) — not this total.
+  // Heading uses proven-B count (results-pool-count) — not this browse total.
   const browsable = selectResultsBrowsePool(ranked, params, RESULTS_USER_PAGINATION_CAP);
   const offers = paginateResults(browsable, safePage, pageSize);
   return {

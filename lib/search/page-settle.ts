@@ -21,6 +21,7 @@ import type { SearchParams, TravelOffer } from '@/types/travel';
 import { RESULTS_PAGE_SIZE_DEFAULT, resultsHasMore } from '@/lib/search/pagination';
 import type { Page1RenderSlot } from '@/lib/search/page1-visible-cards';
 import { offerMatchesBudget } from '@/lib/search/filtering';
+import { offerMatchesProviderFilter } from '@/lib/search/provider-filter';
 import { repairPage1FreezeOrder } from '@/lib/search/page1-freeze-repair';
 import {
   hasValidPresentablePrice,
@@ -236,11 +237,15 @@ export const PAGE1_SETTLE_DEADLINE_MS = 8000;
 
 /**
  * Shared Page-1 card predicate: presentable B (`isResultsListableOffer`) and, when the
- * offer has a presentable price and params are known, inside the budget filter.
- * Identical to what `Page1ResultsStream` paints, so selection == visible cards.
+ * offer has a presentable price and params are known, inside the budget filter and the
+ * active provider filter (`TravelOffer.provider`). Identical to what `Page1ResultsStream`
+ * paints, so selection == visible cards == heading provider context.
  */
 export function isPage1VisibleOffer(offer: TravelOffer, searchParams?: SearchParams): boolean {
   if (!isResultsListableOffer(offer)) {
+    return false;
+  }
+  if (searchParams && !offerMatchesProviderFilter(offer, searchParams.provider)) {
     return false;
   }
   if (hasValidPresentablePrice(offer) && searchParams && !offerMatchesBudget(offer, searchParams)) {
