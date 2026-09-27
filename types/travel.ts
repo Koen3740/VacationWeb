@@ -85,6 +85,12 @@ export interface SearchParams {
    */
   page1Ids?: string[];
   /**
+   * Catalog generation (`loadRuntimeDataset().generationId`) stamped with a definitive
+   * Page-1 freeze (READY/EXHAUSTED). URL `catalogGen`. Absent on anchors / legacy URLs.
+   * Mismatch vs current generation invalidates `page` + `page1Ids` (criteria kept).
+   */
+  catalogGen?: string;
+  /**
    * vacationmap.be vs vacationmap.nl. Presentation/listing preference only.
    * Does not lock Corendon inventory.
    */

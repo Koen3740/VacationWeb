@@ -108,6 +108,7 @@ export function buildResultsBarHref(
   params.delete('page');
   if (occupancySearchParamsChanged(currentSearchParams, params)) {
     params.delete('page1Ids');
+    params.delete('catalogGen');
   } else {
     applyFilterNavigationPaging(params, {
       preservePage1Ids: true,

@@ -7,10 +7,12 @@ import {
 } from '@/components/results/page1-receipt-stream';
 import { RESULTS_PRODUCT_PAGE_SIZE } from '@/lib/providers/prijsvrij';
 import { loadCatalogLivePageState } from '@/lib/search/catalog-live-page-state';
+import { loadRuntimeDataset } from '@/lib/offers/load-runtime-dataset';
 import {
   coldPage2FallbackPage1Ids,
   coldPage2RedirectPage1Ids,
   PAGE1_DEADLINE_EMPTY_STATUS_TEXT,
+  page1UrlIdsForSettle,
 } from '@/lib/search/page-settle';
 import { buildResultsPageHref, getResultsTotalPages, clampResultsPage } from '@/lib/search/pagination';
 import { isSharedLivePricingPoolSort } from '@/lib/search/results-catalog-page';
@@ -46,6 +48,8 @@ export async function CatalogLiveBody({
   if (filtered.length === 0) {
     return <NoResults />;
   }
+
+  const catalogGenerationId = (await loadRuntimeDataset()).generationId;
 
   const state = await loadCatalogLivePageState(
     filtered,
@@ -90,7 +94,21 @@ export async function CatalogLiveBody({
       state.coldPage2Page1Settle.pageSize,
     );
     if (redirectIds.length > 0) {
-      redirect(buildResultsPageHref({ ...params, page1Ids: redirectIds }, page));
+      // Page 15 Gold: only DEFINITIVE freezes carry catalogGen; ANCHOR ids alone
+      // would be treated as legacy (no stamp) and reset on the follow-up request.
+      const settleFreeze = page1UrlIdsForSettle(
+        coldSelection,
+        state.coldPage2Page1Settle.pageSize,
+      );
+      if (settleFreeze.freeze === 'DEFINITIVE' && catalogGenerationId) {
+        redirect(
+          buildResultsPageHref(
+            { ...params, page1Ids: redirectIds, catalogGen: catalogGenerationId },
+            page,
+          ),
+        );
+      }
+      // ANCHOR / unstamped definitive: no redirect (legacy no-stamp would reset).
     }
     // Option d / DEADLINE_EMPTY: nothing may be written -> no redirect, no page1Ids
     // write; B-only cards from the B pool recomputed now, minus the page-1 selection
@@ -164,6 +182,7 @@ export async function CatalogLiveBody({
           page1Settle={page1Settle}
           computeBrowseTotal={state.computeBrowseTotal}
           hasMore={state.hasMore}
+          catalogGenerationId={catalogGenerationId}
         />
       </Suspense>
     </>

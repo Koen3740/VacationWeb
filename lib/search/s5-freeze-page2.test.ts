@@ -314,7 +314,12 @@ test('S5 source: page 2+ exclusion, pending anchors and cold redirect are wired'
   assert.match(state, /repairPage1FreezeOrder/);
   const section = read('components/results/catalog-live-section.tsx');
   assert.match(section, /import \{ redirect \} from 'next\/navigation'/);
-  assert.match(section, /redirect\(buildResultsPageHref\(\{ \.\.\.params, page1Ids: redirectIds \}, page\)\)/);
+  // Page 15 Gold / DEC-014: cold redirect only for DEFINITIVE + stamped catalogGen.
+  assert.match(section, /settleFreeze\.freeze === 'DEFINITIVE' && catalogGenerationId/);
+  assert.match(
+    section,
+    /buildResultsPageHref\(\s*\{ \.\.\.params, page1Ids: redirectIds, catalogGen: catalogGenerationId \},\s*page,\s*\)/,
+  );
   assert.match(section, /await state\.coldPage2Page1Settle\.selection/);
   const stream = read('components/results/page1-receipt-stream.tsx');
   assert.match(stream, /pendingIds: pendingSlotIdsForSettle\(selection, page1Settle\.slotOffers\)/);

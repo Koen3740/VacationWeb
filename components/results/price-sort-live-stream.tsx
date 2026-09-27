@@ -3,6 +3,7 @@ import { SyncPage1IdsToUrl } from '@/components/results/sync-page1-ids-to-url';
 import { TravelCard } from '@/components/results/travel-card';
 import { Page1ResultsCap } from '@/components/results/page1-results-cap';
 import { RESULTS_PRODUCT_PAGE_SIZE } from '@/lib/providers/prijsvrij';
+import { loadRuntimeDataset } from '@/lib/offers/load-runtime-dataset';
 import { slicePriceSortPoolPage } from '@/lib/search/prepare-results-offers';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 import { Suspense } from 'react';
@@ -47,12 +48,14 @@ function PriceSortPageBody({
   page,
   pageSize,
   pending,
+  catalogGenerationId,
 }: {
   ranked: TravelOffer[];
   params: SearchParams;
   page: number;
   pageSize: number;
   pending: boolean;
+  catalogGenerationId?: string | null;
 }) {
   const slice = slicePriceSortPoolPage(ranked, page, pageSize, {
     provisional: pending,
@@ -68,14 +71,30 @@ function PriceSortPageBody({
       />
     </div>
   ));
+  // Price-sort freeze after pending settles is definitive (not provisional).
+  const definitiveGen =
+    !pending && slice.page1Ids.length > 0 && catalogGenerationId
+      ? catalogGenerationId
+      : undefined;
 
   return (
     <>
       {pending ? <PriceSortPendingNotice /> : null}
-      {pending ? null : <SyncPage1IdsToUrl page1Ids={slice.page1Ids} replaceExisting />}
+      {pending ? null : (
+        <SyncPage1IdsToUrl
+          page1Ids={slice.page1Ids}
+          replaceExisting
+          catalogGen={definitiveGen}
+        />
+      )}
       {useCap ? <Page1ResultsCap limit={pageSize}>{slots}</Page1ResultsCap> : <div className="space-y-3.5">{slots}</div>}
       <ResultsPagination
-        params={{ ...params, pageSize, page1Ids: slice.page1Ids }}
+        params={{
+          ...params,
+          pageSize,
+          page1Ids: slice.page1Ids,
+          ...(definitiveGen ? { catalogGen: definitiveGen } : {}),
+        }}
         totalResults={slice.paginationTotal}
       />
     </>
@@ -87,11 +106,13 @@ async function PriceSortExactPage({
   params,
   page,
   pageSize,
+  catalogGenerationId,
 }: {
   exactOffers: Promise<TravelOffer[]>;
   params: SearchParams;
   page: number;
   pageSize: number;
+  catalogGenerationId?: string | null;
 }) {
   const ranked = await exactOffers;
   return (
@@ -101,11 +122,12 @@ async function PriceSortExactPage({
       page={page}
       pageSize={pageSize}
       pending={false}
+      catalogGenerationId={catalogGenerationId}
     />
   );
 }
 
-export function PriceSortResultsStream({
+export async function PriceSortResultsStream({
   provisionalOffers,
   exactOffers,
   priceSortPending,
@@ -120,6 +142,8 @@ export function PriceSortResultsStream({
   page: number;
   pageSize?: number;
 }) {
+  const catalogGenerationId = (await loadRuntimeDataset()).generationId;
+
   if (!priceSortPending) {
     return (
       <PriceSortPageBody
@@ -128,6 +152,7 @@ export function PriceSortResultsStream({
         page={page}
         pageSize={pageSize}
         pending={false}
+        catalogGenerationId={catalogGenerationId}
       />
     );
   }
@@ -149,6 +174,7 @@ export function PriceSortResultsStream({
         params={params}
         page={page}
         pageSize={pageSize}
+        catalogGenerationId={catalogGenerationId}
       />
     </Suspense>
   );

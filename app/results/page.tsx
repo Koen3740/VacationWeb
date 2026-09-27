@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 import { FilterSidebar } from '@/components/results/filter-sidebar';
 import { SortSelector } from '@/components/results/sort-selector';
 import { ResultsPageClient } from '@/components/results-v2/results-page-client';
@@ -32,6 +33,12 @@ import {
   ProviderFilterSelectFallback,
 } from '@/components/results/provider-filter-from-pool';
 import { parseSearchParams } from '@/lib/search/parse-search-params';
+import {
+  shouldInvalidateResultsFreeze,
+  stripResultsFreezePaging,
+} from '@/lib/search/catalog-generation-freeze';
+import { buildResultsPageHref } from '@/lib/search/pagination';
+import { loadRuntimeDataset } from '@/lib/offers/load-runtime-dataset';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
 import { attachSiteMarket } from '@/lib/search/site-market';
 import { SearchParams } from '@/types/travel';
@@ -88,6 +95,18 @@ export default async function ResultsPage({
     parseSearchParams(searchParams),
     headers().get('x-forwarded-host') ?? headers().get('host'),
   );
+  // Page 15 Gold: invalidate stale/legacy page1Ids BEFORE CatalogLive hydrate
+  // (avoids discover-prefix ~190-ID work on a freeze that will be discarded).
+  const runtimeDataset = await loadRuntimeDataset();
+  if (
+    shouldInvalidateResultsFreeze({
+      page1Ids: params.page1Ids,
+      catalogGen: params.catalogGen,
+      currentGenerationId: runtimeDataset.generationId,
+    })
+  ) {
+    redirect(buildResultsPageHref(stripResultsFreezePaging(params), 1));
+  }
   // GO9: shell skips the catalog offer load on the critical path (O(catalog)).
   // Filter options come from the cached runtime dataset; prepare loads offers inside Suspense.
   const filterOptions = await loadPresentedFilterOptions();

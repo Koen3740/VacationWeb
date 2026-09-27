@@ -13,6 +13,7 @@ import {
 } from '@/lib/search/pagination';
 import { parseStarsParam } from '@/lib/search/stars-param';
 import { parseHasCarRentalParam } from '@/lib/offers/has-car-rental';
+import { parseCatalogGenerationParam } from '@/lib/search/catalog-generation-freeze';
 import { parseProviderParam } from '@/lib/search/provider-filter';
 import { parseVacationTypesParam } from '@/lib/search/vacation-type';
 import {
@@ -180,6 +181,9 @@ export function parseSearchParams(searchParams: ResultsSearchParamsInput): Searc
     pageSize: RESULTS_PAGE_SIZE_DEFAULT,
     page1Ids: parsePage1IdsParam(
       typeof searchParams.page1Ids === 'string' ? searchParams.page1Ids : undefined,
+    ),
+    catalogGen: parseCatalogGenerationParam(
+      typeof searchParams.catalogGen === 'string' ? searchParams.catalogGen : undefined,
     ),
     selectedRoom: parseSelectedRoomParam(
       typeof searchParams.room === 'string' ? searchParams.room : undefined,

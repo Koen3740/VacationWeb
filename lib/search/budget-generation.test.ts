@@ -172,12 +172,13 @@ function replay(start: BudgetRange, moves: Move[], liveQueryWithOldPage1Ids: str
   return generations;
 }
 
-const LIVE = 'adults=2&dob=%2C&country=Spanje&budgetMax=1500&page1Ids=old-1%2Cold-2&page=3';
+const LIVE = 'adults=2&dob=%2C&country=Spanje&budgetMax=1500&page1Ids=old-1%2Cold-2&page=3&catalogGen=gen-old';
 
 test('D: only the left handle changed -> new generation with its own Page 1 (no page1Ids)', () => {
   const g = replay({ min: 500, max: 1500 }, [['min', 700]], LIVE);
   assert.equal(g.length, 1);
   const q = new URLSearchParams(g[0]!.query);
+  assert.equal(q.get('catalogGen'), null);
   assert.equal(q.get('budgetMin'), '700');
   assert.equal(q.get('budgetMax'), '1500');
   assert.equal(q.get('page1Ids'), null);

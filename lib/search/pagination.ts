@@ -335,6 +335,10 @@ export function buildResultsSearchQuery(params: SearchParams, page: number): URL
     query.set('page1Ids', params.page1Ids.join(','));
   }
 
+  if (params.catalogGen) {
+    query.set('catalogGen', params.catalogGen);
+  }
+
   query.set('page', String(page));
   query.set('pageSize', String(params.pageSize ?? RESULTS_PAGE_SIZE_DEFAULT));
 

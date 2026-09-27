@@ -1,5 +1,9 @@
 /**
  * LP-001: Page 2+ / Page 15 R2 hydrate — Option B page-local vs discover-prefix.
+ *
+ * Page 15 Gold: catalogGen mismatch/legacy reset runs in app/results/page.tsx
+ * before loadCatalogLivePageState, so discover-prefix is never started for an
+ * invalidated freeze. Matching-generation warm page-local behavior is unchanged.
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

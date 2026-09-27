@@ -146,6 +146,7 @@ export async function Page1PaginationStream({
   page1Settle,
   computeBrowseTotal,
   hasMore,
+  catalogGenerationId,
 }: {
   params: SearchParams;
   page1Ids: string[];
@@ -159,6 +160,8 @@ export async function Page1PaginationStream({
    */
   page1Settle?: Page1SettleController;
   computeBrowseTotal?: () => number;
+  /** Runtime catalog generationId — stamped only on DEFINITIVE freeze (Page 15 Gold). */
+  catalogGenerationId?: string | null;
 }) {
   if (page1Settle) {
     const selection = await page1Settle.selection;
@@ -179,15 +182,24 @@ export async function Page1PaginationStream({
         </p>
       );
     }
+    const definitiveGen =
+      output.freeze === 'DEFINITIVE' && catalogGenerationId
+        ? catalogGenerationId
+        : undefined;
     return (
       <>
-        <SyncPage1IdsToUrl page1Ids={output.page1Ids} replaceExisting={true} />
+        <SyncPage1IdsToUrl
+          page1Ids={output.page1Ids}
+          replaceExisting={true}
+          catalogGen={definitiveGen}
+        />
         {output.showPagination ? (
           <ResultsPagination
             params={{
               ...params,
               pageSize: RESULTS_PRODUCT_PAGE_SIZE,
               page1Ids: output.paginationPage1Ids,
+              ...(definitiveGen ? { catalogGen: definitiveGen } : {}),
             }}
             totalResults={output.paginationTotal}
             hasMore={page1HasMore(output, page1Settle.pageSize)}
@@ -199,7 +211,11 @@ export async function Page1PaginationStream({
 
   return (
     <>
-      <SyncPage1IdsToUrl page1Ids={page1Ids} replaceExisting={true} />
+      <SyncPage1IdsToUrl
+        page1Ids={page1Ids}
+        replaceExisting={true}
+        catalogGen={params.catalogGen ?? catalogGenerationId ?? undefined}
+      />
       <ResultsPagination
         params={{ ...params, pageSize: RESULTS_PRODUCT_PAGE_SIZE, page1Ids }}
         totalResults={paginationTotal}

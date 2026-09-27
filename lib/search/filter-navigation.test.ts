@@ -33,6 +33,18 @@ test('occupancy new-search navigation still clears page1Ids', () => {
   assert.equal(params.get('page'), null);
 });
 
+test('clearing page1Ids also clears catalogGen stamp', () => {
+  const params = new URLSearchParams(
+    'country=Spanje&page1Ids=a,b,c&page=3&catalogGen=gen-old&provider=Corendon',
+  );
+  applyFilterNavigationPaging(params, { preservePage1Ids: false });
+  assert.equal(params.get('page1Ids'), null);
+  assert.equal(params.get('catalogGen'), null);
+  assert.equal(params.get('page'), null);
+  assert.equal(params.get('country'), 'Spanje');
+  assert.equal(params.get('provider'), 'Corendon');
+});
+
 test('stars / board / vacation / amenity refine keep page1Ids', () => {
   for (const extra of ['stars=4', 'boardTypes=All+Inclusive', 'vacationTypes=Adults+Only', 'amenities=pool_outdoor', 'hasCarRental=1']) {
     const params = new URLSearchParams(`adults=2&page1Ids=keep-me&${extra}`);
