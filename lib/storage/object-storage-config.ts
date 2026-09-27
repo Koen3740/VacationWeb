@@ -10,8 +10,25 @@ export type ObjectStorageConfig = {
   endpoint?: string;
 };
 
+/**
+ * C0: `.env.local` / `.env` are read at most once per process. Before, every
+ * getObjectStorageConfig() call ran loadLocalEnvFiles() 5x (up to 20 sync fs
+ * calls), i.e. per L2 GET via getR2Client(). Precedence is unchanged:
+ * non-empty process.env > .env.local > .env. Values are still read from
+ * process.env on every call, so runtime env changes are honoured.
+ */
+let localEnvFilesLoaded = false;
+
+/** Test-only: make the next config read load `.env.local` / `.env` again. */
+export function resetObjectStorageEnvFilesForTests(): void {
+  localEnvFilesLoaded = false;
+}
+
 /** Load `.env.local` / `.env` into process.env for CLI scripts (no dotenv dependency). */
 function loadLocalEnvFiles(): void {
+  if (localEnvFilesLoaded) {
+    return;
+  }
   const candidates = ['.env.local', '.env'];
 
   for (const filename of candidates) {
@@ -46,6 +63,8 @@ function loadLocalEnvFiles(): void {
       }
     }
   }
+  // Only after a complete pass: a read error still throws on the next call as before.
+  localEnvFilesLoaded = true;
 }
 
 function requireEnv(name: string): string {
