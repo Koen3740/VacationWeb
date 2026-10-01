@@ -55,9 +55,55 @@ function createS3Client(config: ObjectStorageConfig): S3Client {
   return buildCatalogStorageS3Client(config);
 }
 
-function getS3Client(): { config: ObjectStorageConfig; client: S3Client } {
+/**
+ * Backup / bulk-transfer client (ops scripts only: `backup:pre-sub19`).
+ * Root cause of the 2026-10-01 backup failures: the runtime catalogue client above bounds every
+ * request to 15 s (D-v2 S8). Uploading the 103 MB `offers.detail.json` needs more than 15 s on a
+ * normal uplink, so the SDK threw "request has exceeded the configured 15000 ms requestTimeout".
+ * Live request paths keep the S8 bounds; only callers that pass `{ longTransfer: true }` use this.
+ * Timeout is configurable via VACATIONWEB_BULK_REQUEST_TIMEOUT_MS (default 600 s, minimum 15 s).
+ */
+export const BULK_STORAGE_CONNECT_TIMEOUT_MS = 10_000;
+export const BULK_STORAGE_DEFAULT_REQUEST_TIMEOUT_MS = 600_000;
+export const BULK_STORAGE_MAX_ATTEMPTS = 3;
+
+export function resolveBulkStorageRequestTimeoutMs(raw: string | undefined): number {
+  const parsed = Number(raw?.trim());
+  return Number.isFinite(parsed) && parsed >= 15_000 ? Math.floor(parsed) : BULK_STORAGE_DEFAULT_REQUEST_TIMEOUT_MS;
+}
+
+export function buildBulkStorageS3Client(config: ObjectStorageConfig, requestTimeoutMs?: number): S3Client {
+  return new S3Client({
+    region: config.region,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    },
+    endpoint: config.endpoint,
+    forcePathStyle: Boolean(config.endpoint),
+    requestHandler: {
+      connectionTimeout: BULK_STORAGE_CONNECT_TIMEOUT_MS,
+      requestTimeout:
+        requestTimeoutMs ?? resolveBulkStorageRequestTimeoutMs(process.env.VACATIONWEB_BULK_REQUEST_TIMEOUT_MS),
+      throwOnRequestTimeout: true,
+    },
+    maxAttempts: BULK_STORAGE_MAX_ATTEMPTS,
+  });
+}
+
+export type StorageTransferOptions = { longTransfer?: boolean };
+
+let cachedBulkClient: { fingerprint: string; client: S3Client } | null = null;
+
+function getS3Client(options?: StorageTransferOptions): { config: ObjectStorageConfig; client: S3Client } {
   const config = getObjectStorageConfig();
   const fingerprint = `${config.bucket}|${config.region}|${config.endpoint ?? ''}|${config.accessKeyId}`;
+  if (options?.longTransfer) {
+    if (!cachedBulkClient || cachedBulkClient.fingerprint !== fingerprint) {
+      cachedBulkClient = { fingerprint, client: buildBulkStorageS3Client(config) };
+    }
+    return { config, client: cachedBulkClient.client };
+  }
   if (!cachedClient || cachedClient.fingerprint !== fingerprint) {
     cachedClient = { fingerprint, client: createS3Client(config) };
   }
@@ -68,12 +114,13 @@ export async function putStorageBytes(
   key: string,
   body: Buffer | string,
   contentType = 'application/json',
+  options?: StorageTransferOptions,
 ): Promise<{
   bucket: string;
   key: string;
   byteSize: number;
 }> {
-  const { config, client } = getS3Client();
+  const { config, client } = getS3Client(options);
   const payload = typeof body === 'string' ? Buffer.from(body, 'utf8') : body;
 
   await client.send(
@@ -95,6 +142,7 @@ export async function putStorageBytes(
 export async function putStorageObject(
   key: string,
   localFilePath: string,
+  options?: StorageTransferOptions,
 ): Promise<{
   bucket: string;
   key: string;
@@ -104,7 +152,7 @@ export async function putStorageObject(
     throw new Error(`Local Object Storage file not found: ${localFilePath}`);
   }
 
-  return putStorageBytes(key, fs.readFileSync(localFilePath));
+  return putStorageBytes(key, fs.readFileSync(localFilePath), 'application/json', options);
 }
 
 export async function putOffersObject(localFilePath: string): Promise<{
@@ -161,8 +209,9 @@ export async function getStorageObject(key: string): Promise<string> {
 export async function downloadStorageObject(
   key: string,
   localFilePath: string,
+  options?: StorageTransferOptions,
 ): Promise<{ byteSize: number; sha256: string }> {
-  const { config, client } = getS3Client();
+  const { config, client } = getS3Client(options);
   const response = await client.send(
     new GetObjectCommand({
       Bucket: config.bucket,

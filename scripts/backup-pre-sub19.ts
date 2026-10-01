@@ -15,6 +15,9 @@ import {
   putStorageObject,
 } from '../lib/storage/object-storage-client';
 
+// Backup moves ~150 MB: use the bulk client (the runtime catalogue client is bounded to 15 s per request, see object-storage-client.ts).
+const BULK = { longTransfer: true } as const;
+
 function countCatalog(raw: string): { offerCount: number; providers: Record<string, number> } {
   const parsed: unknown = JSON.parse(raw);
   if (!Array.isArray(parsed)) {
@@ -57,8 +60,8 @@ async function main(): Promise<void> {
   console.log(`  source catalog key: ${catalogKey}`);
   console.log(`  source details key: ${detailsKey}`);
 
-  const sourceCatalog = await downloadStorageObject(catalogKey, sourceCatalogPath);
-  const sourceDetails = await downloadStorageObject(detailsKey, sourceDetailsPath);
+  const sourceCatalog = await downloadStorageObject(catalogKey, sourceCatalogPath, BULK);
+  const sourceDetails = await downloadStorageObject(detailsKey, sourceDetailsPath, BULK);
   const catalogStats = countCatalog(fs.readFileSync(sourceCatalogPath, 'utf8'));
   const detailCount = countDetails(fs.readFileSync(sourceDetailsPath, 'utf8'));
 
@@ -73,11 +76,11 @@ async function main(): Promise<void> {
   const destDetailsKey = backupDetailsKey(backupId);
   const destNoteKey = backupNoteKey(backupId);
 
-  await putStorageObject(destCatalogKey, sourceCatalogPath);
-  await putStorageObject(destDetailsKey, sourceDetailsPath);
+  await putStorageObject(destCatalogKey, sourceCatalogPath, BULK);
+  await putStorageObject(destDetailsKey, sourceDetailsPath, BULK);
 
-  const verifiedCatalog = await downloadStorageObject(destCatalogKey, backupCatalogPath);
-  const verifiedDetails = await downloadStorageObject(destDetailsKey, backupDetailsPath);
+  const verifiedCatalog = await downloadStorageObject(destCatalogKey, backupCatalogPath, BULK);
+  const verifiedDetails = await downloadStorageObject(destDetailsKey, backupDetailsPath, BULK);
   const backupCatalogStats = countCatalog(fs.readFileSync(backupCatalogPath, 'utf8'));
   const backupDetailCount = countDetails(fs.readFileSync(backupDetailsPath, 'utf8'));
 
@@ -121,7 +124,7 @@ async function main(): Promise<void> {
     verified,
   };
 
-  await putStorageBytes(destNoteKey, JSON.stringify(note, null, 2));
+  await putStorageBytes(destNoteKey, JSON.stringify(note, null, 2), 'application/json', BULK);
   const localNote = path.join(process.cwd(), 'data', `_pre-sub19-backup-${backupId}.json`);
   fs.mkdirSync(path.dirname(localNote), { recursive: true });
   fs.writeFileSync(localNote, JSON.stringify(note, null, 2));

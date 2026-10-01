@@ -16,6 +16,9 @@ import {
   CATALOG_STORAGE_MAX_ATTEMPTS,
   CATALOG_STORAGE_REQUEST_TIMEOUT_MS,
   buildCatalogStorageS3Client,
+  BULK_STORAGE_DEFAULT_REQUEST_TIMEOUT_MS,
+  buildBulkStorageS3Client,
+  resolveBulkStorageRequestTimeoutMs,
 } from '@/lib/storage/object-storage-client';
 import { buildLivePriceL2S3Client } from '@/lib/search/live-price-l2-store';
 
@@ -151,4 +154,33 @@ test('S8 source: catalogue client uses the bounded builder; catalogue failure pa
   assert.match(loader, /return getStorageObject\(key\);/);
   assert.match(loader, /const head = await headStorageObject\(CURRENT_POINTER_KEY\);/);
   assert.match(loader, /Promise\.allSettled\(/);
+});
+
+test('Bulk client (backup:pre-sub19): long request timeout, configurable, live S8 bounds untouched', async () => {
+  assert.equal(CATALOG_STORAGE_REQUEST_TIMEOUT_MS, 15_000);
+  assert.equal(CATALOG_STORAGE_MAX_ATTEMPTS, 2);
+  assert.equal(BULK_STORAGE_DEFAULT_REQUEST_TIMEOUT_MS, 600_000);
+  assert.equal(resolveBulkStorageRequestTimeoutMs(undefined), 600_000);
+  assert.equal(resolveBulkStorageRequestTimeoutMs('900000'), 900_000);
+  assert.equal(resolveBulkStorageRequestTimeoutMs('1000'), 600_000);
+  assert.equal(resolveBulkStorageRequestTimeoutMs('abc'), 600_000);
+  const client = buildBulkStorageS3Client(CONFIG);
+  try {
+    assert.ok(client);
+  } finally {
+    client.destroy();
+  }
+});
+
+test('Bulk client is opt-in: live read paths stay on the bounded catalogue client; backup script uses longTransfer', () => {
+  const clientSrc = read('lib/storage/object-storage-client.ts');
+  assert.match(clientSrc, /function createS3Client\(config: ObjectStorageConfig\): S3Client \{\r?\n\s+return buildCatalogStorageS3Client\(config\);/);
+  assert.match(clientSrc, /if \(options\?\.longTransfer\)/);
+  const getStr = clientSrc.slice(clientSrc.indexOf('export async function getStorageObject'), clientSrc.indexOf('export async function downloadStorageObject'));
+  assert.ok(!getStr.includes('longTransfer'), 'getStorageObject must stay on the bounded client');
+  const loader = read('lib/offers/load-runtime-dataset.ts');
+  assert.ok(!loader.includes('longTransfer'), 'runtime loader must stay bounded');
+  const backup = read('scripts/backup-pre-sub19.ts');
+  assert.match(backup, /const BULK = \{ longTransfer: true \} as const;/);
+  assert.equal((backup.match(/, BULK\)/g) ?? []).length, 7);
 });
