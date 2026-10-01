@@ -34,6 +34,7 @@ export {
   PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY,
   presentCatalogPage1WithoutLivePricing,
   tryCatalogRefinePage1,
+  priceExactBatch,
   priceLiveRequiredMatchset,
   pricePage1AndBuildRemaining,
   pricePage1WithPrijsvrijReceipts,

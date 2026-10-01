@@ -616,9 +616,9 @@ test('O. initial page-1 path does not await the full matchset; source keeps that
   assert.ok(prepare.includes('rankCatalogOffers'));
   assert.ok(prepare.includes('selectLivePricingCandidateWindow'));
   assert.ok(prepare.includes('selectLivePricingInitialWorkset'));
-  assert.ok(prepare.includes('scheduleResultsMatchsetLivePricing'));
-  assert.ok(prepare.includes('scheduleS6Refill') || prepare.includes('runS6DynamicRefill'));
+  assert.ok(prepare.includes('scheduleCappedMatchsetLiveAfterPage'));
   assert.ok(prepare.includes('priceLiveRequiredMatchset(workset'));
+  assert.ok(!prepare.includes('scheduleS6Refill'));
   assert.ok(!prepare.includes('priceLiveRequiredMatchset(windowRemainder'));
   assert.ok(!prepare.includes('await priceLiveRequiredMatchset(workset'));
   assert.ok(!prepare.includes('priceLiveRequiredMatchset(ranked')); // GO5
@@ -642,8 +642,10 @@ test('D/E. GO5: capped matchset live deferred from CatalogLive; page does not aw
   assert.ok(!prepare.includes('priceLiveRequiredMatchset(ranked'));
   assert.ok(catalogLive.includes('scheduleCappedMatchsetLiveAfterPage'));
   assert.ok(!scheduleCap.includes('selectLivePricingCandidateWindow'));
-  assert.ok(scheduleCap.includes('priceLiveRequiredMatchset'));
-  assert.ok(/full-pool|full pool|FULL-matchset/i.test(scheduleCap));
+  assert.ok(scheduleCap.includes('runP2BackgroundWarm'));
+  assert.ok(scheduleCap.includes('runS6DynamicRefill'));
+  assert.ok(!scheduleCap.includes('priceLiveRequiredMatchset(matchset'));
+  assert.ok(/p1-then-p2|P1|P2/i.test(scheduleCap));
   assert.ok(page.includes('CatalogLiveSection'));
   assert.ok(!/await\s+priceLiveRequiredMatchset/.test(page));
 });

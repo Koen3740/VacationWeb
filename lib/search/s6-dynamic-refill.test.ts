@@ -337,13 +337,13 @@ test('Scenario H — DEC-011: one attempt per offer; C not re-queued same run', 
   assert.ok(result.telemetry.attempts === 0);
 });
 
-test('prepareResultsOffers schedules S6 (not blind windowRemainder string)', () => {
+test('prepareResultsOffers uses single orchestrator (not blind windowRemainder)', () => {
   const prepare = readFileSync(
     join(__dirname, 'prepare-results-offers.ts'),
     'utf8',
   );
-  assert.ok(prepare.includes('runS6DynamicRefill') || prepare.includes('scheduleS6Refill'));
-  assert.ok(prepare.includes('s6-dynamic-refill'));
+  assert.ok(prepare.includes('scheduleCappedMatchsetLiveAfterPage'));
+  assert.ok(!prepare.includes('scheduleS6Refill'));
   assert.ok(!prepare.includes('priceLiveRequiredMatchset(windowRemainder'));
 });
 

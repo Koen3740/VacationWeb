@@ -317,15 +317,19 @@ test('T16 budget scope: unfrozen page 1 only; frozen page 1 / page 2+ await the 
 
 test('S6 source: join before each limiter; budget only unfrozen page 1; frozen ids hydrated', () => {
   const pricing = read('lib/providers/prijsvrij/page1-receipt-pricing.ts');
-  for (const limiter of ['limitCorendon', 'limitEliza', 'limitSunweb']) {
+  for (const limiter of ['limitEliza', 'limitSunweb']) {
     assert.match(
       pricing,
       new RegExp(`await awaitInflightL2ReadsForOffer\\(catalog, params\\);\\r?\\n\\s+await ${limiter}\\(`),
     );
   }
-  assert.match(pricing, /createPage1LiveLimiter\(CORENDON_LIVE_PAGE1_CONCURRENCY\)/);
+  // Corendon uses shared admission pool (P0), not a separate createPage1LiveLimiter.
+  assert.match(pricing, /lane:\s*'P0'/);
+  assert.match(pricing, /withCorendonProviderSlot|runCorendonLiveIntoCache\(catalog, params, fetchImpl/);
+  assert.doesNotMatch(pricing, /createPage1LiveLimiter\(CORENDON_LIVE_PAGE1_CONCURRENCY\)/);
   assert.match(pricing, /createPage1LiveLimiter\(ELIZA_LIVE_PAGE1_CONCURRENCY\)/);
   assert.match(pricing, /createPage1LiveLimiter\(SUNWEB_LIVE_PAGE1_CONCURRENCY\)/);
+  assert.match(pricing, /await awaitInflightL2ReadsForOffer\(catalog, params\);\r?\n\s+await runCorendonLiveIntoCache/);
   const state = read('lib/search/catalog-live-page-state.ts');
   assert.match(state, /budgetMs: hydrateBudgetMs/);
   assert.match(state, /resultsPageL2HydrateBudgetMs\(isPage1, params\.page1Ids\)/);

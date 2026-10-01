@@ -27,11 +27,16 @@ export const CORENDON_LIVE_TIMEOUT_MS = 15_000;
  * Technical page-1 concurrency for lowestpricesacco.
  * Separate from Prijsvrij C=5. Not a product rule.
  * Fase B4: raised Corendon-only (capacity audit supports c≈10–20); others stay at 5.
+ *
+ * Authoritative Results HTTP ceiling is the isolate-local shared Corendon pool
+ * in `lib/search/live-pricing-admission.ts` (max 8 total across P0/P1/P2).
+ * This constant remains the numeric source for that ceiling.
  */
 export const CORENDON_LIVE_PAGE1_CONCURRENCY = 8;
 
 /**
- * Full-matchset Corendon throttle. Same width as page-1; not a product cap.
+ * Full-matchset Corendon throttle width (batch parallelism hint).
+ * Must stay equal to {@link CORENDON_LIVE_PAGE1_CONCURRENCY}; shared pool is authoritative.
  */
 export const CORENDON_LIVE_MATCHSET_CONCURRENCY = 8;
 

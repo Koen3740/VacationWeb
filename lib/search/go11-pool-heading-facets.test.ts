@@ -80,9 +80,11 @@ describe('GO11 pool ≠ 150 / heading / facets / price-sort / browse cap', () =>
     assert.doesNotMatch(facets, /loadPresentableResultsCount/);
   });
 
-  it('background matchset live is uncapped (full pool)', () => {
+  it('background matchset live is demand-driven P2 after P1 (not uncapped enqueue)', () => {
     const sched = read('lib/search/schedule-capped-matchset-live-after-page.ts');
-    assert.match(sched, /full-pool|full pool|FULL-matchset/i);
+    assert.match(sched, /runP2BackgroundWarm/);
+    assert.match(sched, /runS6DynamicRefill/);
+    assert.doesNotMatch(sched, /priceLiveRequiredMatchset\(matchset/);
     assert.doesNotMatch(sched, /selectLivePricingCandidateWindow/);
   });
 

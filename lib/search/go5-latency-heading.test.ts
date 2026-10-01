@@ -27,9 +27,11 @@ test('GO5/GO11: CatalogLive loads page state then schedules matchset live (defer
       catalogLive.indexOf('loadCatalogLivePageState'),
   );
   assert.ok(!scheduleCap.includes('selectLivePricingCandidateWindow'));
-  assert.ok(scheduleCap.includes('priceLiveRequiredMatchset'));
+  assert.ok(scheduleCap.includes('runP2BackgroundWarm'));
+  assert.ok(scheduleCap.includes('runS6DynamicRefill'));
   assert.ok(scheduleCap.includes('setTimeout'));
-  assert.ok(/full-pool|full pool|FULL-matchset/i.test(scheduleCap));
+  assert.ok(/p1-then-p2|P2|background/i.test(scheduleCap));
+  assert.ok(!scheduleCap.includes('priceLiveRequiredMatchset(matchset'));
 });
 
 test('GO5: technical live window helper cap remains 150 (priority window, not pool)', () => {

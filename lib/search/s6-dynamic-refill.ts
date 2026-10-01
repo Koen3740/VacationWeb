@@ -14,7 +14,8 @@
  */
 
 import type { FetchLike } from '@/lib/providers/prijsvrij/auth';
-import { priceLiveRequiredMatchset } from '@/lib/providers/prijsvrij/page1-receipt-pricing';
+import { priceExactBatch } from '@/lib/providers/prijsvrij/page1-receipt-pricing';
+import { assertCanAdmit, LIVE_PRICE_EXACT_BATCH_MAX } from '@/lib/search/live-pricing-admission';
 import { RESULTS_LIVE_PRICING_INITIAL_WORKSET } from '@/lib/search/pagination';
 import {
   canAttemptLivePrice,
@@ -165,8 +166,13 @@ function batchSizeForDeficit(deficit: number, remainingEligible: number): number
   if (deficit <= 0 || remainingEligible <= 0) {
     return 0;
   }
-  // Price only what we still need (bounded by workset width) — no blind +150.
-  return Math.min(deficit, RESULTS_LIVE_PRICING_INITIAL_WORKSET, remainingEligible);
+  // Demand-driven: never admit more than one exact-batch width (shared capacity).
+  return Math.min(
+    deficit,
+    RESULTS_LIVE_PRICING_INITIAL_WORKSET,
+    LIVE_PRICE_EXACT_BATCH_MAX,
+    remainingEligible,
+  );
 }
 
 function maybeLogS6(telemetry: S6RefillTelemetry): void {
@@ -203,6 +209,8 @@ export type RunS6DynamicRefillOptions = {
   targetB?: number;
   maxNewAttempts?: number;
   maxEmptyBatches?: number;
+  pricingRunId?: number;
+  lane?: 'P0' | 'P1' | 'P2';
 };
 
 /**
@@ -271,6 +279,11 @@ export async function runS6DynamicRefill(
   }
 
   while (presentableB < targetB) {
+    if (options.pricingRunId != null && !assertCanAdmit(options.pricingRunId)) {
+      stopReason = 'no_progress';
+      break;
+    }
+
     const deficit = targetB - presentableB;
     const remainingEligible = countEligibleS6CandidatesFrom(catalogRanked, params, cursor);
     if (remainingEligible === 0) {
@@ -311,8 +324,10 @@ export async function runS6DynamicRefill(
     }
 
     const bBefore = presentableB;
-    await priceLiveRequiredMatchset(selected.batch, params, {
+    await priceExactBatch(selected.batch, params, {
       fetchImpl: options.fetchImpl,
+      pricingRunId: options.pricingRunId,
+      lane: options.lane ?? 'P1',
     });
     attempts += selected.batch.length;
     candidatesConsumed += selected.batch.length;

@@ -91,6 +91,15 @@ import {
   resetLivePriceCircuitForTests,
   type LivePriceCircuitProvider,
 } from '../live-price-circuit';
+import {
+  assertCanAdmit,
+  beginOrContinuePricingRun,
+  getActivePricingRunId,
+  LIVE_PRICE_EXACT_BATCH_MAX,
+  resetLivePricingAdmissionForTests,
+  withCorendonProviderSlot,
+  type PricingLane,
+} from '../../search/live-pricing-admission';
 
 /** Product page size for Results (Master Plan §8.1a). */
 export const RESULTS_PRODUCT_PAGE_SIZE = 10;
@@ -141,6 +150,10 @@ export type Page1ReceiptPricingOptions = {
    */
   paginationPool?: TravelOffer[];
   userPaginationCap?: number;
+  /** Isolate-local pricing run (admission / supersede). */
+  pricingRunId?: number;
+  /** Lane for shared Corendon capacity (default P2). */
+  lane?: PricingLane;
 };
 
 /** Non-PV card can render immediately; PV card waits on its own Receipt/reserve promise. */
@@ -495,16 +508,35 @@ function noteLivePriceCircuitOutcome(
   recordLivePriceCircuitSuccess(provider);
 }
 
+type CorendonAdmissionContext = {
+  pricingRunId?: number;
+  lane?: PricingLane;
+};
+
+function resolveCorendonAdmissionRunId(explicit?: number): number {
+  if (explicit != null) {
+    return explicit;
+  }
+  const active = getActivePricingRunId();
+  if (active != null) {
+    return active;
+  }
+  return beginOrContinuePricingRun('__anonymous__').runId;
+}
+
 async function runCorendonLiveIntoCache(
   offer: TravelOffer,
   params: SearchParams,
   fetchImpl: FetchLike,
+  admission: CorendonAdmissionContext = {},
 ): Promise<void> {
   if (!resolveCorendonLiveOccupancy(params).ok) {
     cacheUnpricedLivePrice(offer, params);
     return;
   }
 
+  // Skip before taking a shared slot when breaker is already open — select paths
+  // also skip; this avoids occupying P0/P1 capacity for a known no-HTTP outcome.
   if (isLivePriceCircuitOpen('corendon')) {
     cacheUnavailableLivePrice(offer, params, { reason: 'circuit_open' });
     return;
@@ -516,72 +548,80 @@ async function runCorendonLiveIntoCache(
     return;
   }
 
-  for (const listing of listings) {
-    const listingParams = listingCacheParams(params, listing);
-    const cached = getResultsLivePriceOverlay(offer.id, listingParams);
-    if (cached?.livePriceStatus === 'proven') {
-      return;
-    }
-    if (cached) {
-      continue;
-    }
+  const runId = resolveCorendonAdmissionRunId(admission.pricingRunId);
+  const lane: PricingLane = admission.lane ?? 'P2';
 
-    const ctx = buildCorendonLiveContext(offer, params, listing);
-    if (!ctx) {
-      cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, {
-        reason: 'missing_context',
-      });
-      continue;
-    }
-
-    const key = livePriceCacheKey(offer.id, listingParams);
-    await joinOrStartInflight(corendonLiveInflight, key, async () => {
-      if (hasResultsLivePriceOverlay(offer.id, listingParams)) {
+  const slot = await withCorendonProviderSlot({ runId, lane }, async () => {
+    for (const listing of listings) {
+      const listingParams = listingCacheParams(params, listing);
+      const cached = getResultsLivePriceOverlay(offer.id, listingParams);
+      if (cached?.livePriceStatus === 'proven') {
         return;
       }
-      if (isLivePriceCircuitOpen('corendon')) {
+      if (cached) {
+        continue;
+      }
+
+      const ctx = buildCorendonLiveContext(offer, params, listing);
+      if (!ctx) {
         cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, {
-          reason: 'circuit_open',
+          reason: 'missing_context',
         });
+        continue;
+      }
+
+      const key = livePriceCacheKey(offer.id, listingParams);
+      await joinOrStartInflight(corendonLiveInflight, key, async () => {
+        if (hasResultsLivePriceOverlay(offer.id, listingParams)) {
+          return;
+        }
+        if (isLivePriceCircuitOpen('corendon')) {
+          cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, {
+            reason: 'circuit_open',
+          });
+          return;
+        }
+        await withLivePriceL2ProviderGate(
+          key,
+          async () => {
+            if (hasResultsLivePriceOverlay(offer.id, listingParams)) {
+              return;
+            }
+            noteLivePriceL2Event('PROVIDER_FETCH');
+            const result = await fetchLivePriceWithImmediateRetry(() =>
+              fetchCorendonLivePrice(ctx, { fetchImpl }),
+            );
+            noteLivePriceCircuitOutcome('corendon', result);
+            if (result.ok) {
+              cacheLiveOverlay(
+                withCorendonLivePrice(
+                  offer,
+                  result.pricePerPerson,
+                  listing,
+                  result.source,
+                  result.totalPrice != null && result.totalPriceField
+                    ? { amount: result.totalPrice, field: result.totalPriceField }
+                    : undefined,
+                ),
+                listingParams,
+              );
+            } else {
+              cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, result);
+            }
+          },
+          (record) => seedL1FromL2Record(offer.id, listingParams, record),
+        );
+      });
+
+      const after = getResultsLivePriceOverlay(offer.id, listingParams);
+      if (after?.livePriceStatus === 'proven') {
         return;
       }
-      await withLivePriceL2ProviderGate(
-        key,
-        async () => {
-          if (hasResultsLivePriceOverlay(offer.id, listingParams)) {
-            return;
-          }
-          noteLivePriceL2Event('PROVIDER_FETCH');
-          const result = await fetchLivePriceWithImmediateRetry(() =>
-            fetchCorendonLivePrice(ctx, { fetchImpl }),
-          );
-          noteLivePriceCircuitOutcome('corendon', result);
-          if (result.ok) {
-            cacheLiveOverlay(
-              withCorendonLivePrice(
-                offer,
-                result.pricePerPerson,
-                listing,
-                result.source,
-                result.totalPrice != null && result.totalPriceField
-                  ? { amount: result.totalPrice, field: result.totalPriceField }
-                  : undefined,
-              ),
-              listingParams,
-            );
-          } else {
-            cacheUnavailableLivePrice(bindCorendonListing(offer, listing), listingParams, result);
-          }
-        },
-        (record) => seedL1FromL2Record(offer.id, listingParams, record),
-      );
-    });
-
-    const after = getResultsLivePriceOverlay(offer.id, listingParams);
-    if (after?.livePriceStatus === 'proven') {
-      return;
     }
-  }
+  });
+
+  // Superseded before acquire: no HTTP and no circuit_open cache storm.
+  void slot;
 }
 
 async function runElizaLiveIntoCache(
@@ -865,6 +905,7 @@ export function clearLivePriceInflightForTests(): void {
   elizaLiveInflight.clear();
   sunwebLiveInflight.clear();
   resetLivePriceCircuitForTests();
+  resetLivePricingAdmissionForTests();
 }
 
 export async function mapWithConcurrency<T, R>(
@@ -895,40 +936,51 @@ export async function mapWithConcurrency<T, R>(
   return results;
 }
 
+export type PriceExactBatchOptions = Pick<
+  Page1ReceiptPricingOptions,
+  'fetchImpl' | 'concurrency' | 'matchsetConcurrency' | 'stats' | 'pricingRunId' | 'lane'
+>;
+
 /**
- * Live-price every Prijsvrij / Corendon / Eliza / Sunweb-4p-2r offer that does
- * not yet have an occupancy overlay. Uses existing clients and matchset
- * concurrency (not the page-1 safety cap). No product cap of 3 or 10.
+ * Price exactly the given offers (already a small admitted batch).
+ * Does not walk or enqueue a larger matchset. Corendon HTTP goes through the
+ * shared isolate-local capacity pool (authoritative ≤8).
  */
-export async function priceLiveRequiredMatchset(
+export async function priceExactBatch(
   offers: TravelOffer[],
   params: SearchParams,
-  options: Pick<
-    Page1ReceiptPricingOptions,
-    'fetchImpl' | 'concurrency' | 'matchsetConcurrency' | 'stats'
-  > = {},
+  options: PriceExactBatchOptions = {},
 ): Promise<TravelOffer[]> {
+  if (offers.length === 0) {
+    return [];
+  }
+
   stampUnpricedWhenLiveOccupancyUnsupported(offers, params);
   await hydrateResultsLivePriceOverlaysFromL2(
     offers.map((offer) => offer.id),
     params,
     { offers },
   );
+
   const fetchImpl = options.fetchImpl ?? fetch;
   const concurrency =
     options.matchsetConcurrency ??
     options.concurrency ??
     PRIJSVRIJ_RECEIPT_MATCHSET_CONCURRENCY;
+  const admission: CorendonAdmissionContext = {
+    pricingRunId: options.pricingRunId,
+    lane: options.lane,
+  };
+
   const pv: TravelOffer[] = [];
   const corendon: TravelOffer[] = [];
   const eliza: TravelOffer[] = [];
   const sunweb: TravelOffer[] = [];
 
   for (const offer of offers) {
-    if (!isCorendon(offer) && hasResultsLivePriceOverlay(offer.id, params)) {
+    if (hasResultsLivePriceOverlay(offer.id, params)) {
       continue;
     }
-    // AN-061: do not enqueue doomed missing_context or open-circuit offers.
     if (!canAttemptLivePrice(offer, params)) {
       noteMissingContextSkipped(1);
       continue;
@@ -963,6 +1015,13 @@ export async function priceLiveRequiredMatchset(
   let inFlight = 0;
   let maxInFlight = 0;
 
+  // Batch-parallelism ceilings; Corendon shared pool is the authoritative HTTP cap.
+  const corendonParallel = Math.min(
+    CORENDON_LIVE_MATCHSET_CONCURRENCY,
+    LIVE_PRICE_EXACT_BATCH_MAX,
+    Math.max(1, corendon.length),
+  );
+
   await Promise.all([
     mapWithConcurrency(pv, concurrency, async (offer) => {
       if (hasResultsLivePriceOverlay(offer.id, params)) {
@@ -979,8 +1038,8 @@ export async function priceLiveRequiredMatchset(
         inFlight -= 1;
       }
     }),
-    mapWithConcurrency(corendon, CORENDON_LIVE_MATCHSET_CONCURRENCY, async (offer) => {
-      await runCorendonLiveIntoCache(offer, params, fetchImpl);
+    mapWithConcurrency(corendon, corendonParallel, async (offer) => {
+      await runCorendonLiveIntoCache(offer, params, fetchImpl, admission);
     }),
     mapWithConcurrency(eliza, ELIZA_LIVE_MATCHSET_CONCURRENCY, async (offer) => {
       await runElizaLiveIntoCache(offer, params, fetchImpl);
@@ -997,6 +1056,54 @@ export async function priceLiveRequiredMatchset(
       options.stats.maxInFlightMatchsetReceiptCalls ?? 0,
       maxInFlight,
     );
+  }
+
+  return applyResultsLivePriceOverlays(offers, params);
+}
+
+/**
+ * Live-price Prijsvrij / Corendon / Eliza / Sunweb offers that need work.
+ * Large inputs are processed in demand-driven exact batches (never one pre-built
+ * ~3000 Corendon queue). Prefer {@link priceExactBatch} for orchestrated P1/P2.
+ */
+export async function priceLiveRequiredMatchset(
+  offers: TravelOffer[],
+  params: SearchParams,
+  options: PriceExactBatchOptions = {},
+): Promise<TravelOffer[]> {
+  const batchMax = LIVE_PRICE_EXACT_BATCH_MAX;
+  if (offers.length <= batchMax) {
+    return priceExactBatch(offers, params, options);
+  }
+
+  // Safety net: walk the input with a cursor, admitting only small eligible batches.
+  let cursor = 0;
+  while (cursor < offers.length) {
+    if (options.pricingRunId != null && !assertCanAdmit(options.pricingRunId)) {
+      break;
+    }
+    const batch: TravelOffer[] = [];
+    while (cursor < offers.length && batch.length < batchMax) {
+      const offer = offers[cursor]!;
+      cursor += 1;
+      if (hasResultsLivePriceOverlay(offer.id, params)) {
+        continue;
+      }
+      if (!canAttemptLivePrice(offer, params)) {
+        continue;
+      }
+      if (isOfferLivePriceCircuitOpen(offer)) {
+        continue;
+      }
+      batch.push(offer);
+    }
+    if (batch.length === 0) {
+      if (cursor >= offers.length) {
+        break;
+      }
+      continue;
+    }
+    await priceExactBatch(batch, params, options);
   }
 
   return applyResultsLivePriceOverlays(offers, params);
@@ -1454,7 +1561,10 @@ export function startPage1ReceiptStream(
       if (cached === null) {
         return null;
       }
-      await runCorendonLiveIntoCache(offer, params, fetchImpl);
+      await runCorendonLiveIntoCache(offer, params, fetchImpl, {
+        pricingRunId: options.pricingRunId,
+        lane: 'P0',
+      });
       return cachedLivePriceResult(offer, params) ?? null;
     }
 
@@ -1806,13 +1916,15 @@ function createPage1LiveLimiter(concurrency: number) {
 export function startCatalogPageLiveOverlays(
   catalogPage: readonly TravelOffer[],
   params: SearchParams,
-  options: Pick<Page1ReceiptPricingOptions, 'fetchImpl'> = {},
+  options: Pick<Page1ReceiptPricingOptions, 'fetchImpl' | 'pricingRunId'> = {},
 ): CatalogPageLiveOverlay[] {
   const fetchImpl = options.fetchImpl ?? fetch;
   stampUnpricedWhenLiveOccupancyUnsupported(catalogPage as TravelOffer[], params);
-  const limitCorendon = createPage1LiveLimiter(CORENDON_LIVE_PAGE1_CONCURRENCY);
+  // Corendon: shared isolate pool (authoritative ≤8). Eliza/Sunweb keep local limiters
+  // in this phase (Corendon-only shared pool GO).
   const limitEliza = createPage1LiveLimiter(ELIZA_LIVE_PAGE1_CONCURRENCY);
   const limitSunweb = createPage1LiveLimiter(SUNWEB_LIVE_PAGE1_CONCURRENCY);
+  const pricingRunId = options.pricingRunId ?? getActivePricingRunId() ?? undefined;
 
   return catalogPage.map((offer) => {
     const catalog = applyResultsLivePriceOverlay(offer, params);
@@ -1826,7 +1938,10 @@ export function startCatalogPageLiveOverlays(
     const live = (async (): Promise<TravelOffer> => {
       if (isCorendon(catalog)) {
         await awaitInflightL2ReadsForOffer(catalog, params);
-        await limitCorendon(() => runCorendonLiveIntoCache(catalog, params, fetchImpl));
+        await runCorendonLiveIntoCache(catalog, params, fetchImpl, {
+          pricingRunId,
+          lane: 'P0',
+        });
       } else if (isEliza(catalog)) {
         await awaitInflightL2ReadsForOffer(catalog, params);
         await limitEliza(() => runElizaLiveIntoCache(catalog, params, fetchImpl));

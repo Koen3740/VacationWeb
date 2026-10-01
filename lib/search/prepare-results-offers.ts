@@ -1,5 +1,8 @@
 import type { FetchLike } from '../providers/prijsvrij/auth';
-import { priceLiveRequiredMatchset, stampUnpricedWhenLiveOccupancyUnsupported } from '../providers/prijsvrij/page1-receipt-pricing';
+import {
+  priceLiveRequiredMatchset,
+  stampUnpricedWhenLiveOccupancyUnsupported,
+} from '../providers/prijsvrij/page1-receipt-pricing';
 import type { SearchParams, TravelOffer } from '../../types/travel';
 import { filterOffers, sortOffers } from './filtering';
 import { paginateResults, RESULTS_USER_PAGINATION_CAP } from './pagination';
@@ -17,9 +20,7 @@ import {
   hasResultsLivePriceOverlay,
   hydrateResultsLivePriceOverlaysFromL2,
 } from './results-live-price-cache';
-import { scheduleResultsMatchsetLivePricing } from './schedule-results-matchset-live-pricing';
 import {
-  discoveryRankedForLivePricing,
   scheduleCappedMatchsetLiveAfterPage,
 } from './schedule-capped-matchset-live-after-page';
 import {
@@ -27,7 +28,10 @@ import {
   selectLivePricingCandidateWindow,
   selectLivePricingInitialWorkset,
 } from './live-pricing-workset';
-import { countPresentableB, runS6DynamicRefill } from './s6-dynamic-refill';
+import {
+  beginOrContinuePricingRun,
+  buildPricingRunKey,
+} from './live-pricing-admission';
 import {
   bookableResultsMembership,
   isSharedLivePricingPoolSort,
@@ -127,42 +131,13 @@ export function slicePriceSortPoolPage(
 }
 
 /**
- * Schedule S6 cursor refill toward 150 presentable B (background).
- * Does not block exactOffers / page1 freeze (AN-059 / S7).
- * Shared-pool sorts: walk unified catalogue-price discovery order (not feed order).
- */
-function scheduleS6Refill(
-  catalogRanked: readonly TravelOffer[],
-  params: SearchParams,
-  fetchImpl: FetchLike | undefined,
-  after?: Promise<unknown>,
-): void {
-  const discoveryRanked = discoveryRankedForLivePricing(catalogRanked, params);
-  const run = async (): Promise<void> => {
-    if (after) {
-      await after;
-    }
-    if (countPresentableB(discoveryRanked, params) >= 150) {
-      return;
-    }
-    await runS6DynamicRefill(discoveryRanked, params, { fetchImpl });
-  };
-  scheduleResultsMatchsetLivePricing(run());
-}
-
-/**
  * Results request ranking with live-price coordination.
  *
- * Non-price sorts (Recommended, stars, …): rank immediately and schedule
- * full-matchset live pricing in the background (not awaited). Page overlays
- * (`startCatalogPageLiveOverlays`) still give the current page priority and
- * join the same cache / in-flight maps.
+ * Non-price sorts: rank immediately; CatalogLiveBody starts P0 overlays then the
+ * single P1→P2 orchestrator ({@link scheduleCappedMatchsetLiveAfterPage}).
  *
- * Price-dependent sorts: catalog-rank the FULL matchset (user result set).
- * Await live prices only for an initial workset (bounded subset of the
- * technical candidate window). S6 then continues in the background through the
- * catalog cursor until 150 presentable B (or a hard stop) — not a blind new W.
- * Page1 freeze after exactOffers is unchanged (S7).
+ * Price-dependent sorts: await a bounded workset, then one orchestrator (P1+P2).
+ * No duplicate S6 + full-matchset schedules.
  */
 export async function prepareResultsOffers(
   offers: readonly TravelOffer[],
@@ -175,9 +150,9 @@ export async function prepareResultsOffers(
     const catalogRanked = rankCatalogOffers(offers, params);
     const liveWindow = selectLivePricingCandidateWindow(catalogRanked, params);
     const workset = selectLivePricingInitialWorkset(liveWindow, params);
-    const tail = livePricingBrowseRemainder(catalogRanked, liveWindow);
-    // Hydrate L2→L1 before deciding whether the workset still needs provider work.
-    // GO9/GO3: pass workset offers so Corendon listingKey L2 rows hydrate (bare id misses).
+    void livePricingBrowseRemainder(catalogRanked, liveWindow);
+    const pricingRun = beginOrContinuePricingRun(buildPricingRunKey(params));
+
     await hydrateResultsLivePriceOverlaysFromL2(
       workset.map((offer) => offer.id),
       params,
@@ -186,11 +161,12 @@ export async function prepareResultsOffers(
     const worksetPending = workset.some((offer) => offerNeedsLivePriceWork(offer, params));
 
     if (!worksetPending) {
-      scheduleS6Refill(catalogRanked, params, options.fetchImpl);
-      // GO11: warm remaining pool beyond S6's 150-B display target (non-blocking).
+      // Single orchestrator: P1 coverage + P2 warm (no duplicate S6 schedule).
       scheduleCappedMatchsetLiveAfterPage(catalogRanked, params, {
         fetchImpl: options.fetchImpl,
         cheapestFirst: isSharedLivePricingPoolSort(params.sort),
+        pricingRun,
+        headstartMs: 0,
       });
       const exact = assemblePriceSortRanking(catalogRanked, params);
       return {
@@ -202,21 +178,24 @@ export async function prepareResultsOffers(
 
     const worksetWork =
       workset.length > 0
-        ? priceLiveRequiredMatchset(workset, params, { fetchImpl: options.fetchImpl })
+        ? priceLiveRequiredMatchset(workset, params, {
+            fetchImpl: options.fetchImpl,
+            pricingRunId: pricingRun.runId,
+            lane: 'P1',
+          })
         : Promise.resolve(workset);
 
-    // S6 continues past the workset (skips settled overlays) until 150 B.
-    // Replaces blind full-window remainder pricing as the coverage engine.
-    scheduleS6Refill(catalogRanked, params, options.fetchImpl, worksetWork);
-      // GO11: warm remaining pool beyond S6's 150-B display target (non-blocking).
-      scheduleCappedMatchsetLiveAfterPage(catalogRanked, params, {
-        fetchImpl: options.fetchImpl,
-        cheapestFirst: isSharedLivePricingPoolSort(params.sort),
-      });
+    // One orchestrator after workset — replaces prior dual S6 + full-pool schedules.
+    scheduleCappedMatchsetLiveAfterPage(catalogRanked, params, {
+      fetchImpl: options.fetchImpl,
+      cheapestFirst: isSharedLivePricingPoolSort(params.sort),
+      pricingRun,
+      afterPageOverlays: worksetWork,
+      headstartMs: 0,
+    });
 
     const exactOffers = worksetWork.then(() => assemblePriceSortRanking(catalogRanked, params));
     return {
-      // Preserve catalog browse order while price-sort is pending (AN-061).
       offers: catalogRanked,
       exactOffers,
       priceSortPending: true,
@@ -224,10 +203,8 @@ export async function prepareResultsOffers(
   }
 
   const ranked = rankResultsOffers(offers, params);
-  // GO5: do NOT schedule matchset-wide live here. That started O(matchset) L2
-  // hydrate + provider HTTP before Suspense/page overlays, so Page1 waited
-  // behind matchset work (Greece 700+). CatalogLiveBody starts page overlays
-  // first, then scheduleCappedMatchsetLiveAfterPage (GO11: full pool, deferred).
+  // GO5: do NOT schedule matchset-wide live here. CatalogLiveBody starts page
+  // overlays first, then scheduleCappedMatchsetLiveAfterPage (P1→P2).
   return {
     offers: ranked,
     exactOffers: Promise.resolve(ranked),
