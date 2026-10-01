@@ -21,6 +21,31 @@ const serviceLinks = [
 
 const linkCls = 'text-[12.5px] text-white/75 transition hover:text-white';
 
+const attributionLinkCls = 'underline decoration-white/30 underline-offset-2 hover:text-white/80';
+
+/** LIG-006: source and licence text from HotelGeo data contract v1.0 section 7 (DEC-015). */
+function GeoAttribution() {
+  return (
+    <p
+      data-testid="geo-attribution"
+      className="mt-5 border-t border-white/10 pt-3 text-[11px] leading-relaxed text-white/50"
+    >
+      Liggingsgegevens: GHS-SMOD R2023A © Europese Unie, 1995–2026 (Europese Commissie, JRC, GHSL), licentie{' '}
+      <a href="https://creativecommons.org/licenses/by/4.0" className={attributionLinkCls} target="_blank" rel="noopener noreferrer">
+        CC BY 4.0
+      </a>
+      ; gewijzigd: per accommodatie ingedeeld als stedelijk of landelijk. Kustlijn: ©{' '}
+      <a href="https://www.openstreetmap.org/copyright" className={attributionLinkCls} target="_blank" rel="noopener noreferrer">
+        OpenStreetMap-bijdragers
+      </a>{' '}
+      (ODbL). Plaatsgegevens:{' '}
+      <a href="https://www.geonames.org" className={attributionLinkCls} target="_blank" rel="noopener noreferrer">
+        GeoNames
+      </a>{' '}
+      (CC BY 4.0).
+    </p>
+  );
+}
 /** WOW footer — dark navy, columns, socials, copyright, back-to-top. Compact ~198. */
 export function HomeFooter() {
   return (
@@ -101,6 +126,7 @@ export function HomeFooter() {
             </div>
           </div>
         </div>
+        <GeoAttribution />
       </div>
     </footer>
   );

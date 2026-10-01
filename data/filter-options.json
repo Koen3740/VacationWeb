@@ -7,6 +7,7 @@
     "Canada",
     "Curaçao",
     "Cyprus",
+    "Dominicaanse Republiek",
     "Duitsland",
     "Egypte",
     "Gambia",
@@ -21,6 +22,37 @@
     "Turkije"
   ],
   "regionsByCountry": {
+    "Egypte": [
+      "Caïro",
+      "Hurghada",
+      "Luxor",
+      "Marsa Alam",
+      "Mer Rouge",
+      "Nijlcruises",
+      "Rode Zee",
+      "Sharm el Sheikh"
+    ],
+    "Spanje": [
+      "Andalusië",
+      "Balearen",
+      "Canarische Eilanden",
+      "Costa Blanca",
+      "Costa Brava",
+      "Costa Dorada",
+      "Costa de Almería",
+      "Costa de la Luz",
+      "Costa del Azahar",
+      "Costa del Sol",
+      "Fuerteventura",
+      "Gran Canaria",
+      "Ibiza",
+      "La Palma",
+      "Lanzarote",
+      "Majorque",
+      "Mallorca",
+      "Menorca",
+      "Tenerife"
+    ],
     "Turkije": [
       "Alanya",
       "Antalya",
@@ -46,26 +78,6 @@
       "Turkse Riviera",
       "Zuid-Egeïsche Kust"
     ],
-    "Spanje": [
-      "Andalusië",
-      "Balearen",
-      "Canarische Eilanden",
-      "Costa Blanca",
-      "Costa Brava",
-      "Costa Dorada",
-      "Costa de Almería",
-      "Costa de la Luz",
-      "Costa del Azahar",
-      "Costa del Sol",
-      "Fuerteventura",
-      "Gran Canaria",
-      "Ibiza",
-      "La Palma",
-      "Lanzarote",
-      "Mallorca",
-      "Menorca",
-      "Tenerife"
-    ],
     "Griekenland": [
       "Athene",
       "Chalcidique",
@@ -87,6 +99,7 @@
       "Pieria - Olympus Riviera",
       "Rhodos",
       "Samos",
+      "Santorin",
       "Santorini",
       "Thessaloniki",
       "Zakynthos",
@@ -107,16 +120,6 @@
       "Centraal Marokko",
       "Marrakech"
     ],
-    "Egypte": [
-      "Caïro",
-      "Hurghada",
-      "Luxor",
-      "Marsa Alam",
-      "Mer Rouge",
-      "Nijlcruises",
-      "Rode Zee",
-      "Sharm el Sheikh"
-    ],
     "Macedonië": [
       "Meer van Ohrid"
     ],
@@ -126,37 +129,36 @@
       "Puglia",
       "Sardinië",
       "Savona",
-      "Sicile",
       "Sicilië"
-    ],
-    "Argentinië": [
-      "Buenos Aires",
-      "Ushuaia"
-    ],
-    "Curaçao": [
-      "Jan Thiel Baai",
-      "Mambo Beach",
-      "Piscadera Baai",
-      "Sint Willibrordus",
-      "Willemstad"
-    ],
-    "Kaapverdische Eilanden": [
-      "Sal"
-    ],
-    "Bonaire": [
-      "Kralendijk"
     ],
     "Gambia": [
       "Rondreizen",
       "West Gambia"
     ],
     "Bulgarije": [
-      "La mer noire",
       "Zwarte Zee"
+    ],
+    "Bonaire": [
+      "Kralendijk"
+    ],
+    "Argentinië": [
+      "Buenos Aires",
+      "Ushuaia"
     ],
     "Brazilië": [
       "Rio De Janeiro",
       "Santos"
+    ],
+    "Curaçao": [
+      "Jan Thiel Baai",
+      "Mambo Beach",
+      "Piscadera Baai",
+      "Santa Rosa",
+      "Sint Willibrordus",
+      "Willemstad"
+    ],
+    "Kaapverdische Eilanden": [
+      "Sal"
     ],
     "Duitsland": [
       "Kiel"
@@ -164,107 +166,39 @@
     "Canada": [
       "Vancouver"
     ],
-    "Cyprus": [
-      "Cyprus"
+    "Dominicaanse Republiek": [
+      "La Romana"
     ],
     "Tunesië": [
       "Djerba",
       "Golf van Hammamet"
+    ],
+    "Cyprus": [
+      "Chypre",
+      "Cyprus"
     ]
   },
   "citiesByCountry": {
-    "Turkije": [
-      "Adakoy",
-      "Akbuk",
-      "Aksaray",
-      "Alanya",
-      "Alanya-Centrum",
-      "Antalya-Centrum",
-      "Armutalan",
-      "Avsallar",
-      "Bayraklidede",
-      "Beldibi",
-      "Belek",
-      "Beyoglu",
-      "Bingoreizen Bodrum",
-      "Bingoreizen Kusadasi",
-      "Bingoreizen Marmaris",
-      "Bingoreizen Turkse Riviera",
-      "Bitez",
-      "Blue Cruises Turkse Riviera",
-      "Bodrum",
-      "Bodrum - Guvercinlik",
-      "Bodrum-Centrum",
-      "Bodrum-Gümbet",
-      "Bodrum-Torba",
-      "Bodrum-Turgutreis",
-      "Calis",
-      "Camlik",
-      "Cesme-Centrum",
-      "Colakli",
-      "Dalyan",
-      "Didim",
-      "Didim-Centrum",
-      "Evrenseki",
-      "Fethiye-Centrum",
-      "Goynuk",
-      "Gumbet",
-      "Gumuldur",
-      "Gümüldür",
-      "Gundogan",
-      "Guvercinlik",
-      "Icmeler",
-      "Içmeler",
-      "Kalamis-Fenerbahçe",
-      "Karaköy",
-      "Kargicak",
-      "Kas",
-      "Kemer",
-      "Kemer-Centrum",
-      "Kestel",
-      "Kiris",
-      "Kizilagac",
-      "Kizilot",
-      "Konakli",
-      "Konyaalti",
-      "Kumkapi",
-      "Kumkoy",
-      "Kundu",
-      "Kusadasi",
-      "Kusadasi-Centrum",
-      "Ladies Beach",
-      "Lara",
-      "Long Beach",
-      "Mahmutlar",
-      "Marmaris",
-      "Marmaris-Centrum",
-      "Oba",
-      "Okurcalar",
-      "Oludeniz",
-      "Ovacik",
-      "Ozdere",
-      "Özdere",
-      "Pamucak",
-      "Rondreizen Turkije",
-      "Sarigerme",
-      "Seferihisar",
-      "Side",
-      "Side-Centrum",
-      "Sirkeci",
-      "Sisli",
-      "Sorgun",
-      "Sultanahmet",
-      "Taksim",
-      "Tekirova",
-      "Titreyengol",
-      "Torba",
-      "Tosmur",
-      "Turgutreis",
-      "Turkbuku",
-      "Turkler",
-      "Yalikoy",
-      "Yenikapi",
-      "Zincirlikuyu"
+    "Egypte": [
+      "Bingoreizen Egypte",
+      "Caïro",
+      "El Gouna",
+      "El Quseir",
+      "Hurghada",
+      "Hurghada-Stad",
+      "Hurghada-Ville",
+      "Makadi Bay",
+      "Marsa Alam",
+      "Marsa Alam.",
+      "Montaza",
+      "Nabq Bay",
+      "Nijlcruise",
+      "Port Ghalib",
+      "Ras Um El Sid",
+      "Safaga",
+      "Sahl Hasheesh",
+      "Sharks Bay",
+      "Soma Bay"
     ],
     "Spanje": [
       "Adamuz",
@@ -359,10 +293,8 @@
       "Es Canar",
       "Es Migjorn Gran",
       "Esquinzo",
-      "Estepon",
       "Estepona",
       "Felanitx",
-      "Ferreries",
       "Figueral",
       "Figueretas",
       "Font de Sa Cala",
@@ -393,6 +325,7 @@
       "La Pineda",
       "La Puebla del Rio",
       "La Viñuela",
+      "Lajares",
       "Las Breñas",
       "Las Indias",
       "Las Palmas",
@@ -444,7 +377,6 @@
       "Playa Blanca",
       "Playa d&#039;en Bossa",
       "Playa d&apos;en Bossa",
-      "Playa de Fornells",
       "Playa de la Arena",
       "Playa de las Americas",
       "Playa de Muro",
@@ -536,7 +468,102 @@
       "Villamanrique de la Condesa",
       "Villanueva de Algaidas",
       "Villanueva del Rosario",
+      "Vol Charter pour Mallorca",
       "Yaiza"
+    ],
+    "Turkije": [
+      "Adakoy",
+      "Akbuk",
+      "Aksaray",
+      "Alanya",
+      "Alanya-Centrum",
+      "Antalya-Centrum",
+      "Armutalan",
+      "Avsallar",
+      "Bayraklidede",
+      "Beldibi",
+      "Belek",
+      "Beyoglu",
+      "Bingoreizen Bodrum",
+      "Bingoreizen Kusadasi",
+      "Bingoreizen Marmaris",
+      "Bingoreizen Turkse Riviera",
+      "Bitez",
+      "Blue Cruises Turkse Riviera",
+      "Bodrum",
+      "Bodrum - Guvercinlik",
+      "Bodrum-Centrum",
+      "Bodrum-Gümbet",
+      "Bodrum-Torba",
+      "Bodrum-Turgutreis",
+      "Calis",
+      "Camlik",
+      "Cesme-Centrum",
+      "Colakli",
+      "Dalyan",
+      "Didim",
+      "Didim-Centrum",
+      "Evrenseki",
+      "Fethiye-Centrum",
+      "Goynuk",
+      "Gumbet",
+      "Gumuldur",
+      "Gümüldür",
+      "Gundogan",
+      "Guvercinlik",
+      "Icmeler",
+      "Içmeler",
+      "Kalamis-Fenerbahçe",
+      "Karaköy",
+      "Kargicak",
+      "Kas",
+      "Kemer",
+      "Kemer-Centrum",
+      "Kestel",
+      "Kiris",
+      "Kizilagac",
+      "Kizilot",
+      "Konakli",
+      "Konyaalti",
+      "Kumkapi",
+      "Kumkoy",
+      "Kundu",
+      "Kusadasi",
+      "Kusadasi-Centrum",
+      "Ladies Beach",
+      "Lara",
+      "Long Beach",
+      "Mahmutlar",
+      "Marmaris",
+      "Marmaris-Centrum",
+      "Oba",
+      "Okurcalar",
+      "Oludeniz",
+      "Ortakent",
+      "Ovacik",
+      "Ozdere",
+      "Özdere",
+      "Pamucak",
+      "Rondreizen Turkije",
+      "Sarigerme",
+      "Seferihisar",
+      "Side",
+      "Side-Centrum",
+      "Sirkeci",
+      "Sisli",
+      "Sorgun",
+      "Sultanahmet",
+      "Taksim",
+      "Tekirova",
+      "Titreyengol",
+      "Torba",
+      "Tosmur",
+      "Turgutreis",
+      "Turkbuku",
+      "Turkler",
+      "Yalikoy",
+      "Yenikapi",
+      "Zincirlikuyu"
     ],
     "Griekenland": [
       "Acharavi",
@@ -552,7 +579,6 @@
       "Agia Paraskevi",
       "Agia Pelagia",
       "Agia Pelagia Spili",
-      "Agioi Apostoli",
       "Agioi Apostoloi",
       "Agioi Deka",
       "Agios Dimitrios",
@@ -577,6 +603,7 @@
       "Almiropotamos",
       "Almyrida",
       "Alykanas",
+      "Aminossos",
       "Ammoudara",
       "Ammoudi",
       "Ammoudia",
@@ -593,7 +620,6 @@
       "Apostoloi",
       "Ardani",
       "Argassi",
-      "Argostoli",
       "Arhanes",
       "Arkassa",
       "Artemisio",
@@ -607,7 +633,6 @@
       "Balos",
       "Barbati",
       "Benitses",
-      "Bingoreizen Corfu",
       "Bingoreizen Kos",
       "Bingoreizen Kreta",
       "Bingoreizen Lesbos",
@@ -657,7 +682,6 @@
       "Elounda",
       "Episkopi",
       "Ermones",
-      "Excursiereis Corfu",
       "Excursiereizen Lefkas",
       "Excursiereizen Lesbos",
       "Excursiereizen Parga",
@@ -744,7 +768,6 @@
       "Kiotari",
       "Kipséli",
       "Kissamos",
-      "Kitries",
       "Kokkari",
       "Kokkini Hani",
       "Kolymbari",
@@ -757,7 +780,6 @@
       "Kos-Stad",
       "Kos-Stad Lambi",
       "Kos-Stad Psalidi",
-      "Kounoupetra Lixouri",
       "Kouramades",
       "Kourkoumelata",
       "Koutouloufari",
@@ -774,7 +796,6 @@
       "Lefkas stad",
       "Lefkas-Stad",
       "Lefkos",
-      "Leptokaria",
       "Ligia",
       "Limni Keri",
       "Lindos",
@@ -810,6 +831,7 @@
       "Metamorfosi - Sithonia",
       "Methoni",
       "Milatos",
+      "Mitilini",
       "Mochlos",
       "Molivos (Eftalou)",
       "Molyvos",
@@ -875,8 +897,9 @@
       "Sani",
       "Sani Beach",
       "Sarakina",
+      "Sarakiniko",
       "Sarti",
-      "Sfakiotes",
+      "Sidari",
       "Sissi",
       "Sitia",
       "Sivota",
@@ -942,12 +965,10 @@
       "Ericeira",
       "Estombar",
       "Estoril",
-      "Estreito da Calheta",
       "Faro",
       "Fenais da Luz",
       "Ferragudo",
       "Fly & Drive Madeira",
-      "Fly & Drive Madère",
       "Funchal",
       "Furnas",
       "Gale",
@@ -987,6 +1008,7 @@
       "São Miguel - Fenais da Luz",
       "São Miguel - Ponta Delgada",
       "São Miguel - Ribeira Grande",
+      "Sao Miquel - Caloura",
       "São Teotónio",
       "Seixal",
       "Silves",
@@ -1001,26 +1023,6 @@
       "Agadir",
       "Marrakech",
       "Rondreizen Marokko"
-    ],
-    "Egypte": [
-      "Bingoreizen Egypte",
-      "Caïro",
-      "El Gouna",
-      "El Quseir",
-      "Hurghada",
-      "Hurghada-Stad",
-      "Hurghada-Ville",
-      "Makadi Bay",
-      "Marsa Alam",
-      "Marsa Alam.",
-      "Nabq Bay",
-      "Nijlcruise",
-      "Port Ghalib",
-      "Ras Um El Sid",
-      "Safaga",
-      "Sahl Hasheesh",
-      "Sharks Bay",
-      "Soma Bay"
     ],
     "Macedonië": [
       "Ohrid-Stad",
@@ -1044,14 +1046,12 @@
       "Carlentini",
       "Castellabate",
       "Castelsardo",
-      "Castiglione di Sicilia",
       "Cefalu",
       "Cefalù",
       "Ceglie Massapica",
       "Cruisereizen",
       "Cuccaro Vetere",
       "Donnalucata",
-      "Fasano",
       "Gaggi",
       "Giardini Naxos",
       "Giarre",
@@ -1060,6 +1060,7 @@
       "Ispica",
       "Laureana Cilento",
       "Letojanni",
+      "Licata",
       "Lido di Noto",
       "Linguaglossa",
       "Lizzano",
@@ -1074,7 +1075,6 @@
       "Novoli",
       "Otranto",
       "Palazzolo",
-      "Piedimonte Etneo",
       "Pisciotta",
       "Portopalo di Capo Passero",
       "Posada",
@@ -1097,22 +1097,6 @@
       "Uggiano La Chiesa",
       "Villammare"
     ],
-    "Argentinië": [
-      "Cruisereizen"
-    ],
-    "Curaçao": [
-      "Jan Thiel Baai",
-      "Mambo Beach",
-      "Piscadera Baai",
-      "Sint Willibrordus",
-      "Willemstad"
-    ],
-    "Kaapverdische Eilanden": [
-      "Santa Maria"
-    ],
-    "Bonaire": [
-      "Kralendijk"
-    ],
     "Gambia": [
       "Bijilo",
       "Cape Point",
@@ -1126,14 +1110,44 @@
       "Sozopol",
       "Sunny Beach"
     ],
+    "Bonaire": [
+      "Kralendijk"
+    ],
+    "Argentinië": [
+      "Cruisereizen"
+    ],
     "Brazilië": [
       "Cruisereizen"
+    ],
+    "Curaçao": [
+      "Jan Thiel Baai",
+      "Mambo Beach",
+      "Piscadera Baai",
+      "Santa Rosa",
+      "Sint Willibrordus",
+      "Willemstad"
+    ],
+    "Kaapverdische Eilanden": [
+      "Santa Maria"
     ],
     "Duitsland": [
       "Cruisereizen"
     ],
     "Canada": [
       "Cruisereizen"
+    ],
+    "Dominicaanse Republiek": [
+      "Cruisereizen"
+    ],
+    "Tunesië": [
+      "Djerba",
+      "Hammamet",
+      "Mahdia",
+      "Midoun",
+      "Monastir",
+      "Port El Kantaoui",
+      "Sousse",
+      "Zarzis"
     ],
     "Cyprus": [
       "Ayia Napa",
@@ -1153,16 +1167,6 @@
       "Sotira",
       "Tochni",
       "Treis Elies"
-    ],
-    "Tunesië": [
-      "Djerba",
-      "Hammamet",
-      "Mahdia",
-      "Midoun",
-      "Monastir",
-      "Port El Kantaoui",
-      "Sousse",
-      "Zarzis"
     ]
   },
   "boardTypes": [
@@ -1207,63 +1211,64 @@
     "Argentinië": 2,
     "Bonaire": 26,
     "Brazilië": 2,
-    "Bulgarije": 54,
+    "Bulgarije": 34,
     "Canada": 1,
-    "Curaçao": 49,
-    "Cyprus": 86,
+    "Curaçao": 54,
+    "Cyprus": 88,
+    "Dominicaanse Republiek": 1,
     "Duitsland": 2,
-    "Egypte": 448,
+    "Egypte": 459,
     "Gambia": 12,
-    "Griekenland": 2823,
-    "Italië": 143,
+    "Griekenland": 2983,
+    "Italië": 134,
     "Kaapverdische Eilanden": 12,
-    "Macedonië": 3,
-    "Marokko": 60,
-    "Portugal": 638,
-    "Spanje": 2280,
-    "Tunesië": 76,
-    "Turkije": 1521
+    "Macedonië": 5,
+    "Marokko": 57,
+    "Portugal": 634,
+    "Spanje": 2283,
+    "Tunesië": 85,
+    "Turkije": 1559
   },
-  "totalOffers": 8238,
+  "totalOffers": 8433,
   "popularDestinations": [
     {
       "name": "Griekenland",
-      "count": 2823
+      "count": 2983
     },
     {
       "name": "Spanje",
-      "count": 2280
+      "count": 2283
     },
     {
       "name": "Turkije",
-      "count": 1521
+      "count": 1559
     },
     {
       "name": "Portugal",
-      "count": 638
+      "count": 634
     },
     {
       "name": "Egypte",
-      "count": 448
+      "count": 459
     },
     {
       "name": "Italië",
-      "count": 143
+      "count": 134
     },
     {
       "name": "Cyprus",
-      "count": 86
+      "count": 88
     },
     {
       "name": "Tunesië",
-      "count": 76
+      "count": 85
     },
     {
       "name": "Marokko",
-      "count": 60
+      "count": 57
     },
     {
-      "name": "Bulgarije",
+      "name": "Curaçao",
       "count": 54
     }
   ],
@@ -1273,42 +1278,42 @@
       "title": "All inclusive",
       "description": "Alles geregeld: maaltijden, drankjes en vaak activiteiten inbegrepen.",
       "href": "/results?boardTypes=All%20Inclusive,Ultra%20All%20Inclusive",
-      "count": 2601
+      "count": 2661
     },
     {
       "id": "strand",
       "title": "Strand",
       "description": "Zon, zee en strandbestemmingen voor een ontspannen vakantie.",
       "href": "/results",
-      "count": 6629
+      "count": 6773
     },
     {
       "id": "familie",
       "title": "Familie",
       "description": "Vakanties die geschikt zijn voor gezinnen met kinderen.",
       "href": "/results?vacationTypes=Familie",
-      "count": 4113
+      "count": 4182
     },
     {
       "id": "last-minute",
       "title": "Last minute",
       "description": "Spontaan vertrekken met actuele last-minute aanbiedingen.",
       "href": "/results?sort=price",
-      "count": 2161
+      "count": 1556
     },
     {
       "id": "goedkoop",
       "title": "Goedkoop",
       "description": "Vergelijk betaalbare vakanties en vind de beste prijs.",
       "href": "/results?sort=price",
-      "count": 8225
+      "count": 8422
     },
     {
       "id": "luxe",
       "title": "Luxe",
       "description": "Premium hotels en extra comfort voor een luxe vakantie.",
       "href": "/results?stars=4&sort=stars",
-      "count": 5741
+      "count": 5885
     }
   ]
 }
