@@ -47,8 +47,11 @@ type DestinationPopupSectionProps = {
   onToggle: (name: string) => void;
 };
 
-/** Variant A: popular destinations as compact toggle chips with a small flag (same selection state as the list). */
-function PopularDestinationChips({ countries, selectedCountries, onToggle }: DestinationPopupSectionProps) {
+/**
+ * Popular destinations as a compact 3-column grid (flag + name; same selection state as the list
+ * below). Compact on purpose: the full "Alle bestemmingen" list must start above the fold.
+ */
+function PopularDestinationGrid({ countries, selectedCountries, onToggle }: DestinationPopupSectionProps) {
   if (countries.length === 0) {
     return null;
   }
@@ -58,7 +61,7 @@ function PopularDestinationChips({ countries, selectedCountries, onToggle }: Des
       <h3 id="destination-popular-title" className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#0A2D62]">
         Populaire bestemmingen
       </h3>
-      <div className="flex flex-wrap gap-2" data-testid="destination-popular">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2" data-testid="destination-popular">
         {countries.map((country) => {
           const selected = selectedCountries.has(country.name);
           return (
@@ -67,14 +70,14 @@ function PopularDestinationChips({ countries, selectedCountries, onToggle }: Des
               type="button"
               aria-pressed={selected}
               onClick={() => onToggle(country.name)}
-              className={`inline-flex h-10 items-center gap-1.5 rounded-full border px-3 text-[13.5px] transition sm:h-8 sm:px-2.5 sm:text-[13px] ${
+              className={`flex h-10 min-w-0 items-center gap-1.5 rounded-lg border px-2 text-left text-[12.5px] transition sm:h-9 sm:px-2.5 sm:text-[13px] ${
                 selected
                   ? 'border-[#1E40AF] bg-[#1E40AF] text-white'
                   : 'border-[#E0E2E7] bg-white text-[#111827] hover:border-[#93C5FD]'
               }`}
             >
-              {selected ? <span aria-hidden="true">✓</span> : <DestinationPopupFlag country={country.name} />}
-              {country.name}
+              {selected ? <span aria-hidden="true" className="w-4 shrink-0 text-center">V</span> : <DestinationPopupFlag country={country.name} />}
+              <span className="min-w-0 truncate">{country.name}</span>
             </button>
           );
         })}
@@ -233,7 +236,7 @@ export function DestinationPopup({
           <>
             {filteredPopular.length > 0 ? (
               <div className="mt-3.5 shrink-0">
-                <PopularDestinationChips
+                <PopularDestinationGrid
                   countries={filteredPopular}
                   selectedCountries={selectedSet}
                   onToggle={toggleCountry}

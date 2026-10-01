@@ -95,10 +95,11 @@
   background: #f8fafc;
 }
 
-.dap__expand {
+/* Separate hit area 1: the country checkbox (select / clear all airports of the country). */
+.dap__country-check {
   display: flex;
-  height: 32px;
-  width: 26px;
+  height: 40px;
+  width: 40px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -108,25 +109,20 @@
   cursor: pointer;
 }
 
-.dap__expand:hover {
-  background: #f1f5f9;
+.dap__country-check:hover {
+  background: #eff6ff;
 }
 
+.dap__country-check:focus-visible,
 .dap__expand:focus-visible {
   outline: 2px solid #1e40af;
-  outline-offset: -1px;
+  outline-offset: -2px;
 }
 
-.dap__chevron {
-  transition: transform 0.15s ease;
-}
-
-.dap__chevron--expanded {
-  transform: rotate(90deg);
-}
-
-.dap__country-toggle {
+/* Separate hit area 2: chevron + country name (open / close the airport list). */
+.dap__expand {
   display: flex;
+  height: 40px;
   min-width: 0;
   flex: 1;
   align-items: center;
@@ -134,23 +130,33 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  padding: 5px 8px 5px 0;
+  padding: 0 10px 0 4px;
   text-align: left;
   cursor: pointer;
 }
 
-.dap__country-toggle:focus-visible {
-  outline: 2px solid #1e40af;
-  outline-offset: -1px;
+.dap__expand:hover {
+  background: #f1f5f9;
 }
 
-.dap__country-toggle--selected,
-.dap__country:has(.dap__country-toggle--selected) {
+.dap__chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.dap__chevron--expanded {
+  transform: rotate(90deg);
+}
+
+.dap__group--selected .dap__country,
+.dap__country:has(.dap__country-check[aria-checked='true']) {
   background: #eff6ff;
 }
 
 .dap__country-label {
   overflow: hidden;
+  min-width: 0;
+  flex: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13.5px;
@@ -158,15 +164,28 @@
   color: #111827;
 }
 
+.dap__country-count {
+  flex-shrink: 0;
+  min-width: 18px;
+  border-radius: 9999px;
+  background: #dbeafe;
+  padding: 1px 6px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+/* Airports are indented under their country (past the checkbox column). */
 .dap__airports {
   display: flex;
   flex-direction: column;
-  padding: 0 2px 2px 26px;
+  padding: 0 2px 4px 40px;
 }
-
 .dap__airport {
   display: flex;
   width: 100%;
+  min-height: 36px;
   align-items: center;
   gap: 8px;
   border: none;

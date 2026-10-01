@@ -7,14 +7,22 @@ import {
   DURATION_MIN,
   durationHandleCenterX,
   durationHandleCssLeft,
-  durationRangeFromSelection,
-  durationSelectionFromRange,
+  durationModeFromSelection,
+  durationSelectionFromExact,
   durationValueCssLeft,
   durationValueFromHandleX,
+  clampExactDuration,
+  exactDurationFromSelection,
+  expandDurationRange,
+  flexibleRangeFromExact,
+  flexibleRangeFromSelection,
   formatDurationRangeLabel,
+  isFullDurationRange,
   normalizeDurationRange,
+  normalizeFlexibleDurationRange,
   pickDurationHandle,
   type DurationHandle,
+  type DurationMode,
   type DurationRange,
 } from '@/components/search/duration-popup/duration-popup-utils';
 import { destinationPopupPoppins } from '@/components/search/destination-popup/destination-popup-font';
@@ -25,7 +33,7 @@ export type DurationPopupProps = {
   open: boolean;
   selectedDurations: number[];
   onClose: () => void;
-  /** Receives the existing `nights` representation: contiguous list of trip days (empty = any duration). */
+  /** Receives the existing `nights` representation: [8] (exact) or a contiguous list 7..10 (flexible); empty = no duration filter. */
   onChange: (selectedDurations: number[]) => void;
 };
 
@@ -234,17 +242,54 @@ function DurationRangeSlider({
   );
 }
 
+type DurationDraft = {
+  mode: DurationMode;
+  /** Exact: one number of trip days. */
+  exact: number;
+  /** Flexible: inclusive range of trip days (never the full 2..32 span). */
+  range: DurationRange;
+  /** False = nothing chosen yet (no `nights` filter); values below are only a muted starting point. */
+  chosen: boolean;
+};
+
+function draftFromSelection(selected: number[]): DurationDraft {
+  const mode = durationModeFromSelection(selected);
+  const exact = exactDurationFromSelection(selected);
+  return {
+    mode,
+    exact,
+    range: selected.length > 1 ? flexibleRangeFromSelection(selected) : flexibleRangeFromExact(exact),
+    chosen: selected.length > 0,
+  };
+}
+
+function selectionFromDraft(draft: DurationDraft): number[] {
+  if (!draft.chosen) {
+    return [];
+  }
+  return draft.mode === 'exact'
+    ? durationSelectionFromExact(draft.exact)
+    : expandDurationRange(draft.range.min, draft.range.max);
+}
+
 function DurationPopupPanel({
-  range,
+  draft,
   onClose,
+  onModeChange,
+  onExactChange,
   onRangeChange,
+  onClear,
   onSave,
 }: {
-  range: DurationRange;
+  draft: DurationDraft;
   onClose: () => void;
+  onModeChange: (mode: DurationMode) => void;
+  onExactChange: (days: number) => void;
   onRangeChange: (next: DurationRange) => void;
+  onClear: () => void;
   onSave: () => void;
 }) {
+  const { range } = draft;
   const step = (handle: Handle, delta: number) => {
     if (handle === 'min') {
       onRangeChange(normalizeDurationRange(range.min + delta, range.max, 'min'));
@@ -252,6 +297,9 @@ function DurationPopupPanel({
       onRangeChange(normalizeDurationRange(range.min, range.max + delta, 'max'));
     }
   };
+  const summary = draft.mode === 'exact'
+    ? formatDurationRangeLabel({ min: draft.exact, max: draft.exact })
+    : formatDurationRangeLabel(range);
 
   return (
     <div
@@ -275,34 +323,137 @@ function DurationPopupPanel({
         </button>
       </div>
 
-
-      <div className="mt-2 grid grid-cols-2 gap-2.5">
-        <DurationStepper
-          handle="min"
-          label="Minimaal"
-          value={range.min}
-          canDecrease={range.min > DURATION_MIN}
-          canIncrease={range.min < range.max}
-          onStep={step}
-        />
-        <DurationStepper
-          handle="max"
-          label="Maximaal"
-          value={range.max}
-          canDecrease={range.max > range.min}
-          canIncrease={range.max < DURATION_MAX}
-          onStep={step}
-        />
+      <div className="duration-popup__tabs" role="tablist" aria-label="Soort reisduur" data-testid="duration-tabs">
+        {(
+          [
+            ['exact', 'Exact', draft.chosen ? formatDurationRangeLabel({ min: draft.exact, max: draft.exact }) : 'Een aantal dagen'],
+            ['flexibel', 'Flexibel', draft.chosen ? formatDurationRangeLabel(range) : 'Van - tot'],
+          ] as const
+        ).map(([mode, label, sub]) => (
+          <button
+            key={mode}
+            type="button"
+            role="tab"
+            id={`duration-tab-${mode}`}
+            aria-selected={draft.mode === mode}
+            aria-controls="duration-tabpanel"
+            data-testid={`duration-tab-${mode}`}
+            onClick={() => onModeChange(mode)}
+            className={`duration-popup__tab ${draft.mode === mode ? 'duration-popup__tab--active' : ''}`}
+          >
+            {label}
+            <small>{sub}</small>
+          </button>
+        ))}
       </div>
 
-      <DurationRangeSlider range={range} onChange={onRangeChange} />
+      <div
+        role="tabpanel"
+        id="duration-tabpanel"
+        aria-labelledby={`duration-tab-${draft.mode}`}
+        className={draft.chosen ? '' : 'duration-popup--unset'}
+      >
+        {draft.mode === 'exact' ? (
+          <div data-testid="duration-exact">
+            <div className="mt-1">
+              <div className="duration-popup__stepper">
+                <span className="duration-popup__stepper-label" id="duration-exact-label">
+                  Aantal dagen
+                </span>
+                <div className="duration-popup__stepper-row">
+                  <button
+                    type="button"
+                    className="duration-popup__stepper-button"
+                    aria-label="Aantal dagen verlagen"
+                    data-testid="duration-exact-dec"
+                    disabled={draft.exact <= DURATION_MIN}
+                    onClick={() => onExactChange(draft.exact - 1)}
+                  >
+                    -
+                  </button>
+                  <span className="duration-popup__stepper-value" aria-live="polite" data-testid="duration-exact-value">
+                    {draft.exact}
+                    <small>dagen</small>
+                  </span>
+                  <button
+                    type="button"
+                    className="duration-popup__stepper-button"
+                    aria-label="Aantal dagen verhogen"
+                    data-testid="duration-exact-inc"
+                    disabled={draft.exact >= DURATION_MAX}
+                    onClick={() => onExactChange(draft.exact + 1)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="duration-popup__slider-wrap">
+              <input
+                type="range"
+                className="duration-popup__exact-range"
+                data-testid="duration-exact-range"
+                min={DURATION_MIN}
+                max={DURATION_MAX}
+                step={1}
+                value={draft.exact}
+                aria-labelledby="duration-exact-label"
+                aria-valuetext={`${draft.exact} dagen`}
+                onChange={(event) => onExactChange(Number(event.target.value))}
+              />
+              <div className="duration-popup__ticks" aria-hidden="true">
+                {TICKS.map((tick) => (
+                  <span key={tick} style={{ left: `${((tick - DURATION_MIN) / (DURATION_MAX - DURATION_MIN)) * 100}%` }}>
+                    {tick}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div data-testid="duration-flexible">
+            <div className="mt-1 grid grid-cols-2 gap-2.5">
+              <DurationStepper
+                handle="min"
+                label="Minimaal"
+                value={range.min}
+                canDecrease={range.min > DURATION_MIN}
+                canIncrease={range.min < range.max}
+                onStep={step}
+              />
+              <DurationStepper
+                handle="max"
+                label="Maximaal"
+                value={range.max}
+                canDecrease={range.max > range.min}
+                canIncrease={range.max < DURATION_MAX}
+                onStep={step}
+              />
+            </div>
+            <DurationRangeSlider range={range} onChange={onRangeChange} />
+          </div>
+        )}
+      </div>
 
       <div className="mt-4 flex shrink-0 items-center justify-between gap-3">
-        <p className="min-w-0 text-[12.5px] text-[#475569]">
-          Gekozen:{' '}
-          <span data-testid="duration-summary" className="font-semibold text-[#0A2D62]">
-            {formatDurationRangeLabel(range)}
-          </span>
+        <p className="min-w-0 text-[12.5px] text-[#475569]" data-testid="duration-footer">
+          {draft.chosen ? (
+            <>
+              <span data-testid="duration-summary" className="font-semibold text-[#0A2D62]">
+                {summary}
+              </span>
+              <button
+                type="button"
+                onClick={onClear}
+                data-testid="duration-clear"
+                className="ml-3 font-medium text-[#1E40AF] underline underline-offset-2"
+              >
+                Wissen
+              </button>
+            </>
+          ) : (
+            <span data-testid="duration-summary" className="text-[#64748B]">Optioneel</span>
+          )}
         </p>
         <button
           type="button"
@@ -323,7 +474,7 @@ export function DurationPopup({
   onChange,
 }: DurationPopupProps) {
   const [mounted, setMounted] = useState(false);
-  const [draftRange, setDraftRange] = useState<DurationRange>(() => durationRangeFromSelection(selectedDurations));
+  const [draft, setDraft] = useState<DurationDraft>(() => draftFromSelection(selectedDurations));
   const [draftDirty, setDraftDirty] = useState(false);
   const overlayReadyRef = useRef(false);
 
@@ -331,14 +482,14 @@ export function DurationPopup({
     setMounted(true);
   }, []);
 
-  // Seed the draft only on the closed→open transition. Kept separate from the listener effect
+  // Seed the draft only on the closed->open transition. Kept separate from the listener effect
   // below (which re-runs when the parent passes a new inline onClose), so a parent re-render
-  // while the popup is open can never reset an edited range before OPSLAAN.
+  // while the popup is open can never reset an edited value before OPSLAAN.
   useEffect(() => {
     if (!open) {
       return;
     }
-    setDraftRange(durationRangeFromSelection(selectedDurations));
+    setDraft(draftFromSelection(selectedDurations));
     setDraftDirty(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedDurations read on open only
   }, [open]);
@@ -372,8 +523,36 @@ export function DurationPopup({
     };
   }, [onClose, open]);
 
+  // Switching tabs only changes which value is shown; nothing is chosen until a value is touched.
+  const handleModeChange = (mode: DurationMode) => {
+    setDraft((current) => {
+      if (current.mode === mode) {
+        return current;
+      }
+      return mode === 'flexibel'
+        ? { ...current, mode, range: current.chosen ? flexibleRangeFromExact(current.exact) : current.range }
+        : { ...current, mode, exact: current.chosen ? current.range.min : current.exact };
+    });
+  };
+
+  const handleExactChange = (days: number) => {
+    setDraft((current) => ({ ...current, exact: clampExactDuration(days), chosen: true }));
+    setDraftDirty(true);
+  };
+
+  // Flexible range: the full 2..32 span is "any duration" and is never an explicit choice.
   const handleRangeChange = (next: DurationRange) => {
-    setDraftRange(next);
+    setDraft((current) => {
+      const fixed = isFullDurationRange(next)
+        ? normalizeFlexibleDurationRange(next.min, next.max, current.range.min !== next.min ? 'min' : 'max')
+        : next;
+      return { ...current, range: fixed, chosen: true };
+    });
+    setDraftDirty(true);
+  };
+
+  const handleClear = () => {
+    setDraft(draftFromSelection([]));
     setDraftDirty(true);
   };
 
@@ -381,7 +560,7 @@ export function DurationPopup({
     // Untouched draft: keep the applied selection as-is (a legacy non-contiguous `nights`
     // list such as 7,14 is only widened to 7..14 once the user actually edits the range).
     if (draftDirty) {
-      onChange(durationSelectionFromRange(draftRange));
+      onChange(selectionFromDraft(draft));
     }
     onClose();
   };
@@ -408,9 +587,12 @@ export function DurationPopup({
       />
       <div className="relative z-10" onClick={(event) => event.stopPropagation()}>
         <DurationPopupPanel
-          range={draftRange}
+          draft={draft}
           onClose={onClose}
+          onModeChange={handleModeChange}
+          onExactChange={handleExactChange}
           onRangeChange={handleRangeChange}
+          onClear={handleClear}
           onSave={handleSave}
         />
       </div>

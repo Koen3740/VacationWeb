@@ -133,6 +133,72 @@ export function durationSelectionFromRange(range: DurationRange): number[] {
   return expandDurationRange(normalized.min, normalized.max);
 }
 
+/*
+ * Reisduur has two explicit ways to choose (Koen, 01-10-2026): EXACT (one number of days) and
+ * FLEXIBEL (a range). There is no "any duration" choice: not choosing = no `nights` param
+ * (existing URL semantics, kept internally, never presented as an option).
+ * URL: exact = `nights=8` (one element, equivalent to nightsMin=nightsMax=8); flexible = the
+ * contiguous `nights=7,8,9,10` list. `nights` is trip days for every provider (no conversion).
+ */
+export type DurationMode = 'exact' | 'flexibel';
+
+/** Most common catalog duration (5.855 of 8.433 offers); only a pre-filled starting point, never applied unasked. */
+export const DEFAULT_EXACT_DURATION = 8;
+
+/** Flexible range seeded from an exact value (e.g. 7 -> 7-10). */
+export const FLEXIBLE_SEED_SPAN = 3;
+
+export function clampExactDuration(days: number): number {
+  return clampDurationDay(days);
+}
+
+/** 0 or 1 chosen value = exact; a list of several days = flexible range. */
+export function durationModeFromSelection(selected: number[]): DurationMode {
+  const valid = selected.filter((value) => Number.isFinite(value));
+  return new Set(valid).size >= 2 ? 'flexibel' : 'exact';
+}
+
+export function exactDurationFromSelection(selected: number[]): number {
+  const valid = selected.filter((value) => Number.isFinite(value));
+  if (valid.length === 0) {
+    return DEFAULT_EXACT_DURATION;
+  }
+  return clampDurationDay(Math.min(...valid));
+}
+
+export function durationSelectionFromExact(days: number): number[] {
+  return [clampDurationDay(days)];
+}
+
+export function flexibleRangeFromExact(days: number): DurationRange {
+  const min = clampDurationDay(days);
+  return { min, max: Math.min(DURATION_MAX, min + FLEXIBLE_SEED_SPAN) };
+}
+
+/**
+ * Flexible range: same rules as `normalizeDurationRange`, but the full 2..32 span is never an
+ * explicit choice (that would be "any duration"): the moved handle stops one step before it.
+ */
+export function normalizeFlexibleDurationRange(
+  min: number,
+  max: number,
+  changed: 'min' | 'max' = 'min',
+): DurationRange {
+  const next = normalizeDurationRange(min, max, changed);
+  if (isFullDurationRange(next)) {
+    return changed === 'min'
+      ? { min: DURATION_MIN + 1, max: next.max }
+      : { min: next.min, max: DURATION_MAX - 1 };
+  }
+  return next;
+}
+
+/** Flexible draft from an applied list; a legacy full 2..32 list is shown one step narrower. */
+export function flexibleRangeFromSelection(selected: number[]): DurationRange {
+  const range = durationRangeFromSelection(selected);
+  return normalizeFlexibleDurationRange(range.min, range.max, 'max');
+}
+
 /** Clamp to 2..32 and enforce min <= max; the handle that moved (`changed`) wins. */
 export function normalizeDurationRange(
   min: number,
@@ -152,9 +218,6 @@ export function normalizeDurationRange(
 }
 
 export function formatDurationRangeLabel(range: DurationRange): string {
-  if (isFullDurationRange(range)) {
-    return 'Elke duur';
-  }
   if (range.min === range.max) {
     return `${range.min} dagen`;
   }

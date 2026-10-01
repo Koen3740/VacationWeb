@@ -137,7 +137,7 @@ function DeparturePeriodPopupPanel({
       <div className="departure-period-popup__tabs" role="tablist" aria-label="Soort vertrek">
         {(
           [
-            ['vast', 'Vaste vertrekdatum', '1 dag, evt. ± marge'],
+            ['vast', 'Vaste vertrekdatum', 'Exact of met marge'],
             ['periode', 'Vertrekperiode', 'van – tot'],
           ] as const
         ).map(([tab, label, sub]) => (

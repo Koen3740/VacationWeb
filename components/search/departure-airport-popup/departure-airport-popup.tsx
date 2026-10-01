@@ -63,11 +63,12 @@ function CheckboxMark({ selected, indeterminate }: { selected: boolean; indeterm
       }`}
       aria-hidden="true"
     >
-      {indeterminate && !selected ? '–' : '✓'}
+      {indeterminate && !selected ? '-' : 'V'}
     </span>
   );
 }
 
+/** Individual airport: a checkbox row, indented under its country. */
 function AirportRow({
   code,
   selected,
@@ -81,12 +82,14 @@ function AirportRow({
   return (
     <button
       type="button"
+      role="checkbox"
+      aria-checked={selected}
+      data-testid={`dap-airport-${iata}`}
       onClick={(event) => {
         event.stopPropagation();
         onToggle(code);
       }}
       className={`dap__airport ${selected ? 'dap__airport--selected' : ''}`}
-      aria-pressed={selected}
     >
       <CheckboxMark selected={selected} />
       <span className="dap__airport-name">{formatDepartureAirportOptionLabel(code)}</span>
@@ -95,6 +98,11 @@ function AirportRow({
   );
 }
 
+/**
+ * Country group: [checkbox] and [chevron + country name] are two separate controls.
+ * The checkbox (aria-checked true / mixed / false) selects or clears every airport of the country;
+ * the expand control (aria-expanded) only opens or closes the airport list.
+ */
 function CountryGroupBlock({
   countryCode,
   countryLabel,
@@ -117,38 +125,47 @@ function CountryGroupBlock({
   const selectedCount = airportCodes.filter((code) => selectedSet.has(code.toUpperCase())).length;
   const allSelected = selectedCount === airportCodes.length && airportCodes.length > 0;
   const someSelected = selectedCount > 0 && !allSelected;
+  const listId = `dap-airports-${countryCode}`;
 
   return (
-    <div className="dap__group">
+    <div className={`dap__group ${allSelected ? 'dap__group--selected' : ''}`} data-testid={`dap-group-${countryCode}`}>
       <div className="dap__country">
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={allSelected ? true : someSelected ? 'mixed' : false}
+          aria-label={`Alle luchthavens ${countryLabel}`}
+          data-testid={`dap-country-check-${countryCode}`}
+          className="dap__country-check"
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleCountry(airportCodes, !allSelected);
+          }}
+        >
+          <CheckboxMark selected={allSelected} indeterminate={someSelected} />
+        </button>
         <button
           type="button"
           className="dap__expand"
           aria-expanded={expanded}
-          aria-label={`${expanded ? 'Inklappen' : 'Uitklappen'} ${countryLabel}`}
+          aria-controls={listId}
+          data-testid={`dap-country-expand-${countryCode}`}
           onClick={(event) => {
             event.stopPropagation();
             onToggleExpand(countryCode);
           }}
         >
           <ChevronIcon expanded={expanded} />
-        </button>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleCountry(airportCodes, !allSelected);
-          }}
-          className={`dap__country-toggle ${allSelected ? 'dap__country-toggle--selected' : ''}`}
-          aria-pressed={allSelected}
-          aria-label={`${countryLabel}${allSelected ? ', alle geselecteerd' : someSelected ? ', deels geselecteerd' : ''}`}
-        >
-          <CheckboxMark selected={allSelected} indeterminate={someSelected} />
           <span className="dap__country-label">{countryLabel}</span>
+          {selectedCount > 0 ? (
+            <span className="dap__country-count" aria-hidden="true">
+              {selectedCount}
+            </span>
+          ) : null}
         </button>
       </div>
       {expanded ? (
-        <div className="dap__airports">
+        <div className="dap__airports" id={listId} role="group" aria-label={`Luchthavens ${countryLabel}`}>
           {airportCodes.map((code) => (
             <AirportRow
               key={code}
@@ -162,7 +179,6 @@ function CountryGroupBlock({
     </div>
   );
 }
-
 function DepartureAirportPopupPanel({
   selectedAirports,
   onClose,
@@ -182,10 +198,8 @@ function DepartureAirportPopupPanel({
     [selectedAirports],
   );
   const [expandedCountries, setExpandedCountries] = useState<Set<AirportCountryCode>>(() => {
-    const withSelected = getCountriesWithSelectedAirports(selectedAirports, groups);
-    if (withSelected.size > 0) return withSelected;
-    // Empty selection: open the full tree so hierarchy (name + IATA) is immediately scannable.
-    return new Set(groups.map((group) => group.countryCode));
+    // Compact by default: groups are closed; only countries that already hold a selected airport open.
+    return getCountriesWithSelectedAirports(selectedAirports, groups);
   });
 
   const handleToggleExpand = (countryCode: AirportCountryCode) => {

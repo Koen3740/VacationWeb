@@ -117,43 +117,60 @@
   display: none;
 }
 
-/* Segmented tabs (prototype): grey track, active tab white with shadow, subtitle below. */
+/* Segmented control: two equal, clearly separated modes. Active = solid brand blue with white
+   text (unmistakable on open); inactive = white with a visible border. Subtitle below the label. */
 .departure-period-popup__tabs {
-  display: flex;
+  display: grid;
   flex-shrink: 0;
-  margin: 12px 0 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 14px 0 14px;
   padding: 4px;
-  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
   background: #f1f5f9;
 }
 
 .departure-period-popup__tab {
-  flex: 1;
-  min-height: 48px;
-  padding: 7px 6px;
-  border: 0;
-  border-radius: 8px;
+  min-height: 56px;
+  padding: 8px 8px;
+  border: 1px solid transparent;
+  border-radius: 9px;
   background: transparent;
-  font-size: 13.5px;
-  font-weight: 500;
+  font-size: 14.5px;
+  font-weight: 600;
   line-height: 1.3;
   color: #475569;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.departure-period-popup__tab:hover:not(.departure-period-popup__tab--active) {
+  background: #e2e8f0;
+  color: #0a2d62;
+}
+
+.departure-period-popup__tab:focus-visible {
+  outline: 2px solid #1e40af;
+  outline-offset: 2px;
 }
 
 .departure-period-popup__tab small {
   display: block;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 400;
   color: #64748b;
 }
 
 .departure-period-popup__tab--active {
-  background: #ffffff;
-  color: #0a2d62;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  background: #1e40af;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(30, 64, 175, 0.35);
 }
 
+.departure-period-popup__tab--active small {
+  color: #dbeafe;
+}
 /* Margin chips: "Marge:" label + pill chips that wrap (Exacte datum, ± 1, ± 2, ± 3). */
 .departure-period-popup__flexibility {
   display: flex;

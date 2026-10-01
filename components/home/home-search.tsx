@@ -172,7 +172,7 @@ export function HomeSearch({
     selectedCountries.length === 0 ? 'Waar wil je naartoe?' : formatSelectedCountriesLabel(selectedCountries);
   const destinationHint =
     selectedCountries.length === 0
-      ? 'Land of regio — jij kiest'
+      ? 'Kies een of meer bestemmingen'
       : selectedCountries.length === 1
         ? '1 land'
         : `${selectedCountries.length} landen`;
@@ -185,12 +185,10 @@ export function HomeSearch({
   const departureValue = departureDisplay.label ?? 'Data flexibel';
   const departureHint = departureDisplay.hint ?? 'Datum of periode';
 
-  // Truthful field: without a selection no `nights` filter is sent, so show "Elke duur".
-  // Catalog/URL duration (`nights`) is in trip days for all providers → one unit: dagen.
+  // No selection = no `nights` filter (internal URL semantics); it is never presented as a choice,
+  // so the field shows a neutral placeholder. `nights` is in trip days for all providers.
   const durationValue =
-    selectedDurations.length === 0
-      ? 'Elke duur'
-      : formatSelectedDurationsLabel(selectedDurations);
+    selectedDurations.length === 0 ? 'Aantal dagen' : formatSelectedDurationsLabel(selectedDurations);
   const airportValue = formatSelectedDepartureAirportsLabel(selectedDepartureAirports);
   const travelersValue = formatTravelersLabel(travelers);
   const travelersHint = formatRoomsLabel(travelers);
@@ -298,9 +296,9 @@ export function HomeSearch({
               className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
-                label="Duur"
+                label="Reisduur"
                 value={durationValue}
-                hint="Reisduur in dagen"
+                hint="Exact of flexibel"
                 icon={<DurationIcon />}
               />
             </button>
@@ -313,7 +311,7 @@ export function HomeSearch({
               className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
-                label="Luchthaven"
+                label="Vertrekluchthaven"
                 value={airportValue}
                 hint="Flexibel"
                 icon={<PlaneIcon />}

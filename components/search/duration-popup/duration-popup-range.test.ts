@@ -58,8 +58,8 @@ test('min <= max is enforced; the moved handle wins', () => {
   assert.deepEqual(normalizeDurationRange(0, 99), { min: DURATION_MIN, max: DURATION_MAX });
 });
 
-test('range label uses one unit (dagen) and "Elke duur" for no filter', () => {
+test('range label uses one unit (dagen); there is no "any duration" label', () => {
   assert.equal(formatDurationRangeLabel({ min: 7, max: 14 }), '7–14 dagen');
   assert.equal(formatDurationRangeLabel({ min: 8, max: 8 }), '8 dagen');
-  assert.equal(formatDurationRangeLabel({ min: DURATION_MIN, max: DURATION_MAX }), 'Elke duur');
+  assert.equal(formatDurationRangeLabel({ min: DURATION_MIN, max: DURATION_MAX }), '2\u201332 dagen');
 });
