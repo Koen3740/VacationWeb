@@ -103,6 +103,16 @@ export function compactStoredOffer(stored: StoredOffer): {
   if (stored.hasCarRental === true) {
     runtime.hasCarRental = true;
   }
+  assignIfPresent(runtime, 'centerDistanceM', stored.centerDistanceM);
+  if (stored.centerIsIn === true) {
+    runtime.centerIsIn = true;
+  }
+  assignIfPresent(runtime, 'beachDistanceM', stored.beachDistanceM);
+  if (stored.beachDirect === true) {
+    runtime.beachDirect = true;
+  }
+  assignIfPresent(runtime, 'coastDistanceM', stored.coastDistanceM);
+  assignIfPresent(runtime, 'settingClass', stored.settingClass);
   assignIfPresent(runtime, 'currency', stored.currency);
   assignIfPresent(runtime, 'stars', stored.stars ?? undefined);
   assignIfPresent(runtime, 'rating', stored.rating ?? undefined);

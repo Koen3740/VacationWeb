@@ -27,6 +27,7 @@ import {
   parseBeachLocationsParam,
   parseCenterLocationsParam,
 } from '@/lib/search/location-filters';
+import { offerMatchesLiggingFilters } from '@/lib/search/ligging-filters';
 import {
   offerMatchesAnyVacationType,
   offerMatchesVacationType,
@@ -131,7 +132,12 @@ export function filterOffers(
     }
   }
 
-  const flexibilityDays = params.flexibilityDays ?? 0;
+  // Search Architecture v2.13: ± flexibility only applies to one exact departure date;
+  // a period (start ≠ end) is never widened, even if a legacy URL still carries flexibilityDays.
+  const requestedStartIso = normalizeDepartureDateToIso(params.departureStart);
+  const requestedEndIso = normalizeDepartureDateToIso(params.departureEnd) ?? requestedStartIso;
+  const isExactDepartureDate = Boolean(requestedStartIso) && requestedStartIso === requestedEndIso;
+  const flexibilityDays = isExactDepartureDate ? (params.flexibilityDays ?? 0) : 0;
   const minBookable = earliestSelectableDepartureIso();
   const windowStart = bookableWindow.departureStart;
   const windowEnd = bookableWindow.departureEnd;
@@ -256,6 +262,10 @@ export function filterOffers(
       if (selected.length > 0 && !offerMatchesAnyCenterLocation(offer, selected)) {
         continue;
       }
+    }
+
+    if (!offerMatchesLiggingFilters(offer, params)) {
+      continue;
     }
 
     if (params.amenities?.length) {

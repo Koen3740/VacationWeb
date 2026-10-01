@@ -40,6 +40,14 @@ export interface TravelOffer {
    */
   hasCarRental?: boolean;
 
+  // Ligging (absent = unknown; see StoredOffer)
+  centerDistanceM?: number;
+  centerIsIn?: boolean;
+  beachDistanceM?: number;
+  beachDirect?: boolean;
+  coastDistanceM?: number;
+  settingClass?: number;
+
   // Prijs
   price: number;
   pricePerDay: number;

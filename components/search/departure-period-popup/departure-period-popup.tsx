@@ -2,20 +2,31 @@
 
 import { DeparturePeriodCalendar } from '@/components/search/departure-period-popup/departure-period-calendar';
 import '@/components/search/departure-period-popup/departure-period-popup.css';
-import { isSameDay, parseIsoDate } from '@/components/search/departure-period-popup/departure-period-popup-utils';
+import {
+  FLEXIBILITY_DAY_VALUES,
+  flexibilityForSelection,
+  isDeparturePeriod,
+  parseIsoDate,
+  selectFixedDepartureDate,
+  selectPeriodDepartureDate,
+  type FlexibilityDays,
+} from '@/components/search/departure-period-popup/departure-period-popup-utils';
 import { destinationPopupPoppins } from '@/components/search/destination-popup/destination-popup-font';
 import { isSelectableDepartureIso } from '@/lib/search/departure-date';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-export type TabId = 'kalender' | 'flexibel';
-export type FlexibilityDays = 0 | 1 | 2;
+export type { FlexibilityDays } from '@/components/search/departure-period-popup/departure-period-popup-utils';
 
-const FLEXIBILITY_OPTIONS: { value: FlexibilityDays; label: string }[] = [
-  { value: 0, label: 'Exacte datum' },
-  { value: 1, label: '± 1 dag' },
-  { value: 2, label: '± 2 dagen' },
-];
+/** `vast` = one fixed departure date (+ optional ± margin); `periode` = from/to without margin. */
+export type TabId = 'vast' | 'periode';
+
+const FLEXIBILITY_LABELS: Record<FlexibilityDays, string> = {
+  0: 'Exacte datum',
+  1: '± 1 dag',
+  2: '± 2 dagen',
+  3: '± 3 dagen',
+};
 
 export type DeparturePeriodPopupProps = {
   open: boolean;
@@ -23,6 +34,10 @@ export type DeparturePeriodPopupProps = {
   endDate: string | null;
   flexibilityDays?: FlexibilityDays;
   onClose: () => void;
+  /**
+   * Called on every committed change. `flexibilityDays` is always passed explicitly
+   * (0 for a period) so a previous ± margin can never stay active on a period.
+   */
   onChange: (
     startDate: string | null,
     endDate: string | null,
@@ -42,132 +57,171 @@ function CloseIcon() {
 
 function DeparturePeriodPopupPanel({
   activeTab,
-  kalenderStart,
-  kalenderEnd,
-  flexStart,
-  flexEnd,
+  fixedDate,
+  periodStart,
+  periodEnd,
   flexibilityDays,
   viewYear,
   viewMonth,
+  hoverDate,
+  onHoverDateChange,
   onClose,
   onTabChange,
   onPrevMonth,
   onNextMonth,
   onSelectDate,
   onFlexibilityChange,
+  onClear,
   showClose = true,
 }: {
   activeTab: TabId;
-  kalenderStart: string | null;
-  kalenderEnd: string | null;
-  flexStart: string | null;
-  flexEnd: string | null;
+  fixedDate: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
   flexibilityDays: FlexibilityDays;
   viewYear: number;
   viewMonth: number;
+  hoverDate: string | null;
+  onHoverDateChange: (isoDate: string | null) => void;
   onClose?: () => void;
   onTabChange: (tab: TabId) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onSelectDate: (isoDate: string) => void;
   onFlexibilityChange: (days: FlexibilityDays) => void;
+  onClear: () => void;
   showClose?: boolean;
 }) {
-  const isKalender = activeTab === 'kalender';
+  const isFixed = activeTab === 'vast';
+  const hasSelection = isFixed ? Boolean(fixedDate) : Boolean(periodStart);
+  const nextYear = viewMonth === 11 ? viewYear + 1 : viewYear;
+  const nextMonth = viewMonth === 11 ? 0 : viewMonth + 1;
+  const calendarProps = {
+    mode: (isFixed ? 'single' : 'range') as 'single' | 'range',
+    startDate: isFixed ? fixedDate : periodStart,
+    endDate: isFixed ? null : periodEnd,
+    flexibilityDays: isFixed ? flexibilityDays : 0,
+    onPrevMonth,
+    onNextMonth,
+    onSelectDate,
+    hoverDate,
+    onHoverDateChange,
+  };
 
   return (
     <div
       role="dialog"
       aria-modal={showClose}
       aria-labelledby="departure-period-popup-title"
-      className={`w-[560px] overflow-hidden rounded-xl bg-white p-5 shadow-[0_8px_24px_rgba(0,0,0,0.15)] ${destinationPopupPoppins.className}`}
+      data-testid="departure-period-popup"
+      className={`departure-period-popup flex max-h-[100dvh] w-full flex-col overflow-y-auto overscroll-contain rounded-t-2xl bg-white px-4 pt-4 shadow-[0_12px_32px_rgba(0,0,0,0.25)] sm:max-h-[calc(100dvh-2rem)] sm:w-[440px] sm:rounded-2xl sm:px-6 sm:pt-5 md:w-[720px] md:px-[26px] md:pt-[22px] ${destinationPopupPoppins.className}`}
     >
-      <div className="mb-4 flex items-center justify-between">
+      <div className="flex shrink-0 items-center justify-between">
         <h2 id="departure-period-popup-title" className="text-base font-semibold text-[#1E40AF]">
-          Vertrekperiode
+          Wanneer wil je vertrekken?
         </h2>
         {showClose && onClose ? (
           <button
             type="button"
             onClick={onClose}
-            className="flex h-6 w-6 items-center justify-center"
+            className="-mr-2 flex h-10 w-10 items-center justify-center rounded-full hover:bg-[#F1F5F9]"
             aria-label="Sluiten"
           >
             <CloseIcon />
           </button>
         ) : (
-          <div className="h-6 w-6" aria-hidden="true" />
+          <div className="h-10 w-10" aria-hidden="true" />
         )}
       </div>
 
-      <div className="mb-5 flex rounded-full bg-[#1E40AF] p-1" role="tablist" aria-label="Vertrekperiode type">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={isKalender}
-          onClick={() => onTabChange('kalender')}
-          className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-            isKalender
-              ? 'bg-white text-[#1f2937]'
-              : 'bg-transparent text-white'
-          }`}
-        >
-          Kalender
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!isKalender}
-          onClick={() => onTabChange('flexibel')}
-          className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-            !isKalender
-              ? 'bg-white text-[#1f2937]'
-              : 'bg-transparent text-white'
-          }`}
-        >
-          Ik ben flexibel
-        </button>
+      <div className="departure-period-popup__tabs" role="tablist" aria-label="Soort vertrek">
+        {(
+          [
+            ['vast', 'Vaste vertrekdatum', '1 dag, evt. ± marge'],
+            ['periode', 'Vertrekperiode', 'van – tot'],
+          ] as const
+        ).map(([tab, label, sub]) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab}
+            onClick={() => onTabChange(tab)}
+            className={`departure-period-popup__tab ${activeTab === tab ? 'departure-period-popup__tab--active' : ''}`}
+          >
+            {label}
+            <small>{sub}</small>
+          </button>
+        ))}
       </div>
 
-      <div role="tabpanel" aria-label={isKalender ? 'Kalender' : 'Ik ben flexibel'}>
-        <DeparturePeriodCalendar
-          mode={isKalender ? 'kalender' : 'range'}
-          viewYear={viewYear}
-          viewMonth={viewMonth}
-          startDate={isKalender ? kalenderStart : flexStart}
-          endDate={isKalender ? kalenderEnd : flexEnd}
-          flexibilityDays={isKalender ? flexibilityDays : undefined}
-          onPrevMonth={onPrevMonth}
-          onNextMonth={onNextMonth}
-          onSelectDate={onSelectDate}
-        />
-      </div>
+      {isFixed ? (
+        <>
+          <div
+            className="departure-period-popup__flexibility"
+            role="group"
+            aria-label="Marge rond je vertrekdatum"
+          >
+            <span className="departure-period-popup__flexibility-label" aria-hidden="true">Marge:</span>
+            {FLEXIBILITY_DAY_VALUES.map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={flexibilityDays === value}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onFlexibilityChange(value);
+                }}
+                className={`departure-period-popup__flexibility-option ${
+                  flexibilityDays === value ? 'departure-period-popup__flexibility-option--active' : ''
+                }`}
+              >
+                {FLEXIBILITY_LABELS[value]}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
 
-      {isKalender ? (
-        <div className="departure-period-popup__flexibility" role="group" aria-label="Flexibiliteit rond vertrekdatum">
-          {FLEXIBILITY_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onFlexibilityChange(option.value);
-              }}
-              className={`departure-period-popup__flexibility-option ${
-                flexibilityDays === option.value
-                  ? 'departure-period-popup__flexibility-option--active'
-                  : ''
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+      {/* Mobile / small: one month. Desktop (md+): two months side by side, as in the prototype. */}
+      <div role="tabpanel" aria-label={isFixed ? 'Vaste vertrekdatum' : 'Vertrekperiode'} className="flex shrink-0 gap-7">
+        <div className="min-w-0 flex-1">
+          <DeparturePeriodCalendar
+            {...calendarProps}
+            viewYear={viewYear}
+            viewMonth={viewMonth}
+            nextNavClassName="md:invisible"
+          />
         </div>
-      ) : (
-        <p className="departure-period-popup__footer">
-          Selecteer de datums waarbinnen je wil vertrekken.
-        </p>
-      )}
+        <div className="hidden min-w-0 flex-1 md:block">
+          <DeparturePeriodCalendar
+            {...calendarProps}
+            viewYear={nextYear}
+            viewMonth={nextMonth}
+            prevNavClassName="invisible"
+          />
+        </div>
+      </div>
+
+      <div className="departure-period-popup__footer-bar">
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={!hasSelection}
+          className="text-[13px] font-medium text-[#1E40AF] underline underline-offset-2 disabled:cursor-default disabled:text-[#94A3B8] disabled:no-underline"
+        >
+          Wissen
+        </button>
+        {showClose && onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 min-w-[140px] rounded-md bg-[#2E7D32] px-7 text-sm font-semibold text-white"
+          >
+            OPSLAAN
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -183,14 +237,15 @@ export function DeparturePeriodPopup({
   embedded = false,
 }: DeparturePeriodPopupProps) {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabId>('kalender');
+  const [activeTab, setActiveTab] = useState<TabId>('vast');
   const [viewYear, setViewYear] = useState(2024);
   const [viewMonth, setViewMonth] = useState(6);
-  const [kalenderStart, setKalenderStart] = useState<string | null>(null);
-  const [kalenderEnd, setKalenderEnd] = useState<string | null>(null);
-  const [flexStart, setFlexStart] = useState<string | null>(null);
-  const [flexEnd, setFlexEnd] = useState<string | null>(null);
+  const [fixedDate, setFixedDate] = useState<string | null>(null);
+  const [periodStart, setPeriodStart] = useState<string | null>(null);
+  const [periodEnd, setPeriodEnd] = useState<string | null>(null);
   const [flexibilityDays, setFlexibilityDays] = useState<FlexibilityDays>(flexibilityDaysProp);
+  // Shared provisional hover date for both visible months (desktop mouse only).
+  const [hoverDate, setHoverDate] = useState<string | null>(null);
   const wasOpenRef = useRef(false);
 
   useEffect(() => {
@@ -204,12 +259,13 @@ export function DeparturePeriodPopup({
     }
 
     if (!wasOpenRef.current) {
-      setActiveTab('kalender');
-      setKalenderStart(startDate);
-      setKalenderEnd(endDate);
-      setFlexStart(startDate);
-      setFlexEnd(endDate);
-      setFlexibilityDays(flexibilityDaysProp);
+      const isPeriod = isDeparturePeriod(startDate, endDate);
+      setActiveTab(isPeriod ? 'periode' : 'vast');
+      setFixedDate(isPeriod ? null : startDate);
+      setPeriodStart(isPeriod ? startDate : null);
+      setPeriodEnd(isPeriod ? endDate : null);
+      setFlexibilityDays(isPeriod ? 0 : flexibilityDaysProp);
+      setHoverDate(null);
 
       const initialDate = startDate ?? endDate;
       if (initialDate) {
@@ -248,14 +304,27 @@ export function DeparturePeriodPopup({
     };
   }, [embedded, onClose, open]);
 
+  const emitFixed = (date: string | null, days: FlexibilityDays) => {
+    onChange(date, null, flexibilityForSelection(date, null, days));
+  };
+
+  const emitPeriod = (start: string | null, end: string | null) => {
+    // A period never carries a ± margin (Search Architecture v2.13).
+    onChange(start, end, 0);
+  };
+
   const handleTabChange = (tab: TabId) => {
+    if (tab === activeTab) {
+      return;
+    }
     setActiveTab(tab);
+    setHoverDate(null);
     onTabChange?.(tab);
 
-    if (tab === 'kalender') {
-      onChange(kalenderStart, kalenderEnd, flexibilityDays);
+    if (tab === 'vast') {
+      emitFixed(fixedDate, flexibilityDays);
     } else {
-      onChange(flexStart, flexEnd, undefined);
+      emitPeriod(periodStart, periodEnd);
     }
   };
 
@@ -264,69 +333,33 @@ export function DeparturePeriodPopup({
       return;
     }
 
-    if (activeTab === 'kalender') {
-      if (!kalenderStart || (kalenderStart && kalenderEnd)) {
-        setKalenderStart(isoDate);
-        setKalenderEnd(null);
-        onChange(isoDate, null, flexibilityDays);
-        return;
-      }
-
-      const start = parseIsoDate(kalenderStart);
-      const selected = parseIsoDate(isoDate);
-
-      if (selected < start) {
-        setKalenderStart(isoDate);
-        setKalenderEnd(null);
-        onChange(isoDate, null, flexibilityDays);
-        return;
-      }
-
-      if (isSameDay(selected, start)) {
-        setKalenderEnd(null);
-        onChange(isoDate, null, flexibilityDays);
-        return;
-      }
-
-      setKalenderEnd(isoDate);
-      onChange(kalenderStart, isoDate, flexibilityDays);
-      if (!embedded) {
-        window.setTimeout(onClose, 0);
-      }
+    if (activeTab === 'vast') {
+      const next = selectFixedDepartureDate(isoDate);
+      setFixedDate(next.start);
+      emitFixed(next.start, flexibilityDays);
       return;
     }
 
-    if (!flexStart || (flexStart && flexEnd)) {
-      setFlexStart(isoDate);
-      setFlexEnd(null);
-      onChange(isoDate, null, undefined);
-      return;
-    }
-
-    const start = parseIsoDate(flexStart);
-    const selected = parseIsoDate(isoDate);
-
-    if (selected < start) {
-      setFlexStart(isoDate);
-      setFlexEnd(null);
-      onChange(isoDate, null, undefined);
-      return;
-    }
-
-    setFlexEnd(isoDate);
-    onChange(flexStart, isoDate, undefined);
-    if (!embedded) {
-      window.setTimeout(onClose, 0);
-    }
+    const next = selectPeriodDepartureDate({ start: periodStart, end: periodEnd }, isoDate);
+    setPeriodStart(next.start);
+    setPeriodEnd(next.end);
+    emitPeriod(next.start, next.end);
   };
 
   const handleFlexibilityChange = (days: FlexibilityDays) => {
     setFlexibilityDays(days);
-    onChange(kalenderStart, kalenderEnd, days);
-    const isSingleDate = kalenderStart && !kalenderEnd;
-    if (isSingleDate && !embedded) {
-      window.setTimeout(onClose, 0);
+    emitFixed(fixedDate, days);
+  };
+
+  const handleClear = () => {
+    if (activeTab === 'vast') {
+      setFixedDate(null);
+      emitFixed(null, flexibilityDays);
+      return;
     }
+    setPeriodStart(null);
+    setPeriodEnd(null);
+    emitPeriod(null, null);
   };
 
   const goToPrevMonth = () => {
@@ -350,19 +383,21 @@ export function DeparturePeriodPopup({
   const panel = (
     <DeparturePeriodPopupPanel
       activeTab={activeTab}
-      kalenderStart={kalenderStart}
-      kalenderEnd={kalenderEnd}
-      flexStart={flexStart}
-      flexEnd={flexEnd}
+      fixedDate={fixedDate}
+      periodStart={periodStart}
+      periodEnd={periodEnd}
       flexibilityDays={flexibilityDays}
       viewYear={viewYear}
       viewMonth={viewMonth}
+      hoverDate={hoverDate}
+      onHoverDateChange={setHoverDate}
       onClose={onClose}
       onTabChange={handleTabChange}
       onPrevMonth={goToPrevMonth}
       onNextMonth={goToNextMonth}
       onSelectDate={handleSelectDate}
       onFlexibilityChange={handleFlexibilityChange}
+      onClear={handleClear}
       showClose={!embedded}
     />
   );
@@ -379,15 +414,22 @@ export function DeparturePeriodPopup({
     return null;
   }
 
+  // Mobile: bottom sheet (full width, max 100dvh, scrolls internally, sticky footer).
+  // sm: centred dialog with one month; md+: 720px dialog with two months side by side.
   return createPortal(
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${destinationPopupPoppins.className}`}>
+    <div
+      className={`fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4 ${destinationPopupPoppins.className}`}
+    >
       <button
         type="button"
         className="absolute inset-0 bg-[rgba(0,0,0,0.4)]"
         aria-label="Sluit vertrekperiode-popup"
         onClick={onClose}
       />
-      <div className="relative z-10" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="relative z-10 flex max-h-[100dvh] w-full justify-center sm:max-h-[calc(100dvh-2rem)] sm:w-auto"
+        onClick={(event) => event.stopPropagation()}
+      >
         {panel}
       </div>
     </div>,

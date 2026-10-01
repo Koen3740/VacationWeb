@@ -185,9 +185,11 @@ export function HomeSearch({
   const departureValue = departureDisplay.label ?? 'Data flexibel';
   const departureHint = departureDisplay.hint ?? 'Datum of periode';
 
+  // Truthful field: without a selection no `nights` filter is sent, so show "Elke duur".
+  // Catalog/URL duration (`nights`) is in trip days for all providers → one unit: dagen.
   const durationValue =
     selectedDurations.length === 0
-      ? '7–14 nachten'
+      ? 'Elke duur'
       : formatSelectedDurationsLabel(selectedDurations);
   const airportValue = formatSelectedDepartureAirportsLabel(selectedDepartureAirports);
   const travelersValue = formatTravelersLabel(travelers);
@@ -298,7 +300,7 @@ export function HomeSearch({
               <SearchField
                 label="Duur"
                 value={durationValue}
-                hint="Bijv. 7–14 nachten"
+                hint="Reisduur in dagen"
                 icon={<DurationIcon />}
               />
             </button>

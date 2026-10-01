@@ -32,17 +32,35 @@ import {
   type AmenityValue,
 } from '@/lib/search/amenity-filters';
 import {
-  BEACH_LOCATION_LABELS,
-  BEACH_LOCATION_VALUES,
-  CENTER_LOCATION_LABELS,
-  CENTER_LOCATION_VALUES,
   parseBeachLocationsParam,
   parseCenterLocationsParam,
   serializeBeachLocationsParam,
   serializeCenterLocationsParam,
-  type BeachLocation,
-  type CenterLocation,
 } from '@/lib/search/location-filters';
+import {
+  BEACH_DISTANCE_FILTER_LABEL,
+  BEACH_DISTANCE_LABELS,
+  BEACH_DISTANCE_PARAM,
+  BEACH_DISTANCE_VALUES,
+  CENTER_DISTANCE_FILTER_LABEL,
+  CENTER_DISTANCE_LABELS,
+  CENTER_DISTANCE_PARAM,
+  CENTER_DISTANCE_VALUES,
+  COAST_FILTER_LABEL,
+  COAST_PARAM,
+  RURAL_FILTER_LABEL,
+  RURAL_PARAM,
+  URBAN_FILTER_LABEL,
+  URBAN_PARAM,
+  parseBeachDistanceParam,
+  parseCenterDistanceParam,
+  parseLiggingToggleParam,
+  serializeBeachDistanceParam,
+  serializeCenterDistanceParam,
+  serializeLiggingToggleParam,
+  type BeachDistance,
+  type CenterDistance,
+} from '@/lib/search/ligging-filters';
 import {
   STAR_FILTER_VALUES,
   parseStarsParam,
@@ -94,6 +112,11 @@ function parseFilters(searchParams: URLSearchParams) {
     vacationTypes: parseVacationTypesParam(searchParams.get('vacationTypes')),
     beachLocations: parseBeachLocationsParam(searchParams.get('beachLocation')),
     centerLocations: parseCenterLocationsParam(searchParams.get('centerLocation')),
+    coast: parseLiggingToggleParam(searchParams.get(COAST_PARAM)) === true,
+    urban: parseLiggingToggleParam(searchParams.get(URBAN_PARAM)) === true,
+    rural: parseLiggingToggleParam(searchParams.get(RURAL_PARAM)) === true,
+    centerDistances: parseCenterDistanceParam(searchParams.get(CENTER_DISTANCE_PARAM)),
+    beachDistances: parseBeachDistanceParam(searchParams.get(BEACH_DISTANCE_PARAM)),
     amenities: parseAmenitiesParam(searchParams.get('amenities')),
     hasCarRental: parseHasCarRentalParam(searchParams.get('hasCarRental')) === true,
   };
@@ -261,10 +284,10 @@ export function FilterSidebar({
     sport: false,
     services: false,
   });
-  const [openLocationGroups, setOpenLocationGroups] = useState<Record<string, boolean>>({
-    beach: true,
-    center: true,
-  });
+  const [openLocationGroups, setOpenLocationGroups] = useState<Record<string, boolean>>(() => ({
+    beach: filters.beachDistances.length > 0,
+    center: filters.centerDistances.length > 0,
+  }));
 
   // Owner 25-09 23:03: no fullscreen loading overlay in the Results flow; busy only drives this control.
   const filterBusy = isNavigating || isPending;
@@ -396,6 +419,20 @@ export function FilterSidebar({
       params.delete('centerLocation');
     }
 
+    for (const [key, value] of [
+      [COAST_PARAM, serializeLiggingToggleParam(next.coast)],
+      [URBAN_PARAM, serializeLiggingToggleParam(next.urban)],
+      [RURAL_PARAM, serializeLiggingToggleParam(next.rural)],
+      [CENTER_DISTANCE_PARAM, serializeCenterDistanceParam(next.centerDistances)],
+      [BEACH_DISTANCE_PARAM, serializeBeachDistanceParam(next.beachDistances)],
+    ] as const) {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    }
+
     // Obsolete Results location filter — strip if present in the current URL.
     params.delete('seaView');
 
@@ -474,21 +511,25 @@ export function FilterSidebar({
     });
   };
 
-  const toggleBeachLocation = (value: BeachLocation) => {
+  const toggleLiggingFlag = (key: 'coast' | 'urban' | 'rural') => {
+    updateFilters({ ...filters, [key]: !filters[key] });
+  };
+
+  const toggleBeachDistance = (value: BeachDistance) => {
     updateFilters({
       ...filters,
-      beachLocations: filters.beachLocations.includes(value)
-        ? filters.beachLocations.filter((item) => item !== value)
-        : [...filters.beachLocations, value],
+      beachDistances: filters.beachDistances.includes(value)
+        ? filters.beachDistances.filter((item) => item !== value)
+        : [...filters.beachDistances, value],
     });
   };
 
-  const toggleCenterLocation = (value: CenterLocation) => {
+  const toggleCenterDistance = (value: CenterDistance) => {
     updateFilters({
       ...filters,
-      centerLocations: filters.centerLocations.includes(value)
-        ? filters.centerLocations.filter((item) => item !== value)
-        : [...filters.centerLocations, value],
+      centerDistances: filters.centerDistances.includes(value)
+        ? filters.centerDistances.filter((item) => item !== value)
+        : [...filters.centerDistances, value],
     });
   };
 
@@ -801,74 +842,87 @@ export function FilterSidebar({
           onToggle={() => toggleSection('location')}
         >
           <div className="space-y-2">
+            {(
+              [
+                ['coast', COAST_FILTER_LABEL],
+                ['urban', URBAN_FILTER_LABEL],
+                ['rural', RURAL_FILTER_LABEL],
+              ] as const
+            ).map(([key, label]) => (
+              <label
+                key={key}
+                className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]"
+              >
+                <input
+                  type="checkbox"
+                  checked={filters[key]}
+                  onChange={() => toggleLiggingFlag(key)}
+                  className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                />
+                {label}
+              </label>
+            ))}
             <NestedDisclosure
-              title="Strand"
-              open={!!openLocationGroups.beach}
-              onToggle={() => toggleLocationGroup('beach')}
-            >
-              <div className="space-y-2">
-                {BEACH_LOCATION_VALUES.map((value) => {
-                  const active = filters.beachLocations.includes(value);
-                  return (
-                    <label
-                      key={value}
-                      className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={active}
-                        onChange={() => toggleBeachLocation(value)}
-                        className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
-                      />
-                      {BEACH_LOCATION_LABELS[value]}
-                    </label>
-                  );
-                })}
-                {filters.beachLocations.length > 0 ? (
-                  <button
-                    type="button"
-                    className="pt-1 text-left text-[13px] font-medium text-[#0A2D62] underline-offset-2 hover:underline"
-                    onClick={() => updateFilters({ ...filters, beachLocations: [] })}
-                  >
-                    Wis keuze
-                  </button>
-                ) : null}
-              </div>
-            </NestedDisclosure>
-            <NestedDisclosure
-              title="Centrum"
+              title={CENTER_DISTANCE_FILTER_LABEL}
               open={!!openLocationGroups.center}
               onToggle={() => toggleLocationGroup('center')}
             >
               <div className="space-y-2">
-                {CENTER_LOCATION_VALUES.map((value) => {
-                  const active = filters.centerLocations.includes(value);
-                  return (
-                    <label
-                      key={value}
-                      className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={active}
-                        onChange={() => toggleCenterLocation(value)}
-                        className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
-                      />
-                      {CENTER_LOCATION_LABELS[value]}
-                    </label>
-                  );
-                })}
-                {filters.centerLocations.length > 0 ? (
+                {CENTER_DISTANCE_VALUES.map((value) => (
+                  <label
+                    key={value}
+                    className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.centerDistances.includes(value)}
+                      onChange={() => toggleCenterDistance(value)}
+                      className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                    />
+                    {CENTER_DISTANCE_LABELS[value]}
+                  </label>
+                ))}
+                {filters.centerDistances.length > 0 ? (
                   <button
                     type="button"
                     className="pt-1 text-left text-[13px] font-medium text-[#0A2D62] underline-offset-2 hover:underline"
-                    onClick={() => updateFilters({ ...filters, centerLocations: [] })}
+                    onClick={() => updateFilters({ ...filters, centerDistances: [] })}
                   >
                     Wis keuze
                   </button>
                 ) : null}
               </div>
             </NestedDisclosure>
+            <NestedDisclosure
+              title={BEACH_DISTANCE_FILTER_LABEL}
+              open={!!openLocationGroups.beach}
+              onToggle={() => toggleLocationGroup('beach')}
+            >
+              <div className="space-y-2">
+                {BEACH_DISTANCE_VALUES.map((value) => (
+                  <label
+                    key={value}
+                    className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.beachDistances.includes(value)}
+                      onChange={() => toggleBeachDistance(value)}
+                      className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                    />
+                    {BEACH_DISTANCE_LABELS[value]}
+                  </label>
+                ))}
+                {filters.beachDistances.length > 0 ? (
+                  <button
+                    type="button"
+                    className="pt-1 text-left text-[13px] font-medium text-[#0A2D62] underline-offset-2 hover:underline"
+                    onClick={() => updateFilters({ ...filters, beachDistances: [] })}
+                  >
+                    Wis keuze
+                  </button>
+                ) : null}
+              </div>            </NestedDisclosure>
           </div>
         </Accordion>
 

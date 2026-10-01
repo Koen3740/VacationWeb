@@ -6,28 +6,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  padding: 0 4px;
+  margin-bottom: 6px;
 }
 
 .departure-period-calendar__title {
   flex: 1;
   text-align: center;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: #111827;
+  color: #0a2d62;
+  text-transform: lowercase;
 }
 
+/* Bordered square arrows as in the prototype; 40px on touch screens, 34px on desktop. */
 .departure-period-calendar__nav {
   display: flex;
-  height: 32px;
-  width: 32px;
+  height: 40px;
+  width: 40px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border: none;
-  background: transparent;
+  border: 1px solid #e0e2e7;
+  background: #ffffff;
   cursor: pointer;
-  border-radius: 9999px;
+  border-radius: 8px;
   transition: background-color 0.15s ease;
 }
 
@@ -37,34 +39,25 @@
 
 .departure-period-calendar__grid {
   display: grid;
-  grid-template-columns: 32px repeat(7, 1fr);
-  gap: 2px 0;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  row-gap: 4px;
 }
 
-.departure-period-calendar__wk-label,
 .departure-period-calendar__weekday {
   display: flex;
-  height: 32px;
+  height: 28px;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 400;
   color: #94a3b8;
 }
 
-.departure-period-calendar__week-number {
-  display: flex;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
+/* Mobile: 44px circles in 48px rows (>= 44px touch targets at 390px); desktop: 34px in 38px. */
 .departure-period-calendar__day-cell {
   position: relative;
   display: flex;
-  height: 40px;
+  height: 48px;
   align-items: center;
   justify-content: center;
 }
@@ -73,14 +66,15 @@
   position: relative;
   z-index: 1;
   display: flex;
-  height: 36px;
-  width: 36px;
+  height: 44px;
+  width: 44px;
   align-items: center;
   justify-content: center;
   border: none;
   background: transparent;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1;
+  touch-action: manipulation;
   cursor: pointer;
   border-radius: 9999px;
   transition: background-color 0.15s ease, color 0.15s ease;
@@ -104,41 +98,10 @@
   background: #eff6ff;
 }
 
-.departure-period-calendar__day--in-range::before,
-.departure-period-calendar__day--preview-range::before {
-  content: '';
-  position: absolute;
-  inset: 0 -2px;
-  z-index: -1;
-  background: #dbeafe;
-}
-
-.departure-period-calendar__day--range-start::before,
-.departure-period-calendar__day--preview-start::before {
-  content: '';
-  position: absolute;
-  inset: 0 -2px 0 0;
-  z-index: -1;
-  background: #dbeafe;
-  border-top-left-radius: 9999px;
-  border-bottom-left-radius: 9999px;
-}
-
-.departure-period-calendar__day--range-end::before,
-.departure-period-calendar__day--preview-end::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 0 -2px;
-  z-index: -1;
-  background: #dbeafe;
-  border-top-right-radius: 9999px;
-  border-bottom-right-radius: 9999px;
-}
-
-.departure-period-calendar__day--range-start.departure-period-calendar__day--range-end::before,
-.departure-period-calendar__day--preview-start.departure-period-calendar__day--preview-end::before {
-  inset: 0;
-  border-radius: 9999px;
+/* Period (range) band is drawn on the day cell (see --flex-band / --flex-preview below). */
+.departure-period-calendar__day--in-range,
+.departure-period-calendar__day--preview-range {
+  color: #1e3a8a;
 }
 
 .departure-period-calendar__day--selected,
@@ -154,40 +117,177 @@
   display: none;
 }
 
+/* Segmented tabs (prototype): grey track, active tab white with shadow, subtitle below. */
+.departure-period-popup__tabs {
+  display: flex;
+  flex-shrink: 0;
+  margin: 12px 0 12px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #f1f5f9;
+}
+
+.departure-period-popup__tab {
+  flex: 1;
+  min-height: 48px;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: #475569;
+  cursor: pointer;
+}
+
+.departure-period-popup__tab small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.departure-period-popup__tab--active {
+  background: #ffffff;
+  color: #0a2d62;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* Margin chips: "Marge:" label + pill chips that wrap (Exacte datum, ± 1, ± 2, ± 3). */
 .departure-period-popup__flexibility {
   display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.departure-period-popup__flexibility-label {
+  margin-right: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0a2d62;
 }
 
 .departure-period-popup__flexibility-option {
-  flex: 1;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #e0e2e7;
+  border-radius: 9999px;
   background: #ffffff;
-  padding: 10px 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1f2937;
+  font-size: 13px;
+  white-space: nowrap;
+  color: #111827;
   cursor: pointer;
+  touch-action: manipulation;
   transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 
 .departure-period-popup__flexibility-option:hover {
   border-color: #93c5fd;
-  background: #eff6ff;
 }
 
-.departure-period-popup__flexibility-option--active {
-  border-color: #2563eb;
-  background: #eff6ff;
+.departure-period-popup__flexibility-option--active,
+.departure-period-popup__flexibility-option--active:hover {
+  border-color: #1e40af;
+  background: #1e40af;
+  color: #ffffff;
+}
+
+/* Footer stays visible at the bottom of the (scrolling) sheet; respects the iOS home indicator. */
+.departure-period-popup__footer-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 12px 0 max(16px, env(safe-area-inset-bottom));
+  border-top: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+
+@media (min-width: 640px) {
+  .departure-period-calendar__nav {
+    height: 34px;
+    width: 34px;
+  }
+
+  .departure-period-calendar__day-cell {
+    height: 38px;
+  }
+
+  .departure-period-calendar__day {
+    height: 34px;
+    width: 34px;
+    font-size: 13.5px;
+  }
+
+  .departure-period-popup__flexibility-option {
+    height: 32px;
+    padding: 0 12px;
+  }
+
+  .departure-period-popup__tab {
+    min-height: 0;
+    padding: 9px 6px;
+  }
+
+  .departure-period-popup__footer-bar {
+    padding-bottom: 22px;
+  }
+}
+
+/* Fixed date ± band (single mode): continuous band on the cell, centre stays a circle. */
+/* Fixed date ± band (single mode, prototype): continuous band on the cell, centre stays a circle. */
+.departure-period-calendar__day-cell--flex-band::before,
+.departure-period-calendar__day-cell--flex-preview::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  z-index: 0;
+}
+
+.departure-period-calendar__day-cell--flex-band::before {
+  background: #dbeafe;
+}
+
+/* Hover preview (before click): slightly lighter band; the centre gets a ring instead of a fill. */
+.departure-period-calendar__day-cell--flex-preview::before {
+  background: #e0ecfb;
+}
+
+.departure-period-calendar__day-cell--band-start::before {
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+}
+
+.departure-period-calendar__day-cell--band-end::before {
+  border-top-right-radius: 9999px;
+  border-bottom-right-radius: 9999px;
+}
+
+.departure-period-calendar__day--flex-member {
+  color: #1e3a8a;
+  font-weight: 500;
+}
+
+.departure-period-calendar__day--flex-preview {
+  color: #1e40af;
+}
+
+.departure-period-calendar__day--preview-center {
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 2px #1e40af;
   color: #1e40af;
   font-weight: 600;
-}
-
-.departure-period-popup__footer {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 14px;
-  color: #64748b;
 }

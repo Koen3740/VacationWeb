@@ -246,6 +246,22 @@ function longestText(...values: Array<string | undefined>): string | undefined {
   return best;
 }
 
+/** Centre distance is a hotel fact: keep the first stated value across merged feed records. */
+function unionCenterDistance(
+  records: StoredOffer[],
+): Pick<StoredOffer, 'centerDistanceM' | 'centerIsIn'> {
+  const out: Pick<StoredOffer, 'centerDistanceM' | 'centerIsIn'> = {};
+  for (const record of records) {
+    if (out.centerDistanceM === undefined && record.centerDistanceM !== undefined) {
+      out.centerDistanceM = record.centerDistanceM;
+    }
+    if (record.centerIsIn === true) {
+      out.centerIsIn = true;
+    }
+  }
+  return out;
+}
+
 function pickPrimaryRecord(records: StoredOffer[]): StoredOffer {
   const ranked = [...records].sort((a, b) => {
     const byComplete = overlayCompleteness(b) - overlayCompleteness(a);
@@ -288,6 +304,7 @@ function mergeRecordGroup(records: StoredOffer[], context: SunwebBookableContext
     deepLink: primaryListing?.deepLink ?? primary.deepLink,
     affiliateCampaignId: primaryListing?.campaignId ?? primary.affiliateCampaignId,
     hasCarRental: unionHasCarRental(records),
+    ...unionCenterDistance([primary, ...records]),
   };
 }
 

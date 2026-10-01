@@ -46,7 +46,7 @@ export function stateFromUrl(searchParams: URLSearchParams): ResultsBarSearchSta
     selectedCountries,
     departureStart: departureStart || null,
     departureEnd: departureEnd || null,
-    flexibilityDays: (flexibilityRaw === 1 || flexibilityRaw === 2 ? flexibilityRaw : 0) as FlexibilityDays,
+    flexibilityDays: (flexibilityRaw === 1 || flexibilityRaw === 2 || flexibilityRaw === 3 ? flexibilityRaw : 0) as FlexibilityDays,
     selectedDurations,
     selectedDepartureAirports: parseDepartureAirportsParam(searchParams.get('departureAirport')),
     travelers,
@@ -64,9 +64,15 @@ const PRESERVE_FILTER_KEYS = [
   'vacationTypes',
   'beachLocation',
   'centerLocation',
+  'coast',
+  'urban',
+  'rural',
+  'centerDistance',
+  'beachDistance',
   'amenities',
   'sort',
   'hasCarRental',
+  'provider',
 ] as const;
 
 /**

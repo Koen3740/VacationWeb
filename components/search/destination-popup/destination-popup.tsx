@@ -1,8 +1,8 @@
 'use client';
 
 import { DestinationCountryChip } from '@/components/search/destination-popup/destination-country-chip';
+import { DestinationPopupFlag } from '@/components/search/destination-popup/destination-popup-flag';
 import { DestinationCountryRow } from '@/components/search/destination-popup/destination-country-row';
-import { DestinationPopupInfoPanelView } from '@/components/search/destination-popup/destination-popup-info-panel-view';
 import '@/components/search/destination-popup/destination-popup.css';
 import { destinationPopupPoppins } from '@/components/search/destination-popup/destination-popup-font';
 import {
@@ -11,43 +11,24 @@ import {
   loadDestinationCountries,
   loadPopularDestinationCountries,
 } from '@/components/search/destination-popup/destination-popup-utils';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 type DestinationPopupProps = {
   open: boolean;
   appliedCountries: string[];
   countryCounts: Record<string, number>;
+  /** Kept for API compatibility; the marketing side panel is no longer rendered in the popup. */
   totalOffersLabel: string;
   onClose: () => void;
   onApply: (countries: string[]) => void;
 };
 
-function SunIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="4" fill="#1E88E5" />
-      <path stroke="#1E88E5" strokeWidth="2" d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-    </svg>
-  );
-}
-
-function PalmSectionIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3C10.5 6 8 7.5 5 8c3 1 5 3 5.5 6C8 13 6 11 4 8c2 3 5 5 8 5.5V21h2v-7.5c3-.5 6-2.5 8-5.5-2 3-4 5-6.5 6 .5-3 2.5-5 5.5-6-3-.5-5.5-2-7-5z"
-        fill="#1E88E5"
-      />
-    </svg>
-  );
-}
-
 function SearchIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="11" cy="11" r="7" stroke="#6B7280" strokeWidth="2" />
-      <path stroke="#6B7280" strokeWidth="2" strokeLinecap="round" d="M20 20l-3.5-3.5" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" stroke="#94A3B8" strokeWidth="2" />
+      <path stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" d="M20 20l-3.5-3.5" />
     </svg>
   );
 }
@@ -60,38 +41,43 @@ function CloseIcon() {
   );
 }
 
-function DestinationSection({
-  title,
-  icon,
-  countries,
-  selectedCountries,
-  onToggle,
-}: {
-  title: string;
-  icon: ReactNode;
+type DestinationPopupSectionProps = {
   countries: DestinationCountryOption[];
   selectedCountries: Set<string>;
   onToggle: (name: string) => void;
-}) {
+};
+
+/** Variant A: popular destinations as compact toggle chips with a small flag (same selection state as the list). */
+function PopularDestinationChips({ countries, selectedCountries, onToggle }: DestinationPopupSectionProps) {
   if (countries.length === 0) {
     return null;
   }
 
   return (
-    <section>
-      <div className="mb-3 flex items-center gap-2">
-        {icon}
-        <h3 className="text-base font-semibold text-[#1E40AF]">{title}</h3>
-      </div>
-      <div>
-        {countries.map((country) => (
-          <DestinationCountryRow
-            key={country.name}
-            country={country}
-            selected={selectedCountries.has(country.name)}
-            onToggle={onToggle}
-          />
-        ))}
+    <section aria-labelledby="destination-popular-title" className="shrink-0">
+      <h3 id="destination-popular-title" className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#0A2D62]">
+        Populaire bestemmingen
+      </h3>
+      <div className="flex flex-wrap gap-2" data-testid="destination-popular">
+        {countries.map((country) => {
+          const selected = selectedCountries.has(country.name);
+          return (
+            <button
+              key={country.name}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onToggle(country.name)}
+              className={`inline-flex h-10 items-center gap-1.5 rounded-full border px-3 text-[13.5px] transition sm:h-8 sm:px-2.5 sm:text-[13px] ${
+                selected
+                  ? 'border-[#1E40AF] bg-[#1E40AF] text-white'
+                  : 'border-[#E0E2E7] bg-white text-[#111827] hover:border-[#93C5FD]'
+              }`}
+            >
+              {selected ? <span aria-hidden="true">✓</span> : <DestinationPopupFlag country={country.name} />}
+              {country.name}
+            </button>
+          );
+        })}
       </div>
     </section>
   );
@@ -101,7 +87,6 @@ export function DestinationPopup({
   open,
   appliedCountries,
   countryCounts,
-  totalOffersLabel,
   onClose,
   onApply,
 }: DestinationPopupProps) {
@@ -178,8 +163,11 @@ export function DestinationPopup({
     return null;
   }
 
+  const trimmedQuery = query.trim();
+  const noMatches = trimmedQuery.length > 0 && filteredAll.length === 0 && filteredPopular.length === 0;
+
   return createPortal(
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${destinationPopupPoppins.className}`}>
+    <div className={`fixed inset-0 z-50 flex items-stretch justify-center sm:items-center sm:p-4 ${destinationPopupPoppins.className}`}>
       <button
         type="button"
         className="absolute inset-0 bg-[rgba(0,0,0,0.4)]"
@@ -191,19 +179,20 @@ export function DestinationPopup({
         role="dialog"
         aria-modal="true"
         aria-labelledby="destination-popup-title"
-        className="relative flex h-[640px] w-[600px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.15)] lg:w-[920px] lg:max-w-[920px] lg:flex-row"
+        data-testid="destination-popup"
+        className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-white px-4 pt-[max(18px,env(safe-area-inset-top))] shadow-[0_12px_32px_rgba(0,0,0,0.25)] sm:h-[min(640px,calc(100dvh-2rem))] sm:w-[620px] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:px-7 sm:pt-6"
       >
-        <DestinationPopupInfoPanelView totalOffersLabel={totalOffersLabel} />
-
-        <div className="flex min-h-0 flex-1 flex-col p-5 lg:w-[620px] lg:shrink-0">
-        <div className="flex h-14 shrink-0 items-center justify-between">
-          <h2 id="destination-popup-title" className="text-base font-semibold text-[#1E40AF]">
-            Bestemming
-          </h2>
+        <div className="flex shrink-0 items-start justify-between gap-3">
+          <div>
+            <h2 id="destination-popup-title" className="text-base font-semibold text-[#1E40AF]">
+              Bestemming
+            </h2>
+            <p className="mt-1 text-[13px] text-[#64748B]">Kies één of meerdere bestemmingen.</p>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-6 w-6 items-center justify-center"
+            className="-mr-2 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full hover:bg-[#F1F5F9]"
             aria-label="Sluiten"
           >
             <CloseIcon />
@@ -211,20 +200,21 @@ export function DestinationPopup({
         </div>
 
         <div className="relative mt-3 shrink-0">
-          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
             <SearchIcon />
           </span>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Zoek een bestemming..."
-            className="h-12 w-full rounded-lg border border-[#D1D5DB] bg-white pl-11 pr-4 text-[15px] text-[#1F2937] outline-none placeholder:text-[#9CA3AF] focus:border-[#D1D5DB]"
+            placeholder="Zoek een bestemming…"
+            aria-label="Zoek een bestemming"
+            className="h-11 w-full rounded-lg border border-[#E0E2E7] bg-white pl-10 pr-4 text-[16px] text-[#111827] outline-none placeholder:text-[#94A3B8] focus:border-[#1E88E5] sm:text-[14px]"
           />
         </div>
 
         {draftSelection.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-2.5 flex shrink-0 flex-wrap gap-1.5" data-testid="destination-selected">
             {draftSelection.map((country) => (
               <DestinationCountryChip
                 key={country}
@@ -235,34 +225,74 @@ export function DestinationPopup({
           </div>
         ) : null}
 
-        <div className="destination-popup-scroll mt-5 min-h-0 flex-1 overflow-y-auto">
-          <div className="space-y-6">
-            <DestinationSection
-              title="Populaire bestemmingen"
-              icon={<SunIcon />}
-              countries={filteredPopular}
-              selectedCountries={selectedSet}
-              onToggle={toggleCountry}
-            />
-            <DestinationSection
-              title="Alle bestemmingen"
-              icon={<PalmSectionIcon />}
-              countries={filteredAll}
-              selectedCountries={selectedSet}
-              onToggle={toggleCountry}
-            />
+        {noMatches ? (
+          <div className="mt-5 min-h-0 flex-1" data-testid="destination-empty">
+            <p className="text-[14px] font-semibold text-[#0A2D62]">Deze bestemming is momenteel niet beschikbaar.</p>
           </div>
-        </div>
+        ) : (
+          <>
+            {filteredPopular.length > 0 ? (
+              <div className="mt-3.5 shrink-0">
+                <PopularDestinationChips
+                  countries={filteredPopular}
+                  selectedCountries={selectedSet}
+                  onToggle={toggleCountry}
+                />
+              </div>
+            ) : null}
 
-        <div className="mt-5 flex shrink-0 justify-end">
+            {filteredAll.length > 0 ? (
+              <section aria-labelledby="destination-all-title" className="mt-3.5 flex min-h-0 flex-1 flex-col">
+                <div className="flex shrink-0 items-baseline justify-between border-b border-[#F1F5F9] pb-2">
+                  <h3 id="destination-all-title" className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[#0A2D62]">
+                    Alle bestemmingen
+                  </h3>
+                  <span className="text-[11px] text-[#64748B]" data-testid="destination-all-count">
+                    {trimmedQuery ? `${filteredAll.length} van ${allCountries.length}` : allCountries.length}
+                  </span>
+                </div>
+                <div className="destination-popup-scroll min-h-0 flex-1 overflow-y-auto" data-testid="destination-all-list">
+                  {filteredAll.map((country) => (
+                    <DestinationCountryRow
+                      key={country.name}
+                      country={country}
+                      selected={selectedSet.has(country.name)}
+                      onToggle={toggleCountry}
+                      flag={<DestinationPopupFlag country={country.name} />}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <div className="min-h-0 flex-1" />
+            )}
+          </>
+        )}
+
+        <div className="mt-2 flex shrink-0 items-center justify-between gap-3 border-t border-[#F1F5F9] pb-[max(16px,env(safe-area-inset-bottom))] pt-3 sm:pb-6 sm:pt-3.5">
+          <p className="min-w-0 text-[13px] text-[#475569]">
+            {draftSelection.length > 0 ? (
+              <>
+                <b className="text-[#0A2D62]">{draftSelection.length}</b> geselecteerd
+                <button
+                  type="button"
+                  onClick={() => setDraftSelection([])}
+                  className="ml-3 font-medium text-[#1E40AF] underline underline-offset-2"
+                >
+                  Wissen
+                </button>
+              </>
+            ) : (
+              'Nog geen bestemming gekozen'
+            )}
+          </p>
           <button
             type="button"
             onClick={() => onApply(draftSelection)}
-            className="h-11 w-40 rounded-md bg-[#2E7D32] text-sm font-semibold text-white"
+            className="h-11 min-w-[140px] shrink-0 rounded-md bg-[#2E7D32] px-7 text-sm font-semibold text-white"
           >
-            OPSLAAN
+            {draftSelection.length > 0 ? `OPSLAAN (${draftSelection.length})` : 'OPSLAAN'}
           </button>
-        </div>
         </div>
       </div>
     </div>,

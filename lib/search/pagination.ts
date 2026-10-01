@@ -315,6 +315,26 @@ export function buildResultsSearchQuery(params: SearchParams, page: number): URL
     query.set('centerLocation', params.centerLocation.join(','));
   }
 
+  if (params.coast === true) {
+    query.set('coast', '1');
+  }
+
+  if (params.urban === true) {
+    query.set('urban', '1');
+  }
+
+  if (params.rural === true) {
+    query.set('rural', '1');
+  }
+
+  if (params.centerDistance?.length) {
+    query.set('centerDistance', params.centerDistance.join(','));
+  }
+
+  if (params.beachDistance?.length) {
+    query.set('beachDistance', params.beachDistance.join(','));
+  }
+
   if (params.amenities?.length) {
     query.set('amenities', params.amenities.join(','));
   }

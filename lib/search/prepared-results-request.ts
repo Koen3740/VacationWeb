@@ -39,6 +39,11 @@ function stableFilterKey(params: SearchParams): string {
     vacationTypes: params.vacationTypes ?? null,
     beachLocation: params.beachLocation ?? null,
     centerLocation: params.centerLocation ?? null,
+    coast: params.coast ?? null,
+    urban: params.urban ?? null,
+    rural: params.rural ?? null,
+    centerDistance: params.centerDistance ?? null,
+    beachDistance: params.beachDistance ?? null,
     amenities: params.amenities ?? null,
     hasCarRental: params.hasCarRental ?? null,
     budgetMin: params.budgetMin ?? null,
@@ -77,6 +82,9 @@ const prepareCached = cache(
     return prepared;
   },
 );
+
+/** Exposed for cache-key tests only. */
+export const stableFilterKeyForTests = stableFilterKey;
 
 export function loadPreparedResultsOffers(
   filteringParams: SearchParams,

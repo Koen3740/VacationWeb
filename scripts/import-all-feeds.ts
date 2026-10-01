@@ -188,6 +188,7 @@ function main(): void {
     `✔ flight-package eligibility: ${published.eligibility.input} → ${published.eligibility.kept} (excluded ${published.eligibility.excluded})`,
   );
   console.log(`✔ compact runtime: ${(published.runtimeBytes / 1_000_000).toFixed(1)} MB`);
+  console.log(`✔ ligging: ${JSON.stringify(published.hotelGeo)}`);
   console.log(`✔ offer-detail sidecar: ${FEED_PATHS.offerDetails} (${(published.detailBytes / 1_000_000).toFixed(1)} MB, ${published.detailCount} records)`);
   console.log(`✔ filter-opties geschreven naar ${FEED_PATHS.filterOptions}`);
   console.log(`  - feeds enabled: ${enabledFeeds.length}`);

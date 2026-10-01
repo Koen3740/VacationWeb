@@ -63,6 +63,13 @@ export interface SearchParams {
   beachLocation?: string[];
   /** Center location buckets (in, lt100, …). OR-matched when multiple. */
   centerLocation?: string[];
+  /** Ligging (SUB 27) toggles. URL `coast=1`, `urban=1`, `rural=1`; absent = no filter. */
+  coast?: boolean;
+  urban?: boolean;
+  rural?: boolean;
+  /** Ligging distance buckets: URL `centerDistance` (in,lt100,lt250,lt500,lt1000,ge1000) and `beachDistance` (direct,lt100,...). OR-matched. */
+  centerDistance?: string[];
+  beachDistance?: string[];
   /** Amenity keys (pool_indoor, sauna, …). OR-matched when multiple. */
   amenities?: string[];
   /**

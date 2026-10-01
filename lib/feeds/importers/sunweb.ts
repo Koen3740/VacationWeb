@@ -9,6 +9,7 @@ import { buildExternalId, PROVIDERS } from '../providers';
 import { unwrapSunwebProductUrl } from '../../providers/sunweb/offer-context';
 import { deriveSunwebHasCarRental } from '../../offers/has-car-rental';
 import { canonicalizeDepartureAirportCode } from '../../search/departure-airports';
+import { parseCenterDistanceFromFeedValues } from './feed-distance';
 
 function getProperties(product: SunwebXmlProduct): SunwebXmlProperty[] {
   const properties = product.properties?.property;
@@ -312,6 +313,11 @@ function mapSunwebProduct(product: SunwebXmlProduct): StoredOffer {
       : undefined;
   const accommodationNotes = getPropertyList(product, 'accommodation');
   const subcategories = parseSubcategories(product);
+  // Centre distance lives in `accommodation` (Spanje) or `facilities` (Griekenland/Turkije/Egypte).
+  const feedCenter = parseCenterDistanceFromFeedValues([
+    ...accommodationNotes,
+    ...getPropertyList(product, 'facilities'),
+  ]);
 
   return {
     externalId: buildExternalId('sunweb', product.ID, [
@@ -351,6 +357,7 @@ function mapSunwebProduct(product: SunwebXmlProduct): StoredOffer {
       hasCarRentalRaw:
         getProperty(product, 'hasCarRental') || getProperty(product, 'HasCarRental'),
     }),
+    ...feedCenter,
 
     departureAirport: iataDeparture || undefined,
     departureAirportCode:

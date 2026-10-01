@@ -6,7 +6,7 @@
 export type DepartureDisplayInput = {
   departureStart: string | null | undefined;
   departureEnd: string | null | undefined;
-  /** 0 = exact, 1 = ±1 day, 2 = ±2 days — only meaningful for a single exact date */
+  /** 0 = exact, 1/2/3 = ± that many days — only meaningful for a single exact date */
   flexibilityDays?: number | null;
 };
 
@@ -26,20 +26,22 @@ function defaultFormatDate(iso: string): string {
   return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
 }
 
-function normalizeFlexibility(value: number | null | undefined): 0 | 1 | 2 {
-  if (value === 1 || value === 2) return value;
+type DisplayFlexibility = 0 | 1 | 2 | 3;
+
+function normalizeFlexibility(value: number | null | undefined): DisplayFlexibility {
+  if (value === 1 || value === 2 || value === 3) return value;
   return 0;
 }
 
-function exactFlexibilityHint(flexibilityDays: 0 | 1 | 2): string {
+function exactFlexibilityHint(flexibilityDays: DisplayFlexibility): string {
   if (flexibilityDays === 1) return 'Flexibel ± 1 dag';
-  if (flexibilityDays === 2) return 'Flexibel ± 2 dagen';
+  if (flexibilityDays > 1) return `Flexibel ± ${flexibilityDays} dagen`;
   return 'Exacte vertrekdatum';
 }
 
-function exactSummarySuffix(flexibilityDays: 0 | 1 | 2): string {
+function exactSummarySuffix(flexibilityDays: DisplayFlexibility): string {
   if (flexibilityDays === 1) return ' (± 1 dag)';
-  if (flexibilityDays === 2) return ' (± 2 dagen)';
+  if (flexibilityDays > 1) return ` (± ${flexibilityDays} dagen)`;
   return '';
 }
 

@@ -85,13 +85,20 @@ export function formatOfferCount(count: number): string {
   return count.toLocaleString('nl-NL');
 }
 
+/**
+ * Destinations offered in the popup: catalog countries with offers. When counts are known,
+ * countries without offers (count 0) are left out.
+ */
 export function loadDestinationCountries(
   countryCounts: Record<string, number>,
 ): DestinationCountryOption[] {
-  return loadFilterOptions().countries.map((name) => ({
-    name,
-    count: countryCounts[name] ?? 0,
-  }));
+  const hasCounts = Object.keys(countryCounts).length > 0;
+  return loadFilterOptions()
+    .countries.map((name) => ({
+      name,
+      count: countryCounts[name] ?? 0,
+    }))
+    .filter((country) => !hasCounts || country.count > 0);
 }
 
 export function loadPopularDestinationCountries(
@@ -105,16 +112,32 @@ export function loadPopularDestinationCountries(
   });
 }
 
+/** Lower-case, accents removed ("Curaçao" → "curacao", "Italië" → "italie"). */
+export function normalizeDestinationSearchText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Live search over the available destinations: accent-insensitive prefix match on the name or
+ * on any word in it ("k" → Kaapverdische Eilanden; "eil" → Kaapverdische Eilanden; "cura" → Curaçao).
+ */
 export function filterCountriesByQuery(
   countries: DestinationCountryOption[],
   query: string,
 ): DestinationCountryOption[] {
-  const normalized = query.trim().toLowerCase();
+  const normalized = normalizeDestinationSearchText(query);
   if (!normalized) {
     return countries;
   }
 
-  return countries.filter((country) => country.name.toLowerCase().includes(normalized));
+  return countries.filter((country) => {
+    const name = normalizeDestinationSearchText(country.name);
+    return name.startsWith(normalized) || name.split(/[\s\-]+/).some((word) => word.startsWith(normalized));
+  });
 }
 
 export function formatSelectedCountriesLabel(countries: string[]): string {

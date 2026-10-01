@@ -39,6 +39,19 @@ export interface StoredOffer {
   /** Proven structural car rental included. Only `true` is stored on compact runtime. */
   hasCarRental?: boolean;
 
+  /**
+   * Ligging fields (additive, absent = unknown). Centre distance comes from the
+   * provider feed line `afstand tot centrum` (first number); the others come from
+   * the hotel-level SUB 27 table `data/geo/hotel-geo.v1.json`.
+   */
+  centerDistanceM?: number;
+  centerIsIn?: boolean;
+  beachDistanceM?: number;
+  beachDirect?: boolean;
+  coastDistanceM?: number;
+  /** GHS-SMOD class of the hotel's 1 km cell (30/23/22 stad, 13/12/11 landelijk, 21, 10). */
+  settingClass?: number;
+
   price: number;
   currency?: string;
 

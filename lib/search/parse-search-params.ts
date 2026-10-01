@@ -7,6 +7,11 @@ import {
   parseCenterLocationsParam,
 } from '@/lib/search/location-filters';
 import {
+  parseBeachDistanceParam,
+  parseCenterDistanceParam,
+  parseLiggingToggleParam,
+} from '@/lib/search/ligging-filters';
+import {
   parsePage1IdsParam,
   parseResultsPageParam,
   RESULTS_PAGE_SIZE_DEFAULT,
@@ -126,7 +131,9 @@ export function parseSearchParams(searchParams: ResultsSearchParamsInput): Searc
 
       const parsed = Number(searchParams.flexibilityDays);
 
-      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 2) {
+      // 0 = exact date; 1..3 = ± days around one exact date (SearchForm offers ± 1, 2, 3).
+      // Filtering applies the margin only to an exact date, never to a period.
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 3) {
         return undefined;
       }
 
@@ -159,6 +166,23 @@ export function parseSearchParams(searchParams: ResultsSearchParamsInput): Searc
         return undefined;
       }
       const parsed = parseCenterLocationsParam(searchParams.centerLocation);
+      return parsed.length > 0 ? parsed : undefined;
+    })(),
+    coast: parseLiggingToggleParam(typeof searchParams.coast === 'string' ? searchParams.coast : undefined),
+    urban: parseLiggingToggleParam(typeof searchParams.urban === 'string' ? searchParams.urban : undefined),
+    rural: parseLiggingToggleParam(typeof searchParams.rural === 'string' ? searchParams.rural : undefined),
+    centerDistance: (() => {
+      if (typeof searchParams.centerDistance !== 'string') {
+        return undefined;
+      }
+      const parsed = parseCenterDistanceParam(searchParams.centerDistance);
+      return parsed.length > 0 ? parsed : undefined;
+    })(),
+    beachDistance: (() => {
+      if (typeof searchParams.beachDistance !== 'string') {
+        return undefined;
+      }
+      const parsed = parseBeachDistanceParam(searchParams.beachDistance);
       return parsed.length > 0 ? parsed : undefined;
     })(),
     amenities: (() => {

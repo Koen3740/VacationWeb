@@ -126,3 +126,158 @@
 .duration-popup__row--child {
   padding-left: 28px;
 }
+
+/* Variant C: min/max steppers + dual-handle range slider */
+.duration-popup__stepper {
+  border: 1px solid #e0e2e7;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.duration-popup__stepper-label {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.duration-popup__stepper-row {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* Number with its unit ("dagen") underneath, so the unit stays visible in a compact stepper. */
+.duration-popup__stepper-value {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: #0a2d62;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.duration-popup__stepper-value small {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* 40px round buttons (44px on touch-size screens) */
+.duration-popup__stepper-button {
+  display: flex;
+  height: 40px;
+  width: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 9999px;
+  background: #ffffff;
+  font-size: 18px;
+  line-height: 1;
+  color: #1e40af;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.duration-popup__stepper-button:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.duration-popup__stepper-button:disabled {
+  color: #cbd5e1;
+  border-color: #e2e8f0;
+  cursor: default;
+}
+
+/* No side padding: the geometry helper keeps both handles inside the track. */
+.duration-popup__slider-wrap {
+  margin-top: 16px;
+}
+
+/* 44px high hit area over the full width; touch-action none so a horizontal drag is not taken
+   by page scroll. The nearest handle (split at the midpoint) follows the pointer. */
+.duration-popup__slider {
+  position: relative;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.duration-popup__track {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+}
+
+.duration-popup__track-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: theme('colors.brand.500');
+}
+
+/* Visible handle: 20px filled circle in VacationWeb blue (Tailwind token brand-500), no border or
+   ring, soft shadow. The whole 44px-high slider stays the hit area (nearest handle follows the
+   pointer). The min handle sits left of its value and the max handle right of it, so the two
+   never touch (see duration-popup-utils geometry). */
+.duration-popup__thumb {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  margin-top: -10px;
+  border-radius: 9999px;
+  background: theme('colors.brand.500');
+  box-shadow: 0 1px 4px rgba(10, 45, 98, 0.35);
+  cursor: grab;
+  transition: box-shadow 0.15s ease;
+}
+
+.duration-popup__thumb:focus {
+  outline: none;
+}
+
+.duration-popup__thumb--active {
+  box-shadow: 0 2px 8px rgba(10, 45, 98, 0.4);
+  cursor: grabbing;
+}
+
+/* Keyboard focus only (not shown for mouse/touch): soft halo for accessibility. */
+.duration-popup__thumb:focus-visible {
+  box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.22), 0 1px 4px rgba(10, 45, 98, 0.35);
+}
+
+.duration-popup__ticks {
+  position: relative;
+  height: 16px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.duration-popup__ticks span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 639px) {
+  .duration-popup__stepper-button {
+    height: 44px;
+    width: 44px;
+  }
+}

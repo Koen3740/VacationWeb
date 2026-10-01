@@ -7,6 +7,7 @@ import {
 import type { OfferDetailRecord } from './compact-runtime';
 import { deriveFilterOptions } from './derive-filter-options';
 import { splitStoredCatalog } from './compact-runtime';
+import { applyHotelGeo, loadHotelGeoTable } from './hotel-geo';
 import { normalizeOffer } from '../feeds/canonical/normalize-offer';
 import type { StoredOffer } from '../feeds/types/stored-offer';
 import { buildGenerationId, sha256HexBytes } from './generation-id';
@@ -113,7 +114,10 @@ export function buildGenerationArtifacts(
     throw new Error('Refusing to build a generation from an empty catalog');
   }
 
-  const identified = assertCanonicalIdentitiesAssignable(runtimeOffers);
+  const identified = applyHotelGeo(
+    assertCanonicalIdentitiesAssignable(runtimeOffers),
+    loadHotelGeoTable(),
+  ).offers;
   const { runtime, details: splitDetails } = splitStoredCatalog(identified);
   const catalog = runtime;
   const catalogJson = JSON.stringify(catalog);

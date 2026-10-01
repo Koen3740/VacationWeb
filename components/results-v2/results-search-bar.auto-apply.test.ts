@@ -23,7 +23,7 @@ test('Results bar auto-applies parameter commits without a Zoeken CTA', () => {
   assert.equal(resultsBar.includes('RESULTS_CTA'), false);
 
   // Homepage keeps an explicit search CTA.
-  assert.ok(homeSearch.includes('Vakanties zoeken'));
+  assert.ok(homeSearch.includes('Vakanties vergelijken'));
   assert.ok(homeSearch.includes('router.push') || homeSearch.includes('startTransition'));
 });
 
@@ -90,4 +90,22 @@ test('duration and airport popups commit via onChange; travelers/departure apply
   assert.match(resultsBar, /DepartureAirportPopup[\s\S]*onChange=\{\(next\) => \{[\s\S]*applyBarState/);
   assert.match(resultsBar, /TravelersPopup[\s\S]*onClose=\{\(\) => \{[\s\S]*applyAfterPopupClose/);
   assert.match(resultsBar, /DeparturePeriodPopup[\s\S]*onClose=\{\(\) => \{[\s\S]*applyAfterPopupClose/);
+});
+
+test('Results bar keeps a fixed-date margin of 1, 2 and 3 days from the URL (no silent reset to 0)', () => {
+  for (const days of [1, 2, 3]) {
+    const current = new URLSearchParams(`adults=2&rooms=1&dob=,&country=Spanje&departureStart=2026-11-21&departureEnd=2026-11-21&flexibilityDays=${days}`);
+    const state = stateFromUrl(current);
+    assert.equal(state.flexibilityDays, days);
+    const href = buildResultsBarHref(state, current, { liveQuery: `?${current.toString()}` });
+    assert.equal(new URLSearchParams(href.split('?')[1] || '').get('flexibilityDays'), String(days));
+  }
+  // Legacy flexibilityDays=7 and garbage are read as exact date (0) and dropped from the next URL.
+  for (const legacy of ['7', '4', '-1', 'abc']) {
+    const current = new URLSearchParams(`adults=2&rooms=1&dob=,&country=Spanje&departureStart=2026-11-21&departureEnd=2026-11-21&flexibilityDays=${legacy}`);
+    const state = stateFromUrl(current);
+    assert.equal(state.flexibilityDays, 0, legacy);
+    const href = buildResultsBarHref(state, current, { liveQuery: `?${current.toString()}` });
+    assert.equal(new URLSearchParams(href.split('?')[1] || '').get('flexibilityDays'), null, legacy);
+  }
 });

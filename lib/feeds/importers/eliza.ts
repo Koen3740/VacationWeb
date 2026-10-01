@@ -4,6 +4,7 @@ import { deriveElizaHasCarRental } from '../../offers/has-car-rental';
 import { unwrapElizaProductUrl } from '../../providers/eliza/offer-context';
 import { buildExternalId, PROVIDERS } from '../providers';
 import { StoredOffer } from '../types/stored-offer';
+import { parseCenterDistanceFromFeedValues } from './feed-distance';
 import {
   CorendonXmlFeed,
   CorendonXmlProduct,
@@ -170,6 +171,7 @@ function mapElizaProduct(product: CorendonXmlProduct): StoredOffer {
     departureDate: fromUrl.departureDate || propertyDate,
     flightIncluded: parseFlightIncluded(transportType),
     hasCarRental: deriveElizaHasCarRental({ transportType }),
+    ...parseCenterDistanceFromFeedValues([getProperty(product, 'accommodation')]),
 
     departureAirport: fromUrl.departureAirport || propertyAirport || undefined,
     departureAirportCode: fromUrl.departureAirport || undefined,

@@ -6,6 +6,7 @@ import { FEED_PATHS } from '../feeds/feed-paths';
 import type { StoredOffer } from '../feeds/types/stored-offer';
 import { assertCanonicalIdentitiesAssignable } from './canonical-offer-identity';
 import { splitStoredCatalog } from './compact-runtime';
+import { applyHotelGeo, loadHotelGeoTable, type HotelGeoApplyStats } from './hotel-geo';
 import { deriveFilterOptions } from './derive-filter-options';
 import {
   selectVacationWebFlightPackages,
@@ -31,6 +32,7 @@ export type PublishedRuntimeCatalog = {
   detailBytes: number;
   filterOptionsBytes: number;
   eligibility: FlightPackageEligibilityStats;
+  hotelGeo: HotelGeoApplyStats & { tableLoaded: boolean };
 };
 
 /**
@@ -53,7 +55,9 @@ export function publishLocalRuntimeCatalog(offers: StoredOffer[]): PublishedRunt
     throw new Error('Refusing to publish a runtime catalog without VacationWeb flight packages');
   }
 
-  const identified = assertCanonicalIdentitiesAssignable(catalogOffers);
+  const geoTable = loadHotelGeoTable();
+  const geo = applyHotelGeo(assertCanonicalIdentitiesAssignable(catalogOffers), geoTable);
+  const identified = geo.offers;
   const filterOptions = deriveFilterOptions(identified.map(normalizeOffer));
   const { runtime, details } = splitStoredCatalog(identified);
 
@@ -68,5 +72,6 @@ export function publishLocalRuntimeCatalog(offers: StoredOffer[]): PublishedRunt
     detailBytes: fs.statSync(FEED_PATHS.offerDetails).size,
     filterOptionsBytes: fs.statSync(FEED_PATHS.filterOptions).size,
     eligibility,
+    hotelGeo: { ...geo.stats, tableLoaded: geoTable !== null },
   };
 }

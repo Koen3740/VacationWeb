@@ -1,5 +1,8 @@
 import type { FlexibilityDays } from '@/components/search/departure-period-popup/departure-period-popup';
 import {
+  flexibilityForSelection,
+} from '@/components/search/departure-period-popup/departure-period-popup-utils';
+import {
   createDefaultTravelersState,
   getTravelersTotals,
   normalizeTravelersState,
@@ -48,11 +51,15 @@ export function loadSharedSearchState(): SharedSearchState | null {
       return null;
     }
 
+    const departureStart = typeof parsed.departureStart === 'string' ? parsed.departureStart : null;
+    const departureEnd = typeof parsed.departureEnd === 'string' ? parsed.departureEnd : null;
+
     return {
       selectedCountries: Array.isArray(parsed.selectedCountries) ? parsed.selectedCountries : [],
-      departureStart: typeof parsed.departureStart === 'string' ? parsed.departureStart : null,
-      departureEnd: typeof parsed.departureEnd === 'string' ? parsed.departureEnd : null,
-      flexibilityDays: parsed.flexibilityDays === 1 || parsed.flexibilityDays === 2 ? parsed.flexibilityDays : 0,
+      departureStart,
+      departureEnd,
+      // ± only for one fixed date; a stored period never carries a margin (Search Architecture v2.13).
+      flexibilityDays: flexibilityForSelection(departureStart, departureEnd, parsed.flexibilityDays),
       selectedDurations: Array.isArray(parsed.selectedDurations)
         ? parsed.selectedDurations.filter((value): value is number => typeof value === 'number')
         : [],
