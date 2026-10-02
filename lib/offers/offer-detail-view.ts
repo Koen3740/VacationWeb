@@ -204,13 +204,46 @@ export function formatDateOfBirthLabel(value: string | null | undefined): string
   });
 }
 
+/** Age band for display — avoids rendering full DOB in detail HTML when possible. */
+export function formatTravelerAgeLabel(
+  dateOfBirth: string | null | undefined,
+  referenceIsoDate?: string | null,
+): string {
+  if (!dateOfBirth?.trim()) {
+    return 'leeftijd onbekend';
+  }
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) {
+    return 'leeftijd onbekend';
+  }
+  const ref = referenceIsoDate ? new Date(referenceIsoDate) : new Date();
+  if (Number.isNaN(ref.getTime())) {
+    return 'leeftijd onbekend';
+  }
+  let age = ref.getUTCFullYear() - birth.getUTCFullYear();
+  const m = ref.getUTCMonth() - birth.getUTCMonth();
+  if (m < 0 || (m === 0 && ref.getUTCDate() < birth.getUTCDate())) {
+    age -= 1;
+  }
+  if (age < 0 || age > 120) {
+    return 'leeftijd onbekend';
+  }
+  if (age < 2) {
+    return 'baby';
+  }
+  if (age < 18) {
+    return `${age} jaar`;
+  }
+  return `volwassene (${age} jaar)`;
+}
+
 export function formatTravelerLines(params: SearchParams): string[] {
   if (!params.party?.length) {
     return [];
   }
   return params.party.map((traveller, index) => {
     const room = traveller.roomIndex + 1;
-    return `Reiziger ${index + 1}: ${formatDateOfBirthLabel(traveller.dateOfBirth)} • kamer ${room}`;
+    return `Reiziger ${index + 1}: ${formatTravelerAgeLabel(traveller.dateOfBirth, params.departureStart)} • kamer ${room}`;
   });
 }
 

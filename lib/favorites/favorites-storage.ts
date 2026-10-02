@@ -31,12 +31,42 @@ function resolveStorage(storage?: StorageLike): StorageLike {
     return storage;
   }
   if (typeof window !== 'undefined' && window.localStorage) {
-    return window.localStorage;
+    try {
+      // Probe access (private mode / blocked storage can throw).
+      window.localStorage.getItem(FAVORITES_STORAGE_KEY);
+      return window.localStorage;
+    } catch {
+      // fall through to memory
+    }
   }
   if (!fallbackStorage) {
     fallbackStorage = memoryStorage();
   }
   return fallbackStorage;
+}
+
+function safeGetItem(storage: StorageLike, key: string): string | null {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetItem(storage: StorageLike, key: string, value: string): void {
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // Quota / private mode — keep in-memory fallback if possible.
+    if (!fallbackStorage) {
+      fallbackStorage = memoryStorage();
+    }
+    try {
+      fallbackStorage.setItem(key, value);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 function isFavoriteEntry(value: unknown): value is FavoriteEntry {
@@ -71,7 +101,7 @@ export function normalizeFavorites(entries: readonly FavoriteEntry[]): FavoriteE
 }
 
 export function readFavorites(storage?: StorageLike): FavoriteEntry[] {
-  const raw = resolveStorage(storage).getItem(FAVORITES_STORAGE_KEY);
+  const raw = safeGetItem(resolveStorage(storage), FAVORITES_STORAGE_KEY);
   if (!raw) {
     return [];
   }
@@ -88,7 +118,7 @@ export function readFavorites(storage?: StorageLike): FavoriteEntry[] {
 
 export function writeFavorites(entries: readonly FavoriteEntry[], storage?: StorageLike): FavoriteEntry[] {
   const normalized = normalizeFavorites(entries);
-  resolveStorage(storage).setItem(FAVORITES_STORAGE_KEY, JSON.stringify(normalized));
+  safeSetItem(resolveStorage(storage), FAVORITES_STORAGE_KEY, JSON.stringify(normalized));
   return normalized;
 }
 

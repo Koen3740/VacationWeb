@@ -30,6 +30,7 @@ import {
   getLivePriceL2CircuitSnapshotForTests,
   getLivePriceL2InflightReadCountForTests,
   getLivePriceL2MemoryBackendForTests,
+  hashLivePriceCacheKey,
   isLivePriceL2Enabled,
   livePriceL2LockObjectKey,
   LIVE_PRICE_L2_CIRCUIT_OPEN_MS,
@@ -405,7 +406,7 @@ test('T11b: late record (2100 ms) is not used; record at 1900 ms is used', async
   const recordFor = (cacheKey: string) =>
     JSON.stringify({
       schemaVersion: LIVE_PRICE_L2_SCHEMA_VERSION,
-      cacheKey,
+      cacheKeyHash: hashLivePriceCacheKey(cacheKey),
       cachedAtMs: T0,
       ttlMs: RESULTS_LIVE_PRICE_TTL_MS,
       overlay: proven,
@@ -671,7 +672,7 @@ test('T17: live-price L2 S3 client config: connect 1000, request 2000 + throw, m
 function validRecord(cacheKey: string): string {
   return JSON.stringify({
     schemaVersion: LIVE_PRICE_L2_SCHEMA_VERSION,
-    cacheKey,
+    cacheKeyHash: hashLivePriceCacheKey(cacheKey),
     cachedAtMs: T0,
     ttlMs: RESULTS_LIVE_PRICE_TTL_MS,
     overlay: proven,

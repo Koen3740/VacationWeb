@@ -19,6 +19,12 @@ const serviceLinks = [
   { label: 'Reisinformatie', href: '/#value' },
 ] as const;
 
+const legalLinks = [
+  { label: 'Privacybeleid', href: '/privacy' },
+  { label: 'Cookiebeleid', href: '/cookies' },
+  { label: 'Cookie-instellingen', href: '/cookie-settings' },
+] as const;
+
 const linkCls = 'text-[12.5px] text-white/75 transition hover:text-white';
 
 const attributionLinkCls = 'underline decoration-white/30 underline-offset-2 hover:text-white/80';
@@ -98,8 +104,17 @@ export function HomeFooter() {
                   </Link>
                 </li>
               ))}
+              {legalLinks.map((l) => (
+                <li key={l.label}>
+                  <Link href={l.href} className={linkCls}>
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
               <li>
-                <HomeFooterCookieLink className={`${linkCls} text-left`} />
+                <HomeFooterCookieLink className={`${linkCls} text-left`}>
+                  Cookievoorkeuren
+                </HomeFooterCookieLink>
               </li>
             </ul>
           </div>

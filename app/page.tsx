@@ -1,5 +1,4 @@
 import { Playfair_Display, DM_Sans } from 'next/font/google';
-import { HomeCookieBanner } from '@/components/home/home-cookie-banner';
 import { HomeDiscoverTeaser } from '@/components/home/home-discover-teaser';
 import { getHomepageDiscoverDestinations } from '@/lib/discover/get-homepage-discover-destinations';
 import { HomeFooter } from '@/components/home/home-footer';
@@ -57,7 +56,6 @@ export default async function HomePage() {
       <HomeValueSection />
       <HomeNewsletter />
       <HomeFooter />
-      <HomeCookieBanner />
     </main>
   );
 }

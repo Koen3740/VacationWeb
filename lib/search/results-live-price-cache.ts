@@ -1,5 +1,6 @@
 import type { TravelOffer } from '../feeds/canonical/travel-offer';
 import type { SearchParams } from '../../types/travel';
+import { createHash } from 'node:crypto';
 import { CORENDON_PROVIDER_NAME } from '../providers/corendon/constants';
 import {
   corendonListingCacheKey,
@@ -87,13 +88,24 @@ function entryTtlMs(entry: CacheEntry): number {
   return entry.ttlMs ?? RESULTS_LIVE_PRICE_TTL_MS;
 }
 
+/**
+ * Sub 25: cache identity must not embed full DOB plaintext.
+ * One-way fingerprint keeps distinct party pricing keys without persisting DOB.
+ */
+function partyMemberToken(dateOfBirth: string | null | undefined, roomIndex: number): string {
+  const dob = (dateOfBirth ?? '').trim();
+  if (!dob) {
+    return `empty@${roomIndex}`;
+  }
+  const digest = createHash('sha256').update(`vw-party-dob:${dob}`, 'utf8').digest('hex').slice(0, 16);
+  return `${digest}@${roomIndex}`;
+}
+
 function partyFingerprint(params: LivePriceCacheParams): string {
   if (!params.party?.length) {
     return '';
   }
-  return params.party
-    .map((traveller) => `${traveller.dateOfBirth ?? ''}@${traveller.roomIndex}`)
-    .join(',');
+  return params.party.map((traveller) => partyMemberToken(traveller.dateOfBirth, traveller.roomIndex)).join(',');
 }
 
 function occupancyOfferPrefix(offerId: string, params: LivePriceCacheParams): string {

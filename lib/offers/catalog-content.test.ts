@@ -174,7 +174,7 @@ test('Reisgezelschap V2 DOB, room count and assignments stay on Detail and back'
   );
   const lines = formatTravelerLines(detailParams);
   assert.equal(lines.length, 4);
-  assert.match(lines[0] ?? '', /1980/);
+  assert.match(lines[0] ?? '', /volwassene|jaar/);
   assert.match(lines[3] ?? '', /kamer 2/);
 
   const backHref = buildResultsPageHref(detailParams, detailParams.page ?? 1);

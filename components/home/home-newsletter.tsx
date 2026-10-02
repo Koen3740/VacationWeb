@@ -9,17 +9,12 @@ const SCRIPT_STACK =
 
 /** WOW newsletter photo band — Blijf ontdekken + Good places ahead. */
 export function HomeNewsletter() {
-  const [status, setStatus] = useState<'idle' | 'done'>('idle');
+  const [status, setStatus] = useState<'idle' | 'unavailable'>('idle');
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const email = new FormData(form).get('email');
-    if (typeof email !== 'string' || !email.trim()) {
-      return;
-    }
-    // No backend yet — acknowledge the CTA so the control is not a dead button.
-    setStatus('done');
+    // No backend yet — do not claim a successful subscription.
+    setStatus('unavailable');
   };
 
   return (
@@ -43,15 +38,21 @@ export function HomeNewsletter() {
             </h2>
             <span className="mt-1 block h-[3px] w-10 rounded-full bg-[#E8C547]" aria-hidden />
             <p className="mt-2 max-w-xs text-[12.5px] leading-snug text-white/90">
-              Ontvang elke week nieuwe bestemmingen, reistips en bijzondere plekken.
+              Nieuwsbriefinschrijving is nog niet beschikbaar. Laat hier later je e-mail achter
+              wanneer we discovery-updates aanbieden.
             </p>
           </div>
-          {status === 'done' ? (
-            <p className="rounded-full bg-white px-5 py-2.5 text-[13px] font-semibold text-[#0A2D62] shadow-sm ring-1 ring-black/5" role="status">
-              Bedankt — je bent aangemeld voor updates.
+          {status === 'unavailable' ? (
+            <p
+              className="rounded-full bg-white px-5 py-2.5 text-[13px] font-semibold text-[#0A2D62] shadow-sm ring-1 ring-black/5"
+              role="status"
+            >
+              Nog niet beschikbaar — er is niets opgeslagen of verzonden.
             </p>
           ) : (
             <form
+              method="post"
+              action="#"
               className="flex w-full max-w-md overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-black/5"
               onSubmit={onSubmit}
             >
@@ -63,6 +64,7 @@ export function HomeNewsletter() {
                 type="email"
                 name="email"
                 required
+                autoComplete="email"
                 placeholder="Jouw e-mailadres"
                 className="min-h-[40px] min-w-0 flex-1 border-0 bg-transparent px-4 text-[13px] text-[#0A2D62] outline-none"
               />

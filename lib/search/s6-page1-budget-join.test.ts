@@ -20,6 +20,7 @@ import {
 import {
   LIVE_PRICE_L2_SCHEMA_VERSION,
   getLivePriceL2InflightReadCountForTests,
+  hashLivePriceCacheKey,
   livePriceL2ObjectKey,
   resetLivePriceL2CircuitForTests,
   setLivePriceL2BackendForTests,
@@ -90,7 +91,7 @@ const R2_OVERLAY = {
 function recordBody(cacheKey: string): string {
   return JSON.stringify({
     schemaVersion: LIVE_PRICE_L2_SCHEMA_VERSION,
-    cacheKey,
+    cacheKeyHash: hashLivePriceCacheKey(cacheKey),
     cachedAtMs: Date.now(),
     ttlMs: RESULTS_LIVE_PRICE_TTL_MS,
     overlay: R2_OVERLAY,

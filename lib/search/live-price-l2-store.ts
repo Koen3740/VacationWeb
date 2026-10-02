@@ -35,7 +35,7 @@ export type LivePriceL2OverlayPayload = {
   affiliateCampaignId?: string;
 };
 
-export const LIVE_PRICE_L2_SCHEMA_VERSION = 1 as const;
+export const LIVE_PRICE_L2_SCHEMA_VERSION = 2 as const;
 export const LIVE_PRICE_L2_PREFIX = 'live-price/v1' as const;
 /** Short-lived claim TTL (above provider hop ~15s). */
 export const LIVE_PRICE_L2_LOCK_TTL_MS = 25_000;
@@ -82,7 +82,8 @@ export const LIVE_PRICE_L2_CIRCUIT_OPEN_MS = 30_000;
 
 export type LivePriceL2Record = {
   schemaVersion: typeof LIVE_PRICE_L2_SCHEMA_VERSION;
-  cacheKey: string;
+  /** SHA-256 hex of the in-memory cache key — never store plaintext party/DOB keys. */
+  cacheKeyHash: string;
   cachedAtMs: number;
   ttlMs: number;
   overlay: LivePriceL2OverlayPayload;
@@ -557,11 +558,11 @@ function nowMs(): number {
 
 function parseRecord(raw: string): LivePriceL2Record | null {
   try {
-    const parsed = JSON.parse(raw) as LivePriceL2Record;
+    const parsed = JSON.parse(raw) as Partial<LivePriceL2Record> & { cacheKey?: string };
     if (
       !parsed ||
       parsed.schemaVersion !== LIVE_PRICE_L2_SCHEMA_VERSION ||
-      typeof parsed.cacheKey !== 'string' ||
+      typeof parsed.cacheKeyHash !== 'string' ||
       typeof parsed.cachedAtMs !== 'number' ||
       typeof parsed.ttlMs !== 'number' ||
       !parsed.overlay ||
@@ -569,7 +570,13 @@ function parseRecord(raw: string): LivePriceL2Record | null {
     ) {
       return null;
     }
-    return parsed;
+    return {
+      schemaVersion: LIVE_PRICE_L2_SCHEMA_VERSION,
+      cacheKeyHash: parsed.cacheKeyHash,
+      cachedAtMs: parsed.cachedAtMs,
+      ttlMs: parsed.ttlMs,
+      overlay: parsed.overlay as LivePriceL2OverlayPayload,
+    };
   } catch {
     return null;
   }
@@ -616,7 +623,7 @@ async function performRecordRead(
     return { status: 'not_found', record: null };
   }
   const record = parseRecord(raw);
-  if (!record || record.cacheKey !== cacheKey) {
+  if (!record || record.cacheKeyHash !== hashLivePriceCacheKey(cacheKey)) {
     emit('STORE_ERROR');
     return { status: 'not_found', record: null };
   }
@@ -734,7 +741,7 @@ export async function writeLivePriceL2Record(
   }
   const record: LivePriceL2Record = {
     schemaVersion: LIVE_PRICE_L2_SCHEMA_VERSION,
-    cacheKey,
+    cacheKeyHash: hashLivePriceCacheKey(cacheKey),
     cachedAtMs: options.cachedAtMs ?? nowMs(),
     ttlMs: options.ttlMs,
     overlay,
