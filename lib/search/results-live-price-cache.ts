@@ -8,6 +8,7 @@ import {
 import {
   isLivePriceL2Enabled,
   joinInflightLivePriceL2Read,
+  noteLivePriceL2HydrateMiss,
   readLivePriceL2RecordResult,
   writeLivePriceL2Record,
 } from './live-price-l2-store';
@@ -374,6 +375,9 @@ export async function hydrateResultsLivePriceOverlaysFromL2(
       const cacheKey = livePriceCacheKey(attempt.offerId, attempt.params);
       const result = await readLivePriceL2RecordResult(cacheKey);
       completed += 1;
+      if (result.status === 'not_found') {
+        noteLivePriceL2HydrateMiss(cacheKey);
+      }
       if (result.status === 'timeout') {
         getTimeouts += 1;
       }

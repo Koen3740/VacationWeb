@@ -297,6 +297,16 @@ function rememberJoinedReadOutcome(cacheKey: string, result: LivePriceL2ReadResu
   });
 }
 
+/**
+ * T341 C1: a hydrate read that ended with a clean not_found is handed once to the provider
+ * gate for the same key (same one-shot / 2000 ms rules as the joined-read outcome), so the
+ * gate does not repeat the identical GET milliseconds later. The gate still re-reads after
+ * the lock claim (authoritative), so a record landing in between is still honoured.
+ */
+export function noteLivePriceL2HydrateMiss(cacheKey: string): void {
+  rememberJoinedReadOutcome(cacheKey, { status: 'not_found', record: null });
+}
+
 function takeJoinedReadOutcome(cacheKey: string): LivePriceL2ReadResult | null {
   const entry = joinedReadOutcomes.get(cacheKey);
   if (!entry) {
