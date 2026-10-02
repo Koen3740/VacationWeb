@@ -269,3 +269,48 @@ describe('t334u source guards: no fixed wait loop, no blocking hydrate, progress
     }
   });
 });
+
+describe('SF-025: a stopped/capped run never ends on "meer worden gecontroleerd"', () => {
+  it('large matchset that is still moving at the 120 s cap ends on the plain proven count (section + hero)', async () => {
+    let clock = 0;
+    const tracker = createPoolProgressTracker({
+      // ~1.092 relevant offers, pricing still moving (+1 B per second), never complete
+      read: () => ({ count: Math.floor(clock / 450), pending: 800, complete: false }),
+      now: () => clock,
+      sleep: async (ms) => {
+        clock += ms;
+      },
+    });
+    const labels: string[] = [];
+    let last = await tracker.next();
+    for (let i = 0; i < 10_000 && !last.final; i += 1) {
+      labels.push(
+        formatPoolCountStep(last, { variant: 'section', summaryLine: 'Spanje', matchsetEmpty: false }),
+      );
+      last = await tracker.next();
+    }
+    assert.ok(labels.some((l) => l.endsWith('meer worden gecontroleerd')), 'earlier steps may claim it');
+    const finalSection = formatPoolCountStep(last, { variant: 'section', summaryLine: 'Spanje', matchsetEmpty: false });
+    const finalHero = formatPoolCountStep(last, { variant: 'hero', summaryLine: 'Spanje', matchsetEmpty: false });
+    assert.equal(last.final, true);
+    assert.equal(finalSection, `${last.count} vakanties gevonden`);
+    assert.equal(finalSection.includes('gecontroleerd'), false);
+    assert.equal(finalHero.includes('gecontroleerd'), false);
+  });
+
+  it('stopped run with 0 proven B ends count-less without "worden gecontroleerd"', async () => {
+    let clock = 0;
+    const tracker = createPoolProgressTracker({
+      read: () => ({ count: 0, pending: 500, complete: false }),
+      now: () => clock,
+      sleep: async (ms) => {
+        clock += ms;
+      },
+    });
+    let step = await tracker.next();
+    for (let i = 0; i < 10_000 && !step.final; i += 1) step = await tracker.next();
+    const label = formatPoolCountStep(step, { variant: 'section', summaryLine: 'Spanje', matchsetEmpty: false });
+    assert.equal(label.includes('gecontroleerd'), false);
+    assert.equal(label.includes('Geen'), false);
+  });
+});

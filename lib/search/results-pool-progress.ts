@@ -92,8 +92,10 @@ export function createPoolProgressTracker(args: {
         const maxed = !reading.complete && t - startedAt >= maxMs;
         const final = reading.complete || idle || maxed;
         const stillMoving = !idle && t - lastProgressAt < idleMs;
+        // SF-025: a FINAL step (complete, idle or capped at MAX) never claims "more is being checked":
+        // nothing updates this response afterwards, so the claim would stay on screen for good.
         const checking =
-          !reading.complete && stillMoving && (reading.pending === null || reading.pending > 0);
+          !final && !reading.complete && stillMoving && (reading.pending === null || reading.pending > 0);
 
         const differs =
           emitted === null || emitted.count !== reading.count || emitted.checking !== checking;

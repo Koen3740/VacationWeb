@@ -110,8 +110,37 @@ describe('t334u results pool progress', () => {
     const last = steps[steps.length - 1]!;
     assert.equal(last.final, true);
     assert.ok(time() >= POOL_PROGRESS_MAX_MS && time() < POOL_PROGRESS_MAX_MS + 1500);
-    // still moving at the cap -> the claim is still true at that moment
-    assert.equal(last.checking, true);
+    // SF-025: the capped FINAL step must not keep claiming "more is being checked" (no update follows)
+    assert.equal(last.checking, false);
+    assert.equal(last.complete, false);
+    assert.ok(last.count > 0);
+  });
+
+  it('SF-025: only the last (final) step drops the claim; earlier steps of the same run still claim it', async () => {
+    const { tracker } = harness((t) => ({ count: Math.floor(t / 3000), pending: 9999, complete: false }));
+    const steps = await drain(tracker, 5000);
+    const last = steps[steps.length - 1]!;
+    const earlier = steps.slice(0, -1);
+    assert.ok(earlier.length > 5);
+    assert.ok(earlier.every((step) => step.checking === true && step.final === false));
+    assert.equal(last.final, true);
+    assert.equal(last.checking, false);
+  });
+
+  it('SF-025: every final step has checking=false, whatever stopped the run (complete / idle / max)', async () => {
+    const scripts: Array<(t: number) => PoolProgressReading> = [
+      () => ({ count: 5, pending: 0, complete: true }),
+      () => ({ count: 12, pending: 400, complete: false }),
+      (t) => ({ count: Math.floor(t / 3000), pending: 9999, complete: false }),
+      (t) => ({ count: Math.floor(t / 3000), pending: null, complete: false }),
+    ];
+    for (const script of scripts) {
+      const { tracker } = harness(script);
+      const steps = await drain(tracker, 5000);
+      const last = steps[steps.length - 1]!;
+      assert.equal(last.final, true);
+      assert.equal(last.checking, false);
+    }
   });
 
   it('complete with 0 B is definitive (all offers settled, none proven)', async () => {
