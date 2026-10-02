@@ -13,8 +13,10 @@ import { decodePlaceName } from '@/lib/search/destination-mapping';
  * place. The index is built from the M1 VacationWeb destination directory
  * (data/destination-directory.json, derived from the catalog by lib/search/destination-directory.ts):
  * one entry per destination, one spelling per destination, product names excluded, a short suffix
- * only where the same name is more than one destination ("Alanya - stad" / "Alanya - regio",
- * "Kalamaki - Kreta" / "Kalamaki - Zakynthos"). The URL keeps the existing contract
+ * only where the same name is more than one destination ("Alanya \u2014 stad" / "Alanya \u2014 regio",
+ * "Kalamaki \u2014 Kreta" / "Kalamaki \u2014 Zakynthos"). Label rule (owner, t334u): the name the user
+ * searches on is ALWAYS first, the context ALWAYS last and only when needed - never "Regio - Plaats".
+ * The URL keeps the existing contract
  * (country / region / city); the Results filter resolves the meaning (lib/search/destination-mapping.ts).
  */
 export type DestinationSuggestionKind = 'country' | 'region' | 'city';
@@ -41,13 +43,37 @@ export type DestinationSuggestion = {
   normalized: string;
   /** Lower-case, accent-free label incl. suffix (secondary match: "kalamaki zakynthos"). */
   normalizedFull: string;
+  /** True for the place of a name that is also a region ("Alanya \u2014 stad" next to "Alanya \u2014 regio"). */
+  regionTwin?: boolean;
+  /** Lower-case, accent-free parent of a provider composite name ("chania", "kassandra"): last-resort match only. */
+  normalizedParent?: string;
 };
 
 export const MAX_DESTINATION_SUGGESTIONS = 8;
 
 export const DESTINATION_SEARCH_PLACEHOLDER = 'Zoek land, regio of plaats';
 
-const KIND_RANK: Record<DestinationSuggestionKind, number> = { country: 0, region: 1, city: 2 };
+/**
+ * Tie-break on EQUAL match quality: country first, then the place of a name that is also a region
+ * ("Alanya \u2014 stad" before "Alanya \u2014 regio", product decision t330u), then the other regions, then
+ * the other places. This is NOT a global place-before-region rule (that would push Santorini ("san"),
+ * Porto ("port") and Costa Blanca/Del Sol ("costa") out of the 8 suggestions for 59 terms): the only
+ * exception is the same-name pair. Match quality is compared first: an exact region (Kreta, Mallorca,
+ * Kos) stays above a prefix place.
+ */
+function tieRank(suggestion: DestinationSuggestion): number {
+  if (suggestion.kind === 'country') return 0;
+  if (suggestion.kind === 'city' && suggestion.regionTwin) return 1;
+  return suggestion.kind === 'region' ? 2 : 3;
+}
+
+/** Name part of a label ("Kalamaki" for "Kalamaki \u2014 Kreta"): group order is alphabetical on the name. */
+function labelName(suggestion: DestinationSuggestion): string {
+  return suggestion.label.split(' \u2014 ')[0] ?? suggestion.label;
+}
+
+/** Match tier for a hit through the parent of a provider composite name (below every name match). */
+const PARENT_MATCH_RANK = 4;
 
 /** Display only: some catalog place names carry HTML entities (e.g. "Cala d&apos;Or"). */
 export function decodeDestinationLabel(value: string): string {
@@ -76,6 +102,8 @@ function suggestionFromEntry(entry: DestinationEntry): DestinationSuggestion {
     ...(entry.kind === 'city' && entry.region ? { region: entry.region } : {}),
     normalized: normalizeForMatch(entry.name),
     normalizedFull: normalizeForMatch(label.replace(/\s\u2014\s/, ' ')),
+    ...(entry.kind === 'city' && entry.suffix === 'stad' ? { regionTwin: true } : {}),
+    ...(entry.parent ? { normalizedParent: normalizeForMatch(entry.parent) } : {}),
   };
 }
 
@@ -122,8 +150,15 @@ function matchRank(normalizedLabel: string, query: string): number {
 
 /**
  * Accent- and case-insensitive prefix match on the whole name or any word in it
- * ("tossa" -> Tossa de Mar, "kreta" -> Kreta, "span" -> Spanje). Best matches first, then
- * country before region before place, then alphabetical. Empty query -> no suggestions.
+ * ("tossa" -> Tossa de Mar, "kreta" -> Kreta, "span" -> Spanje). Best matches first, then (equal
+ * quality) country, region-twin place, region, place, then alphabetical. A place is also found through the parent of its
+ * provider composite name (query "kassandra" -> Afitos, ...), after every name match. Empty query -> no suggestions.
+ *
+ * The limit is only a UI limit, not a "top 8 destinations" rule (t334u): all destinations that share one
+ * primary name (Agia Paraskevi \u2014 Samos / \u2014 Santorini, Kalamaki x4, Alanya \u2014 stad / \u2014 regio) are
+ * one group. Equal-quality groups are ordered as a unit (so the same-name pair stays adjacent), and a
+ * group that straddles the limit is completed (at most the group size, 4 on the real directory) - so a
+ * disambiguation is never half visible. Match quality stays the primary key.
  */
 export function searchDestinations(
   index: DestinationSuggestion[],
@@ -142,19 +177,41 @@ export function searchDestinations(
       const full = matchRank(suggestion.normalizedFull, normalizedQuery);
       rank = full >= 0 ? Math.max(full, 1) : -1;
     }
+    if (rank < 0 && suggestion.normalizedParent && matchRank(suggestion.normalizedParent, normalizedQuery) >= 0) {
+      rank = PARENT_MATCH_RANK;
+    }
     if (rank >= 0) {
       hits.push({ suggestion, rank });
     }
   }
 
+  // Group = same primary name within one match tier; the group sorts by its best member.
+  const groupKey = (hit: { suggestion: DestinationSuggestion; rank: number }) =>
+    `${hit.rank}|${hit.suggestion.normalized}`;
+  const groupTier = new Map<string, number>();
+  for (const hit of hits) {
+    const key = groupKey(hit);
+    groupTier.set(key, Math.min(groupTier.get(key) ?? 99, tieRank(hit.suggestion)));
+  }
+
   hits.sort(
     (left, right) =>
       left.rank - right.rank ||
-      KIND_RANK[left.suggestion.kind] - KIND_RANK[right.suggestion.kind] ||
+      groupTier.get(groupKey(left))! - groupTier.get(groupKey(right))! ||
+      labelName(left.suggestion).localeCompare(labelName(right.suggestion), 'nl') ||
+      groupKey(left).localeCompare(groupKey(right)) ||
+      tieRank(left.suggestion) - tieRank(right.suggestion) ||
       left.suggestion.label.localeCompare(right.suggestion.label, 'nl'),
   );
 
-  return hits.slice(0, limit).map((hit) => hit.suggestion);
+  let end = Math.min(Math.max(0, limit), hits.length);
+  if (end > 0) {
+    const lastKey = groupKey(hits[end - 1]!);
+    while (end < hits.length && groupKey(hits[end]!) === lastKey) {
+      end += 1;
+    }
+  }
+  return hits.slice(0, end).map((hit) => hit.suggestion);
 }
 
 /**
@@ -177,8 +234,53 @@ export function placeSelectionFromSuggestion(
   return null;
 }
 
+let labelLookup: Map<string, string> | null = null;
+
+function labelLookupMap(): Map<string, string> {
+  if (!labelLookup) {
+    labelLookup = new Map();
+    for (const entry of buildDestinationEntries(directoryJson as DestinationDirectory)) {
+      const label = entryLabel(entry);
+      if (entry.kind === 'city') {
+        labelLookup.set(`c|${entry.country}|${entry.city ?? ''}|${entry.region ?? ''}`, label);
+      } else if (entry.kind === 'region') {
+        labelLookup.set(`r|${entry.country}|${entry.region ?? ''}`, label);
+      }
+    }
+  }
+  return labelLookup;
+}
+
+/**
+ * Display label (name first, context last) of a stored selection (country + region / city URL values):
+ * the same label the popup shows, e.g. city "Chania - Kalamaki" -> "Kalamaki \u2014 Chania", city Agia Paraskevi
+ * + region Samos -> "Agia Paraskevi \u2014 Samos", region Alanya -> "Alanya \u2014 regio". Falls back to the
+ * decoded value (nothing is hidden or invented). The URL values themselves never change.
+ */
+export function destinationDisplayLabel(
+  country: string | undefined,
+  value: { region?: string | null; city?: string | null },
+): string | undefined {
+  if (!country) {
+    return undefined;
+  }
+  const map = labelLookupMap();
+  const city = value.city?.trim();
+  const region = value.region?.trim();
+  if (city) {
+    return map.get(`c|${country}|${city}|${region ?? ''}`) ?? map.get(`c|${country}|${city}|`);
+  }
+  if (region) {
+    return map.get(`r|${country}|${region}`);
+  }
+  return undefined;
+}
+
 export function formatPlaceSelectionLabel(place: DestinationPlaceSelection): string {
-  return decodeDestinationLabel(place.city ?? place.region ?? place.country);
+  return (
+    destinationDisplayLabel(place.country, place) ??
+    decodeDestinationLabel(place.city ?? place.region ?? place.country)
+  );
 }
 
 /** Shared state -> popup place (only meaningful with exactly one country). */

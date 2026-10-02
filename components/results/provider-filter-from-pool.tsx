@@ -4,11 +4,9 @@ import {
 } from '@/components/results/provider-filter-select';
 import { loadPreparedResultsOffers } from '@/lib/search/prepared-results-request';
 import {
-  countProvidersInEffectivePool,
+  listProvidersInMatchset,
   omitProviderFilter,
 } from '@/lib/search/provider-filter';
-import { bookableResultsMembership } from '@/lib/search/results-catalog-page';
-import { hydrateResultsLivePriceOverlaysFromL2 } from '@/lib/search/results-live-price-cache';
 import type { SearchParams } from '@/types/travel';
 
 export type ProviderFilterFromPoolProps = {
@@ -21,9 +19,13 @@ export type ProviderFilterFromPoolProps = {
 };
 
 /**
- * Provider options + counts from the same proven-B pool as the Results heading.
- * Does not re-run catalog filtering or live pricing — hydrates L2 then counts
- * {@link bookableResultsMembership} without the provider constraint.
+ * Provider options from the catalog matchset of this search (t334u).
+ *
+ * Before (t334u RCA): the list was built from the proven-B pool at render time, so with
+ * 0 B yet (cold L1, live pricing still running) the sidebar showed only "Alle
+ * aanbieders" and never changed (one-shot server render). Providers are now known as
+ * soon as the matchset is prepared: no L2 hydrate, no wait for live pricing. Selecting a
+ * provider still subsets the proven-B pool; "Alle aanbieders" stays available.
  */
 export async function ProviderFilterFromPool({
   filteringParams,
@@ -31,18 +33,12 @@ export async function ProviderFilterFromPool({
 }: ProviderFilterFromPoolProps) {
   const baseParams = omitProviderFilter(filteringParams);
   const prepared = await loadPreparedResultsOffers(baseParams);
-  const ranked = await prepared.exactOffers;
-  await hydrateResultsLivePriceOverlaysFromL2(
-    ranked.map((offer) => offer.id),
-    baseParams,
-    { offers: ranked },
-  );
-  const effectivePool = bookableResultsMembership(ranked, baseParams);
-  const { total, providers } = countProvidersInEffectivePool(effectivePool);
+  const matchset = await prepared.exactOffers;
+  const providers = listProvidersInMatchset(matchset).map((provider) => ({ provider }));
 
   return (
     <ProviderFilterSelect
-      total={total}
+      total={matchset.length}
       providers={providers}
       selectedProvider={selectedProvider}
     />

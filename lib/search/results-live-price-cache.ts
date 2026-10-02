@@ -62,6 +62,15 @@ export const RESULTS_LIVE_PRICE_TTL_MS = 8 * 60 * 60 * 1000;
 export const RESULTS_LIVE_PRICE_TECHNICAL_FAILURE_TTL_MS = 2 * 60 * 1000;
 
 const cache = new Map<string, CacheEntry>();
+
+/**
+ * t334u: bumped on every write/clear of the L1 overlay map (set / L2 seed / clear), so the
+ * read-only progressive Results count can skip recomputation while nothing changed.
+ */
+let cacheVersion = 0;
+export function getResultsLivePriceCacheVersion(): number {
+  return cacheVersion;
+}
 let nowMsOverride: number | null = null;
 
 function nowMs(): number {
@@ -132,6 +141,7 @@ function toOverlay(entry: CacheEntry): ResultsLivePriceOverlay {
 
 export function clearResultsLivePriceCache(): void {
   cache.clear();
+  cacheVersion += 1;
 }
 
 export function getResultsLivePriceOverlay(
@@ -210,6 +220,7 @@ export function seedResultsLivePriceOverlayFromL2(
   overlay: ResultsLivePriceOverlay,
   options: { cachedAtMs: number; ttlMs: number },
 ): void {
+  cacheVersion += 1;
   cache.set(livePriceCacheKey(offerId, params), {
     ...overlay,
     cachedAtMs: options.cachedAtMs,
@@ -475,6 +486,7 @@ export function setResultsLivePriceOverlay(
   const cachedAtMs = options?.cachedAtMs ?? nowMs();
   const ttlMs = options?.ttlMs ?? RESULTS_LIVE_PRICE_TTL_MS;
   const key = livePriceCacheKey(offerId, params);
+  cacheVersion += 1;
   cache.set(key, {
     ...overlay,
     cachedAtMs,

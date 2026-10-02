@@ -4,16 +4,16 @@ import {
   RESULTS_NAVY,
 } from '@/components/results-v2/results-design-tokens';
 import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
-import {
-  PROVIDER_FILTER_PARAM,
-  type ProviderPoolCount,
-} from '@/lib/search/provider-filter';
+import { PROVIDER_FILTER_PARAM } from '@/lib/search/provider-filter';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTransition, type ReactNode } from 'react';
 
+/** `count` is optional: matchset-based options carry no (misleading, momentary) B count. */
+export type ProviderFilterOption = { provider: string; count?: number };
+
 export type ProviderFilterSelectProps = {
   total: number;
-  providers: ProviderPoolCount[];
+  providers: ProviderFilterOption[];
   selectedProvider?: string;
 };
 
@@ -85,7 +85,7 @@ export function ProviderFilterSelect({
   const selected = selectedProvider ?? '';
   const optionProviders =
     selected && !providers.some((entry) => entry.provider === selected)
-      ? [...providers, { provider: selected, count: 0 }]
+      ? [...providers, { provider: selected }]
       : providers;
 
   const onChange = (nextProvider: string) => {
@@ -118,7 +118,7 @@ export function ProviderFilterSelect({
         <option value="">Alle aanbieders</option>
         {optionProviders.map((entry) => (
           <option key={entry.provider} value={entry.provider}>
-            {entry.provider} ({entry.count})
+            {typeof entry.count === 'number' ? `${entry.provider} (${entry.count})` : entry.provider}
           </option>
         ))}
       </select>

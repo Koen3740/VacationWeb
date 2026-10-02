@@ -43,6 +43,33 @@ export const PLACE_ALIASES: Readonly<Record<string, string>> = {
   Makrigialos: 'Makri Gialos',
 };
 
+/**
+ * Provider-specific composite place names: a feed writes "<parent> - <place>" ("Chania - Agia Marina",
+ * "Ierapetra - Koutsounari") or "<place> - <parent>" ("Afitos - Kassandra") into the city field.
+ * Which side is the place is NOT guessable from the string: the directory build decides it from the
+ * catalog (the side repeated by several composites is the parent) and stores the result in the generated
+ * directory (`composites`: composite value -> place). Applied here, provider independent.
+ */
+export function splitCompositePlace(
+  value: string | undefined | null,
+): { head: string; tail: string } | null {
+  const parts = decodeHtmlEntities(value ?? '')
+    .split(/\s+-\s+/)
+    .map((part) => part.trim());
+  return parts.length === 2 && parts[0] && parts[1] ? { head: parts[0], tail: parts[1] } : null;
+}
+
+let compositePlaceByKey: Map<string, string> | null = null;
+
+/** Place a provider composite value resolves to (generated directory), or undefined. */
+function compositePlaceName(value: string): string | undefined {
+  if (!compositePlaceByKey) {
+    const composites = (directoryJson as { composites?: Array<{ n: string; p: string }> }).composites ?? [];
+    compositePlaceByKey = new Map(composites.map((entry) => [normalizePlaceText(entry.n), entry.p]));
+  }
+  return compositePlaceByKey.get(normalizePlaceText(value));
+}
+
 /** Mechanical normal form of a place name: entity, accent, case, apostrophe, hyphen, period, spaces. */
 export function normalizePlaceText(value: string): string {
   return decodeHtmlEntities(value)
@@ -56,13 +83,28 @@ export function normalizePlaceText(value: string): string {
     .trim();
 }
 
-/** Spelling-group key of a place: explicit pair first, then the mechanical normal form. */
-export function placeGroupKey(value: string | undefined | null): string {
+/**
+ * Spelling-group key without the generated composite table (pure: used by the directory build, so the
+ * generated JSON never depends on its own previous version).
+ */
+export function basePlaceGroupKey(value: string | undefined | null): string {
   const text = decodeHtmlEntities(value ?? '').trim();
   if (!text) {
     return '';
   }
   return normalizePlaceText(PLACE_ALIASES[text] ?? text);
+}
+
+/**
+ * Spelling-group key of a place: provider composite -> its place, explicit pair, then the mechanical
+ * normal form. "Chania - Agia Marina" and "Agia Marina" are one place group.
+ */
+export function placeGroupKey(value: string | undefined | null): string {
+  const text = decodeHtmlEntities(value ?? '').trim();
+  if (!text) {
+    return '';
+  }
+  return basePlaceGroupKey(compositePlaceName(text) ?? text);
 }
 
 /** Decoded, trimmed catalog place name (for display; the URL may carry any spelling of the group). */
@@ -84,7 +126,17 @@ function spellingScore(name: string): number {
  * by spelling quality (never by offer count). Deterministic: ties break by plain code-unit order.
  */
 export function pickPlaceDisplayName(variants: readonly string[]): string {
-  const decoded = [...new Set(variants.map(decodePlaceName).filter(Boolean))];
+  return chooseDisplayName([
+    ...new Set(variants.map((variant) => compositePlaceName(variant) ?? decodePlaceName(variant)).filter(Boolean)),
+  ]);
+}
+
+/** Same choice without the generated composite table (directory build). */
+export function pickBasePlaceDisplayName(variants: readonly string[]): string {
+  return chooseDisplayName([...new Set(variants.map(decodePlaceName).filter(Boolean))]);
+}
+
+function chooseDisplayName(decoded: string[]): string {
   if (decoded.length === 0) {
     return '';
   }

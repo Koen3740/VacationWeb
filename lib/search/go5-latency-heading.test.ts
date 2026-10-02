@@ -54,7 +54,8 @@ test('GO5/GO11: heading uses PresentableResultsCount (proven B); cards use pagin
   const catalogLive = readFileSync(join(ROOT, 'components/results/catalog-live-section.tsx'), 'utf8');
   const stateSrc = readFileSync(join(ROOT, 'lib/search/catalog-live-page-state.ts'), 'utf8');
   assert.ok(pageSrc.includes('PresentableResultsCount'));
-  assert.ok(presentableSrc.includes('countResultsPool'));
+  assert.ok(presentableSrc.includes('getSharedResultsPoolReader')); // t334u: the pool is read via results-pool-reading.ts
+  assert.ok(readFileSync(join(ROOT, 'lib/search/results-pool-reading.ts'), 'utf8').includes('bookableMembershipFromOverlaid'));
   assert.ok(presentableSrc.includes('loadPreparedResultsOffers'));
   assert.ok(presentableSrc.includes('exactOffers'));
   assert.ok(!presentableSrc.includes('loadPresentableResultsCount'));

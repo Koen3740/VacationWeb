@@ -46,7 +46,11 @@ describe('hero vs results heading labels', () => {
   it('PresentableResultsCount hero omits provider; section keeps it', () => {
     const src = readFileSync('components/results/presentable-results-count.tsx', 'utf8');
     assert.match(src, /omitProviderFilter\(filteringParams\)/);
-    assert.match(src, /formatSectionCountLabel\(count,\s*filteringParams\.provider\)/);
+    assert.match(src, /provider=\{filteringParams\.provider\}/);
+    assert.match(
+      readFileSync('lib/search/results-count-labels.ts', 'utf8'),
+      /formatSectionCountLabel\(step\.count,\s*options\.provider\)/,
+    );
     assert.match(src, /variant === 'hero'/);
   });
 });

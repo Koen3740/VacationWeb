@@ -93,3 +93,22 @@ export function countProvidersInEffectivePool(
     providers,
   };
 }
+
+/**
+ * t334u: providers PRESENT in the catalog matchset of this search (distinct, trimmed,
+ * sorted nl). Known as soon as the matchset is prepared - independent of live pricing,
+ * so the sidebar can list Corendon / Sunweb / Eliza was here while pricing is still
+ * running. Selecting one still subsets the proven-B pool (membership unchanged).
+ */
+export function listProvidersInMatchset(
+  matchset: readonly Pick<TravelOffer, 'provider'>[],
+): string[] {
+  const names = new Set<string>();
+  for (const offer of matchset) {
+    const name = typeof offer.provider === 'string' ? offer.provider.trim() : '';
+    if (name) {
+      names.add(name);
+    }
+  }
+  return [...names].sort((left, right) => left.localeCompare(right, 'nl'));
+}

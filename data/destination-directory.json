@@ -627,11 +627,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Afitos"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Afitos - Kassandra"
+   "n": "Afitos",
+   "p": "Kassandra"
   },
   {
    "c": "Griekenland",
@@ -643,11 +640,17 @@
   },
   {
    "c": "Griekenland",
+   "n": "Agia Fotia",
+   "p": "Ierapetra"
+  },
+  {
+   "c": "Griekenland",
    "n": "Agia Galini"
   },
   {
    "c": "Griekenland",
-   "n": "Agia Marina"
+   "n": "Agia Marina",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -669,7 +672,14 @@
   },
   {
    "c": "Griekenland",
-   "n": "Agioi Apostoloi"
+   "n": "Agioi Apostoloi",
+   "a": "Evia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agioi Apostoloi",
+   "a": "Kreta",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -780,7 +790,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Almyrida"
+   "n": "Almyrida",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -924,62 +935,6 @@
   },
   {
    "c": "Griekenland",
-   "n": "Chania - Agia Marina"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Agioi Apostoloi"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Almyrida"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Daratso"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Gerani"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Kalamaki"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Kissamos"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Kolymbari"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Maleme"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Marathi"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Platanias"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Stalos"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Stavros"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Chania - Tavronitis"
-  },
-  {
-   "c": "Griekenland",
    "n": "Charaki"
   },
   {
@@ -1028,6 +983,11 @@
   },
   {
    "c": "Griekenland",
+   "n": "Daratso",
+   "p": "Chania"
+  },
+  {
+   "c": "Griekenland",
    "n": "Dassia"
   },
   {
@@ -1049,10 +1009,6 @@
   {
    "c": "Griekenland",
    "n": "Eftalou Molivos"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Eilandhoppen Cycladen"
   },
   {
    "c": "Griekenland",
@@ -1140,11 +1096,13 @@
   },
   {
    "c": "Griekenland",
-   "n": "Gerakini - Sithonia"
+   "n": "Gerakini",
+   "p": "Sithonia"
   },
   {
    "c": "Griekenland",
-   "n": "Gerani"
+   "n": "Gerani",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -1180,7 +1138,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Hanioti - Kassandra"
+   "n": "Hanioti",
+   "p": "Kassandra"
   },
   {
    "c": "Griekenland",
@@ -1197,18 +1156,6 @@
   {
    "c": "Griekenland",
    "n": "Ierapetra"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Ierapetra - Agia Fotia"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Ierapetra - Katharades"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Ierapetra - Koutsounari"
   },
   {
    "c": "Griekenland",
@@ -1229,6 +1176,12 @@
   {
    "c": "Griekenland",
    "n": "Ixia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalamaki",
+   "a": "Chania",
+   "v": "Chania - Kalamaki"
   },
   {
    "c": "Griekenland",
@@ -1259,11 +1212,14 @@
   },
   {
    "c": "Griekenland",
-   "n": "Kalithea"
+   "n": "Kalithea",
+   "a": "Chalkidiki",
+   "p": "Kassandra"
   },
   {
    "c": "Griekenland",
-   "n": "Kalithea - Kassandra"
+   "n": "Kalithea",
+   "a": "Rhodos"
   },
   {
    "c": "Griekenland",
@@ -1355,6 +1311,11 @@
   },
   {
    "c": "Griekenland",
+   "n": "Katharades",
+   "p": "Ierapetra"
+  },
+  {
+   "c": "Griekenland",
    "n": "Kato Gouves"
   },
   {
@@ -1395,7 +1356,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Kissamos"
+   "n": "Kissamos",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -1407,7 +1369,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Kolymbari"
+   "n": "Kolymbari",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -1455,7 +1418,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Koutsounari"
+   "n": "Koutsounari",
+   "p": "Ierapetra"
   },
   {
    "c": "Griekenland",
@@ -1463,7 +1427,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Kriopigi - Kassandra"
+   "n": "Kriopigi",
+   "p": "Kassandra"
   },
   {
    "c": "Griekenland",
@@ -1555,7 +1520,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Maleme"
+   "n": "Maleme",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -1568,6 +1534,11 @@
   {
    "c": "Griekenland",
    "n": "Marantochori"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Marathi",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -1627,7 +1598,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Metamorfosi - Sithonia"
+   "n": "Metamorfosi",
+   "p": "Sithonia"
   },
   {
    "c": "Griekenland",
@@ -1675,19 +1647,13 @@
   },
   {
    "c": "Griekenland",
-   "n": "Nea Moudania"
+   "n": "Nea Moudania",
+   "p": "Kassandra"
   },
   {
    "c": "Griekenland",
-   "n": "Nea Moudania - Kassandra"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Nea Potidea"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Nea Potidea - Kassandra"
+   "n": "Nea Potidea",
+   "p": "Kassandra"
   },
   {
    "c": "Griekenland",
@@ -1751,11 +1717,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Pefkohori"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Pefkohori - Kassandra"
+   "n": "Pefkohori",
+   "p": "Kassandra"
   },
   {
    "c": "Griekenland",
@@ -1808,7 +1771,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Platanias"
+   "n": "Platanias",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -1816,11 +1780,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Polichrono"
-  },
-  {
-   "c": "Griekenland",
-   "n": "Polichrono - Kassandra"
+   "n": "Polichrono",
+   "p": "Kassandra"
   },
   {
    "c": "Griekenland",
@@ -1956,7 +1917,17 @@
   },
   {
    "c": "Griekenland",
+   "n": "Stalos",
+   "p": "Chania"
+  },
+  {
+   "c": "Griekenland",
    "n": "Stavromenos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Stavros",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -1976,7 +1947,8 @@
   },
   {
    "c": "Griekenland",
-   "n": "Tavronítis"
+   "n": "Tavronítis",
+   "p": "Chania"
   },
   {
    "c": "Griekenland",
@@ -2420,6 +2392,11 @@
   },
   {
    "c": "Portugal",
+   "n": "Capelas",
+   "p": "São Miguel"
+  },
+  {
+   "c": "Portugal",
    "n": "Carvoeiro"
   },
   {
@@ -2452,7 +2429,8 @@
   },
   {
    "c": "Portugal",
-   "n": "Fenais da Luz"
+   "n": "Fenais da Luz",
+   "p": "São Miguel"
   },
   {
    "c": "Portugal",
@@ -2516,7 +2494,8 @@
   },
   {
    "c": "Portugal",
-   "n": "Ponta Delgada"
+   "n": "Ponta Delgada",
+   "p": "São Miguel"
   },
   {
    "c": "Portugal",
@@ -2568,7 +2547,8 @@
   },
   {
    "c": "Portugal",
-   "n": "Ribeira Grande"
+   "n": "Ribeira Grande",
+   "p": "São Miguel"
   },
   {
    "c": "Portugal",
@@ -2601,22 +2581,6 @@
   {
    "c": "Portugal",
    "n": "Sintra"
-  },
-  {
-   "c": "Portugal",
-   "n": "São Miguel - Capelas"
-  },
-  {
-   "c": "Portugal",
-   "n": "São Miguel - Fenais da Luz"
-  },
-  {
-   "c": "Portugal",
-   "n": "São Miguel - Ponta Delgada"
-  },
-  {
-   "c": "Portugal",
-   "n": "São Miguel - Ribeira Grande"
   },
   {
    "c": "Portugal",
@@ -4223,6 +4187,158 @@
    "c": "Turkije",
    "n": "Side",
    "rel": "split"
+  }
+ ],
+ "composites": [
+  {
+   "c": "Griekenland",
+   "n": "Afitos - Kassandra",
+   "p": "Afitos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Agia Marina",
+   "p": "Agia Marina"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Agioi Apostoloi",
+   "p": "Agioi Apostoloi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Almyrida",
+   "p": "Almyrida"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Daratso",
+   "p": "Daratso"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Gerani",
+   "p": "Gerani"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Kissamos",
+   "p": "Kissamos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Kolymbari",
+   "p": "Kolymbari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Maleme",
+   "p": "Maleme"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Marathi",
+   "p": "Marathi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Platanias",
+   "p": "Platanias"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Stalos",
+   "p": "Stalos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Stavros",
+   "p": "Stavros"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Tavronitis",
+   "p": "Tavronítis"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gerakini - Sithonia",
+   "p": "Gerakini"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Hanioti - Kassandra",
+   "p": "Hanioti"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ierapetra - Agia Fotia",
+   "p": "Agia Fotia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ierapetra - Katharades",
+   "p": "Katharades"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ierapetra - Koutsounari",
+   "p": "Koutsounari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalithea - Kassandra",
+   "p": "Kalithea"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kriopigi - Kassandra",
+   "p": "Kriopigi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Metamorfosi - Sithonia",
+   "p": "Metamorfosi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nea Moudania - Kassandra",
+   "p": "Nea Moudania"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nea Potidea - Kassandra",
+   "p": "Nea Potidea"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pefkohori - Kassandra",
+   "p": "Pefkohori"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Polichrono - Kassandra",
+   "p": "Polichrono"
+  },
+  {
+   "c": "Portugal",
+   "n": "São Miguel - Capelas",
+   "p": "Capelas"
+  },
+  {
+   "c": "Portugal",
+   "n": "São Miguel - Fenais da Luz",
+   "p": "Fenais da Luz"
+  },
+  {
+   "c": "Portugal",
+   "n": "São Miguel - Ponta Delgada",
+   "p": "Ponta Delgada"
+  },
+  {
+   "c": "Portugal",
+   "n": "São Miguel - Ribeira Grande",
+   "p": "Ribeira Grande"
   }
  ]
 }

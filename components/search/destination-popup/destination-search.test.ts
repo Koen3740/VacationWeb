@@ -138,13 +138,107 @@ test('destination search: empty query gives no suggestions; at most 8 results; n
   assert.deepEqual(labels('xyzzy'), []);
 });
 
-test('destination search: ranking = exact, then prefix, then word prefix; country before region before place', () => {
+test('destination search: ranking = exact, then prefix, then word prefix; on equal quality country, region, place (same-name pair: stad first)', () => {
   const idx = indexFor([
     { country: 'Cyprus', region: 'Zuid', city: 'Zuidkust' },
     { country: 'Cyprus', region: 'Cyprus Zuid', city: 'Noord Zuid' },
   ]);
   const out = searchDestinations(idx, 'zuid').map((s) => s.label);
   assert.deepEqual(out, ['Zuid', 'Zuidkust', 'Cyprus Zuid', 'Noord Zuid']);
+});
+
+test('destination search: same name as region AND place - the place (stad) comes first, then the region (t330u)', () => {
+  assert.deepEqual(labels('alanya'), ['Alanya \u2014 stad', 'Alanya \u2014 regio']);
+  assert.deepEqual(labels('side'), ['Side \u2014 stad', 'Side \u2014 regio']);
+  // match quality stays primary: an exact region is above a prefix place, a prefix place never above an exact region
+  const idx = indexFor([
+    { country: 'Griekenland', region: 'Kos', province: '', city: 'Kos-Stad' },
+    { country: 'Griekenland', region: 'Kreta', province: '', city: 'Kosta' },
+  ]);
+  const kos = searchDestinations(idx, 'kos');
+  assert.equal(kos[0].label, 'Kos');
+  assert.equal(kos[0].kind, 'region');
+  assert.deepEqual(kos.slice(1).map((s) => s.kind), ['city', 'city']);
+});
+
+test('destination search: equal quality does NOT push a region behind places (measured: san, port, costa keep their regions)', () => {
+  const idx = indexFor([
+    { country: 'Griekenland', region: 'Santorini', province: '', city: 'Kamari' },
+    ...Array.from({ length: 12 }, (_, i) => ({ country: 'Spanje', region: 'Costa Brava', province: '', city: `San Plaza ${String(i).padStart(2, '0')}` })),
+  ]);
+  const out = searchDestinations(idx, 'san');
+  assert.equal(out.length, MAX_DESTINATION_SUGGESTIONS);
+  assert.equal(out[0].label, 'Santorini', 'region first at equal quality, not cut from the 8');
+  assert.equal(out[0].kind, 'region');
+});
+
+test('destination search: provider composite names - Agia Marina is one place, labels are place first, never "Parent - Place"', () => {
+  const kreta = { country: 'Griekenland', region: 'Kreta', province: 'Kreta' };
+  const idx = indexFor([
+    { ...kreta, city: 'Agia Marina' },
+    { ...kreta, city: 'Chania - Agia Marina' },
+    { ...kreta, city: 'Chania Agia Marina' },
+    { ...kreta, city: 'Chania - Almyrida' },
+    { ...kreta, city: 'Chania - Daratso' },
+    { ...kreta, city: 'Chania' },
+    { ...kreta, city: 'Ierapetra - Agia Fotia' },
+    { ...kreta, city: 'Ierapetra - Koutsounari' },
+    { country: 'Griekenland', region: 'Zakynthos', city: 'Kalamaki' },
+    { ...kreta, city: 'Kalamaki' },
+    { country: 'Griekenland', region: 'Peloponnesos', city: 'Kalamaki' },
+    { ...kreta, city: 'Chania - Kalamaki' },
+  ]);
+  const find = (q: string) => searchDestinations(idx, q).map((s) => s.label);
+  assert.deepEqual(find('agia marina'), ['Agia Marina']);
+  assert.equal(searchDestinations(idx, 'agia marina')[0].kind, 'city');
+  assert.deepEqual(placeSelectionFromSuggestion(searchDestinations(idx, 'agia marina')[0]), { country: 'Griekenland', city: 'Agia Marina' });
+  assert.deepEqual(find('agia fotia'), ['Agia Fotia']);
+  assert.deepEqual(find('kalamaki'), ['Kalamaki \u2014 Chania', 'Kalamaki \u2014 Kreta', 'Kalamaki \u2014 Peloponnesos', 'Kalamaki \u2014 Zakynthos']);
+  const chania = searchDestinations(idx, 'kalamaki').find((s) => s.label === 'Kalamaki \u2014 Chania')!;
+  assert.deepEqual(placeSelectionFromSuggestion(chania), { country: 'Griekenland', city: 'Chania - Kalamaki' });
+  for (const query of ['chania', 'agia', 'kalamaki', 'a']) {
+    for (const label of find(query)) assert.equal(/ - /.test(label), false, `${query}: ${label}`);
+  }
+  // the parent stays a search handle (after every name match): "chania" finds the place Chania first, then its places
+  const chaniaHits = find('chania');
+  assert.equal(chaniaHits[0], 'Chania');
+  for (const place of ['Agia Marina', 'Almyrida', 'Daratso']) assert.ok(chaniaHits.includes(place), place);
+});
+
+test('destination search: product names (island hopping, bingo, cruises) are not suggestions', () => {
+  const idx = indexFor([
+    { country: 'Griekenland', region: 'Santorini', province: '', city: 'Eilandhoppen Cycladen' },
+    { country: 'Griekenland', region: 'Santorini', province: '', city: 'Kamari' },
+  ]);
+  assert.deepEqual(searchDestinations(idx, 'eiland'), []);
+  assert.deepEqual(searchDestinations(idx, 'kamari').map((s) => s.label), ['Kamari']);
+});
+
+test('destination search: real directory - top results for the product test terms', () => {
+  const index = buildDestinationSearchIndex();
+  const top = (query: string) => searchDestinations(index, query).map((s) => s.label);
+  for (const term of ['alanya', 'side', 'hurghada', 'marmaris', 'kemer']) {
+    const [first, second] = top(term);
+    assert.equal(first, `${term[0].toUpperCase()}${term.slice(1)} \u2014 stad`, term);
+    assert.equal(second, `${term[0].toUpperCase()}${term.slice(1)} \u2014 regio`, term);
+  }
+  assert.deepEqual(top('agia marina'), ['Agia Marina']);
+  assert.deepEqual(top('agia pelagia'), ['Agia Pelagia', 'Agia Pelagia Spili']);
+  assert.deepEqual(top('kalamaki'), ['Kalamaki \u2014 Chania', 'Kalamaki \u2014 Kreta', 'Kalamaki \u2014 Peloponnesos', 'Kalamaki \u2014 Zakynthos']);
+  assert.deepEqual(top('tossa'), ['Tossa de Mar']);
+  assert.deepEqual(top("cala d'or"), ["Cala d'Or"]);
+  assert.equal(top('mallorca')[0], 'Mallorca');
+  assert.equal(top('zakynthos')[0], 'Zakynthos');
+  for (const exactRegion of ['kreta', 'santorini', 'kos', 'rhodos']) {
+    assert.equal(searchDestinations(index, exactRegion)[0].kind, 'region', exactRegion);
+  }
+  // equal quality: a region is still in the 8 for san / port / costa
+  assert.ok(top('san').includes('Santorini'));
+  assert.ok(top('port').includes('Porto'));
+  assert.ok(top('costa').includes('Costa Blanca'));
+  assert.equal(top('eilandhoppen').length, 0);
+  // open point: no alias mechanism - "zante" (catalog spelling "Zakynthos (Zante)") finds nothing yet
+  assert.deepEqual(top('zante'), []);
 });
 
 test('destination search: a name that is more than one destination gets a SHORT suffix, otherwise none', () => {

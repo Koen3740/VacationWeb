@@ -1,4 +1,5 @@
 import { Page1ResultsCap } from '@/components/results/page1-results-cap';
+import { PoolProgressStream } from '@/components/results/pool-progress-steps';
 import { ResultsPagination } from '@/components/results/results-pagination';
 import { SyncPage1IdsToUrl } from '@/components/results/sync-page1-ids-to-url';
 import { TravelCard } from '@/components/results/travel-card';
@@ -12,6 +13,9 @@ import {
   resolvePage1SettleOutput,
   type Page1SettleController,
 } from '@/lib/search/page-settle';
+import { RESULTS_USER_PAGINATION_CAP } from '@/lib/search/pagination';
+import { createPoolProgressTracker } from '@/lib/search/results-pool-progress';
+import { memoizeByCacheVersion } from '@/lib/search/results-pool-reading';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 import { Suspense } from 'react';
 
@@ -165,13 +169,16 @@ export async function Page1PaginationStream({
 }) {
   if (page1Settle) {
     const selection = await page1Settle.selection;
-    const output = resolvePage1SettleOutput({
+    const settleArgs = {
       result: selection,
-      browseTotal: computeBrowseTotal ? computeBrowseTotal() : paginationTotal,
       existingPage1Ids: params.page1Ids,
       pageSize: page1Settle.pageSize,
       // D-v2 S5: a still-pending frozen anchor never causes a shorter page1Ids rewrite.
       pendingIds: pendingSlotIdsForSettle(selection, page1Settle.slotOffers),
+    };
+    const output = resolvePage1SettleOutput({
+      ...settleArgs,
+      browseTotal: computeBrowseTotal ? computeBrowseTotal() : paginationTotal,
     });
     if (output.showStatusLine) {
       // DEADLINE_EMPTY (plan section 3): status line only; no page1Ids, no pagination,
@@ -194,16 +201,54 @@ export async function Page1PaginationStream({
           catalogGen={definitiveGen}
         />
         {output.showPagination ? (
-          <ResultsPagination
-            params={{
-              ...params,
-              pageSize: RESULTS_PRODUCT_PAGE_SIZE,
-              page1Ids: output.paginationPage1Ids,
-              ...(definitiveGen ? { catalogGen: definitiveGen } : {}),
-            }}
-            totalResults={output.paginationTotal}
-            hasMore={page1HasMore(output, page1Settle.pageSize)}
-          />
+          computeBrowseTotal ? (
+            // t334u: the browse total used to be frozen here (~10-12 B proven at settle =
+            // "2 pages") while hundreds more became B afterwards. The page1Ids freeze above
+            // is unchanged; only the page COUNT follows the same L1 B pool as the cards,
+            // as streamed steps (bounded, read-only, see results-pool-progress.ts).
+            <PoolProgressStream
+              as="div"
+              tracker={createPoolProgressTracker({
+                read: memoizeByCacheVersion(() => {
+                  const count = computeBrowseTotal();
+                  return {
+                    count,
+                    pending: null,
+                    complete: count >= RESULTS_USER_PAGINATION_CAP,
+                  };
+                }),
+              })}
+              render={(step) => {
+                const stepOutput = resolvePage1SettleOutput({
+                  ...settleArgs,
+                  browseTotal: step.count,
+                });
+                return (
+                  <ResultsPagination
+                    params={{
+                      ...params,
+                      pageSize: RESULTS_PRODUCT_PAGE_SIZE,
+                      page1Ids: stepOutput.paginationPage1Ids,
+                      ...(definitiveGen ? { catalogGen: definitiveGen } : {}),
+                    }}
+                    totalResults={stepOutput.paginationTotal}
+                    hasMore={page1HasMore(stepOutput, page1Settle.pageSize)}
+                  />
+                );
+              }}
+            />
+          ) : (
+            <ResultsPagination
+              params={{
+                ...params,
+                pageSize: RESULTS_PRODUCT_PAGE_SIZE,
+                page1Ids: output.paginationPage1Ids,
+                ...(definitiveGen ? { catalogGen: definitiveGen } : {}),
+              }}
+              totalResults={output.paginationTotal}
+              hasMore={page1HasMore(output, page1Settle.pageSize)}
+            />
+          )
         ) : null}
       </>
     );

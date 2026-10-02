@@ -25,7 +25,8 @@ test('GO9/GO11 F1: price-sort path streams proven-B heading (same membership as 
   assert.ok(page.includes('PriceSortPresentableCount') || page.includes('isPriceDependentSort'));
   const presentable = read('components/results/presentable-results-count.tsx');
   assert.ok(presentable.includes('export async function PriceSortPresentableCount'));
-  assert.ok(presentable.includes('countResultsPool'));
+  assert.ok(presentable.includes('getSharedResultsPoolReader')); // t334u: the pool is read via results-pool-reading.ts
+  assert.ok(read('lib/search/results-pool-reading.ts').includes('bookableMembershipFromOverlaid'));
   // Proven-B heading awaits exactOffers so workset live overlays are included.
   assert.ok(/await\s+prepared\.exactOffers/.test(presentable));
   assert.ok(!presentable.includes('slicePriceSortPoolPage'));
@@ -43,7 +44,7 @@ test('GO9 F2: cold catalog presentable count still settles overlays (cards path)
 
   const presentable = read('components/results/presentable-results-count.tsx');
 
-  assert.ok(/Geen/i.test(presentable));
+  assert.ok(/Geen/i.test(read('lib/search/results-count-labels.ts')));
 
 });
 

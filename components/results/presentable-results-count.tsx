@@ -1,11 +1,14 @@
+import { PoolProgressStream } from '@/components/results/pool-progress-steps';
 import {
   formatHeroCountLabel,
+  formatPoolCountStep,
   formatSectionCountLabel,
 } from '@/lib/search/results-count-labels';
 import { loadPreparedResultsOffers } from '@/lib/search/prepared-results-request';
 import { omitProviderFilter } from '@/lib/search/provider-filter';
-import { countResultsPool } from '@/lib/search/results-pool-count';
-import { hydrateResultsLivePriceOverlaysFromL2 } from '@/lib/search/results-live-price-cache';
+import { startResultsPoolL2Hydrate } from '@/lib/search/results-pool-hydrate';
+import { createPoolProgressTracker } from '@/lib/search/results-pool-progress';
+import { getSharedResultsPoolReader } from '@/lib/search/results-pool-reading';
 import type { SearchParams } from '@/types/travel';
 
 export { formatHeroCountLabel, formatSectionCountLabel };
@@ -23,27 +26,48 @@ export type PresentableResultsCountProps = {
   variant: 'hero' | 'section';
 };
 
-async function countPresentableForParams(filteringParams: SearchParams): Promise<{
-  count: number;
-  rankedLength: number;
-}> {
-  const prepared = await loadPreparedResultsOffers(filteringParams);
+/**
+ * Progressive proven-B count (t334u). The prepare is shared (React cache), the full
+ * matchset L2 hydrate runs in the BACKGROUND (never awaited: it used to hold the
+ * heading at "." for ~12 s at 788 offers and ~98 s at 6,825), and the label follows the
+ * same L1 overlay state as the cards through streamed steps.
+ */
+async function ProgressivePresentableCount({
+  countParams,
+  provider,
+  summaryLine,
+  variant,
+}: {
+  countParams: SearchParams;
+  provider?: string;
+  summaryLine: string;
+  variant: 'hero' | 'section';
+}) {
+  const prepared = await loadPreparedResultsOffers(countParams);
   const ranked = await prepared.exactOffers;
-  await hydrateResultsLivePriceOverlaysFromL2(
-    ranked.map((offer) => offer.id),
-    filteringParams,
-    { offers: ranked },
+  startResultsPoolL2Hydrate(ranked, countParams);
+  const tracker = createPoolProgressTracker({
+    read: getSharedResultsPoolReader(ranked, countParams),
+  });
+  return (
+    <PoolProgressStream
+      tracker={tracker}
+      render={(step) =>
+        formatPoolCountStep(step, {
+          variant,
+          summaryLine,
+          provider,
+          matchsetEmpty: ranked.length === 0,
+        })
+      }
+    />
   );
-  return {
-    count: countResultsPool(ranked, filteringParams),
-    rankedLength: ranked.length,
-  };
 }
 
 /**
  * Heading counts proven listable B (uncapped), never catalog matchset size.
  * - hero: original search (provider omitted)
- * - section: effective pool including active provider filter + optional "bij …"
+ * - section: effective pool including active provider filter + optional "bij <provider>"
  */
 export async function PresentableResultsCount({
   filteringParams,
@@ -57,18 +81,14 @@ export async function PresentableResultsCount({
 
   const countParams =
     variant === 'hero' ? omitProviderFilter(filteringParams) : filteringParams;
-  const { count, rankedLength } = await countPresentableForParams(countParams);
-
-  // Matchset still warming with zero proven B yet — do not claim catalog size or "Geen".
-  if (count === 0 && rankedLength > 0) {
-    return <>…</>;
-  }
-
-  if (variant === 'hero') {
-    return <>{formatHeroCountLabel(count, summaryLine)}</>;
-  }
-
-  return <>{formatSectionCountLabel(count, filteringParams.provider)}</>;
+  return (
+    <ProgressivePresentableCount
+      countParams={countParams}
+      provider={filteringParams.provider}
+      summaryLine={summaryLine}
+      variant={variant}
+    />
+  );
 }
 
 export type PriceSortPresentableCountProps = {
@@ -90,15 +110,12 @@ export async function PriceSortPresentableCount({
 }: PriceSortPresentableCountProps) {
   const countParams =
     variant === 'hero' ? omitProviderFilter(filteringParams) : filteringParams;
-  const { count, rankedLength } = await countPresentableForParams(countParams);
-
-  if (count === 0 && rankedLength > 0) {
-    return <>…</>;
-  }
-
-  if (variant === 'hero') {
-    return <>{formatHeroCountLabel(count, summaryLine)}</>;
-  }
-
-  return <>{formatSectionCountLabel(count, filteringParams.provider)}</>;
+  return (
+    <ProgressivePresentableCount
+      countParams={countParams}
+      provider={filteringParams.provider}
+      summaryLine={summaryLine}
+      variant={variant}
+    />
+  );
 }

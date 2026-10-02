@@ -11,7 +11,11 @@ import {
 import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
-import { placeSelectionFromState } from '@/components/search/destination-popup/destination-search';
+import {
+  decodeDestinationLabel,
+  destinationDisplayLabel,
+  placeSelectionFromState,
+} from '@/components/search/destination-popup/destination-search';
 import {
   canonicalizeBoardType,
   canonicalizeBoardTypes,
@@ -324,6 +328,23 @@ export function FilterSidebar({
     return [...merged].sort((left, right) => left.localeCompare(right, 'nl'));
   }, [citiesByCountry, selectedCountries]);
 
+  // Display only (t334u): the <option value> stays the URL value; the text follows the popup label
+  // rule (name first, context last), so a raw provider composite ("Chania - Kalamaki") never shows.
+  const regionOptionLabel = (region: string) => {
+    for (const country of selectedCountries) {
+      const label = destinationDisplayLabel(country, { region });
+      if (label) return label;
+    }
+    return decodeDestinationLabel(region);
+  };
+  const cityOptionLabel = (city: string) => {
+    for (const country of selectedCountries) {
+      const label = destinationDisplayLabel(country, { city });
+      if (label) return label;
+    }
+    return decodeDestinationLabel(city);
+  };
+
   const visibleAccommodationTypes = useMemo(() => {
     const available = new Set(accommodationTypes.map((type) => type.toLowerCase()));
     return ACCOMMODATION_TYPE_FILTER_VALUES.filter((type) => available.has(type.toLowerCase()));
@@ -627,7 +648,7 @@ export function FilterSidebar({
                 <option value="">Alle regio&apos;s</option>
                 {availableRegions.map((region) => (
                   <option key={region} value={region}>
-                    {region}
+                    {regionOptionLabel(region)}
                   </option>
                 ))}
               </select>
@@ -643,7 +664,7 @@ export function FilterSidebar({
                 <option value="">Alle plaatsen</option>
                 {availableCities.map((city) => (
                   <option key={city} value={city}>
-                    {city}
+                    {cityOptionLabel(city)}
                   </option>
                 ))}
               </select>

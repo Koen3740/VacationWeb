@@ -157,7 +157,19 @@ export function bookableResultsMembership(
   const overlaid = params
     ? applyResultsLivePriceOverlays(ranked as TravelOffer[], params)
     : (ranked as TravelOffer[]);
-  const listable = filterToResultsListableOffers(overlaid);
+  return bookableMembershipFromOverlaid(overlaid, params);
+}
+
+/**
+ * Same membership as {@link bookableResultsMembership} for offers that already carry
+ * their live overlay (t334u: the progressive count reads the overlays once per poll and
+ * derives both the B count and the settled count from that single pass).
+ */
+export function bookableMembershipFromOverlaid(
+  overlaid: readonly TravelOffer[],
+  params?: SearchParams,
+): TravelOffer[] {
+  const listable = filterToResultsListableOffers(overlaid as TravelOffer[]);
   const budgeted = params
     ? listable.filter((offer) => offerMatchesBudget(offer, params))
     : listable;

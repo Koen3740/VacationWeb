@@ -4,7 +4,7 @@
  * The offer keeps its real area (Bingoreizen Kreta stays findable through region Kreta); the product
  * label itself must never be offered as a destination in the Destination popup.
  *
- * The exact deny-list below (country + field + value, 42 proven catalog values) is the source of
+ * The exact deny-list below (country + field + value, 43 proven catalog values) is the source of
  * truth. The word-bound pattern is only a guard: a test reports catalog values that look like a
  * product name but are not on the list, so a new feed value is reviewed instead of guessed.
  * Provider independent: no sourceProvider condition, only (country, field, value).
@@ -37,6 +37,7 @@ const CITY_DENY: DenyList = {
     'Excursiereizen Lefkas',
     'Excursiereizen Lesbos',
     'Fly & Drive Chalkidiki',
+    'Eilandhoppen Cycladen',
   ],
   Portugal: ['Fly & Drive Madeira', 'Rondreizen Madeira'],
   Marokko: ['Rondreizen Marokko'],
@@ -100,4 +101,4 @@ export function listProductDenyEntries(): Array<{
  * "Turgutreis" (contains "reis") out of the product class.
  */
 export const PRODUCT_NAME_GUARD_PATTERN =
-  /(^|[\s\-&])(bingoreizen|rondreizen|cruisereizen|nijlcruises?|excursiereizen|blue cruises|fly & drive|vol charter)(?=$|[\s\-&])/i;
+  /(^|[\s\-&])(bingoreizen|rondreizen|cruisereizen|nijlcruises?|excursiereizen|eilandhoppen|blue cruises|fly & drive|vol charter)(?=$|[\s\-&])/i;

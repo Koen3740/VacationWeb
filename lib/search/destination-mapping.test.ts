@@ -207,16 +207,19 @@ test('mapping: popup choices write the existing URL contract; larger match sets 
   assert.equal(mallorca.region, 'Mallorca');
 });
 
-test('product names: exact deny-list of 42 values is the source of truth; real areas stay findable', () => {
+test('product names: exact deny-list of 43 values is the source of truth; real areas stay findable', () => {
   const entries = listProductDenyEntries();
-  assert.equal(entries.length, 42);
-  assert.equal(entries.filter((e) => e.field === 'city').length, 33);
+  assert.equal(entries.length, 43);
+  assert.equal(entries.filter((e) => e.field === 'city').length, 34);
   assert.equal(entries.filter((e) => e.field === 'region').length, 5);
   assert.equal(entries.filter((e) => e.field === 'province').length, 4);
   assert.equal(isProductDestinationValue('Griekenland', 'city', 'Bingoreizen Kreta'), true);
   assert.equal(isProductDestinationValue('Turkije', 'city', 'Turgutreis'), false);
   assert.equal(PRODUCT_NAME_GUARD_PATTERN.test('Turgutreis'), false);
   assert.equal(PRODUCT_NAME_GUARD_PATTERN.test('Bingoreizen Kreta'), true);
+  // t333u: a multi-island tour is a product, not a place (3 Sunweb offers stay findable through region Santorini)
+  assert.equal(isProductDestinationValue('Griekenland', 'city', 'Eilandhoppen Cycladen'), true);
+  assert.equal(PRODUCT_NAME_GUARD_PATTERN.test('Eilandhoppen Cycladen'), true);
   // The product offer stays in its real area: region=Kreta still finds it.
   const offers = [offer('b', { country: 'Griekenland', region: 'Kreta', province: 'Kreta', city: 'Bingoreizen Kreta' })];
   assert.deepEqual(ids(offers, { country: 'Griekenland', region: 'Kreta' }), ['b']);
@@ -493,7 +496,7 @@ catalogTest('guard: popup index has one entry per destination, no product names,
   }
 });
 
-catalogTest('guard: the 6 explicit pairs and 22 mechanical place groups are exactly what the catalog shows', () => {
+catalogTest('guard: the 6 explicit pairs, 20 mechanical and 19 provider-composite place groups are exactly what the catalog shows', () => {
   const stored = JSON.parse(fs.readFileSync(OFFERS_FILE, 'utf8')) as StoredOffer[];
   const groups = new Map<string, Set<string>>();
   for (const o of stored) {
@@ -508,6 +511,153 @@ catalogTest('guard: the 6 explicit pairs and 22 mechanical place groups are exac
     const keys = new Set([...variants].map(normalizePlaceText));
     return keys.size === 1;
   });
-  assert.equal(mechanical.length, 22);
-  assert.equal(multi.length, 22 + 6);
+  assert.equal(mechanical.length, 20);
+  const compositeNames = new Set(
+    (directoryJson as unknown as DestinationDirectory).composites.map((composite) => normalizePlaceText(composite.n)),
+  );
+  const compositeGroups = multi.filter(([, variants]) => [...variants].some((v) => compositeNames.has(normalizePlaceText(v))));
+  assert.equal(compositeGroups.length, 19);
+  assert.equal(multi.length, 20 + 6 + 19);
+});
+
+/* ------------------------------------------------------------------ t333u: provider composite place names */
+
+test('directory: provider composite names - the repeated side is the parent; the place merges into the standalone place', () => {
+  const kreta = { country: 'Griekenland', region: 'Kreta', province: 'Kreta' };
+  const sunKreta = { country: 'Griekenland', region: 'Kreta' };
+  const dir = buildDestinationDirectory([
+    { ...kreta, city: 'Agia Marina' }, // Corendon style: plain place
+    { ...kreta, city: 'Agia Marina' },
+    { ...sunKreta, city: 'Chania - Agia Marina' }, // Sunweb style: "Parent - Place"
+    { ...sunKreta, city: 'Chania Agia Marina' }, // Eliza style: the same text without hyphen
+    { ...sunKreta, city: 'Chania - Almyrida' },
+    { ...sunKreta, city: 'Chania - Daratso' },
+    { ...sunKreta, city: 'Ierapetra - Agia Fotia' },
+    { ...sunKreta, city: 'Ierapetra - Koutsounari' },
+    { country: 'Griekenland', region: 'Chalkidiki', city: 'Afitos - Kassandra' }, // "Place - Parent"
+    { country: 'Griekenland', region: 'Chalkidiki', city: 'Hanioti - Kassandra' },
+    { country: 'Spanje', region: 'Costa del Sol', city: 'Marbella - San Pedro' }, // direction not provable
+  ]);
+  const names = dir.places.map((place) => place.n);
+  assert.deepEqual(names, ['Afitos', 'Agia Fotia', 'Agia Marina', 'Almyrida', 'Daratso', 'Hanioti', 'Koutsounari', 'Marbella - San Pedro']);
+  assert.equal(names.filter((name) => name === 'Agia Marina').length, 1, 'Agia Marina and Chania - Agia Marina are ONE destination');
+  assert.deepEqual(
+    dir.composites.map((composite) => `${composite.n} => ${composite.p}`),
+    [
+      'Afitos - Kassandra => Afitos',
+      'Chania - Agia Marina => Agia Marina',
+      'Chania - Almyrida => Almyrida',
+      'Chania - Daratso => Daratso',
+      'Hanioti - Kassandra => Hanioti',
+      'Ierapetra - Agia Fotia => Agia Fotia',
+      'Ierapetra - Koutsounari => Koutsounari',
+    ],
+  );
+  assert.equal(dir.places.find((place) => place.n === 'Agia Marina')?.p, 'Chania');
+  assert.equal(dir.places.find((place) => place.n === 'Afitos')?.p, 'Kassandra');
+  const labels = buildDestinationEntries(dir).map(entryLabel);
+  assert.equal(labels.includes('Chania - Agia Marina'), false);
+  assert.equal(labels.includes('Agia Marina'), true);
+  // unresolved (no repeated side): left as the provider wrote it, reported, never guessed
+  assert.equal(dir.composites.some((composite) => composite.n === 'Marbella - San Pedro'), false);
+});
+
+test('directory: a composite whose place name is already a homonym stays its own destination (own URL value)', () => {
+  const sunKreta = { country: 'Griekenland', region: 'Kreta' };
+  const dir = buildDestinationDirectory([
+    { country: 'Griekenland', region: 'Zakynthos', city: 'Kalamaki' },
+    { country: 'Griekenland', region: 'Kreta', city: 'Kalamaki' },
+    { country: 'Griekenland', region: 'Peloponnesos', city: 'Kalamaki' },
+    { ...sunKreta, city: 'Chania - Kalamaki' },
+    { ...sunKreta, city: 'Chania - Platanias' },
+  ]);
+  const entries = buildDestinationEntries(dir);
+  const labels = entries.map(entryLabel).sort();
+  assert.deepEqual(labels, [
+    'Griekenland',
+    'Kalamaki \u2014 Chania',
+    'Kalamaki \u2014 Kreta',
+    'Kalamaki \u2014 Peloponnesos',
+    'Kalamaki \u2014 Zakynthos',
+    'Kreta',
+    'Platanias',
+    'Peloponnesos',
+    'Zakynthos',
+  ].sort());
+  const chania = entries.find((entry) => entryLabel(entry) === 'Kalamaki \u2014 Chania')!;
+  assert.equal(chania.city, 'Chania - Kalamaki', 'the URL keeps working through the raw value');
+  assert.equal(chania.region, undefined);
+  assert.equal(dir.composites.some((composite) => composite.n === 'Chania - Kalamaki'), false);
+});
+
+test('directory: product-looking places (island hopping, bingo, cruises) never become destinations', () => {
+  const dir = buildDestinationDirectory([
+    { country: 'Griekenland', region: 'Santorini', city: 'Eilandhoppen Cycladen' },
+    { country: 'Griekenland', region: 'Santorini', city: 'Kamari' },
+    { country: 'Turkije', region: 'Turkse Riviera', city: 'Bingoreizen Marmaris' },
+    { country: 'Turkije', region: 'Turkse Riviera', city: 'Marmaris' },
+  ]);
+  assert.deepEqual(dir.places.map((place) => place.n), ['Kamari', 'Marmaris']);
+});
+
+catalogTest('golden t333u: Agia Marina is ONE destination (Corendon + Sunweb + Eliza), no offer lost or added', () => {
+  const stored = JSON.parse(fs.readFileSync(OFFERS_FILE, 'utf8')) as StoredOffer[];
+  const agia = stored.filter((o) => o.country === 'Griekenland' && o.city && /^(Chania[ -]+)?Agia Marina$/i.test(o.city.replace(/\s+-\s+/, ' ')));
+  assert.equal(agia.length, 15);
+  assert.deepEqual(
+    Object.fromEntries([...new Set(agia.map((o) => o.provider))].map((p) => [p, agia.filter((o) => o.provider === p).length])),
+    { Corendon: 8, Sunweb: 6, 'Eliza was here': 1 },
+  );
+  assert.equal(count({ country: 'Griekenland', city: 'Agia Marina' }), 15);
+  assert.equal(count({ country: 'Griekenland', region: 'Kreta', city: 'Agia Marina' }), 15);
+  // an old bookmarked URL keeps working and now returns the whole place
+  assert.equal(count({ country: 'Griekenland', city: 'Chania - Agia Marina' }), 15);
+  const labels = buildDestinationEntries(directoryJson as unknown as DestinationDirectory).map(entryLabel);
+  assert.equal(labels.filter((label) => /^(Chania - )?Agia Marina/.test(label)).join('|'), 'Agia Marina');
+});
+
+catalogTest('golden t333u: every resolved composite finds exactly standalone + composite offers through its place', () => {
+  const stored = JSON.parse(fs.readFileSync(OFFERS_FILE, 'utf8')) as StoredOffer[];
+  const composites = (directoryJson as unknown as DestinationDirectory).composites;
+  assert.equal(composites.length, 30);
+  for (const composite of composites) {
+    const placeKey = normalizePlaceText(composite.p);
+    const compositeKey = normalizePlaceText(composite.n);
+    const expected = stored.filter((o) => {
+      const city = o.city ? normalizePlaceText(o.city) : '';
+      return canonicalCountry(o.country) === composite.c && (city === placeKey || city === compositeKey);
+    }).length;
+    assert.ok(expected > 0, composite.n);
+    assert.equal(count({ country: composite.c, city: composite.p }), expected, composite.n);
+  }
+});
+
+catalogTest('golden t333u: Kalamaki Chania stays separate; Kalamaki Kreta/Zakynthos unchanged; golden counts hold', () => {
+  const zak = count({ country: 'Griekenland', region: 'Zakynthos', city: 'Kalamaki' });
+  const kreta = count({ country: 'Griekenland', region: 'Kreta', city: 'Kalamaki' });
+  assert.ok(zak > 0 && kreta > 0);
+  const chania = count({ country: 'Griekenland', city: 'Chania - Kalamaki' });
+  assert.equal(chania, 3);
+  assert.equal(count({ country: 'Griekenland', city: 'Kalamaki' }) >= zak + kreta, true);
+  const labels = buildDestinationEntries(directoryJson as unknown as DestinationDirectory).map(entryLabel);
+  for (const label of ['Kalamaki \u2014 Chania', 'Kalamaki \u2014 Kreta', 'Kalamaki \u2014 Zakynthos', 'Kalamaki \u2014 Peloponnesos']) {
+    assert.ok(labels.includes(label), label);
+  }
+  assert.equal(count({ country: 'Griekenland', region: 'Kreta' }), 850);
+});
+
+catalogTest('guard t334u: no provider-composite label "X - Y" in the popup at all; the 5 former ones are name-first', () => {
+  const labels = buildDestinationEntries(directoryJson as unknown as DestinationDirectory).map(entryLabel);
+  assert.deepEqual(labels.filter((label) => / - /.test(label)), []);
+  for (const label of [
+    'Guvercinlik \u2014 Bodrum',
+    'San Pedro \u2014 Marbella',
+    'Ouranoupoli \u2014 Athos',
+    'Olympus Riviera \u2014 Pieria',
+    'Caloura \u2014 Sao Miguel',
+  ]) {
+    assert.ok(labels.includes(label), label);
+  }
+  assert.equal(labels.includes('Magaluf-Calvia Beach'), true, '5th unresolved composite shows in its compact catalog spelling');
+  assert.equal(labels.includes('Eilandhoppen Cycladen'), false);
 });

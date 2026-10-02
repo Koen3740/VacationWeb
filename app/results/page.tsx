@@ -40,7 +40,7 @@ import {
 import { buildResultsPageHref } from '@/lib/search/pagination';
 import { loadRuntimeDataset } from '@/lib/offers/load-runtime-dataset';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
-import { decodePlaceName } from '@/lib/search/destination-mapping';
+import { decodeDestinationLabel, destinationDisplayLabel } from '@/components/search/destination-popup/destination-search';
 import { attachSiteMarket } from '@/lib/search/site-market';
 import { SearchParams } from '@/types/travel';
 import { headers } from 'next/headers';
@@ -56,12 +56,21 @@ function buildSummaryLine(params: SearchParams): string {
     parts.push(params.country);
   }
 
+  // Display labels follow the destination label rule (name first, context last); a raw provider
+  // composite such as "Chania - Kalamaki" never shows. URL values are untouched.
+  const summaryCountry = params.countries?.length === 1 ? params.countries[0] : params.country;
   if (params.region) {
-    parts.push(params.region);
+    parts.push(
+      (params.city ? undefined : destinationDisplayLabel(summaryCountry, { region: params.region })) ??
+        params.region,
+    );
   }
 
   if (params.city) {
-    parts.push(decodePlaceName(params.city));
+    parts.push(
+      destinationDisplayLabel(summaryCountry, { city: params.city }) ??
+        decodeDestinationLabel(params.city),
+    );
   }
 
   const departureSegment = getDepartureDisplay({

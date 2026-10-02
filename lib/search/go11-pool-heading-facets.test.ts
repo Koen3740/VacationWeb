@@ -66,9 +66,15 @@ describe('GO11 pool ≠ 150 / heading / facets / price-sort / browse cap', () =>
 
   it('PresentableResultsCount + PriceSortPresentableCount use proven-B pool count', () => {
     const heading = read('components/results/presentable-results-count.tsx');
-    assert.match(heading, /countResultsPool/);
+    // t334u: heading = progressive stream over the same proven-B membership; the
+    // count read lives in results-pool-reading.ts, the L2 hydrate runs in the background
+    // (results-pool-hydrate.ts) and is NEVER awaited by the heading.
+    assert.match(heading, /getSharedResultsPoolReader/);
     assert.match(heading, /exactOffers/);
-    assert.match(heading, /hydrateResultsLivePriceOverlaysFromL2/);
+    assert.match(heading, /startResultsPoolL2Hydrate/);
+    assert.doesNotMatch(heading, /await\s+hydrateResultsLivePriceOverlaysFromL2/);
+    assert.match(read('lib/search/results-pool-reading.ts'), /bookableMembershipFromOverlaid\(overlaid,\s*params\)/);
+    assert.match(read('lib/search/results-pool-hydrate.ts'), /hydrateResultsLivePriceOverlaysFromL2/);
     assert.doesNotMatch(heading, /loadPresentableResultsCount/);
     assert.doesNotMatch(heading, /slicePriceSortPoolPage/);
   });
