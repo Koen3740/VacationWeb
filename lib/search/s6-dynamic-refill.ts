@@ -14,9 +14,8 @@
  */
 
 import type { FetchLike } from '@/lib/providers/prijsvrij/auth';
-import { priceExactBatch } from '@/lib/providers/prijsvrij/page1-receipt-pricing';
 import { assertCanAdmit, LIVE_PRICE_EXACT_BATCH_MAX } from '@/lib/search/live-pricing-admission';
-import { RESULTS_LIVE_PRICING_INITIAL_WORKSET } from '@/lib/search/pagination';
+import { createRollingExactPricer } from '@/lib/search/rolling-exact-pricing';
 import {
   canAttemptLivePrice,
   isLivePriceProviderOffer,
@@ -162,19 +161,6 @@ export function countEligibleS6CandidatesFrom(
   return n;
 }
 
-function batchSizeForDeficit(deficit: number, remainingEligible: number): number {
-  if (deficit <= 0 || remainingEligible <= 0) {
-    return 0;
-  }
-  // Demand-driven: never admit more than one exact-batch width (shared capacity).
-  return Math.min(
-    deficit,
-    RESULTS_LIVE_PRICING_INITIAL_WORKSET,
-    LIVE_PRICE_EXACT_BATCH_MAX,
-    remainingEligible,
-  );
-}
-
 function maybeLogS6(telemetry: S6RefillTelemetry): void {
   if (process.env.NODE_ENV === 'test' || process.env.NODE_TEST_CONTEXT) {
     return;
@@ -278,81 +264,102 @@ export async function runS6DynamicRefill(
     return emitS6Telemetry(telemetry);
   }
 
+  // Rolling window (t337u): the SAME ceilings as the old batch loop (<= LIVE_PRICE_EXACT_BATCH_MAX
+  // offers in flight, per-provider caps, Corendon shared pool), but a freed slot is refilled at once
+  // instead of waiting for the slowest offer of a batch. Demand-driven + strict rank order: an offer is
+  // admitted only while counted B + admitted-but-uncounted offers (all assumed to become B) < target.
+  const pricer = createRollingExactPricer(params, {
+    fetchImpl: options.fetchImpl,
+    pricingRunId: options.pricingRunId,
+    lane: options.lane ?? 'P1',
+  });
+  const countEvery = LIVE_PRICE_EXACT_BATCH_MAX; // recount ~ once per old batch width
+  let head: TravelOffer | null = null; // selected, waiting for a free provider slot
+  let admittedUncounted = 0;
+  let settledUncounted = 0;
+  let settledSinceProgress = 0;
+  let bAtProgress = presentableB;
+  let exhausted = false;
+  let capped = false;
+
   while (presentableB < targetB) {
     if (options.pricingRunId != null && !assertCanAdmit(options.pricingRunId)) {
       stopReason = 'no_progress';
       break;
     }
 
-    const deficit = targetB - presentableB;
-    const remainingEligible = countEligibleS6CandidatesFrom(catalogRanked, params, cursor);
-    if (remainingEligible === 0) {
-      stopReason = cursor >= catalogRanked.length ? 'matchset_exhausted' : 'no_eligible_candidates';
-      break;
-    }
-
-    const limit = batchSizeForDeficit(deficit, remainingEligible);
-    if (limit <= 0) {
-      stopReason = 'target_met';
-      break;
-    }
-
-    if (attempts >= maxNewAttempts) {
-      stopReason = 'max_attempts';
-      break;
-    }
-
-    const take = Math.min(limit, maxNewAttempts - attempts);
-    const selected = selectS6RefillBatch(catalogRanked, params, cursor, take);
-    cursor = selected.nextCursor;
-    skippedMissingContext += selected.skippedMissingContext;
-    skippedCircuitOpen += selected.skippedCircuitOpen;
-    skippedCachedOrSettled += selected.skippedCachedOrSettled;
-
-    if (selected.batch.length === 0) {
-      // Cursor advanced past only skips — continue until exhausted or no progress.
-      if (cursor >= catalogRanked.length) {
-        stopReason = 'matchset_exhausted';
+    while (presentableB + admittedUncounted < targetB) {
+      if (attempts >= maxNewAttempts) {
+        capped = true;
         break;
       }
-      emptyBatches += 1;
-      if (emptyBatches >= maxEmptyBatches) {
-        stopReason = 'no_progress';
+      if (head == null) {
+        const selected = selectS6RefillBatch(catalogRanked, params, cursor, 1);
+        cursor = selected.nextCursor;
+        skippedMissingContext += selected.skippedMissingContext;
+        skippedCircuitOpen += selected.skippedCircuitOpen;
+        skippedCachedOrSettled += selected.skippedCachedOrSettled;
+        head = selected.batch[0] ?? null;
+        if (head == null) {
+          exhausted = true;
+          break;
+        }
+      }
+      if (!pricer.canAdmit(head)) {
         break;
       }
-      continue;
+      pricer.admit(head);
+      head = null;
+      attempts += 1;
+      candidatesConsumed += 1;
+      admittedUncounted += 1;
     }
 
-    const bBefore = presentableB;
-    await priceExactBatch(selected.batch, params, {
-      fetchImpl: options.fetchImpl,
-      pricingRunId: options.pricingRunId,
-      lane: options.lane ?? 'P1',
-    });
-    attempts += selected.batch.length;
-    candidatesConsumed += selected.batch.length;
-    batches += 1;
+    await pricer.nextSettled();
+    const settledNow = pricer.takeSettled();
+    settledUncounted += settledNow;
+    settledSinceProgress += settledNow;
+    const idle = pricer.inFlight === 0;
+
+    if (
+      settledUncounted > 0 &&
+      (settledUncounted >= countEvery ||
+        idle ||
+        presentableB + admittedUncounted >= targetB)
+    ) {
+      presentableB = countPresentableB(catalogRanked, params);
+      batches += 1;
+      admittedUncounted = pricer.inFlight;
+      settledUncounted = 0;
+      if (presentableB >= targetB) {
+        stopReason = 'target_met';
+        break;
+      }
+      if (settledSinceProgress >= countEvery) {
+        if (presentableB <= bAtProgress) {
+          emptyBatches += 1;
+          if (emptyBatches >= maxEmptyBatches) {
+            stopReason = 'no_progress';
+            break;
+          }
+        } else {
+          emptyBatches = 0;
+        }
+        bAtProgress = presentableB;
+        settledSinceProgress = 0;
+      }
+    }
+
+    if (idle && settledUncounted === 0 && (capped || exhausted)) {
+      stopReason = capped ? 'max_attempts' : 'matchset_exhausted';
+      break;
+    }
+  }
+
+  // Let already-admitted offers finish (no new admits) so P2 never overlaps S6 stragglers.
+  if (pricer.inFlight > 0) {
+    await pricer.drain();
     presentableB = countPresentableB(catalogRanked, params);
-
-    if (presentableB >= targetB) {
-      stopReason = 'target_met';
-      break;
-    }
-
-    if (presentableB <= bBefore) {
-      emptyBatches += 1;
-      if (emptyBatches >= maxEmptyBatches) {
-        stopReason = 'no_progress';
-        break;
-      }
-    } else {
-      emptyBatches = 0;
-    }
-
-    if (attempts >= maxNewAttempts) {
-      stopReason = 'max_attempts';
-      break;
-    }
   }
 
   if (presentableB >= targetB) {
@@ -366,7 +373,8 @@ export async function runS6DynamicRefill(
     attempts,
     batches,
     candidatesConsumed,
-    candidatesRemaining: countEligibleS6CandidatesFrom(catalogRanked, params, cursor),
+    candidatesRemaining:
+      countEligibleS6CandidatesFrom(catalogRanked, params, cursor) + (head != null ? 1 : 0),
     eligibleCandidateCount,
     skippedMissingContext,
     skippedCircuitOpen,

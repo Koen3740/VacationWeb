@@ -6,15 +6,12 @@
  */
 
 import type { FetchLike } from '@/lib/providers/prijsvrij/auth';
-import { priceExactBatch } from '@/lib/providers/prijsvrij/page1-receipt-pricing';
+import { createRollingExactPricer } from '@/lib/search/rolling-exact-pricing';
 import {
   assertCanAdmit,
   LIVE_PRICE_EXACT_BATCH_MAX,
 } from '@/lib/search/live-pricing-admission';
-import {
-  selectS6RefillBatch,
-  S6_MAX_EMPTY_BATCHES,
-} from '@/lib/search/s6-dynamic-refill';
+import { selectS6RefillBatch } from '@/lib/search/s6-dynamic-refill';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
 export type P2WarmTelemetry = {
@@ -32,6 +29,7 @@ export type RunP2BackgroundWarmOptions = {
   batchSize?: number;
   /** Safety: absolute max batches in one P2 invocation (not a 150-B stop). */
   maxBatches?: number;
+  /** Unused since the rolling window (select-to-end never yields empty batches); kept for callers. */
   maxEmptyBatches?: number;
 };
 
@@ -52,53 +50,58 @@ export async function runP2BackgroundWarm(
     Math.min(options.batchSize ?? LIVE_PRICE_EXACT_BATCH_MAX, LIVE_PRICE_EXACT_BATCH_MAX),
   );
   const maxBatches = options.maxBatches ?? P2_DEFAULT_MAX_BATCHES;
-  const maxEmptyBatches = options.maxEmptyBatches ?? S6_MAX_EMPTY_BATCHES;
   const runId = options.pricingRunId;
 
   let cursor = Math.max(0, options.startCursor ?? 0);
   let batches = 0;
   let attempts = 0;
-  let emptyBatches = 0;
   let stopReason: P2WarmTelemetry['stopReason'] = 'exhausted';
 
+  // Rolling window (t337u): same ceilings as the old batch loop (batchSize in flight, per-provider
+  // caps, Corendon shared pool) but a freed slot is refilled immediately. Strict rank order.
+  const pricer = createRollingExactPricer(params, {
+    fetchImpl: options.fetchImpl,
+    pricingRunId: runId,
+    lane: 'P2',
+    window: batchSize,
+  });
+  const maxAttempts = maxBatches * batchSize;
+  let head: TravelOffer | null = null;
+
   while (assertCanAdmit(runId)) {
-    if (batches >= maxBatches) {
-      stopReason = 'max_batches';
-      break;
-    }
-
-    const selected = selectS6RefillBatch(catalogRanked, params, cursor, batchSize);
-    cursor = selected.nextCursor;
-
-    if (selected.batch.length === 0) {
-      if (cursor >= catalogRanked.length) {
-        stopReason = 'exhausted';
+    while (attempts < maxAttempts && assertCanAdmit(runId)) {
+      if (head == null) {
+        const selected = selectS6RefillBatch(catalogRanked, params, cursor, 1);
+        cursor = selected.nextCursor;
+        head = selected.batch[0] ?? null;
+        if (head == null) {
+          break;
+        }
+      }
+      if (!pricer.canAdmit(head)) {
         break;
       }
-      emptyBatches += 1;
-      if (emptyBatches >= maxEmptyBatches) {
-        stopReason = 'no_progress';
-        break;
-      }
-      continue;
+      pricer.admit(head);
+      head = null;
+      attempts += 1;
     }
-
-    if (!assertCanAdmit(runId)) {
-      stopReason = 'superseded';
+    if (pricer.inFlight === 0) {
+      if (head != null && attempts >= maxAttempts) {
+        stopReason = 'max_batches';
+      }
       break;
     }
-
-    emptyBatches = 0;
-    await priceExactBatch(selected.batch, params, {
-      fetchImpl: options.fetchImpl,
-      pricingRunId: runId,
-      lane: 'P2',
-    });
-    attempts += selected.batch.length;
-    batches += 1;
+    await pricer.nextSettled();
+    pricer.takeSettled();
   }
+  await pricer.drain();
+  batches = Math.ceil(attempts / batchSize);
 
-  if (!assertCanAdmit(runId) && stopReason === 'exhausted' && cursor < catalogRanked.length) {
+  if (
+    !assertCanAdmit(runId) &&
+    stopReason === 'exhausted' &&
+    (cursor < catalogRanked.length || head != null)
+  ) {
     stopReason = 'superseded';
   }
 

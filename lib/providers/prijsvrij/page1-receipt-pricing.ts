@@ -115,7 +115,27 @@ export const PRIJSVRIJ_RECEIPT_PAGE1_CONCURRENCY = 5;
  * Same width as page-1 C=5; separate binding so matchset never uses cap ≤10.
  */
 export const PRIJSVRIJ_RECEIPT_MATCHSET_CONCURRENCY = 5;
-const ELIZA_LIVE_MATCHSET_CONCURRENCY = 5;
+export const ELIZA_LIVE_MATCHSET_CONCURRENCY = 5;
+
+/**
+ * In-flight ceiling per provider for exact pricing (same ceilings priceExactBatch uses).
+ * Rolling S6/P2 admission reuses them so peak concurrency per provider is unchanged.
+ */
+export function exactPricingProviderLane(offer: TravelOffer): { key: string; cap: number } {
+  if (isCorendon(offer)) {
+    return {
+      key: 'corendon',
+      cap: Math.min(CORENDON_LIVE_MATCHSET_CONCURRENCY, LIVE_PRICE_EXACT_BATCH_MAX),
+    };
+  }
+  if (isSunweb(offer)) {
+    return { key: 'sunweb', cap: SUNWEB_LIVE_MATCHSET_CONCURRENCY };
+  }
+  if (isEliza(offer)) {
+    return { key: 'eliza', cap: ELIZA_LIVE_MATCHSET_CONCURRENCY };
+  }
+  return { key: 'prijsvrij', cap: PRIJSVRIJ_RECEIPT_MATCHSET_CONCURRENCY };
+}
 
 export type Page1ReceiptPricingStats = {
   receiptCalls: number;
