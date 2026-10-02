@@ -149,6 +149,7 @@ export async function Page1PaginationStream({
   paginationTotal,
   page1Settle,
   computeBrowseTotal,
+  readPoolPending,
   hasMore,
   catalogGenerationId,
 }: {
@@ -164,6 +165,12 @@ export async function Page1PaginationStream({
    */
   page1Settle?: Page1SettleController;
   computeBrowseTotal?: () => number;
+  /**
+   * SF-026: eligible offers of the pricing pool that are still unsettled (same reader as the
+   * heading). Lets the pagination stream end as soon as nothing can grow any more instead of
+   * waiting for the idle timeout when fewer than the browse cap are presentable.
+   */
+  readPoolPending?: () => number | null;
   /** Runtime catalog generationId — stamped only on DEFINITIVE freeze (Page 15 Gold). */
   catalogGenerationId?: string | null;
 }) {
@@ -211,10 +218,11 @@ export async function Page1PaginationStream({
               tracker={createPoolProgressTracker({
                 read: memoizeByCacheVersion(() => {
                   const count = computeBrowseTotal();
+                  const pending = readPoolPending ? readPoolPending() : null;
                   return {
                     count,
-                    pending: null,
-                    complete: count >= RESULTS_USER_PAGINATION_CAP,
+                    pending,
+                    complete: count >= RESULTS_USER_PAGINATION_CAP || pending === 0,
                   };
                 }),
               })}

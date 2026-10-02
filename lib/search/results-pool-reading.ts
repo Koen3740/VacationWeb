@@ -6,8 +6,10 @@
  *
  * Cost (measured t334u, 788-offer matchset): one overlay pass ~25-30 ms, the eligibility
  * walk ~76 ms (hasResultsLivePriceOverlay scans the L1 map per unsettled offer). So:
- *  - eligibility is computed ONCE per pool (baseline); afterwards pending is derived from
- *    the settled count of the single overlay pass;
+ *  - eligibility is computed ONCE per pool (baseline, kept as an index list); afterwards
+ *    pending = baseline-eligible offers that still show no overlay in the single overlay
+ *    pass (SF-026: exact per offer; no longer derived from a settled-count difference, which
+ *    over-counted overlays of offers that were never eligible);
  *  - the reader is shared per (matchset, provider) so hero + section heading cost one read;
  *  - a read is skipped while the L1 version is unchanged and is reused for 300 ms.
  */
@@ -18,7 +20,12 @@ import {
   getResultsLivePriceCacheVersion,
 } from '@/lib/search/results-live-price-cache';
 import type { PoolProgressReading } from '@/lib/search/results-pool-progress';
-import { countEligibleS6CandidatesFrom } from '@/lib/search/s6-dynamic-refill';
+import {
+  canAttemptLivePrice,
+  isLivePriceProviderOffer,
+} from '@/lib/search/live-price-context-gate';
+import { isOfferLivePriceCircuitOpen } from '@/lib/search/live-pricing-workset';
+import { hasResultsLivePriceOverlay } from '@/lib/search/results-live-price-cache';
 
 const REUSE_MS = 300;
 
@@ -46,27 +53,43 @@ export function memoizeByCacheVersion<T>(
   };
 }
 
+/**
+ * Indexes of offers that still need a live attempt (same predicates as
+ * `countEligibleS6CandidatesFrom`: live provider, no overlay yet, attemptable, circuit closed).
+ */
+function listEligibleIndexes(ranked: readonly TravelOffer[], params: SearchParams): number[] {
+  const indexes: number[] = [];
+  for (let i = 0; i < ranked.length; i += 1) {
+    const offer = ranked[i]!;
+    if (!isLivePriceProviderOffer(offer, params)) continue;
+    if (hasResultsLivePriceOverlay(offer.id, params)) continue;
+    if (!canAttemptLivePrice(offer, params)) continue;
+    if (isOfferLivePriceCircuitOpen(offer)) continue;
+    indexes.push(i);
+  }
+  return indexes;
+}
+
 export function createResultsPoolReader(
   ranked: readonly TravelOffer[],
   params: SearchParams,
   memo?: { now?: () => number; reuseMs?: number },
 ): () => PoolProgressReading {
-  let baseline: { eligible: number; settled: number } | null = null;
+  let eligibleIndexes: number[] | null = null;
   return memoizeByCacheVersion((): PoolProgressReading => {
     if (ranked.length === 0) {
       return { count: 0, pending: 0, complete: true };
     }
     const overlaid = applyResultsLivePriceOverlays(ranked as TravelOffer[], params);
-    let settled = 0;
-    for (let i = 0; i < ranked.length; i += 1) {
-      // applyResultsLivePriceOverlay returns the SAME object when no overlay exists.
-      if (overlaid[i] !== ranked[i]) settled += 1;
-    }
     const count = bookableMembershipFromOverlaid(overlaid, params).length;
-    if (baseline === null) {
-      baseline = { eligible: countEligibleS6CandidatesFrom(ranked, params, 0), settled };
+    if (eligibleIndexes === null) {
+      eligibleIndexes = listEligibleIndexes(ranked, params);
     }
-    const pending = Math.max(0, baseline.eligible - (settled - baseline.settled));
+    let pending = 0;
+    for (const i of eligibleIndexes) {
+      // applyResultsLivePriceOverlay returns the SAME object when no overlay exists.
+      if (overlaid[i] === ranked[i]) pending += 1;
+    }
     return { count, pending, complete: pending === 0 };
   }, memo);
 }

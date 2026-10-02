@@ -16,6 +16,7 @@ import {
 } from '@/lib/search/page-settle';
 import { buildResultsPageHref, getResultsTotalPages, clampResultsPage } from '@/lib/search/pagination';
 import { isSharedLivePricingPoolSort } from '@/lib/search/results-catalog-page';
+import { getSharedResultsPoolReader } from '@/lib/search/results-pool-reading';
 import { loadPreparedResultsOffers } from '@/lib/search/prepared-results-request';
 import { scheduleCappedMatchsetLiveAfterPage } from '@/lib/search/schedule-capped-matchset-live-after-page';
 import { scheduleResultsMatchsetLivePricing } from '@/lib/search/schedule-results-matchset-live-pricing';
@@ -70,6 +71,8 @@ export async function CatalogLiveBody({
   );
 
   const { catalogPage, overlayCandidates, streamOffers, overlays, page1Settle } = state;
+  // SF-026: same pool reader as the heading (shared when the array is the same).
+  const poolReader = getSharedResultsPoolReader(filtered, filteringParams);
 
   // Effective browse pool may be smaller than ?page= (e.g. provider=Corendon → 1 page).
   // Correct invalid pages before painting an empty Results section.
@@ -196,6 +199,7 @@ export async function CatalogLiveBody({
           paginationTotal={catalogPage.paginationTotal}
           page1Settle={page1Settle}
           computeBrowseTotal={state.computeBrowseTotal}
+          readPoolPending={() => poolReader().pending}
           hasMore={state.hasMore}
           catalogGenerationId={catalogGenerationId}
         />
