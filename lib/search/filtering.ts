@@ -7,7 +7,7 @@ import {
   offersFromIndices,
 } from '@/lib/offers/catalog-filter-index';
 import { canonicalizeCountryName } from '@/lib/offers/canonical-country';
-import { canonicalizeRegionName } from '@/lib/offers/canonical-region';
+import { createCityMatcher, createRegionMatcher } from '@/lib/search/destination-mapping';
 import { isVacationWebFlightPackage } from '@/lib/offers/flight-package-eligibility';
 import {
   ACCOMMODATION_TYPE_FILTER_VALUES,
@@ -157,6 +157,9 @@ export function filterOffers(
       ? Math.floor(options.stopAt)
       : undefined;
 
+  const matchesRegion = params.region ? createRegionMatcher(params.region) : null;
+  const matchesCity = params.city ? createCityMatcher(params.city) : null;
+
   const matches: TravelOffer[] = [];
   let scanned = 0;
   for (const offer of offers) {
@@ -173,14 +176,13 @@ export function filterOffers(
       }
     }
 
-    if (
-      params.region &&
-      canonicalizeRegionName(offer.destinationRegion) !== canonicalizeRegionName(params.region)
-    ) {
+    // M1/U2: region = destination area (region OR province, collective areas include their islands);
+    // city = place by spelling group. Provider independent; see lib/search/destination-mapping.ts.
+    if (matchesRegion && !matchesRegion(offer)) {
       continue;
     }
 
-    if (params.city && offer.destinationCity !== params.city) {
+    if (matchesCity && !matchesCity(offer)) {
       continue;
     }
 

@@ -1,0 +1,4228 @@
+{
+ "version": 1,
+ "offers": 8433,
+ "countries": [
+  "Bonaire",
+  "Bulgarije",
+  "Curaçao",
+  "Cyprus",
+  "Egypte",
+  "Gambia",
+  "Griekenland",
+  "Italië",
+  "Kaapverdische Eilanden",
+  "Macedonië",
+  "Marokko",
+  "Portugal",
+  "Spanje",
+  "Tunesië",
+  "Turkije"
+ ],
+ "areas": [
+  {
+   "c": "Bonaire",
+   "n": "Kralendijk"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Nessebar"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Sozopol"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Sunny Beach"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Zwarte Zee"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Jan Thiel Baai"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Mambo Beach"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Piscadera Baai"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Santa Rosa"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Sint Willibrordus"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Willemstad"
+  },
+  {
+   "c": "Egypte",
+   "n": "Caïro"
+  },
+  {
+   "c": "Egypte",
+   "n": "Hurghada"
+  },
+  {
+   "c": "Egypte",
+   "n": "Marsa Alam"
+  },
+  {
+   "c": "Egypte",
+   "n": "Rode Zee"
+  },
+  {
+   "c": "Egypte",
+   "n": "Sharm el Sheikh"
+  },
+  {
+   "c": "Gambia",
+   "n": "Bijilo"
+  },
+  {
+   "c": "Gambia",
+   "n": "Cape Point"
+  },
+  {
+   "c": "Gambia",
+   "n": "Kololi"
+  },
+  {
+   "c": "Gambia",
+   "n": "Kotu"
+  },
+  {
+   "c": "Gambia",
+   "n": "West Gambia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Athene"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chalkidiki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Corfu"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Epirus (Parga)"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Evia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Karpathos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kefalonia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kreta"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lefkas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lesbos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Parga"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Paxos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Peloponnesos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pieria"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pieria - Olympus Riviera"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Rhodos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Samos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Santorini"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Thessaloniki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Zakynthos"
+  },
+  {
+   "c": "Italië",
+   "n": "Campania"
+  },
+  {
+   "c": "Italië",
+   "n": "Puglia"
+  },
+  {
+   "c": "Italië",
+   "n": "Sardinië"
+  },
+  {
+   "c": "Italië",
+   "n": "Sicilië"
+  },
+  {
+   "c": "Kaapverdische Eilanden",
+   "n": "Sal"
+  },
+  {
+   "c": "Macedonië",
+   "n": "Meer van Ohrid"
+  },
+  {
+   "c": "Marokko",
+   "n": "Agadir"
+  },
+  {
+   "c": "Marokko",
+   "n": "Atlantische Kust"
+  },
+  {
+   "c": "Marokko",
+   "n": "Centraal Marokko"
+  },
+  {
+   "c": "Marokko",
+   "n": "Marrakech"
+  },
+  {
+   "c": "Portugal",
+   "n": "Algarve"
+  },
+  {
+   "c": "Portugal",
+   "n": "Azoren"
+  },
+  {
+   "c": "Portugal",
+   "n": "Costa de Lisboa"
+  },
+  {
+   "c": "Portugal",
+   "n": "Lissabon"
+  },
+  {
+   "c": "Portugal",
+   "n": "Madeira"
+  },
+  {
+   "c": "Portugal",
+   "n": "Porto"
+  },
+  {
+   "c": "Spanje",
+   "n": "Andalusië"
+  },
+  {
+   "c": "Spanje",
+   "n": "Balearen"
+  },
+  {
+   "c": "Spanje",
+   "n": "Canarische Eilanden"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa Blanca"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa Brava"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa Dorada"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa de Almería"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa de la Luz"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa del Azahar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa del Sol"
+  },
+  {
+   "c": "Spanje",
+   "n": "Fuerteventura"
+  },
+  {
+   "c": "Spanje",
+   "n": "Gran Canaria"
+  },
+  {
+   "c": "Spanje",
+   "n": "Ibiza"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Palma"
+  },
+  {
+   "c": "Spanje",
+   "n": "Lanzarote"
+  },
+  {
+   "c": "Spanje",
+   "n": "Mallorca"
+  },
+  {
+   "c": "Spanje",
+   "n": "Menorca"
+  },
+  {
+   "c": "Spanje",
+   "n": "Tenerife"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Djerba"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Golf van Hammamet"
+  },
+  {
+   "c": "Turkije",
+   "n": "Alanya"
+  },
+  {
+   "c": "Turkije",
+   "n": "Antalya"
+  },
+  {
+   "c": "Turkije",
+   "n": "Belek"
+  },
+  {
+   "c": "Turkije",
+   "n": "Bodrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Cesme"
+  },
+  {
+   "c": "Turkije",
+   "n": "Dalyan"
+  },
+  {
+   "c": "Turkije",
+   "n": "Didim"
+  },
+  {
+   "c": "Turkije",
+   "n": "Egeïsche Kust"
+  },
+  {
+   "c": "Turkije",
+   "n": "Fethiye"
+  },
+  {
+   "c": "Turkije",
+   "n": "Gumuldur"
+  },
+  {
+   "c": "Turkije",
+   "n": "Istanbul"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kas"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kemer"
+  },
+  {
+   "c": "Turkije",
+   "n": "Klassieke Kust"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kusadasi"
+  },
+  {
+   "c": "Turkije",
+   "n": "Marmaris"
+  },
+  {
+   "c": "Turkije",
+   "n": "Ozdere"
+  },
+  {
+   "c": "Turkije",
+   "n": "Sarigerme"
+  },
+  {
+   "c": "Turkije",
+   "n": "Seferihisar"
+  },
+  {
+   "c": "Turkije",
+   "n": "Side"
+  },
+  {
+   "c": "Turkije",
+   "n": "Turkse Riviera"
+  },
+  {
+   "c": "Turkije",
+   "n": "Zuid-Egeïsche Kust"
+  }
+ ],
+ "places": [
+  {
+   "c": "Bonaire",
+   "n": "Kralendijk"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Nessebar"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Obzor"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Sozopol"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Sunny Beach"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Jan Thiel Baai"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Mambo Beach"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Piscadera Baai"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Santa Rosa"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Sint Willibrordus"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Willemstad"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Ayia Napa"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Choirokoitia"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Coral Bay"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Goudi"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Kalavasos"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Kato Drys"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Kouklia"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Lefkara"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Lysos"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Mazotos"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Pano Lefkara"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Paphos"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Protaras"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Psematismenos"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Sotira"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Tochni"
+  },
+  {
+   "c": "Cyprus",
+   "n": "Treis Elies"
+  },
+  {
+   "c": "Egypte",
+   "n": "Caïro"
+  },
+  {
+   "c": "Egypte",
+   "n": "El Gouna"
+  },
+  {
+   "c": "Egypte",
+   "n": "El Quseir"
+  },
+  {
+   "c": "Egypte",
+   "n": "Hurghada"
+  },
+  {
+   "c": "Egypte",
+   "n": "Hurghada-Stad"
+  },
+  {
+   "c": "Egypte",
+   "n": "Makadi Bay"
+  },
+  {
+   "c": "Egypte",
+   "n": "Marsa Alam"
+  },
+  {
+   "c": "Egypte",
+   "n": "Montaza"
+  },
+  {
+   "c": "Egypte",
+   "n": "Nabq Bay"
+  },
+  {
+   "c": "Egypte",
+   "n": "Port Ghalib"
+  },
+  {
+   "c": "Egypte",
+   "n": "Ras Um El Sid"
+  },
+  {
+   "c": "Egypte",
+   "n": "Safaga"
+  },
+  {
+   "c": "Egypte",
+   "n": "Sahl Hasheesh"
+  },
+  {
+   "c": "Egypte",
+   "n": "Sharks Bay"
+  },
+  {
+   "c": "Egypte",
+   "n": "Soma Bay"
+  },
+  {
+   "c": "Gambia",
+   "n": "Bijilo"
+  },
+  {
+   "c": "Gambia",
+   "n": "Cape Point"
+  },
+  {
+   "c": "Gambia",
+   "n": "Kololi"
+  },
+  {
+   "c": "Gambia",
+   "n": "Kotu"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Acharavi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Adele"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Afandou"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Afiartis"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Afitos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Afitos - Kassandra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Aghios Georgios"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Aghios Matheos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agia Galini"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agia Marina"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agia Paraskevi",
+   "a": "Samos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agia Paraskevi",
+   "a": "Santorini"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agia Pelagia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agia Pelagia Spili"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agioi Apostoloi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agioi Deka"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Dimitrios"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Fokas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Georgios"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Gordios"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Ioannis",
+   "a": "Corfu"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Ioannis",
+   "a": "Lefkas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Ioannis Peristeron"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Konstantinos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Leontas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Markos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Nikitas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Nikolaos",
+   "a": "Kreta"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Nikolaos",
+   "a": "Peloponnesos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Nikolaos",
+   "a": "Zakynthos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Panteleimonas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Prokopios"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Sostis"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Spyridon"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agios Yiannis"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Agrilia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Akrogiali"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Akrotiri",
+   "a": "Santorini"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Akrotiri",
+   "a": "Zakynthos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Almiropotamos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Almyrida"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Alykanas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Aminossos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ammoudara"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ammoudi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ammoudia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Amnissos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Amopi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Amoudara"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ampelokipi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Analipsis"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Anaxos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Anissaras"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ano Chersonissos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ano Vouves"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Apolpena"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Apostoloi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ardani"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Argassi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Arhanes"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Arkassa"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Artemisio"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Asites"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Athani"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Athene"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Avdou"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Avlakia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Axos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Bali"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Balos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Barbati"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Benitses"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Blasada"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Bochali"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Boukari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Agia Marina"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Agioi Apostoloi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Almyrida"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Daratso"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Gerani"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Kalamaki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Kissamos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Kolymbari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Maleme"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Marathi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Platanias"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Stalos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Stavros"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chania - Tavronitis"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Charaki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chavdata"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chavriata"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chersonissos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chora Sfakion"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chorafakia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Choudetsi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chrani"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Chrissi Akti"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Christou Pigadi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Corfu-Stad"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Damatria Karpathos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Dassia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Divarta"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Doukades"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Drosia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Eftalou"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Eftalou Molivos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Eilandhoppen Cycladen"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Elafonisi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Elounda"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Episkopi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ermones"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Exomitis"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Faliraki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Faliraki-Ladiko"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Filerimos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Finiki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Finikia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Finikounda"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Firostefani"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Fodele"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Fourka"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Galaros"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gastouri"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gavathas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Geni"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gennadi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Georgiopouli"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Georgioupolis"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gerakini - Sithonia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gerani"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gerolimenas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gianniou"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Githio"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Glyfada"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gournes"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gouves"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gouvia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Gytheio"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Hanioti - Kassandra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Heraklion"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ialyssos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ialyssos / Trianda"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ierapetra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ierapetra - Agia Fotia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ierapetra - Katharades"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ierapetra - Koutsounari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Imerovigli"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Immerovigli"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ipsos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ireon"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ixia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalamaki",
+   "a": "Kreta"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalamaki",
+   "a": "Peloponnesos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalamaki",
+   "a": "Zakynthos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalamata"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalandra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kaligata"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalithea"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalithea - Kassandra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalives"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kallithea"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kalyves"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kamari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kamaria"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kambos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kamilari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kampi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kampia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kampos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kanali"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kanoni"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kapsaliana Arkadi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Karavostasi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kardamena"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kardamili"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kariotes"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Karlovassi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Karpathos-Stad"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Karystos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kassiopi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kastellos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kato Gouves"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Katodio"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kavadades"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kavos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kefalos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kerames"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Keri"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kerveli"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kiotari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kipséli"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kissamos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kokkari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kokkini Hani"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kolymbari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kolymbia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kommeno"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kontokali"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Korithi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Koroni"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kos-Stad"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kos-Stad Lambi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kos-Stad Psalidi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kouramades"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kourkoumelata"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Koutouloufari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Koutsounari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kouvalata"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kriopigi - Kassandra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kyparissia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Kyra Panagia Beach"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Laganas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lagathakia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lahania"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lameriana"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lardos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lefkas-Stad"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lefkos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ligia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Limni Keri"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lindos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lithakia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Litochoro"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lixouri"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Loggos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lourdas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Loutra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lygaria"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Lygia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Makri Gialos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Malagari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Maleme"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Malia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Mani"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Marantochori"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Marathias"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Marathopoli"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Marmari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Mastichari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Matala"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Matzavinata"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Megala Chorafia Aptera"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Megalochori"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Melikia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Mertonas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Mesa Gonia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Mesokampos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Messaria"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Messonghi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Metamorfosi - Sithonia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Methoni"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Milatos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Mitilini"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Mochlos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Molivos (Eftalou)"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Molyvos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Monolithos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Moraitika"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Mouzaki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Mycali"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Navarino Dunes"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nea Moudania"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nea Moudania - Kassandra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nea Potidea"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nea Potidea - Kassandra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nei Pori"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nidri"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nikiana"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nikiti"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Nissaki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Oia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Olympiaki Akti"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Ouranoupoli - Athos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Paliouri"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Panormos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Paralia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Parga"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Parga-Stad"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Parisata"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pefki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pefkohori"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pefkohori - Kassandra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pelekas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Perama"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Perigiali"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Perissa"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Perivolos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pesada"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Petalidi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Petra",
+   "a": "Lesbos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Petries"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Piskopiano"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Plakias"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Platamonas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Platanias"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Plomari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Polichrono"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Polichrono - Kassandra"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Porto Koukla"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Preveza"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Psalidi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Psarou"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Psili Ammos (Votsalakia)"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pyrgos",
+   "a": "Peloponnesos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pyrgos",
+   "a": "Santorini"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Pythagorion"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Raches Kyparissia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Rethymnon"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Rhodos-Stad"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Rigglia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Roda"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Rodakino"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Romanos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Salakos Village"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sami"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Samos-Stad"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sani"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sani Beach"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sarakina"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sarakiniko"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sarti"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sidari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sissi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sitia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sivota",
+   "a": "Lefkas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Sivota",
+   "a": "Parga"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Skala Kalloni"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Skoutaros"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Spanochori"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Stalis"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Stavromenos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Stegna"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Stoupa"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Svoronata"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Syvota"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Tavronítis"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Theologos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Thessaloniki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Tigaki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Tragaki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Trikorfo"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Tsilivi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Tsoukalades"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Tzamarelata"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Valanidorrachi"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Vamos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Vassiliki"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Vassilikos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Vatsa"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Volimes"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Volthonas"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Votsalakia"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Vounaria"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Vourvourou"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Voutes"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Vrachos"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Vrahinari"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Xirokastelo"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Zakynthos-Stad"
+  },
+  {
+   "c": "Italië",
+   "n": "Agropoli"
+  },
+  {
+   "c": "Italië",
+   "n": "Alghero"
+  },
+  {
+   "c": "Italië",
+   "n": "Arbatax"
+  },
+  {
+   "c": "Italië",
+   "n": "Arzachena"
+  },
+  {
+   "c": "Italië",
+   "n": "Baja Sardinia"
+  },
+  {
+   "c": "Italië",
+   "n": "Bari Sardo"
+  },
+  {
+   "c": "Italië",
+   "n": "Bassacutena"
+  },
+  {
+   "c": "Italië",
+   "n": "Belpasso"
+  },
+  {
+   "c": "Italië",
+   "n": "Bitti"
+  },
+  {
+   "c": "Italië",
+   "n": "Borgagne"
+  },
+  {
+   "c": "Italië",
+   "n": "Brindisi"
+  },
+  {
+   "c": "Italië",
+   "n": "Caltagirone"
+  },
+  {
+   "c": "Italië",
+   "n": "Campofelice di Roccella"
+  },
+  {
+   "c": "Italië",
+   "n": "Capaccio Paestum"
+  },
+  {
+   "c": "Italië",
+   "n": "Carlentini"
+  },
+  {
+   "c": "Italië",
+   "n": "Castellabate"
+  },
+  {
+   "c": "Italië",
+   "n": "Castelsardo"
+  },
+  {
+   "c": "Italië",
+   "n": "Cefalù"
+  },
+  {
+   "c": "Italië",
+   "n": "Ceglie Massapica"
+  },
+  {
+   "c": "Italië",
+   "n": "Cuccaro Vetere"
+  },
+  {
+   "c": "Italië",
+   "n": "Donnalucata"
+  },
+  {
+   "c": "Italië",
+   "n": "Gaggi"
+  },
+  {
+   "c": "Italië",
+   "n": "Giardini Naxos"
+  },
+  {
+   "c": "Italië",
+   "n": "Giarre"
+  },
+  {
+   "c": "Italië",
+   "n": "Giurdignano"
+  },
+  {
+   "c": "Italië",
+   "n": "Graniti"
+  },
+  {
+   "c": "Italië",
+   "n": "Ispica"
+  },
+  {
+   "c": "Italië",
+   "n": "Laureana Cilento"
+  },
+  {
+   "c": "Italië",
+   "n": "Letojanni"
+  },
+  {
+   "c": "Italië",
+   "n": "Licata"
+  },
+  {
+   "c": "Italië",
+   "n": "Lido di Noto"
+  },
+  {
+   "c": "Italië",
+   "n": "Linguaglossa"
+  },
+  {
+   "c": "Italië",
+   "n": "Lizzano"
+  },
+  {
+   "c": "Italië",
+   "n": "Locorotondo"
+  },
+  {
+   "c": "Italië",
+   "n": "Mascali"
+  },
+  {
+   "c": "Italië",
+   "n": "Mazara del Vallo"
+  },
+  {
+   "c": "Italië",
+   "n": "Milo"
+  },
+  {
+   "c": "Italië",
+   "n": "Minervino di Lecce"
+  },
+  {
+   "c": "Italië",
+   "n": "Motta Camastra"
+  },
+  {
+   "c": "Italië",
+   "n": "Nicolosi"
+  },
+  {
+   "c": "Italië",
+   "n": "Noto"
+  },
+  {
+   "c": "Italië",
+   "n": "Novoli"
+  },
+  {
+   "c": "Italië",
+   "n": "Otranto"
+  },
+  {
+   "c": "Italië",
+   "n": "Palazzolo"
+  },
+  {
+   "c": "Italië",
+   "n": "Pisciotta"
+  },
+  {
+   "c": "Italië",
+   "n": "Portopalo di Capo Passero"
+  },
+  {
+   "c": "Italië",
+   "n": "Posada"
+  },
+  {
+   "c": "Italië",
+   "n": "Pozzallo"
+  },
+  {
+   "c": "Italië",
+   "n": "Putignano"
+  },
+  {
+   "c": "Italië",
+   "n": "Ragusa"
+  },
+  {
+   "c": "Italië",
+   "n": "Ravello"
+  },
+  {
+   "c": "Italië",
+   "n": "San Cipriano Picentino"
+  },
+  {
+   "c": "Italië",
+   "n": "San Teodoro"
+  },
+  {
+   "c": "Italië",
+   "n": "San Vito dei Normanni"
+  },
+  {
+   "c": "Italië",
+   "n": "Sant' Antonio di Gallura"
+  },
+  {
+   "c": "Italië",
+   "n": "Sant'Agnello"
+  },
+  {
+   "c": "Italië",
+   "n": "Santa Teresa di Gallura"
+  },
+  {
+   "c": "Italië",
+   "n": "Saponara"
+  },
+  {
+   "c": "Italië",
+   "n": "Tamarispa"
+  },
+  {
+   "c": "Italië",
+   "n": "Tanaunella"
+  },
+  {
+   "c": "Italië",
+   "n": "Taormina"
+  },
+  {
+   "c": "Italië",
+   "n": "Taormina Mare"
+  },
+  {
+   "c": "Italië",
+   "n": "Uggiano La Chiesa"
+  },
+  {
+   "c": "Italië",
+   "n": "Villammare"
+  },
+  {
+   "c": "Kaapverdische Eilanden",
+   "n": "Santa Maria"
+  },
+  {
+   "c": "Macedonië",
+   "n": "Ohrid-Stad"
+  },
+  {
+   "c": "Macedonië",
+   "n": "Struga"
+  },
+  {
+   "c": "Marokko",
+   "n": "Agadir"
+  },
+  {
+   "c": "Marokko",
+   "n": "Marrakech"
+  },
+  {
+   "c": "Portugal",
+   "n": "7 Cidades"
+  },
+  {
+   "c": "Portugal",
+   "n": "Albufeira"
+  },
+  {
+   "c": "Portugal",
+   "n": "Alcochete"
+  },
+  {
+   "c": "Portugal",
+   "n": "Aljezur"
+  },
+  {
+   "c": "Portugal",
+   "n": "Almancil"
+  },
+  {
+   "c": "Portugal",
+   "n": "Altura"
+  },
+  {
+   "c": "Portugal",
+   "n": "Alvor"
+  },
+  {
+   "c": "Portugal",
+   "n": "Arco da Calheta"
+  },
+  {
+   "c": "Portugal",
+   "n": "Arco de Sao Jorge"
+  },
+  {
+   "c": "Portugal",
+   "n": "Armaçao de Pêra"
+  },
+  {
+   "c": "Portugal",
+   "n": "Benafim"
+  },
+  {
+   "c": "Portugal",
+   "n": "Bensafrim"
+  },
+  {
+   "c": "Portugal",
+   "n": "Boaventura"
+  },
+  {
+   "c": "Portugal",
+   "n": "Boliqueime"
+  },
+  {
+   "c": "Portugal",
+   "n": "Calheta"
+  },
+  {
+   "c": "Portugal",
+   "n": "Camara de Lobos"
+  },
+  {
+   "c": "Portugal",
+   "n": "Caniçal"
+  },
+  {
+   "c": "Portugal",
+   "n": "Caniço"
+  },
+  {
+   "c": "Portugal",
+   "n": "Carvoeiro"
+  },
+  {
+   "c": "Portugal",
+   "n": "Cascais"
+  },
+  {
+   "c": "Portugal",
+   "n": "Castro Marim"
+  },
+  {
+   "c": "Portugal",
+   "n": "Costa de Caparica"
+  },
+  {
+   "c": "Portugal",
+   "n": "Ericeira"
+  },
+  {
+   "c": "Portugal",
+   "n": "Estombar"
+  },
+  {
+   "c": "Portugal",
+   "n": "Estoril"
+  },
+  {
+   "c": "Portugal",
+   "n": "Faro"
+  },
+  {
+   "c": "Portugal",
+   "n": "Fenais da Luz"
+  },
+  {
+   "c": "Portugal",
+   "n": "Ferragudo"
+  },
+  {
+   "c": "Portugal",
+   "n": "Funchal"
+  },
+  {
+   "c": "Portugal",
+   "n": "Furnas"
+  },
+  {
+   "c": "Portugal",
+   "n": "Gale"
+  },
+  {
+   "c": "Portugal",
+   "n": "Lagos"
+  },
+  {
+   "c": "Portugal",
+   "n": "Lissabon"
+  },
+  {
+   "c": "Portugal",
+   "n": "Loulé"
+  },
+  {
+   "c": "Portugal",
+   "n": "Machico"
+  },
+  {
+   "c": "Portugal",
+   "n": "Manta Rota"
+  },
+  {
+   "c": "Portugal",
+   "n": "Monchique"
+  },
+  {
+   "c": "Portugal",
+   "n": "Monte Gordo"
+  },
+  {
+   "c": "Portugal",
+   "n": "Olhos d'Agua"
+  },
+  {
+   "c": "Portugal",
+   "n": "Paco de Arcos"
+  },
+  {
+   "c": "Portugal",
+   "n": "Pera"
+  },
+  {
+   "c": "Portugal",
+   "n": "Pico da Pedra"
+  },
+  {
+   "c": "Portugal",
+   "n": "Ponta Delgada"
+  },
+  {
+   "c": "Portugal",
+   "n": "Ponta do Sol"
+  },
+  {
+   "c": "Portugal",
+   "n": "Porches"
+  },
+  {
+   "c": "Portugal",
+   "n": "Portimao"
+  },
+  {
+   "c": "Portugal",
+   "n": "Porto"
+  },
+  {
+   "c": "Portugal",
+   "n": "Porto Moniz"
+  },
+  {
+   "c": "Portugal",
+   "n": "Praia da Galé / dos Salgados"
+  },
+  {
+   "c": "Portugal",
+   "n": "Praia da Luz"
+  },
+  {
+   "c": "Portugal",
+   "n": "Praia da Rocha"
+  },
+  {
+   "c": "Portugal",
+   "n": "Praia do Castello"
+  },
+  {
+   "c": "Portugal",
+   "n": "Praia do Vau"
+  },
+  {
+   "c": "Portugal",
+   "n": "Quarteira"
+  },
+  {
+   "c": "Portugal",
+   "n": "Quinta Grande"
+  },
+  {
+   "c": "Portugal",
+   "n": "Ribeira Grande"
+  },
+  {
+   "c": "Portugal",
+   "n": "Salema"
+  },
+  {
+   "c": "Portugal",
+   "n": "Santa Cruz"
+  },
+  {
+   "c": "Portugal",
+   "n": "Santa Luzia Tavira"
+  },
+  {
+   "c": "Portugal",
+   "n": "Santo Antonio da Serra"
+  },
+  {
+   "c": "Portugal",
+   "n": "Sao Miquel - Caloura"
+  },
+  {
+   "c": "Portugal",
+   "n": "Seixal"
+  },
+  {
+   "c": "Portugal",
+   "n": "Silves"
+  },
+  {
+   "c": "Portugal",
+   "n": "Sintra"
+  },
+  {
+   "c": "Portugal",
+   "n": "São Miguel - Capelas"
+  },
+  {
+   "c": "Portugal",
+   "n": "São Miguel - Fenais da Luz"
+  },
+  {
+   "c": "Portugal",
+   "n": "São Miguel - Ponta Delgada"
+  },
+  {
+   "c": "Portugal",
+   "n": "São Miguel - Ribeira Grande"
+  },
+  {
+   "c": "Portugal",
+   "n": "São Teotónio"
+  },
+  {
+   "c": "Portugal",
+   "n": "Tavira"
+  },
+  {
+   "c": "Portugal",
+   "n": "Vale Fuzeiros"
+  },
+  {
+   "c": "Portugal",
+   "n": "Vale Paraizo Camacha"
+  },
+  {
+   "c": "Portugal",
+   "n": "Vila Nova de Cacela"
+  },
+  {
+   "c": "Portugal",
+   "n": "Vilamoura"
+  },
+  {
+   "c": "Spanje",
+   "n": "Adamuz"
+  },
+  {
+   "c": "Spanje",
+   "n": "Adeje"
+  },
+  {
+   "c": "Spanje",
+   "n": "Agaete"
+  },
+  {
+   "c": "Spanje",
+   "n": "Aguadulce"
+  },
+  {
+   "c": "Spanje",
+   "n": "Alaior"
+  },
+  {
+   "c": "Spanje",
+   "n": "Albir"
+  },
+  {
+   "c": "Spanje",
+   "n": "Albolote"
+  },
+  {
+   "c": "Spanje",
+   "n": "Alcala"
+  },
+  {
+   "c": "Spanje",
+   "n": "Alcaucín"
+  },
+  {
+   "c": "Spanje",
+   "n": "Alcudia"
+  },
+  {
+   "c": "Spanje",
+   "n": "Alhaurin de la Torre"
+  },
+  {
+   "c": "Spanje",
+   "n": "Alhaurin el Grande"
+  },
+  {
+   "c": "Spanje",
+   "n": "Alicante"
+  },
+  {
+   "c": "Spanje",
+   "n": "Almodovar del Río"
+  },
+  {
+   "c": "Spanje",
+   "n": "Almuñecar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Arenal d'en Castell"
+  },
+  {
+   "c": "Spanje",
+   "n": "Arenas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Arguineguin"
+  },
+  {
+   "c": "Spanje",
+   "n": "Arico"
+  },
+  {
+   "c": "Spanje",
+   "n": "Arrecife"
+  },
+  {
+   "c": "Spanje",
+   "n": "Artá"
+  },
+  {
+   "c": "Spanje",
+   "n": "Arucas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Bandama"
+  },
+  {
+   "c": "Spanje",
+   "n": "Barcelona"
+  },
+  {
+   "c": "Spanje",
+   "n": "Benahavís"
+  },
+  {
+   "c": "Spanje",
+   "n": "Benalmádena"
+  },
+  {
+   "c": "Spanje",
+   "n": "Benaoján"
+  },
+  {
+   "c": "Spanje",
+   "n": "Benidorm"
+  },
+  {
+   "c": "Spanje",
+   "n": "Binibona"
+  },
+  {
+   "c": "Spanje",
+   "n": "Breña Baja"
+  },
+  {
+   "c": "Spanje",
+   "n": "Buenavista del Norte"
+  },
+  {
+   "c": "Spanje",
+   "n": "Buger"
+  },
+  {
+   "c": "Spanje",
+   "n": "Bunyola"
+  },
+  {
+   "c": "Spanje",
+   "n": "Ca'n Pastilla"
+  },
+  {
+   "c": "Spanje",
+   "n": "Ca'n Picafort"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala Figuera"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala Gracio"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala Llenya"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala Llonga"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala Mandía"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala Mesquida"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala Millor"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala Ratjada"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala Tarida"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala Viñas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala d'Or"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala'n Blanes"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cala'n Bosch"
+  },
+  {
+   "c": "Spanje",
+   "n": "Calas de Mallorca"
+  },
+  {
+   "c": "Spanje",
+   "n": "Calella"
+  },
+  {
+   "c": "Spanje",
+   "n": "Caleta de Fuste"
+  },
+  {
+   "c": "Spanje",
+   "n": "Callao Salvaje"
+  },
+  {
+   "c": "Spanje",
+   "n": "Calpe"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cambrils"
+  },
+  {
+   "c": "Spanje",
+   "n": "Camp de Mar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Campos"
+  },
+  {
+   "c": "Spanje",
+   "n": "Canillas de Aceituno"
+  },
+  {
+   "c": "Spanje",
+   "n": "Canyamel"
+  },
+  {
+   "c": "Spanje",
+   "n": "Capdepera"
+  },
+  {
+   "c": "Spanje",
+   "n": "Cas Concos"
+  },
+  {
+   "c": "Spanje",
+   "n": "Casarabonela"
+  },
+  {
+   "c": "Spanje",
+   "n": "Castellar de la Frontera"
+  },
+  {
+   "c": "Spanje",
+   "n": "Ciutadella"
+  },
+  {
+   "c": "Spanje",
+   "n": "Colonia Sant Jordi"
+  },
+  {
+   "c": "Spanje",
+   "n": "Colonia de St. Jordi"
+  },
+  {
+   "c": "Spanje",
+   "n": "Competa"
+  },
+  {
+   "c": "Spanje",
+   "n": "Conil de la Frontera"
+  },
+  {
+   "c": "Spanje",
+   "n": "Corralejo"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa Adeje"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa Calma"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa Teguise"
+  },
+  {
+   "c": "Spanje",
+   "n": "Costa del Silencio"
+  },
+  {
+   "c": "Spanje",
+   "n": "El Arenal"
+  },
+  {
+   "c": "Spanje",
+   "n": "El Campello"
+  },
+  {
+   "c": "Spanje",
+   "n": "El Chorro"
+  },
+  {
+   "c": "Spanje",
+   "n": "El Cotillo"
+  },
+  {
+   "c": "Spanje",
+   "n": "El Paso"
+  },
+  {
+   "c": "Spanje",
+   "n": "El Rocío"
+  },
+  {
+   "c": "Spanje",
+   "n": "El Tanque"
+  },
+  {
+   "c": "Spanje",
+   "n": "El Toyo"
+  },
+  {
+   "c": "Spanje",
+   "n": "Es Cana"
+  },
+  {
+   "c": "Spanje",
+   "n": "Es Canar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Es Migjorn Gran"
+  },
+  {
+   "c": "Spanje",
+   "n": "Esquinzo"
+  },
+  {
+   "c": "Spanje",
+   "n": "Estepona"
+  },
+  {
+   "c": "Spanje",
+   "n": "Felanitx"
+  },
+  {
+   "c": "Spanje",
+   "n": "Figueral"
+  },
+  {
+   "c": "Spanje",
+   "n": "Figueretas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Font de Sa Cala"
+  },
+  {
+   "c": "Spanje",
+   "n": "Fontanales"
+  },
+  {
+   "c": "Spanje",
+   "n": "Frigiliana"
+  },
+  {
+   "c": "Spanje",
+   "n": "Fuencaliente"
+  },
+  {
+   "c": "Spanje",
+   "n": "Fuengirola"
+  },
+  {
+   "c": "Spanje",
+   "n": "Garachico"
+  },
+  {
+   "c": "Spanje",
+   "n": "Golf del Sur"
+  },
+  {
+   "c": "Spanje",
+   "n": "Gran Tarajal"
+  },
+  {
+   "c": "Spanje",
+   "n": "Granadilla"
+  },
+  {
+   "c": "Spanje",
+   "n": "Guaro"
+  },
+  {
+   "c": "Spanje",
+   "n": "Guimar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Guime"
+  },
+  {
+   "c": "Spanje",
+   "n": "Hueneja"
+  },
+  {
+   "c": "Spanje",
+   "n": "Ibiza-stad"
+  },
+  {
+   "c": "Spanje",
+   "n": "Istan"
+  },
+  {
+   "c": "Spanje",
+   "n": "Jandia"
+  },
+  {
+   "c": "Spanje",
+   "n": "Jandía Playa"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Atalaya de Santa Brigida"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Caleta"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Caleta de Famara"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Esperanza"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Hiqueria Canaria"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Matanza"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Oliva"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Pared"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Pineda"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Puebla del Rio"
+  },
+  {
+   "c": "Spanje",
+   "n": "La Viñuela"
+  },
+  {
+   "c": "Spanje",
+   "n": "Lajares"
+  },
+  {
+   "c": "Spanje",
+   "n": "Las Breñas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Las Indias"
+  },
+  {
+   "c": "Spanje",
+   "n": "Las Palmas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Las Palmas Gran Canaria"
+  },
+  {
+   "c": "Spanje",
+   "n": "Las Playitas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Lloret de Mar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Llucmajor"
+  },
+  {
+   "c": "Spanje",
+   "n": "Los Cancajos"
+  },
+  {
+   "c": "Spanje",
+   "n": "Los Cristianos"
+  },
+  {
+   "c": "Spanje",
+   "n": "Los Llanos de Aridane"
+  },
+  {
+   "c": "Spanje",
+   "n": "Los Realejos"
+  },
+  {
+   "c": "Spanje",
+   "n": "Macher"
+  },
+  {
+   "c": "Spanje",
+   "n": "Magaluf-Calvia Beach"
+  },
+  {
+   "c": "Spanje",
+   "n": "Mahón"
+  },
+  {
+   "c": "Spanje",
+   "n": "Malgrat de Mar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Manilva"
+  },
+  {
+   "c": "Spanje",
+   "n": "Marbella"
+  },
+  {
+   "c": "Spanje",
+   "n": "Marbella - San Pedro"
+  },
+  {
+   "c": "Spanje",
+   "n": "Maspalomas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Melegis"
+  },
+  {
+   "c": "Spanje",
+   "n": "Meloneras"
+  },
+  {
+   "c": "Spanje",
+   "n": "Mercadal"
+  },
+  {
+   "c": "Spanje",
+   "n": "Mijas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Mijas Costa"
+  },
+  {
+   "c": "Spanje",
+   "n": "Monda"
+  },
+  {
+   "c": "Spanje",
+   "n": "Montecorto"
+  },
+  {
+   "c": "Spanje",
+   "n": "Montejaque"
+  },
+  {
+   "c": "Spanje",
+   "n": "Moraira"
+  },
+  {
+   "c": "Spanje",
+   "n": "Moraira/Calpe"
+  },
+  {
+   "c": "Spanje",
+   "n": "Morro Jable"
+  },
+  {
+   "c": "Spanje",
+   "n": "Motril"
+  },
+  {
+   "c": "Spanje",
+   "n": "Mozaga"
+  },
+  {
+   "c": "Spanje",
+   "n": "Muro"
+  },
+  {
+   "c": "Spanje",
+   "n": "Málaga"
+  },
+  {
+   "c": "Spanje",
+   "n": "Nerja"
+  },
+  {
+   "c": "Spanje",
+   "n": "Ojén"
+  },
+  {
+   "c": "Spanje",
+   "n": "Orient"
+  },
+  {
+   "c": "Spanje",
+   "n": "Paguera"
+  },
+  {
+   "c": "Spanje",
+   "n": "Palma Nova"
+  },
+  {
+   "c": "Spanje",
+   "n": "Palma de Mallorca"
+  },
+  {
+   "c": "Spanje",
+   "n": "Parque Holandes"
+  },
+  {
+   "c": "Spanje",
+   "n": "Periana"
+  },
+  {
+   "c": "Spanje",
+   "n": "Petra",
+   "a": "Mallorca"
+  },
+  {
+   "c": "Spanje",
+   "n": "Pineda de Mar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Pizarra"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa Blanca"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa Meloneras"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa Paraiso"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa San Juan"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa Taurito"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa d'en Bossa"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa de Muro"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa de Palma"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa de Taurito"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa de la Arena"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa de las Americas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa del Cura"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa del Inglés"
+  },
+  {
+   "c": "Spanje",
+   "n": "Playa es Figueral"
+  },
+  {
+   "c": "Spanje",
+   "n": "Porreres"
+  },
+  {
+   "c": "Spanje",
+   "n": "Port de Soller"
+  },
+  {
+   "c": "Spanje",
+   "n": "Portals Nous"
+  },
+  {
+   "c": "Spanje",
+   "n": "Portinatx"
+  },
+  {
+   "c": "Spanje",
+   "n": "Porto Colom"
+  },
+  {
+   "c": "Spanje",
+   "n": "Porto Petro"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puerto Banus"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puerto Calero"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puerto Naos"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puerto Rico"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puerto Santiago"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puerto de Mógan"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puerto de Santiago"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puerto de la Cruz"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puerto del Carmen"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puig d'en Ros"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puigpunyent"
+  },
+  {
+   "c": "Spanje",
+   "n": "Puntagorda"
+  },
+  {
+   "c": "Spanje",
+   "n": "Pájara"
+  },
+  {
+   "c": "Spanje",
+   "n": "Riogordo"
+  },
+  {
+   "c": "Spanje",
+   "n": "Ronda"
+  },
+  {
+   "c": "Spanje",
+   "n": "Roquetas de Mar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Rubite"
+  },
+  {
+   "c": "Spanje",
+   "n": "Sa Caleta"
+  },
+  {
+   "c": "Spanje",
+   "n": "Sa Coma"
+  },
+  {
+   "c": "Spanje",
+   "n": "Sa Pobla"
+  },
+  {
+   "c": "Spanje",
+   "n": "Salobre"
+  },
+  {
+   "c": "Spanje",
+   "n": "San Agustin"
+  },
+  {
+   "c": "Spanje",
+   "n": "San Antionio Bahia"
+  },
+  {
+   "c": "Spanje",
+   "n": "San Antonio"
+  },
+  {
+   "c": "Spanje",
+   "n": "San Antonio Bahia"
+  },
+  {
+   "c": "Spanje",
+   "n": "San Bartolome"
+  },
+  {
+   "c": "Spanje",
+   "n": "San Bartolomé de Tirajana"
+  },
+  {
+   "c": "Spanje",
+   "n": "San Luis"
+  },
+  {
+   "c": "Spanje",
+   "n": "San Miguel"
+  },
+  {
+   "c": "Spanje",
+   "n": "San Miguel de Abona"
+  },
+  {
+   "c": "Spanje",
+   "n": "Sant Climent Mahon"
+  },
+  {
+   "c": "Spanje",
+   "n": "Sant Joan de Labritja"
+  },
+  {
+   "c": "Spanje",
+   "n": "Sant Josep de sa Talaia"
+  },
+  {
+   "c": "Spanje",
+   "n": "Sant Llorenc"
+  },
+  {
+   "c": "Spanje",
+   "n": "Sant Miguel de Balansat"
+  },
+  {
+   "c": "Spanje",
+   "n": "Sant Rafáel"
+  },
+  {
+   "c": "Spanje",
+   "n": "Santa Agnès de Corona"
+  },
+  {
+   "c": "Spanje",
+   "n": "Santa Cruz de Tenerife"
+  },
+  {
+   "c": "Spanje",
+   "n": "Santa Eulalia"
+  },
+  {
+   "c": "Spanje",
+   "n": "Santa Eulalia del Rio"
+  },
+  {
+   "c": "Spanje",
+   "n": "Santa Eularia"
+  },
+  {
+   "c": "Spanje",
+   "n": "Santa Ponsa"
+  },
+  {
+   "c": "Spanje",
+   "n": "Santa Susanna"
+  },
+  {
+   "c": "Spanje",
+   "n": "Santa Ursula"
+  },
+  {
+   "c": "Spanje",
+   "n": "Santiago del Teide"
+  },
+  {
+   "c": "Spanje",
+   "n": "Selva"
+  },
+  {
+   "c": "Spanje",
+   "n": "Ses Salines"
+  },
+  {
+   "c": "Spanje",
+   "n": "Sevilla"
+  },
+  {
+   "c": "Spanje",
+   "n": "Tarifa"
+  },
+  {
+   "c": "Spanje",
+   "n": "Tazacorte"
+  },
+  {
+   "c": "Spanje",
+   "n": "Telde"
+  },
+  {
+   "c": "Spanje",
+   "n": "Tinajo"
+  },
+  {
+   "c": "Spanje",
+   "n": "Tiscamanita"
+  },
+  {
+   "c": "Spanje",
+   "n": "Todoque"
+  },
+  {
+   "c": "Spanje",
+   "n": "Tolox"
+  },
+  {
+   "c": "Spanje",
+   "n": "Torre de la Reina"
+  },
+  {
+   "c": "Spanje",
+   "n": "Torre del Mar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Torremolinos"
+  },
+  {
+   "c": "Spanje",
+   "n": "Torrox"
+  },
+  {
+   "c": "Spanje",
+   "n": "Torrox Costa"
+  },
+  {
+   "c": "Spanje",
+   "n": "Tossa de Mar"
+  },
+  {
+   "c": "Spanje",
+   "n": "Tuineje"
+  },
+  {
+   "c": "Spanje",
+   "n": "Uga"
+  },
+  {
+   "c": "Spanje",
+   "n": "Valencia"
+  },
+  {
+   "c": "Spanje",
+   "n": "Valle de Abdalajís"
+  },
+  {
+   "c": "Spanje",
+   "n": "Vejer de la Frontera"
+  },
+  {
+   "c": "Spanje",
+   "n": "Velez Malaga"
+  },
+  {
+   "c": "Spanje",
+   "n": "Vilaflor"
+  },
+  {
+   "c": "Spanje",
+   "n": "Villamanrique de la Condesa"
+  },
+  {
+   "c": "Spanje",
+   "n": "Villanueva de Algaidas"
+  },
+  {
+   "c": "Spanje",
+   "n": "Villanueva del Rosario"
+  },
+  {
+   "c": "Spanje",
+   "n": "Yaiza"
+  },
+  {
+   "c": "Spanje",
+   "n": "Álora"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Djerba"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Hammamet"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Mahdia"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Midoun"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Monastir"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Port El Kantaoui"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Sousse"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Zarzis"
+  },
+  {
+   "c": "Turkije",
+   "n": "Adakoy"
+  },
+  {
+   "c": "Turkije",
+   "n": "Akbuk"
+  },
+  {
+   "c": "Turkije",
+   "n": "Aksaray"
+  },
+  {
+   "c": "Turkije",
+   "n": "Alanya"
+  },
+  {
+   "c": "Turkije",
+   "n": "Alanya-Centrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Antalya-Centrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Armutalan"
+  },
+  {
+   "c": "Turkije",
+   "n": "Avsallar"
+  },
+  {
+   "c": "Turkije",
+   "n": "Bayraklidede"
+  },
+  {
+   "c": "Turkije",
+   "n": "Beldibi"
+  },
+  {
+   "c": "Turkije",
+   "n": "Belek"
+  },
+  {
+   "c": "Turkije",
+   "n": "Beyoglu"
+  },
+  {
+   "c": "Turkije",
+   "n": "Bitez"
+  },
+  {
+   "c": "Turkije",
+   "n": "Bodrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Bodrum - Guvercinlik"
+  },
+  {
+   "c": "Turkije",
+   "n": "Bodrum-Centrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Bodrum-Gümbet"
+  },
+  {
+   "c": "Turkije",
+   "n": "Bodrum-Torba"
+  },
+  {
+   "c": "Turkije",
+   "n": "Bodrum-Turgutreis"
+  },
+  {
+   "c": "Turkije",
+   "n": "Calis"
+  },
+  {
+   "c": "Turkije",
+   "n": "Camlik"
+  },
+  {
+   "c": "Turkije",
+   "n": "Cesme-Centrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Colakli"
+  },
+  {
+   "c": "Turkije",
+   "n": "Dalyan"
+  },
+  {
+   "c": "Turkije",
+   "n": "Didim"
+  },
+  {
+   "c": "Turkije",
+   "n": "Didim-Centrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Evrenseki"
+  },
+  {
+   "c": "Turkije",
+   "n": "Fethiye-Centrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Goynuk"
+  },
+  {
+   "c": "Turkije",
+   "n": "Gumbet"
+  },
+  {
+   "c": "Turkije",
+   "n": "Gundogan"
+  },
+  {
+   "c": "Turkije",
+   "n": "Guvercinlik"
+  },
+  {
+   "c": "Turkije",
+   "n": "Gümüldür"
+  },
+  {
+   "c": "Turkije",
+   "n": "Içmeler"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kalamis-Fenerbahçe"
+  },
+  {
+   "c": "Turkije",
+   "n": "Karaköy"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kargicak"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kas"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kemer"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kemer-Centrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kestel"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kiris"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kizilagac"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kizilot"
+  },
+  {
+   "c": "Turkije",
+   "n": "Konakli"
+  },
+  {
+   "c": "Turkije",
+   "n": "Konyaalti"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kumkapi"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kumkoy"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kundu"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kusadasi"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kusadasi-Centrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Ladies Beach"
+  },
+  {
+   "c": "Turkije",
+   "n": "Lara"
+  },
+  {
+   "c": "Turkije",
+   "n": "Long Beach"
+  },
+  {
+   "c": "Turkije",
+   "n": "Mahmutlar"
+  },
+  {
+   "c": "Turkije",
+   "n": "Marmaris"
+  },
+  {
+   "c": "Turkije",
+   "n": "Marmaris-Centrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Oba"
+  },
+  {
+   "c": "Turkije",
+   "n": "Okurcalar"
+  },
+  {
+   "c": "Turkije",
+   "n": "Oludeniz"
+  },
+  {
+   "c": "Turkije",
+   "n": "Ortakent"
+  },
+  {
+   "c": "Turkije",
+   "n": "Ovacik"
+  },
+  {
+   "c": "Turkije",
+   "n": "Pamucak"
+  },
+  {
+   "c": "Turkije",
+   "n": "Sarigerme"
+  },
+  {
+   "c": "Turkije",
+   "n": "Seferihisar"
+  },
+  {
+   "c": "Turkije",
+   "n": "Side"
+  },
+  {
+   "c": "Turkije",
+   "n": "Side-Centrum"
+  },
+  {
+   "c": "Turkije",
+   "n": "Sirkeci"
+  },
+  {
+   "c": "Turkije",
+   "n": "Sisli"
+  },
+  {
+   "c": "Turkije",
+   "n": "Sorgun"
+  },
+  {
+   "c": "Turkije",
+   "n": "Sultanahmet"
+  },
+  {
+   "c": "Turkije",
+   "n": "Taksim"
+  },
+  {
+   "c": "Turkije",
+   "n": "Tekirova"
+  },
+  {
+   "c": "Turkije",
+   "n": "Titreyengol"
+  },
+  {
+   "c": "Turkije",
+   "n": "Torba"
+  },
+  {
+   "c": "Turkije",
+   "n": "Tosmur"
+  },
+  {
+   "c": "Turkije",
+   "n": "Turgutreis"
+  },
+  {
+   "c": "Turkije",
+   "n": "Turkbuku"
+  },
+  {
+   "c": "Turkije",
+   "n": "Turkler"
+  },
+  {
+   "c": "Turkije",
+   "n": "Yalikoy"
+  },
+  {
+   "c": "Turkije",
+   "n": "Yenikapi"
+  },
+  {
+   "c": "Turkije",
+   "n": "Zincirlikuyu"
+  },
+  {
+   "c": "Turkije",
+   "n": "Özdere"
+  }
+ ],
+ "both": [
+  {
+   "c": "Bonaire",
+   "n": "Kralendijk",
+   "rel": "eq"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Nessebar",
+   "rel": "eq"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Sozopol",
+   "rel": "eq"
+  },
+  {
+   "c": "Bulgarije",
+   "n": "Sunny Beach",
+   "rel": "split"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Jan Thiel Baai",
+   "rel": "eq"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Mambo Beach",
+   "rel": "eq"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Piscadera Baai",
+   "rel": "eq"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Santa Rosa",
+   "rel": "eq"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Sint Willibrordus",
+   "rel": "eq"
+  },
+  {
+   "c": "Curaçao",
+   "n": "Willemstad",
+   "rel": "eq"
+  },
+  {
+   "c": "Egypte",
+   "n": "Caïro",
+   "rel": "eq"
+  },
+  {
+   "c": "Egypte",
+   "n": "Hurghada",
+   "rel": "split"
+  },
+  {
+   "c": "Egypte",
+   "n": "Marsa Alam",
+   "rel": "split"
+  },
+  {
+   "c": "Gambia",
+   "n": "Bijilo",
+   "rel": "eq"
+  },
+  {
+   "c": "Gambia",
+   "n": "Cape Point",
+   "rel": "eq"
+  },
+  {
+   "c": "Gambia",
+   "n": "Kololi",
+   "rel": "eq"
+  },
+  {
+   "c": "Gambia",
+   "n": "Kotu",
+   "rel": "eq"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Athene",
+   "rel": "split"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Parga",
+   "rel": "split"
+  },
+  {
+   "c": "Griekenland",
+   "n": "Thessaloniki",
+   "rel": "eq"
+  },
+  {
+   "c": "Marokko",
+   "n": "Agadir",
+   "rel": "eq"
+  },
+  {
+   "c": "Marokko",
+   "n": "Marrakech",
+   "rel": "split"
+  },
+  {
+   "c": "Portugal",
+   "n": "Lissabon",
+   "rel": "split"
+  },
+  {
+   "c": "Portugal",
+   "n": "Porto",
+   "rel": "eq"
+  },
+  {
+   "c": "Tunesië",
+   "n": "Djerba",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Alanya",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Belek",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Bodrum",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Dalyan",
+   "rel": "eq"
+  },
+  {
+   "c": "Turkije",
+   "n": "Didim",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Gumuldur",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kas",
+   "rel": "eq"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kemer",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Kusadasi",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Marmaris",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Ozdere",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Sarigerme",
+   "rel": "eq"
+  },
+  {
+   "c": "Turkije",
+   "n": "Seferihisar",
+   "rel": "split"
+  },
+  {
+   "c": "Turkije",
+   "n": "Side",
+   "rel": "split"
+  }
+ ]
+}

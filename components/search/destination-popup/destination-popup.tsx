@@ -3,6 +3,15 @@
 import { DestinationCountryChip } from '@/components/search/destination-popup/destination-country-chip';
 import { DestinationPopupFlag } from '@/components/search/destination-popup/destination-popup-flag';
 import { DestinationCountryRow } from '@/components/search/destination-popup/destination-country-row';
+import {
+  DESTINATION_SEARCH_PLACEHOLDER,
+  formatPlaceSelectionLabel,
+  loadDestinationSearchIndex,
+  placeSelectionFromSuggestion,
+  searchDestinations,
+  type DestinationPlaceSelection,
+  type DestinationSuggestion,
+} from '@/components/search/destination-popup/destination-search';
 import '@/components/search/destination-popup/destination-popup.css';
 import { destinationPopupPoppins } from '@/components/search/destination-popup/destination-popup-font';
 import {
@@ -11,17 +20,20 @@ import {
   loadDestinationCountries,
   loadPopularDestinationCountries,
 } from '@/components/search/destination-popup/destination-popup-utils';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 type DestinationPopupProps = {
   open: boolean;
   appliedCountries: string[];
+  /** Applied single region/place (with its parent country); null/undefined when a country selection. */
+  appliedPlace?: DestinationPlaceSelection | null;
   countryCounts: Record<string, number>;
   /** Kept for API compatibility; the marketing side panel is no longer rendered in the popup. */
   totalOffersLabel: string;
   onClose: () => void;
-  onApply: (countries: string[]) => void;
+  /** `place` is set only for one region OR one place (countries is then [parent country]). */
+  onApply: (countries: string[], place?: DestinationPlaceSelection | null) => void;
 };
 
 function SearchIcon() {
@@ -89,13 +101,21 @@ function PopularDestinationGrid({ countries, selectedCountries, onToggle }: Dest
 export function DestinationPopup({
   open,
   appliedCountries,
+  appliedPlace = null,
   countryCounts,
   onClose,
   onApply,
 }: DestinationPopupProps) {
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState('');
-  const [draftSelection, setDraftSelection] = useState<string[]>(appliedCountries);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(0);
+  const [draftSelection, setDraftSelection] = useState<string[]>(appliedPlace ? [] : appliedCountries);
+  const [draftPlace, setDraftPlace] = useState<DestinationPlaceSelection | null>(appliedPlace);
+  const suggestOpenRef = useRef(false);
+  const appliedPlaceKey = appliedPlace
+    ? [appliedPlace.country, appliedPlace.region ?? '', appliedPlace.city ?? ''].join('|')
+    : '';
 
   const allCountries = useMemo(
     () => loadDestinationCountries(countryCounts),
@@ -115,7 +135,15 @@ export function DestinationPopup({
     [allCountries, query],
   );
 
-  const selectedSet = useMemo(() => new Set(draftSelection), [draftSelection]);
+  const searchIndex = useMemo(() => loadDestinationSearchIndex(countryCounts), [countryCounts]);
+  const suggestions = useMemo(() => searchDestinations(searchIndex, query), [searchIndex, query]);
+  const dropdownVisible = suggestOpen && suggestions.length > 0;
+  suggestOpenRef.current = dropdownVisible;
+
+  const selectedSet = useMemo(
+    () => new Set(draftPlace ? [] : draftSelection),
+    [draftPlace, draftSelection],
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -123,10 +151,14 @@ export function DestinationPopup({
 
   useEffect(() => {
     if (open) {
-      setDraftSelection(appliedCountries);
+      setDraftSelection(appliedPlace ? [] : appliedCountries);
+      setDraftPlace(appliedPlace);
       setQuery('');
+      setSuggestOpen(false);
     }
-  }, [appliedCountries, open]);
+    // appliedPlace is tracked through its key (callers may pass a fresh object each render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedCountries, appliedPlaceKey, open]);
 
   useEffect(() => {
     if (!open) {
@@ -138,6 +170,10 @@ export function DestinationPopup({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        // First Escape only closes the suggestion list; the popup stays open.
+        if (suggestOpenRef.current) {
+          return;
+        }
         onClose();
       }
     };
@@ -151,6 +187,12 @@ export function DestinationPopup({
   }, [onClose, open]);
 
   const toggleCountry = (name: string) => {
+    if (draftPlace) {
+      // A country choice replaces a region/place choice (a region/place is always a single choice).
+      setDraftPlace(null);
+      setDraftSelection([name]);
+      return;
+    }
     setDraftSelection((current) => (
       current.includes(name)
         ? current.filter((entry) => entry !== name)
@@ -162,12 +204,42 @@ export function DestinationPopup({
     setDraftSelection((current) => current.filter((entry) => entry !== name));
   };
 
+  const pickSuggestion = (suggestion: DestinationSuggestion) => {
+    const place = placeSelectionFromSuggestion(suggestion);
+    if (place) {
+      // One region OR one place, with its parent country; replaces the country selection.
+      setDraftPlace(place);
+      setDraftSelection([]);
+    } else if (draftPlace) {
+      setDraftPlace(null);
+      setDraftSelection([suggestion.value]);
+    } else {
+      setDraftSelection((current) =>
+        current.includes(suggestion.value) ? current : [...current, suggestion.value],
+      );
+    }
+    setQuery('');
+    setSuggestOpen(false);
+    setActiveSuggestion(0);
+  };
+
+  const clearAll = () => {
+    setDraftSelection([]);
+    setDraftPlace(null);
+  };
+
+  const selectedCount = draftPlace ? 1 : draftSelection.length;
+
   if (!mounted || !open) {
     return null;
   }
 
   const trimmedQuery = query.trim();
-  const noMatches = trimmedQuery.length > 0 && filteredAll.length === 0 && filteredPopular.length === 0;
+  const noMatches =
+    trimmedQuery.length > 0 &&
+    filteredAll.length === 0 &&
+    filteredPopular.length === 0 &&
+    suggestions.length === 0;
 
   return createPortal(
     <div className={`fixed inset-0 z-50 flex items-stretch justify-center sm:items-center sm:p-4 ${destinationPopupPoppins.className}`}>
@@ -202,21 +274,96 @@ export function DestinationPopup({
           </button>
         </div>
 
-        <div className="relative mt-3 shrink-0">
+        <div
+          className="relative z-20 mt-3 shrink-0"
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              setSuggestOpen(false);
+            }
+          }}
+        >
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
             <SearchIcon />
           </span>
           <input
             type="search"
+            role="combobox"
+            aria-expanded={dropdownVisible}
+            aria-controls="destination-suggestions"
+            aria-autocomplete="list"
+            autoComplete="off"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Zoek een bestemming…"
-            aria-label="Zoek een bestemming"
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setSuggestOpen(true);
+              setActiveSuggestion(0);
+            }}
+            onFocus={() => setSuggestOpen(true)}
+            onKeyDown={(event) => {
+              if (!dropdownVisible) {
+                return;
+              }
+              if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setActiveSuggestion((current) => Math.min(current + 1, suggestions.length - 1));
+              } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setActiveSuggestion((current) => Math.max(current - 1, 0));
+              } else if (event.key === 'Enter') {
+                event.preventDefault();
+                const chosen = suggestions[activeSuggestion] ?? suggestions[0];
+                if (chosen) {
+                  pickSuggestion(chosen);
+                }
+              } else if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                setSuggestOpen(false);
+              }
+            }}
+            placeholder={DESTINATION_SEARCH_PLACEHOLDER}
+            aria-label={DESTINATION_SEARCH_PLACEHOLDER}
             className="h-11 w-full rounded-lg border border-[#E0E2E7] bg-white pl-10 pr-4 text-[16px] text-[#111827] outline-none placeholder:text-[#94A3B8] focus:border-[#1E88E5] sm:text-[14px]"
           />
+          {dropdownVisible ? (
+            <ul
+              id="destination-suggestions"
+              role="listbox"
+              data-testid="destination-suggestions"
+              className="destination-popup-scroll absolute left-0 right-0 top-full mt-1 max-h-[280px] overflow-y-auto rounded-lg border border-[#E0E2E7] bg-white py-1 shadow-[0_8px_24px_rgba(15,23,42,0.12)]"
+            >
+              {suggestions.map((suggestion, index) => (
+                <li key={suggestion.id} role="presentation">
+                  <button
+                    type="button"
+                    role="option"
+                    tabIndex={-1}
+                    aria-selected={index === activeSuggestion}
+                    data-suggestion-kind={suggestion.kind}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onMouseEnter={() => setActiveSuggestion(index)}
+                    onClick={() => pickSuggestion(suggestion)}
+                    className={`block w-full truncate px-3 py-2.5 text-left text-[15px] text-[#111827] sm:py-2 sm:text-[14px] ${
+                      index === activeSuggestion ? 'bg-[#F1F5F9]' : 'bg-white'
+                    }`}
+                  >
+                    {suggestion.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
 
-        {draftSelection.length > 0 ? (
+        {draftPlace ? (
+          <div className="mt-2.5 flex shrink-0 flex-wrap gap-1.5" data-testid="destination-selected">
+            <DestinationCountryChip
+              country={draftPlace.country}
+              label={formatPlaceSelectionLabel(draftPlace)}
+              onRemove={() => setDraftPlace(null)}
+            />
+          </div>
+        ) : draftSelection.length > 0 ? (
           <div className="mt-2.5 flex shrink-0 flex-wrap gap-1.5" data-testid="destination-selected">
             {draftSelection.map((country) => (
               <DestinationCountryChip
@@ -274,12 +421,12 @@ export function DestinationPopup({
 
         <div className="mt-2 flex shrink-0 items-center justify-between gap-3 border-t border-[#F1F5F9] pb-[max(16px,env(safe-area-inset-bottom))] pt-3 sm:pb-6 sm:pt-3.5">
           <p className="min-w-0 text-[13px] text-[#475569]">
-            {draftSelection.length > 0 ? (
+            {selectedCount > 0 ? (
               <>
-                <b className="text-[#0A2D62]">{draftSelection.length}</b> geselecteerd
+                <b className="text-[#0A2D62]">{selectedCount}</b> geselecteerd
                 <button
                   type="button"
-                  onClick={() => setDraftSelection([])}
+                  onClick={clearAll}
                   className="ml-3 font-medium text-[#1E40AF] underline underline-offset-2"
                 >
                   Wissen
@@ -291,10 +438,12 @@ export function DestinationPopup({
           </p>
           <button
             type="button"
-            onClick={() => onApply(draftSelection)}
+            onClick={() =>
+              draftPlace ? onApply([draftPlace.country], draftPlace) : onApply(draftSelection)
+            }
             className="h-11 min-w-[140px] shrink-0 rounded-md bg-[#2E7D32] px-7 text-sm font-semibold text-white"
           >
-            {draftSelection.length > 0 ? `OPSLAAN (${draftSelection.length})` : 'OPSLAAN'}
+            {selectedCount > 0 ? `OPSLAAN (${selectedCount})` : 'OPSLAAN'}
           </button>
         </div>
       </div>

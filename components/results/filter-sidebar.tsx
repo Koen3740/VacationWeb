@@ -11,6 +11,7 @@ import {
 import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
+import { placeSelectionFromState } from '@/components/search/destination-popup/destination-search';
 import {
   canonicalizeBoardType,
   canonicalizeBoardTypes,
@@ -968,16 +969,17 @@ export function FilterSidebar({
       <DestinationPopup
         open={destinationPopupOpen}
         appliedCountries={selectedCountries}
+        appliedPlace={placeSelectionFromState(selectedCountries, filters.region, filters.city)}
         countryCounts={countryCounts}
         totalOffersLabel={totalOffersLabel}
         onClose={() => setDestinationPopupOpen(false)}
-        onApply={(nextCountries) => {
+        onApply={(nextCountries, place) => {
           setDestinationPopupOpen(false);
           updateFilters({
             ...filters,
             country: nextCountries.join(','),
-            region: '',
-            city: '',
+            region: place?.region ?? '',
+            city: place?.city ?? '',
           });
         }}
       />

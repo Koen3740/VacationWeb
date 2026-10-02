@@ -53,14 +53,17 @@ function hrefFor(partial: Partial<SharedSearchState>): URLSearchParams {
 
 /* ---------------- Destination ---------------- */
 
-test('destination: countries only (region/island/place are NOT offered; no new geo-data)', () => {
+test('destination: one search field over country + region/island + place, built on the existing filter-options lists', () => {
   const popup = src('components/search/destination-popup/destination-popup.tsx');
-  // Parked B1/SF-002: no region/place entities and no geographic explanation line in the popup.
-  assert.equal(/regionsByCountry|citiesByCountry/.test(popup), false);
+  const search = src('components/search/destination-popup/destination-search.ts');
+  assert.ok(popup.includes('placeholder={DESTINATION_SEARCH_PLACEHOLDER}'));
+  // M1: the index is built from the VacationWeb destination directory (derived from the catalog fields; no new geo-data source).
+  assert.ok(search.includes('destination-directory'));
+  assert.ok(search.includes('buildDestinationEntries'));
+  // No geographic explanation line in the popup or in a suggestion.
   assert.equal(popup.includes('Costa Brava'), false);
-  assert.equal(/Plaats\s*[·-]/.test(popup), false);
-  const utils = src('components/search/destination-popup/destination-popup-utils.ts');
-  assert.equal(/regionsByCountry|citiesByCountry/.test(utils), false);
+  assert.equal(/Plaats\s*\u00b7/.test(popup), false);
+  assert.equal(/Plaats\s*\u00b7/.test(search), false);
 });
 
 test('destination: popular destinations are a compact 3-column grid; every popular name is a real country', () => {

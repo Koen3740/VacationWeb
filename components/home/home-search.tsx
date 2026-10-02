@@ -12,6 +12,11 @@ import { formatSelectedDepartureAirportsLabel } from '@/components/search/depart
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
 import {
+  formatPlaceSelectionLabel,
+  placeSelectionFromState,
+  type DestinationPlaceSelection,
+} from '@/components/search/destination-popup/destination-search';
+import {
   DeparturePeriodPopup,
   type FlexibilityDays,
 } from '@/components/search/departure-period-popup/departure-period-popup';
@@ -107,6 +112,9 @@ export function HomeSearch({
   const [isPending, startTransition] = useTransition();
   const initialState = getInitialHomeSearchState();
   const [selectedCountries, setSelectedCountries] = useState<string[]>(initialState.selectedCountries);
+  const [selectedPlace, setSelectedPlace] = useState<DestinationPlaceSelection | null>(() =>
+    placeSelectionFromState(initialState.selectedCountries, initialState.region, initialState.city),
+  );
   const [destinationPopupOpen, setDestinationPopupOpen] = useState(false);
   const [departurePopupOpen, setDeparturePopupOpen] = useState(false);
   const [departureStart, setDepartureStart] = useState<string | null>(initialState.departureStart);
@@ -131,6 +139,8 @@ export function HomeSearch({
   const sharedState = useMemo(
     () => ({
       selectedCountries,
+      ...(selectedPlace?.region ? { region: selectedPlace.region } : {}),
+      ...(selectedPlace?.city ? { city: selectedPlace.city } : {}),
       departureStart,
       departureEnd,
       flexibilityDays,
@@ -145,6 +155,7 @@ export function HomeSearch({
       selectedCountries,
       selectedDepartureAirports,
       selectedDurations,
+      selectedPlace,
       travelers,
     ],
   );
@@ -169,13 +180,19 @@ export function HomeSearch({
   }, [livePricePrefetchEnabled, popupsOpen, sharedState]);
 
   const destinationValue =
-    selectedCountries.length === 0 ? 'Waar wil je naartoe?' : formatSelectedCountriesLabel(selectedCountries);
+    selectedCountries.length === 0
+      ? 'Waar wil je naartoe?'
+      : selectedPlace
+        ? formatPlaceSelectionLabel(selectedPlace)
+        : formatSelectedCountriesLabel(selectedCountries);
   const destinationHint =
     selectedCountries.length === 0
       ? 'Kies een of meer bestemmingen'
-      : selectedCountries.length === 1
-        ? '1 land'
-        : `${selectedCountries.length} landen`;
+      : selectedPlace
+        ? '1 bestemming'
+        : selectedCountries.length === 1
+          ? '1 land'
+          : `${selectedCountries.length} landen`;
 
   const departureDisplay = getDepartureDisplay({
     departureStart,
@@ -197,6 +214,8 @@ export function HomeSearch({
     () =>
       buildResultsHref({
         selectedCountries,
+        ...(selectedPlace?.region ? { region: selectedPlace.region } : {}),
+        ...(selectedPlace?.city ? { city: selectedPlace.city } : {}),
         departureStart,
         departureEnd,
         flexibilityDays,
@@ -211,6 +230,7 @@ export function HomeSearch({
       selectedDepartureAirports,
       selectedDurations,
       selectedCountries,
+      selectedPlace,
       travelers,
     ],
   );
@@ -354,11 +374,13 @@ export function HomeSearch({
       <DestinationPopup
         open={destinationPopupOpen}
         appliedCountries={selectedCountries}
+        appliedPlace={selectedPlace}
         countryCounts={countryCounts}
         totalOffersLabel={totalOffersLabel}
         onClose={() => setDestinationPopupOpen(false)}
-        onApply={(countries) => {
+        onApply={(countries, place) => {
           setSelectedCountries(countries);
+          setSelectedPlace(place ?? null);
           setDestinationPopupOpen(false);
         }}
       />

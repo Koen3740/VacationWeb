@@ -45,6 +45,7 @@ function createInitialFormState(
   const base = {
     countries: countries[0] ? [countries[0]] : [],
     region: '',
+    city: '',
     budgetMin: 500,
     budgetMax: 1500,
     nightsMin: 7,
@@ -75,6 +76,7 @@ function createInitialFormState(
     ...merged,
     countries: urlCountries && urlCountries.length > 0 ? urlCountries : merged.countries,
     region: urlRegion ?? merged.region,
+    city: getParamString(urlParams, 'city') ?? merged.city,
     budgetMin: getParamNumber(urlParams, 'budgetMin') ?? merged.budgetMin,
     budgetMax: getParamNumber(urlParams, 'budgetMax') ?? merged.budgetMax,
     nightsMin: getParamNumber(urlParams, 'nightsMin') ?? merged.nightsMin,
@@ -152,6 +154,10 @@ export function SearchForm({
       params.set('region', form.region);
     }
 
+    if (form.city) {
+      params.set('city', form.city);
+    }
+
     if (form.boardTypes.length > 0) {
       params.set('boardTypes', form.boardTypes.join(','));
     }
@@ -174,7 +180,7 @@ export function SearchForm({
             </button>
             <select
               value={form.region}
-              onChange={(event) => setForm({ ...form, region: event.target.value })}
+              onChange={(event) => setForm({ ...form, region: event.target.value, city: '' })}
               className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
             >
               <option value="">Alle regio&apos;s</option>
@@ -313,8 +319,18 @@ export function SearchForm({
         countryCounts={countryCounts}
         totalOffersLabel={totalOffersLabel}
         onClose={() => setDestinationPopupOpen(false)}
-        onApply={(selectedCountries) => {
-          setForm((current) => ({ ...current, countries: selectedCountries, region: '' }));
+        appliedPlace={
+          form.countries.length === 1 && (form.region || form.city)
+            ? { country: form.countries[0], ...(form.region ? { region: form.region } : {}), ...(form.city ? { city: form.city } : {}) }
+            : null
+        }
+        onApply={(selectedCountries, place) => {
+          setForm((current) => ({
+            ...current,
+            countries: selectedCountries,
+            region: place?.region ?? '',
+            city: place?.city ?? '',
+          }));
           setDestinationPopupOpen(false);
         }}
       />

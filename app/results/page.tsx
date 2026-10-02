@@ -40,6 +40,7 @@ import {
 import { buildResultsPageHref } from '@/lib/search/pagination';
 import { loadRuntimeDataset } from '@/lib/offers/load-runtime-dataset';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
+import { decodePlaceName } from '@/lib/search/destination-mapping';
 import { attachSiteMarket } from '@/lib/search/site-market';
 import { SearchParams } from '@/types/travel';
 import { headers } from 'next/headers';
@@ -57,6 +58,10 @@ function buildSummaryLine(params: SearchParams): string {
 
   if (params.region) {
     parts.push(params.region);
+  }
+
+  if (params.city) {
+    parts.push(decodePlaceName(params.city));
   }
 
   const departureSegment = getDepartureDisplay({

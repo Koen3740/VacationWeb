@@ -83,8 +83,12 @@ test('countries without a flag asset get the popup globe fallback (not an empty 
   assert.equal(shared.includes('data-flag-fallback'), false);
 });
 
-test('destination search placeholder is "Zoek een bestemming" + ellipsis character (not three dots)', () => {
+test('destination search placeholder is exactly "Zoek land, regio of plaats" (one field, no old copy)', () => {
   const popup = readFileSync(join(ROOT, 'components/search/destination-popup/destination-popup.tsx'), 'utf8');
-  assert.ok(popup.includes('placeholder="Zoek een bestemming\u2026"'));
-  assert.equal(popup.includes('placeholder="Zoek een bestemming..."'), false);
+  const search = readFileSync(join(ROOT, 'components/search/destination-popup/destination-search.ts'), 'utf8');
+  assert.ok(search.includes("DESTINATION_SEARCH_PLACEHOLDER = 'Zoek land, regio of plaats'"));
+  assert.ok(popup.includes('placeholder={DESTINATION_SEARCH_PLACEHOLDER}'));
+  assert.equal(popup.includes('Zoek een bestemming'), false);
+  assert.equal(popup.includes('Zoek in alle bestemmingen'), false);
+  assert.equal((popup.match(/<input/g) ?? []).length, 1, 'exactly one search field');
 });

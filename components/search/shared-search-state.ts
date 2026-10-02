@@ -13,6 +13,9 @@ import { sanitizeDepartureSearchWindow } from '@/lib/search/departure-date';
 
 export type SharedSearchState = {
   selectedCountries: string[];
+  /** One region/island OR one place, always together with exactly one parent country. */
+  region?: string;
+  city?: string;
   departureStart: string | null;
   departureEnd: string | null;
   flexibilityDays: FlexibilityDays;
@@ -56,6 +59,8 @@ export function loadSharedSearchState(): SharedSearchState | null {
 
     return {
       selectedCountries: Array.isArray(parsed.selectedCountries) ? parsed.selectedCountries : [],
+      ...(typeof parsed.region === 'string' && parsed.region ? { region: parsed.region } : {}),
+      ...(typeof parsed.city === 'string' && parsed.city ? { city: parsed.city } : {}),
       departureStart,
       departureEnd,
       // ± only for one fixed date; a stored period never carries a margin (Search Architecture v2.13).
@@ -105,6 +110,15 @@ export function buildResultsHref(state: SharedSearchState): string {
 
   if (state.selectedCountries.length > 0) {
     params.set('country', state.selectedCountries.join(','));
+    // Existing single-value contract (country=A&region=X / country=A&city=P): only with one parent country.
+    if (state.selectedCountries.length === 1) {
+      if (state.region) {
+        params.set('region', state.region);
+      }
+      if (state.city) {
+        params.set('city', state.city);
+      }
+    }
   }
 
   if (state.departureStart) {
@@ -135,6 +149,8 @@ export function buildResultsHref(state: SharedSearchState): string {
 
 export function sharedStateFromSearchForm(form: {
   countries: string[];
+  region?: string;
+  city?: string;
   departureStart: string;
   departureEnd: string;
   nightsMin: number;
@@ -155,6 +171,8 @@ export function sharedStateFromSearchForm(form: {
 
   return {
     selectedCountries: form.countries,
+    ...(form.region ? { region: form.region } : {}),
+    ...(form.city ? { city: form.city } : {}),
     departureStart: form.departureStart || null,
     departureEnd: form.departureEnd || null,
     flexibilityDays: 0,
@@ -171,6 +189,7 @@ export function sharedStateFromSearchForm(form: {
 export function mergeSharedStateIntoSearchForm<T extends {
   countries: string[];
   region: string;
+  city?: string;
   departureStart: string;
   departureEnd: string;
   nightsMin: number;
@@ -186,7 +205,8 @@ export function mergeSharedStateIntoSearchForm<T extends {
   return {
     ...form,
     countries,
-    region: '',
+    region: shared.selectedCountries.length === 1 ? shared.region ?? '' : '',
+    city: shared.selectedCountries.length === 1 ? shared.city ?? '' : '',
     departureStart: shared.departureStart ?? form.departureStart,
     departureEnd: shared.departureEnd ?? form.departureEnd,
     nightsMin: shared.selectedDurations.length > 0 ? Math.min(...shared.selectedDurations) : form.nightsMin,

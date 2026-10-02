@@ -6,6 +6,38 @@ import {
 } from './canonicalize-board-type';
 import { canonicalizeCountryName } from './canonical-country';
 import { canonicalizeRegionName } from './canonical-region';
+import { pickPlaceDisplayName, placeGroupKey } from '../search/destination-mapping';
+import { isProductDestinationValue } from '../search/destination-product-names';
+
+/** Sidebar / form place list: one entry per spelling group (VacationWeb name), no product names. */
+function canonicalizePlaceLists(
+  source: Record<string, string[]> | undefined,
+): Record<string, string[]> {
+  const result: Record<string, string[]> = {};
+  for (const [country, values] of Object.entries(source ?? {})) {
+    const canonicalCountry = canonicalizeCountryName(country);
+    const groups = new Map<string, string[]>();
+    for (const value of [...(result[canonicalCountry] ?? []), ...values]) {
+      if (!value || isProductDestinationValue(canonicalCountry, 'city', value)) {
+        continue;
+      }
+      const key = placeGroupKey(value);
+      groups.set(key, [...(groups.get(key) ?? []), value]);
+    }
+    result[canonicalCountry] = [...groups.values()]
+      .map((variants) => pickPlaceDisplayName(variants))
+      .sort((left, right) => left.localeCompare(right, 'nl'));
+  }
+  return result;
+}
+
+function dropProductRegions(source: Record<string, string[]>): Record<string, string[]> {
+  const result: Record<string, string[]> = {};
+  for (const [country, values] of Object.entries(source)) {
+    result[country] = values.filter((value) => !isProductDestinationValue(country, 'region', value));
+  }
+  return result;
+}
 
 function canonicalizeKeyedLists(
   source: Record<string, string[]> | undefined,
@@ -66,8 +98,8 @@ export function canonicalizeFilterOptions(stored: FilterOptions): FilterOptions 
 
   return {
     countries,
-    regionsByCountry: canonicalizeKeyedLists(stored.regionsByCountry, canonicalizeRegionName),
-    citiesByCountry: canonicalizeKeyedLists(stored.citiesByCountry),
+    regionsByCountry: dropProductRegions(canonicalizeKeyedLists(stored.regionsByCountry, canonicalizeRegionName)),
+    citiesByCountry: canonicalizePlaceLists(stored.citiesByCountry),
     boardTypes: CANONICAL_BOARD_TYPES.filter((type) => boardTypeSet.has(type)),
     accommodationTypes: stored.accommodationTypes ?? [],
     departureAirports: stored.departureAirports,
