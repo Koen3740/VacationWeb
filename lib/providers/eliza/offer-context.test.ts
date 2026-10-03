@@ -28,12 +28,16 @@ const FOUR_PAX_TWO_ROOMS = {
   children: 2,
   rooms: 2,
   party: [
-    { dateOfBirth: '1990-01-15', roomIndex: 0 },
-    { dateOfBirth: '1988-03-03', roomIndex: 0 },
-    { dateOfBirth: '2014-06-14', roomIndex: 1 },
-    { dateOfBirth: '2018-01-22', roomIndex: 1 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 12, roomIndex: 1 },
+    { age: 8, roomIndex: 1 },
   ],
 };
+
+// makeOffer(): departure 2026-11-19, 8 days (Eliza nights field = days, matches Duration[0]=8):
+// return = last travel day = departure + (8 - 1) = 2026-11-26.
+const RETURN_REF = { returnDate: '2026-11-26' };
 
 function makeOffer(overrides: Partial<TravelOffer> = {}): TravelOffer {
   return {
@@ -42,7 +46,7 @@ function makeOffer(overrides: Partial<TravelOffer> = {}): TravelOffer {
     hotelName: 'Casita Paradise Island',
     destinationCountry: 'Spanje',
     departureDate: '2026-11-19',
-    nights: 7,
+    nights: 8,
     price: 599,
     pricePerDay: 86,
     imageUrl: 'https://example.com/a.jpg',
@@ -91,7 +95,7 @@ test('parseElizaLandingQuery: feed property airport is not used; missing URL air
   assert.equal(parseElizaLandingQuery(noAirport, '6270665'), null);
 });
 
-test('occupancy: default 2A only; 4p/2r needs party DOBs', () => {
+test('occupancy: default 2A only; 4p/2r needs a party (synthetic DOBs)', () => {
   assert.equal(resolveElizaLiveOccupancy({}).ok, true);
   assert.equal(resolveElizaLiveOccupancy({ adults: 2 }).ok, true);
   const twoAdults = resolveElizaLiveOccupancy({ adults: 2, rooms: 1 });
@@ -100,29 +104,78 @@ test('occupancy: default 2A only; 4p/2r needs party DOBs', () => {
     assert.equal(twoAdults.mode, 'feed-two-adults');
   }
   assert.equal(resolveElizaLiveOccupancy({ adults: 2, children: 1 }).ok, false);
-  const twoAdultsOneChild = resolveElizaLiveOccupancy({
+  const twoAdultsOneChildParams = {
     adults: 2,
     children: 1,
     rooms: 1,
     party: [
-      { dateOfBirth: '1986-01-01', roomIndex: 0 },
-      { dateOfBirth: '1986-01-01', roomIndex: 0 },
-      { dateOfBirth: '2024-06-01', roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: 5, roomIndex: 0 },
     ],
-  });
+  };
+  const twoAdultsOneChild = resolveElizaLiveOccupancy(twoAdultsOneChildParams, RETURN_REF);
   assert.equal(twoAdultsOneChild.ok, true);
   if (twoAdultsOneChild.ok && twoAdultsOneChild.mode === 'party') {
-    assert.equal(twoAdultsOneChild.participants.length, 3);
+    assert.deepEqual(
+      twoAdultsOneChild.participants.map((participant) => participant.value),
+      ['1986-01-01', '1986-01-01', '2021-11-26'],
+    );
   }
+  // Gate does not depend on the trip reference; the participants then stay empty (fail closed in builders).
+  const noReference = resolveElizaLiveOccupancy(twoAdultsOneChildParams);
+  assert.equal(noReference.ok && noReference.mode === 'party' ? noReference.participants.length : -1, 0);
+  // t355u: 2 adults + 1 baby (1 room) is a valid Eliza live occupancy (own-adapter probe: priced OK,
+  // evidence t355u eliza_2A_baby_probe.json). Baby DOB = return date - age (synthetic).
+  for (const [age, dob] of [
+    [1, '2025-11-26'],
+    [0, '2026-11-26'],
+  ] as const) {
+    const withBaby = resolveElizaLiveOccupancy(
+      {
+        adults: 2,
+        babies: 1,
+        rooms: 1,
+        party: [
+          { age: null, roomIndex: 0 },
+          { age: null, roomIndex: 0 },
+          { age, roomIndex: 0 },
+        ],
+      },
+      RETURN_REF,
+    );
+    assert.equal(withBaby.ok, true);
+    if (withBaby.ok && withBaby.mode === 'party') {
+      assert.deepEqual(
+        withBaby.participants.map((participant) => participant.value),
+        ['1986-01-01', '1986-01-01', dob],
+      );
+    }
+  }
+  // Still invalid: baby counts without a 3-person party, 2 babies, 2 rooms.
   assert.equal(resolveElizaLiveOccupancy({ adults: 2, babies: 1 }).ok, false);
+  assert.equal(
+    resolveElizaLiveOccupancy({
+      adults: 2,
+      babies: 2,
+      rooms: 1,
+      party: [
+        { age: null, roomIndex: 0 },
+        { age: null, roomIndex: 0 },
+        { age: 0, roomIndex: 0 },
+        { age: 1, roomIndex: 0 },
+      ],
+    }).ok,
+    false,
+  );
   assert.equal(resolveElizaLiveOccupancy({ adults: 2, rooms: 2 }).ok, false);
   assert.equal(resolveElizaLiveOccupancy({ adults: 3 }).ok, false);
   assert.equal(resolveElizaLiveOccupancy({ adults: 2, children: 2, rooms: 2 }).ok, false);
-  const four = resolveElizaLiveOccupancy(FOUR_PAX_TWO_ROOMS);
+  const four = resolveElizaLiveOccupancy(FOUR_PAX_TWO_ROOMS, RETURN_REF);
   assert.equal(four.ok, true);
   if (four.ok && four.mode === 'four-travellers-two-rooms') {
-    assert.equal(four.participants[0].value, '1990-01-15');
-    assert.equal(four.participants[3].value, '2018-01-22');
+    assert.equal(four.participants[0].value, '1986-01-01');
+    assert.equal(four.participants[3].value, '2018-11-26');
     assert.equal(four.participants[2].key, 'Participants[1][0]');
   }
   assert.equal(isElizaFourTravellerTwoRoomSearch(FOUR_PAX_TWO_ROOMS), true);
@@ -147,7 +200,7 @@ test('buildElizaLiveContext: mapping + occupancy gate', () => {
 });
 
 test('applyElizaOccupancyToLandingUrl replaces feed 2A Participants', () => {
-  const occupancy = resolveElizaLiveOccupancy(FOUR_PAX_TWO_ROOMS);
+  const occupancy = resolveElizaLiveOccupancy(FOUR_PAX_TWO_ROOMS, RETURN_REF);
   assert.ok(occupancy.ok && occupancy.mode === 'four-travellers-two-rooms');
   if (!occupancy.ok || occupancy.mode !== 'four-travellers-two-rooms') {
     return;
@@ -155,24 +208,24 @@ test('applyElizaOccupancyToLandingUrl replaces feed 2A Participants', () => {
   const landing = applyElizaOccupancyToLandingUrl(ELIZA_LANDING, occupancy.participants);
   assert.ok(landing);
   const url = new URL(landing);
-  assert.equal(url.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(url.searchParams.get('Participants[0][1]'), '1988-03-03');
-  assert.equal(url.searchParams.get('Participants[1][0]'), '2014-06-14');
-  assert.equal(url.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(url.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(url.searchParams.get('Participants[0][1]'), '1986-01-01');
+  assert.equal(url.searchParams.get('Participants[1][0]'), '2014-11-26');
+  assert.equal(url.searchParams.get('Participants[1][1]'), '2018-11-26');
   assert.equal(url.searchParams.get('Participants[0][2]'), null);
   assert.ok(!landing.includes('1996-07-30'));
 });
 
-test('buildElizaLiveContext: 4p/2r uses party DOBs not feed 2A', () => {
+test('buildElizaLiveContext: 4p/2r uses synthetic party DOBs not feed 2A', () => {
   const ok = buildElizaLiveContext(makeOffer(), FOUR_PAX_TWO_ROOMS);
   assert.ok(ok);
   assert.equal(ok.query.departureAirport, 'BRU');
   assert.equal(ok.query.departureDate, '2026-11-19');
-  assert.equal(ok.query.participants[0].value, '1990-01-15');
-  assert.equal(ok.query.participants[3].value, '2018-01-22');
+  assert.equal(ok.query.participants[0].value, '1986-01-01');
+  assert.equal(ok.query.participants[3].value, '2018-11-26');
   const landing = new URL(ok.landingUrl);
-  assert.equal(landing.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(landing.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-11-26');
   assert.ok(!ok.landingUrl.includes('1996-07-30'));
   assert.equal(buildElizaLiveContext(makeOffer(), { adults: 2, children: 2, rooms: 2 }), null);
 });
@@ -189,12 +242,19 @@ test('buildElizaOccupancyClickOutHref: TT wrap keeps tt= and TEST B Participants
   assert.equal(landing.searchParams.get('Mealplan[0]'), 'LG');
   assert.equal(landing.searchParams.get('DepartureAirport[0]'), 'BRU');
   assert.equal(landing.searchParams.get('DepartureDate[0]'), '2026-11-19');
-  assert.equal(landing.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(landing.searchParams.get('Participants[0][1]'), '1988-03-03');
-  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-06-14');
-  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(landing.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[0][1]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-11-26');
+  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-11-26');
   assert.ok(!href.includes('1996-07-30'));
   assert.ok(!unwrapElizaProductUrl(href).includes('1996-07-30'));
+  // DEC-019 privacy: the only dates in the target URL are the trip date and synthetic DOBs.
+  const allowed = new Set(['2026-11-19', '1986-01-01', '2014-11-26', '2018-11-26']);
+  const dates = decodeURIComponent(href).match(/\d{4}-\d{2}-\d{2}/g) ?? [];
+  assert.ok(dates.length >= 4);
+  for (const date of dates) {
+    assert.ok(allowed.has(date), `unexpected date in click-out URL: ${date}`);
+  }
 });
 
 test('buildElizaOccupancyClickOutHref: 2A and unusable landing fail closed', () => {

@@ -1,12 +1,28 @@
-import { toIsoDate } from '../departure-period-popup/departure-period-popup-utils';
+import {
+  CHILD_AGE_MAX,
+  CHILD_AGE_MIN,
+  DEFAULT_ADULTS,
+  MAX_PARTY_TRAVELLERS,
+  hasCompleteChildAges,
+  isValidChildAge,
+  legacyAgeFromIso,
+  partyFromModel,
+  readTravelerQuery,
+  writeTravelerQuery,
+  type PartyMember,
+  type TravelerModel,
+  type TravelerQueryInput,
+} from '@/lib/search/traveler-contract';
 
-export type Traveller = {
-  id: string;
-  dateOfBirth: string | null;
-};
-
+/**
+ * DEC-019 traveller state: adults are a count, children are an age (0-17 on the
+ * calculated return date). `null` is a child whose age has not been chosen yet
+ * (UI only; an incomplete party is never searched or put in a URL).
+ * `roomAssignments` has one room per person: adults first, then children.
+ */
 export type TravelersState = {
-  travellers: Traveller[];
+  adults: number;
+  childAges: Array<number | null>;
   roomCount: number;
   roomAssignments: number[];
 };
@@ -18,99 +34,17 @@ export type RoomTravelers = {
   babies: number;
 };
 
-/** Existing homepage cap — do not raise without a product decision. */
-export const MAX_TOTAL_TRAVELERS = 9;
+/** Existing homepage cap - do not raise without a product decision. */
+export const MAX_TOTAL_TRAVELERS = MAX_PARTY_TRAVELLERS;
 export const MIN_TOTAL_TRAVELERS = 1;
+export const MIN_ADULTS = 1;
+export { CHILD_AGE_MAX, CHILD_AGE_MIN };
 
 export const TRAVELERS_LIMITS = {
   adults: { min: 1, max: 12, default: 2 },
   children: { min: 0, max: 8, default: 0 },
   babies: { min: 0, max: 8, default: 0 },
 } as const;
-
-const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-function startOfLocalDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-export function isValidIsoDateOfBirth(iso: string, today: Date = new Date()): boolean {
-  const match = ISO_DATE_PATTERN.exec(iso);
-  if (!match) {
-    return false;
-  }
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const parsed = new Date(year, month - 1, day);
-
-  if (
-    parsed.getFullYear() !== year ||
-    parsed.getMonth() !== month - 1 ||
-    parsed.getDate() !== day
-  ) {
-    return false;
-  }
-
-  return parsed.getTime() <= startOfLocalDay(today).getTime();
-}
-
-export function calendarDateFromParts(
-  year: number,
-  month: number,
-  day: number,
-  today: Date = new Date(),
-): string | null {
-  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
-    return null;
-  }
-
-  const parsed = new Date(year, month - 1, day);
-  if (
-    parsed.getFullYear() !== year ||
-    parsed.getMonth() !== month - 1 ||
-    parsed.getDate() !== day
-  ) {
-    return null;
-  }
-
-  const iso = toIsoDate(parsed);
-  return isValidIsoDateOfBirth(iso, today) ? iso : null;
-}
-
-/** Display-only age. Not stored and not a provider category. */
-export function derivedAgeYears(iso: string, today: Date = new Date()): number | null {
-  if (!isValidIsoDateOfBirth(iso, today)) {
-    return null;
-  }
-
-  const [year, month, day] = iso.split('-').map(Number);
-  const birth = new Date(year, month - 1, day);
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDelta = today.getMonth() - birth.getMonth();
-  if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < birth.getDate())) {
-    age -= 1;
-  }
-
-  return age >= 0 ? age : null;
-}
-
-function nextTravellerId(existing: Traveller[]): string {
-  const max = existing.reduce((highest, traveller) => {
-    const match = /^t-(\d+)$/.exec(traveller.id);
-    const value = match ? Number(match[1]) : 0;
-    return Math.max(highest, value);
-  }, 0);
-  return `t-${max + 1}`;
-}
-
-function createTraveller(existing: Traveller[] = []): Traveller {
-  return {
-    id: nextTravellerId(existing),
-    dateOfBirth: null,
-  };
-}
 
 function clampRoomCount(roomCount: number, travellerCount: number): number {
   const maxRooms = Math.max(MIN_TOTAL_TRAVELERS, Math.min(MAX_TOTAL_TRAVELERS, travellerCount));
@@ -137,40 +71,84 @@ function normalizeAssignments(
   return next;
 }
 
+function buildState(
+  adults: number,
+  childAges: Array<number | null>,
+  roomCountRaw: number,
+  assignmentsRaw: number[],
+): TravelersState {
+  const safeAdults = Math.min(
+    MAX_TOTAL_TRAVELERS,
+    Math.max(MIN_ADULTS, Number.isFinite(adults) ? Math.floor(adults) : DEFAULT_ADULTS),
+  );
+  const safeChildren = childAges
+    .slice(0, MAX_TOTAL_TRAVELERS - safeAdults)
+    .map((age) => (isValidChildAge(age) ? age : null));
+  const persons = safeAdults + safeChildren.length;
+  const roomCount = clampRoomCount(Number.isFinite(roomCountRaw) ? roomCountRaw : 1, persons);
+  return {
+    adults: safeAdults,
+    childAges: safeChildren,
+    roomCount,
+    roomAssignments: normalizeAssignments(assignmentsRaw, persons, roomCount),
+  };
+}
+
 export function createDefaultTravelersState(): TravelersState {
   return {
-    travellers: [
-      { id: 't-1', dateOfBirth: null },
-      { id: 't-2', dateOfBirth: null },
-    ],
+    adults: DEFAULT_ADULTS,
+    childAges: [],
     roomCount: 1,
     roomAssignments: [0, 0],
   };
 }
 
 function migrateLegacyRooms(rooms: RoomTravelers[]): TravelersState {
-  const people: Traveller[] = [];
+  let adults = 0;
+  let children = 0;
   for (const room of rooms) {
-    const count = Math.max(
-      0,
-      Math.floor(room.adults) + Math.floor(room.children) + Math.floor(room.babies),
-    );
-    for (let index = 0; index < count; index += 1) {
-      if (people.length >= MAX_TOTAL_TRAVELERS) {
-        break;
-      }
-      people.push(createTraveller(people));
-    }
+    adults += Math.max(0, Math.floor(room.adults));
+    children += Math.max(0, Math.floor(room.children)) + Math.max(0, Math.floor(room.babies));
   }
+  if (adults < MIN_ADULTS) {
+    return createDefaultTravelersState();
+  }
+  const childAges = Array.from({ length: children }, () => null as number | null);
+  return buildState(adults, childAges, Math.max(1, rooms.length), []);
+}
 
-  const travellers = people.length > 0 ? people : createDefaultTravelersState().travellers;
-  const roomCount = clampRoomCount(Math.max(1, rooms.length), travellers.length);
-
-  return {
-    travellers,
+/** Old sessionStorage shape: travellers with a full date of birth. Converted to ages; DOBs are dropped. */
+function migrateLegacyTravellers(
+  travellers: unknown[],
+  roomCount: number,
+  roomAssignments: number[],
+): TravelersState {
+  const people = travellers.slice(0, MAX_TOTAL_TRAVELERS).map((item, index) => {
+    const dob =
+      item && typeof item === 'object' && typeof (item as { dateOfBirth?: unknown }).dateOfBirth === 'string'
+        ? ((item as { dateOfBirth: string }).dateOfBirth)
+        : '';
+    const age = dob ? legacyAgeFromIso(dob) : null;
+    const room = roomAssignments[index];
+    return {
+      age: age !== null && age < 18 ? age : null,
+      room: Number.isInteger(room) && room >= 0 ? room : 0,
+    };
+  });
+  if (people.length === 0) {
+    return createDefaultTravelersState();
+  }
+  if (people.every((person) => person.age !== null)) {
+    people[0] = { age: null, room: people[0].room };
+  }
+  const adultPeople = people.filter((person) => person.age === null);
+  const childPeople = people.filter((person) => person.age !== null);
+  return buildState(
+    adultPeople.length,
+    childPeople.map((person) => person.age),
     roomCount,
-    roomAssignments: normalizeAssignments([], travellers.length, roomCount),
-  };
+    [...adultPeople, ...childPeople].map((person) => person.room),
+  );
 }
 
 export function normalizeTravelersState(raw: unknown): TravelersState {
@@ -178,36 +156,26 @@ export function normalizeTravelersState(raw: unknown): TravelersState {
     return createDefaultTravelersState();
   }
 
-  const record = raw as Partial<TravelersState> & { rooms?: RoomTravelers[] };
+  const record = raw as Partial<TravelersState> & {
+    rooms?: RoomTravelers[];
+    travellers?: unknown[];
+  };
+
+  if (typeof record.adults === 'number' && Array.isArray(record.childAges)) {
+    return buildState(
+      record.adults,
+      record.childAges as Array<number | null>,
+      typeof record.roomCount === 'number' ? record.roomCount : 1,
+      Array.isArray(record.roomAssignments) ? record.roomAssignments : [],
+    );
+  }
 
   if (Array.isArray(record.travellers)) {
-    const travellers = record.travellers
-      .map((item, index) => {
-        const id = typeof item?.id === 'string' && item.id.trim() !== '' ? item.id : `t-${index + 1}`;
-        const dateOfBirth =
-          typeof item?.dateOfBirth === 'string' && isValidIsoDateOfBirth(item.dateOfBirth)
-            ? item.dateOfBirth
-            : null;
-        return { id, dateOfBirth };
-      })
-      .slice(0, MAX_TOTAL_TRAVELERS);
-
-    const normalizedTravellers =
-      travellers.length >= MIN_TOTAL_TRAVELERS ? travellers : createDefaultTravelersState().travellers;
-    const roomCount = clampRoomCount(
+    return migrateLegacyTravellers(
+      record.travellers,
       typeof record.roomCount === 'number' ? record.roomCount : 1,
-      normalizedTravellers.length,
+      Array.isArray(record.roomAssignments) ? record.roomAssignments : [],
     );
-
-    return {
-      travellers: normalizedTravellers,
-      roomCount,
-      roomAssignments: normalizeAssignments(
-        Array.isArray(record.roomAssignments) ? record.roomAssignments : [],
-        normalizedTravellers.length,
-        roomCount,
-      ),
-    };
   }
 
   if (Array.isArray(record.rooms) && record.rooms.length > 0) {
@@ -218,29 +186,27 @@ export function normalizeTravelersState(raw: unknown): TravelersState {
 }
 
 export function getTotalTravelers(state: TravelersState): number {
-  return normalizeTravelersState(state).travellers.length;
+  const normalized = normalizeTravelersState(state);
+  return normalized.adults + normalized.childAges.length;
 }
 
 export function getTravelersTotals(state: TravelersState | RoomTravelers[]) {
-  if (Array.isArray(state)) {
-    const migrated = migrateLegacyRooms(state);
-    return {
-      adults: migrated.travellers.length,
-      children: 0,
-      babies: 0,
-    };
+  const normalized = Array.isArray(state) ? migrateLegacyRooms(state) : normalizeTravelersState(state);
+  let children = 0;
+  let babies = 0;
+  for (const age of normalized.childAges) {
+    if (age !== null && age < 2) {
+      babies += 1;
+    } else {
+      children += 1;
+    }
   }
-
-  return {
-    adults: getTotalTravelers(state),
-    children: 0,
-    babies: 0,
-  };
+  return { adults: normalized.adults, children, babies };
 }
 
 export function formatTravelersLabel(state: TravelersState | RoomTravelers[]): string {
   const total = Array.isArray(state)
-    ? migrateLegacyRooms(state).travellers.length
+    ? migrateLegacyRooms(state).adults + migrateLegacyRooms(state).childAges.length
     : getTotalTravelers(state);
 
   if (total === 0) {
@@ -259,112 +225,127 @@ export function canIncreaseTravelers(state: TravelersState): boolean {
   return getTotalTravelers(state) < MAX_TOTAL_TRAVELERS;
 }
 
-export function canDecreaseTravelers(state: TravelersState): boolean {
-  return getTotalTravelers(state) > MIN_TOTAL_TRAVELERS;
+export function canDecreaseAdults(state: TravelersState): boolean {
+  return normalizeTravelersState(state).adults > MIN_ADULTS;
+}
+
+export function canDecreaseChildren(state: TravelersState): boolean {
+  return normalizeTravelersState(state).childAges.length > 0;
 }
 
 export function canIncreaseRooms(state: TravelersState): boolean {
-  const normalized = normalizeTravelersState(state);
-  return normalized.roomCount < normalized.travellers.length;
+  return normalizeTravelersState(state).roomCount < getTotalTravelers(state);
 }
 
 export function canDecreaseRooms(state: TravelersState): boolean {
   return normalizeTravelersState(state).roomCount > 1;
 }
 
-export function setTravellerCount(state: TravelersState, count: number): TravelersState {
+function withRoomLayout(
+  adults: number,
+  childAges: Array<number | null>,
+  roomCount: number,
+  assignments: number[],
+): TravelersState {
+  return buildState(adults, childAges, roomCount, assignments);
+}
+
+export function setAdultCount(state: TravelersState, count: number): TravelersState {
   const normalized = normalizeTravelersState(state);
-  const nextCount = Math.min(
-    MAX_TOTAL_TRAVELERS,
-    Math.max(MIN_TOTAL_TRAVELERS, Math.floor(count)),
+  const maxAdults = MAX_TOTAL_TRAVELERS - normalized.childAges.length;
+  const next = Math.min(maxAdults, Math.max(MIN_ADULTS, Math.floor(count)));
+  const adultRooms = normalized.roomAssignments.slice(0, normalized.adults).slice(0, next);
+  while (adultRooms.length < next) {
+    adultRooms.push(0);
+  }
+  return withRoomLayout(
+    next,
+    normalized.childAges,
+    normalized.roomCount,
+    [...adultRooms, ...normalized.roomAssignments.slice(normalized.adults)],
   );
-  let travellers = normalized.travellers.slice(0, nextCount);
-  const assignments = normalized.roomAssignments.slice(0, nextCount);
-
-  while (travellers.length < nextCount) {
-    const traveller = createTraveller(travellers);
-    travellers = [...travellers, traveller];
-    assignments.push(0);
-  }
-
-  const roomCount = clampRoomCount(normalized.roomCount, travellers.length);
-
-  return {
-    travellers,
-    roomCount,
-    roomAssignments: normalizeAssignments(assignments, travellers.length, roomCount),
-  };
 }
 
-export function addTraveller(state: TravelersState): TravelersState {
-  if (!canIncreaseTravelers(state)) {
-    return normalizeTravelersState(state);
-  }
-  return setTravellerCount(state, getTotalTravelers(state) + 1);
-}
-
-export function removeTraveller(state: TravelersState, index: number): TravelersState {
+export function addChild(state: TravelersState): TravelersState {
   const normalized = normalizeTravelersState(state);
-  if (normalized.travellers.length <= MIN_TOTAL_TRAVELERS || index < 0 || index >= normalized.travellers.length) {
+  if (!canIncreaseTravelers(normalized)) {
     return normalized;
   }
-
-  const travellers = normalized.travellers.filter((_, current) => current !== index);
-  const assignments = normalized.roomAssignments.filter((_, current) => current !== index);
-  const roomCount = clampRoomCount(normalized.roomCount, travellers.length);
-
-  return {
-    travellers,
-    roomCount,
-    roomAssignments: normalizeAssignments(assignments, travellers.length, roomCount),
-  };
+  return withRoomLayout(
+    normalized.adults,
+    [...normalized.childAges, null],
+    normalized.roomCount,
+    [...normalized.roomAssignments, 0],
+  );
 }
 
-export function setTravellerDateOfBirth(
+export function removeChild(state: TravelersState, index: number): TravelersState {
+  const normalized = normalizeTravelersState(state);
+  if (index < 0 || index >= normalized.childAges.length) {
+    return normalized;
+  }
+  return withRoomLayout(
+    normalized.adults,
+    normalized.childAges.filter((_, current) => current !== index),
+    normalized.roomCount,
+    normalized.roomAssignments.filter((_, current) => current !== normalized.adults + index),
+  );
+}
+
+export function setChildCount(state: TravelersState, count: number): TravelersState {
+  const normalized = normalizeTravelersState(state);
+  const maxChildren = MAX_TOTAL_TRAVELERS - normalized.adults;
+  const next = Math.min(maxChildren, Math.max(0, Math.floor(count)));
+  let current = normalized;
+  while (current.childAges.length < next) {
+    current = addChild(current);
+  }
+  while (current.childAges.length > next) {
+    current = removeChild(current, current.childAges.length - 1);
+  }
+  return current;
+}
+
+export function setChildAge(
   state: TravelersState,
   index: number,
-  dateOfBirth: string | null,
+  age: number | null,
 ): TravelersState {
   const normalized = normalizeTravelersState(state);
-  const traveller = normalized.travellers[index];
-  if (!traveller) {
+  if (index < 0 || index >= normalized.childAges.length) {
     return normalized;
   }
-
-  const nextDob = dateOfBirth && isValidIsoDateOfBirth(dateOfBirth) ? dateOfBirth : null;
-
+  const nextAge = isValidChildAge(age) ? age : null;
   return {
     ...normalized,
-    travellers: normalized.travellers.map((item, current) =>
-      current === index ? { ...item, dateOfBirth: nextDob } : item,
+    childAges: normalized.childAges.map((current, position) =>
+      position === index ? nextAge : current,
     ),
   };
 }
 
 export function setRoomCount(state: TravelersState, roomCount: number): TravelersState {
   const normalized = normalizeTravelersState(state);
-  const nextRoomCount = clampRoomCount(roomCount, normalized.travellers.length);
+  const persons = getTotalTravelers(normalized);
+  const nextRoomCount = clampRoomCount(roomCount, persons);
 
   return {
     ...normalized,
     roomCount: nextRoomCount,
-    roomAssignments: normalizeAssignments(
-      normalized.roomAssignments,
-      normalized.travellers.length,
-      nextRoomCount,
-    ),
+    roomAssignments: normalizeAssignments(normalized.roomAssignments, persons, nextRoomCount),
   };
 }
 
+/** `personIndex`: adults first (0..adults-1), then children. */
 export function assignTravellerRoom(
   state: TravelersState,
-  travellerIndex: number,
+  personIndex: number,
   roomIndex: number,
 ): TravelersState {
   const normalized = normalizeTravelersState(state);
   if (
-    travellerIndex < 0 ||
-    travellerIndex >= normalized.travellers.length ||
+    personIndex < 0 ||
+    personIndex >= getTotalTravelers(normalized) ||
     roomIndex < 0 ||
     roomIndex >= normalized.roomCount
   ) {
@@ -372,153 +353,52 @@ export function assignTravellerRoom(
   }
 
   const roomAssignments = [...normalized.roomAssignments];
-  roomAssignments[travellerIndex] = roomIndex;
+  roomAssignments[personIndex] = roomIndex;
 
   return { ...normalized, roomAssignments };
 }
 
-export function travellersInRoom(state: TravelersState, roomIndex: number): Traveller[] {
-  const normalized = normalizeTravelersState(state);
-  return normalized.travellers.filter((_, index) => normalized.roomAssignments[index] === roomIndex);
+/** Every child has a valid age (0-17); an incomplete state must not be searched. */
+export function isTravelersStateComplete(state: TravelersState): boolean {
+  return hasCompleteChildAges(normalizeTravelersState(state).childAges);
 }
 
-export type PartyTraveller = {
-  dateOfBirth: string | null;
-  roomIndex: number;
-};
-
-export function serializeTravelersToQuery(state: TravelersState): {
-  dob: string;
-  partyRooms?: string;
-  adults: string;
-  rooms?: string;
-} {
+/** Canonical party model for URLs/providers. Children without an age are left out (blocked upstream). */
+export function travelersStateToModel(state: TravelersState): TravelerModel {
   const normalized = normalizeTravelersState(state);
-  const dob = normalized.travellers.map((traveller) => traveller.dateOfBirth ?? '').join(',');
-  const result: { dob: string; partyRooms?: string; adults: string; rooms?: string } = {
-    dob,
-    adults: String(normalized.travellers.length),
+  const childAges: number[] = [];
+  const assignments = normalized.roomAssignments.slice(0, normalized.adults);
+  normalized.childAges.forEach((age, index) => {
+    if (age !== null) {
+      childAges.push(age);
+      assignments.push(normalized.roomAssignments[normalized.adults + index] ?? 0);
+    }
+  });
+  const persons = normalized.adults + childAges.length;
+  const roomCount = clampRoomCount(normalized.roomCount, persons);
+  return {
+    adults: normalized.adults,
+    childAges,
+    roomCount,
+    roomAssignments: normalizeAssignments(assignments, persons, roomCount),
   };
-
-  if (normalized.roomCount > 1) {
-    result.rooms = String(normalized.roomCount);
-    result.partyRooms = normalized.roomAssignments.map((index) => String(index + 1)).join(',');
-  }
-
-  return result;
 }
 
-export function parseTravelersFromQuery(input: {
-  dob?: string;
-  partyRooms?: string;
-  adults?: string;
-  children?: string;
-  babies?: string;
-  rooms?: string;
-}): TravelersState | null {
-  if (typeof input.dob === 'string') {
-    const tokens = input.dob.split(',');
-    // GO7: `dob=` / `dob=,` (no ISO tokens) must not invent a 1-person party —
-    // that aborted Page1 Suspense streams. Fall through to adults/children.
-    const hasIsoOrPlaceholderSlot = tokens.some((token) => token.trim().length > 0);
-    if (!hasIsoOrPlaceholderSlot) {
-      // continue to legacy adults/children below
-    } else {
-    const travellers: Traveller[] = [];
-    for (const token of tokens) {
-      if (travellers.length >= MAX_TOTAL_TRAVELERS) {
-        break;
-      }
-      const trimmed = token.trim();
-      travellers.push({
-        id: `t-${travellers.length + 1}`,
-        dateOfBirth: trimmed && isValidIsoDateOfBirth(trimmed) ? trimmed : null,
-      });
-    }
+export type PartyTraveller = PartyMember;
 
-    if (travellers.length < MIN_TOTAL_TRAVELERS) {
-      return createDefaultTravelersState();
-    }
+/** Single writer: delegates to the central traveller URL contract (never writes a date of birth). */
+export function writeTravelersToQuery(query: URLSearchParams, state: TravelersState): void {
+  writeTravelerQuery(query, travelersStateToModel(state));
+}
 
-    const parsedRooms = typeof input.partyRooms === 'string'
-      ? input.partyRooms.split(',').map((value) => Number(value.trim()) - 1)
-      : [];
-    const roomsFromAssignments = parsedRooms.reduce((highest, value) => {
-      if (!Number.isInteger(value) || value < 0) {
-        return highest;
-      }
-      return Math.max(highest, value + 1);
-    }, 1);
-    const requestedRooms = Number(input.rooms);
-    const roomCount = clampRoomCount(
-      Math.max(
-        Number.isFinite(requestedRooms) && requestedRooms > 0 ? requestedRooms : 1,
-        roomsFromAssignments,
-      ),
-      travellers.length,
-    );
-
-    return {
-      travellers,
-      roomCount,
-      roomAssignments: normalizeAssignments(parsedRooms, travellers.length, roomCount),
-    };
-    } // end hasIsoOrPlaceholderSlot
-  }
-
-  const adults = Number(input.adults);
-  const children = Number(input.children);
-  const babies = Number(input.babies);
-  const rooms = Number(input.rooms);
-  const hasLegacy =
-    (Number.isFinite(adults) && adults > 0) ||
-    (Number.isFinite(children) && children > 0) ||
-    (Number.isFinite(babies) && babies > 0) ||
-    (Number.isFinite(rooms) && rooms > 0);
-
-  if (!hasLegacy) {
+export function parseTravelersFromQuery(input: TravelerQueryInput): TravelersState | null {
+  const parsed = readTravelerQuery(input);
+  if (!parsed) {
     return null;
   }
-
-  const migrated = migrateLegacyRooms([
-    {
-      adults: Number.isFinite(adults) && adults > 0 ? adults : TRAVELERS_LIMITS.adults.default,
-      children: Number.isFinite(children) && children > 0 ? children : 0,
-      babies: Number.isFinite(babies) && babies > 0 ? babies : 0,
-    },
-  ]);
-  const roomCount = clampRoomCount(Number.isFinite(rooms) && rooms > 0 ? rooms : 1, migrated.travellers.length);
-
-  return {
-    ...migrated,
-    roomCount,
-    roomAssignments: normalizeAssignments([], migrated.travellers.length, roomCount),
-  };
+  return buildState(parsed.adults, parsed.childAges, parsed.roomCount, parsed.roomAssignments);
 }
 
 export function travelersStateToParty(state: TravelersState): PartyTraveller[] {
-  const normalized = normalizeTravelersState(state);
-  return normalized.travellers.map((traveller, index) => ({
-    dateOfBirth: traveller.dateOfBirth,
-    roomIndex: normalized.roomAssignments[index] ?? 0,
-  }));
-}
-
-export function partyHasStoredCategory(value: unknown): boolean {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const record = value as Record<string, unknown>;
-  if (!Array.isArray(record.travellers)) {
-    return false;
-  }
-
-  return record.travellers.some((traveller) => {
-    if (!traveller || typeof traveller !== 'object') {
-      return false;
-    }
-    const item = traveller as Record<string, unknown>;
-    return 'category' in item || 'ageBand' in item || 'ageCategory' in item;
-  });
+  return partyFromModel(travelersStateToModel(state));
 }

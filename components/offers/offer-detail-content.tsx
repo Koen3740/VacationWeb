@@ -8,8 +8,8 @@ import {
   formatAdditionalAirport,
   formatDepartureAirport,
   formatDestination,
-  formatDurationType,
   formatFlightIncluded,
+  formatNightsLabel,
   formatOccupancySummary,
   formatPriceNl,
   formatTravelerLines,
@@ -89,7 +89,6 @@ export function OfferDetailContent({
   const additionalAirport = formatAdditionalAirport(offer);
   const departurePhrase = formatDeparturePresentation(params, offer.departureDate).phrase;
   const flightIncludedLabel = formatFlightIncluded(offer.flightIncluded);
-  const durationTypeLabel = formatDurationType(offer.durationType);
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -160,8 +159,7 @@ export function OfferDetailContent({
                       Duur
                     </dt>
                     <dd className="mt-1 text-sm font-semibold text-slate-900">
-                      {offer.nights} nachten
-                      {durationTypeLabel ? ` • ${durationTypeLabel}` : ''}
+                      {formatNightsLabel(offer.nights, offer.durationType, offer.provider)}
                     </dd>
                   </div>
                 ) : null}

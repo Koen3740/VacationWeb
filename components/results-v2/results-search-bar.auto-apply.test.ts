@@ -52,11 +52,8 @@ test('occupancy change clears page1Ids while keeping country/sort', () => {
   );
   const state = stateFromUrl(current);
   state.travelers = {
-    travellers: [
-      { id: 't-1', dateOfBirth: '1980-01-01' },
-      { id: 't-2', dateOfBirth: '1982-01-01' },
-      { id: 't-3', dateOfBirth: '2015-01-01' },
-    ],
+    adults: 2,
+    childAges: [11],
     roomCount: 1,
     roomAssignments: [0, 0, 0],
   };

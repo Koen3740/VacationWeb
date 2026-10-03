@@ -3,25 +3,26 @@
 import '@/components/search/travelers-popup/travelers-popup.css';
 import { destinationPopupPoppins } from '@/components/search/destination-popup/destination-popup-font';
 import {
+  CHILD_AGE_MAX,
+  CHILD_AGE_MIN,
   MAX_TOTAL_TRAVELERS,
-  addTraveller,
+  addChild,
   assignTravellerRoom,
-  calendarDateFromParts,
+  canDecreaseAdults,
+  canDecreaseChildren,
   canDecreaseRooms,
-  canDecreaseTravelers,
   canIncreaseRooms,
   canIncreaseTravelers,
-  derivedAgeYears,
   getTotalTravelers,
-  isValidIsoDateOfBirth,
+  isTravelersStateComplete,
   normalizeTravelersState,
-  removeTraveller,
+  removeChild,
+  setAdultCount,
+  setChildAge,
   setRoomCount,
-  setTravellerCount,
-  setTravellerDateOfBirth,
   type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export type TravelersPopupProps = {
@@ -30,21 +31,6 @@ export type TravelersPopupProps = {
   onClose: () => void;
   onChange: (travelers: TravelersState) => void;
 };
-
-const MONTHS = [
-  'januari',
-  'februari',
-  'maart',
-  'april',
-  'mei',
-  'juni',
-  'juli',
-  'augustus',
-  'september',
-  'oktober',
-  'november',
-  'december',
-];
 
 function CloseIcon() {
   return (
@@ -119,136 +105,44 @@ function Stepper({
   );
 }
 
-function parseDobParts(iso: string | null): { day: string; month: string; year: string } {
-  if (!iso || !isValidIsoDateOfBirth(iso)) {
-    return { day: '', month: '', year: '' };
-  }
-  const [year, month, day] = iso.split('-');
-  return { day, month, year };
-}
+const CHILD_AGE_OPTIONS = Array.from(
+  { length: CHILD_AGE_MAX - CHILD_AGE_MIN + 1 },
+  (_, index) => CHILD_AGE_MIN + index,
+);
 
-function BirthDateFields({
-  travellerIndex,
-  dateOfBirth,
+function ChildAgeSelect({
+  childIndex,
+  age,
   onChange,
 }: {
-  travellerIndex: number;
-  dateOfBirth: string | null;
-  onChange: (iso: string | null) => void;
+  childIndex: number;
+  age: number | null;
+  onChange: (age: number | null) => void;
 }) {
-  const initial = parseDobParts(dateOfBirth);
-  const [day, setDay] = useState(initial.day);
-  const [month, setMonth] = useState(initial.month);
-  const [year, setYear] = useState(initial.year);
-
-  useEffect(() => {
-    if (!dateOfBirth) {
-      return;
-    }
-    const next = parseDobParts(dateOfBirth);
-    setDay(next.day);
-    setMonth(next.month);
-    setYear(next.year);
-  }, [dateOfBirth]);
-
-  const currentYear = new Date().getFullYear();
-  const years = useMemo(
-    () => Array.from({ length: currentYear - 1899 }, (_, index) => String(currentYear - index)),
-    [currentYear],
-  );
-
-  const applyParts = (nextDay: string, nextMonth: string, nextYear: string) => {
-    if (!nextDay || !nextMonth || !nextYear) {
-      onChange(null);
-      return;
-    }
-
-    const iso = calendarDateFromParts(Number(nextYear), Number(nextMonth), Number(nextDay));
-    onChange(iso);
-  };
-
-  const derivedAge = dateOfBirth ? derivedAgeYears(dateOfBirth) : null;
-  const incomplete = Boolean(day || month || year) && !(day && month && year);
-  const invalidCombo = Boolean(day && month && year) && !dateOfBirth;
-
   return (
-    <div>
-      <div className="travelers-popup__dob" role="group" aria-label={`Geboortedatum reiziger ${travellerIndex + 1}`}>
-        <label className="travelers-popup__dob-field">
-          <span className="travelers-popup__dob-caption">Dag</span>
-          <select
-            value={day}
-            onChange={(event) => {
-              const value = event.target.value;
-              setDay(value);
-              applyParts(value, month, year);
-            }}
-            className="travelers-popup__select"
-          >
-            <option value="">Dag</option>
-            {Array.from({ length: 31 }, (_, index) => {
-              const value = String(index + 1).padStart(2, '0');
-              return (
-                <option key={value} value={value}>
-                  {index + 1}
-                </option>
-              );
-            })}
-          </select>
-        </label>
-        <label className="travelers-popup__dob-field">
-          <span className="travelers-popup__dob-caption">Maand</span>
-          <select
-            value={month}
-            onChange={(event) => {
-              const value = event.target.value;
-              setMonth(value);
-              applyParts(day, value, year);
-            }}
-            className="travelers-popup__select"
-          >
-            <option value="">Maand</option>
-            {MONTHS.map((name, index) => {
-              const value = String(index + 1).padStart(2, '0');
-              return (
-                <option key={value} value={value}>
-                  {name}
-                </option>
-              );
-            })}
-          </select>
-        </label>
-        <label className="travelers-popup__dob-field">
-          <span className="travelers-popup__dob-caption">Jaar</span>
-          <select
-            value={year}
-            onChange={(event) => {
-              const value = event.target.value;
-              setYear(value);
-              applyParts(day, month, value);
-            }}
-            className="travelers-popup__select"
-          >
-            <option value="">Jaar</option>
-            {years.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {derivedAge !== null ? (
-        <p className="travelers-popup__dob-hint">{derivedAge} jaar — afgeleid van de geboortedatum</p>
-      ) : null}
-      {incomplete ? (
-        <p className="travelers-popup__dob-error">Vul een volledige geboortedatum in.</p>
-      ) : null}
-      {invalidCombo ? (
-        <p className="travelers-popup__dob-error">Deze datum is ongeldig of ligt in de toekomst.</p>
-      ) : null}
-    </div>
+    <select
+      value={age === null ? '' : String(age)}
+      onChange={(event) => {
+        const value = event.target.value;
+        onChange(value === '' ? null : Number(value));
+      }}
+      className="travelers-popup__select"
+      aria-label={`Leeftijd kind ${childIndex + 1}`}
+    >
+      <option value="">Leeftijd</option>
+      {CHILD_AGE_OPTIONS.map((value) => (
+        <option key={value} value={String(value)}>
+          {value === 1 ? '1 jaar' : `${value} jaar`}
+        </option>
+      ))}
+    </select>
   );
+}
+
+function personLabel(state: TravelersState, personIndex: number): string {
+  return personIndex < state.adults
+    ? `Volwassene ${personIndex + 1}`
+    : `Kind ${personIndex - state.adults + 1}`;
 }
 
 function TravelersPopupPanel({
@@ -263,6 +157,7 @@ function TravelersPopupPanel({
   const state = normalizeTravelersState(travelers);
   const totalTravelers = getTotalTravelers(state);
   const isTotalFull = totalTravelers >= MAX_TOTAL_TRAVELERS;
+  const incomplete = !isTravelersStateComplete(state);
 
   return (
     <div
@@ -286,70 +181,53 @@ function TravelersPopupPanel({
       </div>
 
       <Stepper
-        label="Aantal reizigers"
-        value={totalTravelers}
-        canDecrease={canDecreaseTravelers(state)}
+        label="Volwassenen"
+        value={state.adults}
+        canDecrease={canDecreaseAdults(state)}
         canIncrease={canIncreaseTravelers(state)}
-        onDecrease={() => onChange(setTravellerCount(state, totalTravelers - 1))}
-        onIncrease={() => onChange(setTravellerCount(state, totalTravelers + 1))}
+        onDecrease={() => onChange(setAdultCount(state, state.adults - 1))}
+        onIncrease={() => onChange(setAdultCount(state, state.adults + 1))}
       />
 
-      <div className="travelers-popup__travellers">
-        {state.travellers.map((traveller, index) => (
-          <section key={traveller.id} className="travelers-popup__traveller">
-            <div className="travelers-popup__traveller-header">
-              <h3 className="travelers-popup__section-title">Reiziger {index + 1}</h3>
-              {state.travellers.length > 1 ? (
+      <Stepper
+        label="Kinderen"
+        value={state.childAges.length}
+        canDecrease={canDecreaseChildren(state)}
+        canIncrease={canIncreaseTravelers(state)}
+        onDecrease={() => onChange(removeChild(state, state.childAges.length - 1))}
+        onIncrease={() => onChange(addChild(state))}
+      />
+
+      {state.childAges.length > 0 ? (
+        <div className="travelers-popup__travellers">
+          {state.childAges.map((age, index) => (
+            <section key={index} className="travelers-popup__traveller">
+              <div className="travelers-popup__traveller-header">
+                <h3 className="travelers-popup__section-title">Kind {index + 1}</h3>
                 <button
                   type="button"
                   className="travelers-popup__remove-traveller"
                   onClick={(event) => {
                     event.stopPropagation();
-                    onChange(removeTraveller(state, index));
+                    onChange(removeChild(state, index));
                   }}
                 >
                   Verwijderen
                 </button>
-              ) : null}
-            </div>
-            <BirthDateFields
-              travellerIndex={index}
-              dateOfBirth={traveller.dateOfBirth}
-              onChange={(iso) => onChange(setTravellerDateOfBirth(state, index, iso))}
-            />
-            {state.roomCount > 1 ? (
-              <label className="travelers-popup__room-assign">
-                <span>Kamer</span>
-                <select
-                  className="travelers-popup__select"
-                  value={String((state.roomAssignments[index] ?? 0) + 1)}
-                  onChange={(event) => {
-                    onChange(assignTravellerRoom(state, index, Number(event.target.value) - 1));
-                  }}
-                >
-                  {Array.from({ length: state.roomCount }, (_, roomIndex) => (
-                    <option key={roomIndex} value={String(roomIndex + 1)}>
-                      Kamer {roomIndex + 1}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </section>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onChange(addTraveller(state));
-        }}
-        disabled={!canIncreaseTravelers(state)}
-        className="travelers-popup__add-traveller"
-      >
-        + Reiziger toevoegen
-      </button>
+              </div>
+              <ChildAgeSelect
+                childIndex={index}
+                age={age}
+                onChange={(next) => onChange(setChildAge(state, index, next))}
+              />
+            </section>
+          ))}
+          <p className="travelers-popup__dob-hint">Leeftijd op de terugreisdatum.</p>
+          {incomplete ? (
+            <p className="travelers-popup__dob-error">Kies de leeftijd van elk kind.</p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="travelers-popup__rooms-block">
         <Stepper
@@ -363,21 +241,41 @@ function TravelersPopupPanel({
         {state.roomCount === 1 ? (
           <p className="travelers-popup__dob-hint">Alle reizigers zitten in kamer 1.</p>
         ) : (
-          <div className="travelers-popup__room-summary" aria-label="Kamerindeling">
-            {Array.from({ length: state.roomCount }, (_, roomIndex) => {
-              const names = state.travellers
-                .map((traveller, index) =>
-                  state.roomAssignments[index] === roomIndex ? `Reiziger ${index + 1}` : null,
-                )
-                .filter((value): value is string => Boolean(value));
-              return (
-                <p key={roomIndex} className="travelers-popup__room-summary-row">
-                  <strong>Kamer {roomIndex + 1}:</strong>{' '}
-                  {names.length > 0 ? names.join(', ') : 'nog niemand'}
-                </p>
-              );
-            })}
-          </div>
+          <>
+            {Array.from({ length: totalTravelers }, (_, personIndex) => (
+              <label key={personIndex} className="travelers-popup__room-assign">
+                <span>{personLabel(state, personIndex)}</span>
+                <select
+                  className="travelers-popup__select"
+                  value={String((state.roomAssignments[personIndex] ?? 0) + 1)}
+                  onChange={(event) => {
+                    onChange(assignTravellerRoom(state, personIndex, Number(event.target.value) - 1));
+                  }}
+                >
+                  {Array.from({ length: state.roomCount }, (_, roomIndex) => (
+                    <option key={roomIndex} value={String(roomIndex + 1)}>
+                      Kamer {roomIndex + 1}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+            <div className="travelers-popup__room-summary" aria-label="Kamerindeling">
+              {Array.from({ length: state.roomCount }, (_, roomIndex) => {
+                const names = Array.from({ length: totalTravelers }, (_, personIndex) =>
+                  state.roomAssignments[personIndex] === roomIndex
+                    ? personLabel(state, personIndex)
+                    : null,
+                ).filter((value): value is string => Boolean(value));
+                return (
+                  <p key={roomIndex} className="travelers-popup__room-summary-row">
+                    <strong>Kamer {roomIndex + 1}:</strong>{' '}
+                    {names.length > 0 ? names.join(', ') : 'nog niemand'}
+                  </p>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
@@ -389,7 +287,6 @@ function TravelersPopupPanel({
     </div>
   );
 }
-
 export function TravelersPopup({
   open,
   travelers,

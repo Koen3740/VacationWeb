@@ -89,15 +89,17 @@ function entryTtlMs(entry: CacheEntry): number {
 }
 
 /**
- * Sub 25: cache identity must not embed full DOB plaintext.
- * One-way fingerprint keeps distinct party pricing keys without persisting DOB.
+ * DEC-019 / Sub 25: cache identity carries the child ages (one-way fingerprint, no plaintext
+ * age and never a DOB). Adults are an `empty` token (unchanged vs. the previous model, so
+ * adult-only keys stay valid). Tokens are sorted within a room so the key does not depend on
+ * the order the child ages were entered. The reference (return) date is implicit: the key
+ * already contains the offer id, which pins departure date and duration.
  */
-function partyMemberToken(dateOfBirth: string | null | undefined, roomIndex: number): string {
-  const dob = (dateOfBirth ?? '').trim();
-  if (!dob) {
+function partyMemberToken(age: number | null | undefined, roomIndex: number): string {
+  if (age === null || age === undefined) {
     return `empty@${roomIndex}`;
   }
-  const digest = createHash('sha256').update(`vw-party-dob:${dob}`, 'utf8').digest('hex').slice(0, 16);
+  const digest = createHash('sha256').update(`vw-party-age:${age}`, 'utf8').digest('hex').slice(0, 16);
   return `${digest}@${roomIndex}`;
 }
 
@@ -105,7 +107,14 @@ function partyFingerprint(params: LivePriceCacheParams): string {
   if (!params.party?.length) {
     return '';
   }
-  return params.party.map((traveller) => partyMemberToken(traveller.dateOfBirth, traveller.roomIndex)).join(',');
+  return params.party
+    .map((traveller) => ({
+      room: traveller.roomIndex,
+      token: partyMemberToken(traveller.age, traveller.roomIndex),
+    }))
+    .sort((a, b) => a.room - b.room || (a.token < b.token ? -1 : a.token > b.token ? 1 : 0))
+    .map((entry) => entry.token)
+    .join(',');
 }
 
 function occupancyOfferPrefix(offerId: string, params: LivePriceCacheParams): string {

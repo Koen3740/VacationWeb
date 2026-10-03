@@ -59,9 +59,9 @@ const PARTY_2A_1C = {
   children: 1,
   rooms: 1,
   party: [
-    { dateOfBirth: '1990-01-15', roomIndex: 0 },
-    { dateOfBirth: '1988-03-03', roomIndex: 0 },
-    { dateOfBirth: '2018-06-01', roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 8, roomIndex: 0 },
   ],
 };
 

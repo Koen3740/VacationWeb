@@ -28,12 +28,16 @@ const FOUR_PAX_TWO_ROOMS = {
   children: 2,
   rooms: 2,
   party: [
-    { dateOfBirth: '1990-01-15', roomIndex: 0 },
-    { dateOfBirth: '1988-03-03', roomIndex: 0 },
-    { dateOfBirth: '2014-06-14', roomIndex: 1 },
-    { dateOfBirth: '2018-01-22', roomIndex: 1 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 12, roomIndex: 1 },
+    { age: 8, roomIndex: 1 },
   ],
 };
+
+// makeOffer(): departure 2026-09-26, 8 days (Sunweb nights field = days, matches Duration[0]=8):
+// return = last travel day = departure + (8 - 1) = 2026-10-03.
+const RETURN_REF = { returnDate: '2026-10-03' };
 
 function makeOffer(overrides: Partial<TravelOffer> = {}): TravelOffer {
   return {
@@ -42,7 +46,7 @@ function makeOffer(overrides: Partial<TravelOffer> = {}): TravelOffer {
     hotelName: 'Appartementen Bristol Seaview',
     destinationCountry: 'Griekenland',
     departureDate: '2026-09-26',
-    nights: 7,
+    nights: 8,
     price: 427,
     pricePerDay: 61,
     imageUrl: 'https://example.com/a.jpg',
@@ -100,26 +104,30 @@ test('occupancy: proven 2A / 2A+1C / 4p-2r; unproven shapes stay invalid', () =>
   assert.equal(resolveSunwebLiveOccupancy({ adults: 4, rooms: 2 }).ok, false);
   assert.equal(resolveSunwebLiveOccupancy({ adults: 2, children: 1 }).ok, false);
 
-  const occupancy = resolveSunwebLiveOccupancy(FOUR_PAX_TWO_ROOMS);
+  // Without a trip reference the gate is ok but no child DOB can be derived (fail closed in the builders).
+  const noReference = resolveSunwebLiveOccupancy(FOUR_PAX_TWO_ROOMS);
+  assert.equal(noReference.ok && noReference.mode === 'party' ? noReference.participants.length : -1, 0);
+
+  const occupancy = resolveSunwebLiveOccupancy(FOUR_PAX_TWO_ROOMS, RETURN_REF);
   assert.equal(occupancy.ok, true);
   if (!occupancy.ok || occupancy.mode !== 'party') {
     return;
   }
   assert.deepEqual(occupancy.participants, [
-    { key: 'Participants[0][0]', value: '1990-01-15' },
-    { key: 'Participants[0][1]', value: '1988-03-03' },
-    { key: 'Participants[1][0]', value: '2014-06-14' },
-    { key: 'Participants[1][1]', value: '2018-01-22' },
+    { key: 'Participants[0][0]', value: '1986-01-01' },
+    { key: 'Participants[0][1]', value: '1986-01-01' },
+    { key: 'Participants[1][0]', value: '2014-10-03' },
+    { key: 'Participants[1][1]', value: '2018-10-03' },
   ]);
 
   assert.equal(
     resolveSunwebLiveOccupancy({
       ...FOUR_PAX_TWO_ROOMS,
       party: [
-        { dateOfBirth: '1990-01-15', roomIndex: 0 },
-        { dateOfBirth: '1988-03-03', roomIndex: 0 },
-        { dateOfBirth: '2014-06-14', roomIndex: 0 },
-        { dateOfBirth: '2018-01-22', roomIndex: 0 },
+        { age: null, roomIndex: 0 },
+        { age: null, roomIndex: 0 },
+        { age: 12, roomIndex: 0 },
+        { age: 8, roomIndex: 0 },
       ],
     }).ok,
     false,
@@ -128,10 +136,10 @@ test('occupancy: proven 2A / 2A+1C / 4p-2r; unproven shapes stay invalid', () =>
     resolveSunwebLiveOccupancy({
       ...FOUR_PAX_TWO_ROOMS,
       party: [
-        { dateOfBirth: null, roomIndex: 0 },
-        { dateOfBirth: '1988-03-03', roomIndex: 0 },
-        { dateOfBirth: '2014-06-14', roomIndex: 1 },
-        { dateOfBirth: '2018-01-22', roomIndex: 1 },
+        { age: null, roomIndex: 0 },
+        { age: null, roomIndex: 0 },
+        { age: 18, roomIndex: 1 }, // 18+ is not a child age
+        { age: 8, roomIndex: 1 },
       ],
     }).ok,
     false,
@@ -147,7 +155,7 @@ test('isSunwebFourTravellerTwoRoomSearch: live-required shape without inventing 
 });
 
 test('applySunwebOccupancyToLandingUrl replaces feed 2A Participants', () => {
-  const occupancy = resolveSunwebLiveOccupancy(FOUR_PAX_TWO_ROOMS);
+  const occupancy = resolveSunwebLiveOccupancy(FOUR_PAX_TWO_ROOMS, RETURN_REF);
   assert.ok(occupancy.ok && occupancy.mode === 'party');
   if (!occupancy.ok || occupancy.mode !== 'party') {
     return;
@@ -155,26 +163,26 @@ test('applySunwebOccupancyToLandingUrl replaces feed 2A Participants', () => {
   const landing = applySunwebOccupancyToLandingUrl(SUNWEB_LANDING, occupancy.participants);
   assert.ok(landing);
   const url = new URL(landing);
-  assert.equal(url.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(url.searchParams.get('Participants[0][1]'), '1988-03-03');
-  assert.equal(url.searchParams.get('Participants[1][0]'), '2014-06-14');
-  assert.equal(url.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(url.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(url.searchParams.get('Participants[0][1]'), '1986-01-01');
+  assert.equal(url.searchParams.get('Participants[1][0]'), '2014-10-03');
+  assert.equal(url.searchParams.get('Participants[1][1]'), '2018-10-03');
   assert.equal(url.searchParams.get('Participants[0][2]'), null);
 });
 
-test('buildSunwebLiveContext: mapping + occupancy gate uses party DOBs not feed 2A', () => {
+test('buildSunwebLiveContext: mapping + occupancy gate uses synthetic party DOBs not feed 2A', () => {
   const ok = buildSunwebLiveContext(makeOffer(), FOUR_PAX_TWO_ROOMS);
   assert.ok(ok);
   assert.equal(ok.accoId, '84012');
   assert.equal(ok.feHost, 'www.sunweb.be');
   assert.equal(ok.query.departureAirport, 'BRU');
   assert.equal(ok.query.departureDate, '2026-09-26');
-  assert.equal(ok.query.participants[0].value, '1990-01-15');
-  assert.equal(ok.query.participants[3].value, '2018-01-22');
+  assert.equal(ok.query.participants[0].value, '1986-01-01');
+  assert.equal(ok.query.participants[3].value, '2018-10-03');
   const landing = new URL(ok.landingUrl);
-  assert.equal(landing.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-01-22');
-  assert.equal(landing.searchParams.get('Participants[0][1]'), '1988-03-03');
+  assert.equal(landing.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-10-03');
+  assert.equal(landing.searchParams.get('Participants[0][1]'), '1986-01-01');
   assert.ok(!ok.landingUrl.includes('1996-07-30'));
 
   const twoAdults = buildSunwebLiveContext(makeOffer(), { adults: 2 });
@@ -199,10 +207,10 @@ test('buildSunwebOccupancyClickOutHref: TT wrap keeps tt= and TEST B Participant
   assert.equal(landing.searchParams.get('Mealplan[0]'), 'LG');
   assert.equal(landing.searchParams.get('DepartureAirport[0]'), 'BRU');
   assert.equal(landing.searchParams.get('DepartureDate[0]'), '2026-09-26');
-  assert.equal(landing.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(landing.searchParams.get('Participants[0][1]'), '1988-03-03');
-  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-06-14');
-  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(landing.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[0][1]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-10-03');
+  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-10-03');
   assert.equal(landing.searchParams.get('Participants[0][2]'), null);
   assert.ok(!href.includes('1996-07-30'));
   assert.ok(!unwrapSunwebProductUrl(href).includes('1996-07-30'));

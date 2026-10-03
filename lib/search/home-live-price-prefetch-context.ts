@@ -7,7 +7,10 @@ import {
   buildResultsHref,
   type SharedSearchState,
 } from '@/components/search/shared-search-state';
-import { normalizeTravelersState } from '@/components/search/travelers-popup/travelers-popup-utils';
+import {
+  isTravelersStateComplete,
+  normalizeTravelersState,
+} from '@/components/search/travelers-popup/travelers-popup-utils';
 import type { SearchParams } from '@/types/travel';
 
 let enabledOverride: boolean | null = null;
@@ -37,7 +40,8 @@ export function isDefinitiveHomeSearchContext(state: SharedSearchState): boolean
     return false;
   }
   const travelers = normalizeTravelersState(state.travelers);
-  if (travelers.travellers.length === 0) {
+  // DEC-019: every child needs an age before a search (and therefore a prefetch) is meaningful.
+  if (!isTravelersStateComplete(travelers)) {
     return false;
   }
   return true;

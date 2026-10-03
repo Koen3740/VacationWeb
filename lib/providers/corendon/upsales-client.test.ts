@@ -25,8 +25,8 @@ const TWO_ADULTS = {
   adults: 2,
   rooms: 1,
   party: [
-    { dateOfBirth: '1980-03-12', roomIndex: 0 },
-    { dateOfBirth: '1982-08-07', roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
   ],
 };
 
@@ -34,10 +34,10 @@ const FOUR_PAX = {
   adults: 4,
   rooms: 2,
   party: [
-    { dateOfBirth: '1990-01-15', roomIndex: 0 },
-    { dateOfBirth: '1988-03-03', roomIndex: 0 },
-    { dateOfBirth: '2014-06-14', roomIndex: 1 },
-    { dateOfBirth: '2018-01-22', roomIndex: 1 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 12, roomIndex: 1 },
+    { age: 8, roomIndex: 1 },
   ],
 };
 
@@ -47,7 +47,7 @@ function ctx(
     children?: number;
     babies?: number;
     rooms?: number;
-    party?: Array<{ dateOfBirth: string | null; roomIndex: number }>;
+    party?: Array<{ age: number | null; roomIndex: number }>;
   } = FOUR_PAX,
 ): CorendonLiveContext {
   const built = buildCorendonLiveContext(
@@ -153,13 +153,13 @@ test('2A without DOB uses adult reference DOB on the existing upsales route', ()
   assert.equal(JSON.stringify(noDob).includes('1975-01-01'), false);
 });
 
-test('2A without DOB and 2A with user ISO DOBs use the same upsales pricing route', async () => {
+test('2A without a party and 2A as a party of two adults use the same upsales pricing route', async () => {
   const noDob = ctx({
     adults: 2,
     rooms: 1,
     party: [
-      { dateOfBirth: null, roomIndex: 0 },
-      { dateOfBirth: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
     ],
   });
   const withDob = ctx(TWO_ADULTS);
@@ -169,10 +169,7 @@ test('2A without DOB and 2A with user ISO DOBs use the same upsales pricing rout
     { birthDate: CORENDON_ADULT_REFERENCE_DOB, roomNr: 1 },
     { birthDate: CORENDON_ADULT_REFERENCE_DOB, roomNr: 1 },
   ]);
-  assert.deepEqual(withDob.upsalesPax, [
-    { birthDate: '1980-03-12', roomNr: 1 },
-    { birthDate: '1982-08-07', roomNr: 1 },
-  ]);
+  assert.deepEqual(withDob.upsalesPax, noDob.upsalesPax);
 
   const noDobResult = await fetchCorendonLivePrice(noDob, {
     fetchImpl: async (input) => {
@@ -202,27 +199,26 @@ test('2A without DOB and 2A with user ISO DOBs use the same upsales pricing rout
   }
 });
 
-test('2A upsales input uses homepage party DOBs, not placeholder tokens', () => {
+test('2A upsales input uses the synthetic adult DOB, not placeholder tokens', () => {
   const input = buildCorendonUpsalesInput(ctx(TWO_ADULTS), HOP);
   assert.ok(input);
   assert.deepEqual(input.pax, [
-    { birthDate: '1980-03-12', roomNr: 1 },
-    { birthDate: '1982-08-07', roomNr: 1 },
+    { birthDate: '1986-01-01', roomNr: 1 },
+    { birthDate: '1986-01-01', roomNr: 1 },
   ]);
   assert.equal(input.accoCode, 'COSPY');
   assert.equal(input.priceTableStateHash, TRIP_URL_HASH);
   assert.equal(JSON.stringify(input).includes('1-1-19860'), false);
-  assert.equal(JSON.stringify(input).includes('1986-01-01'), false);
 });
 
-test('upsales input uses party DOBs and lowest hop hash, not placeholder tokens', () => {
+test('upsales input uses synthetic party DOBs (return 2026-08-30) and lowest hop hash, not placeholder tokens', () => {
   const input = buildCorendonUpsalesInput(ctx(), HOP);
   assert.ok(input);
   assert.deepEqual(input.pax, [
-    { birthDate: '1990-01-15', roomNr: 1 },
-    { birthDate: '1988-03-03', roomNr: 1 },
-    { birthDate: '2014-06-14', roomNr: 2 },
-    { birthDate: '2018-01-22', roomNr: 2 },
+    { birthDate: '1986-01-01', roomNr: 1 },
+    { birthDate: '1986-01-01', roomNr: 1 },
+    { birthDate: '2014-08-30', roomNr: 2 },
+    { birthDate: '2018-08-30', roomNr: 2 },
   ]);
   assert.equal(input.accoCode, 'COSPY');
   assert.equal(input.priceTableStateHash, TRIP_URL_HASH);

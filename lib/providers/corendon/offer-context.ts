@@ -11,6 +11,12 @@ import {
   CORENDON_TWO_ROOM_2A_PARTY,
   type CorendonFeHost,
 } from './constants';
+import {
+  partyHasValidAges,
+  syntheticDobForMember,
+  tripDobReferenceForOffer,
+  type TripDobReference,
+} from '../synthetic-dob';
 
 export type CorendonUrlFragment = {
   raw: string;
@@ -122,11 +128,7 @@ export type CorendonLiveOccupancy =
   | { ok: true; roomCount: 1 | 2; pricingRoute: 'lowest' }
   | { ok: true; roomCount: 1 | 2; pricingRoute: 'upsales'; pax: CorendonUpsalesPax[] };
 
-const ISO_DOB = /^\d{4}-\d{2}-\d{2}$/;
-
-function isIsoDob(value: string | null | undefined): value is string {
-  return typeof value === 'string' && ISO_DOB.test(value);
-}
+type CorendonPartyMember = NonNullable<SearchParams['party']>[number];
 
 function adultReferenceUpsalesPax(): CorendonUpsalesPax[] {
   return [
@@ -135,41 +137,51 @@ function adultReferenceUpsalesPax(): CorendonUpsalesPax[] {
   ];
 }
 
-function canUseAdultReferenceDob(
-  params: Pick<SearchParams, 'children' | 'babies'>,
-  roomCount: 1 | 2,
-): boolean {
-  return roomCount === 1 && (params.children ?? 0) === 0 && (params.babies ?? 0) === 0;
+/**
+ * Upsales pax for the party with synthetic DOBs (DEC-019). Empty when a child cannot get a DOB
+ * because the trip reference (calculated return date) is missing: callers building a request
+ * must fail closed on that.
+ */
+function syntheticUpsalesPax(
+  party: readonly CorendonPartyMember[],
+  reference: TripDobReference | undefined,
+  roomNrOf: (traveller: CorendonPartyMember) => 1 | 2,
+): CorendonUpsalesPax[] {
+  const pax: CorendonUpsalesPax[] = [];
+  for (const traveller of party) {
+    const birthDate = syntheticDobForMember(traveller, reference);
+    if (!birthDate) {
+      return [];
+    }
+    pax.push({ birthDate, roomNr: roomNrOf(traveller) });
+  }
+  return pax;
 }
 
 /**
- * Proven live occupancy:
- * - 2 travellers / 1 room with party ISO DOBs → lowestpricesacco hop + upsales pax
+ * Proven live occupancy (DEC-019: the party carries child ages; adults use the fixed adult
+ * reference DOB, children a synthetic DOB = calculated return date minus age):
+ * - 2 adults / 1 room → lowestpricesacco hop + upsales pax with the adult reference DOB
  *   (Bijbel §8.4 evidence 13 occupancy A: totalPrice 1424, not table-pp × 2)
- * - 2 travellers / 2 rooms with party ISO DOBs → lowestpricesacco hop + upsales pax
- *   (Bijbel §10.3 pax[].roomNr; lowest hop still uses CORENDON_TWO_ROOM_2A_PARTY)
- * - standard 2A / 1 room / 0C / 0B without user ISO DOBs → same upsales route
- *   with CORENDON_ADULT_REFERENCE_DOB (technical adult classification only)
- * - one of two adult ISO DOBs missing → lowestpricesacco only
- * - 2 rooms without ISO DOBs → lowestpricesacco only
- * - 2A+1C / 1 room with party ISO DOBs → lowestpricesacco hop + upsales pax
+ * - 2 travellers / 2 rooms (1+1) → lowestpricesacco hop + upsales pax per room (Bijbel §10.3)
+ * - 1 adult + 1 child, or 2A+1C / 1 room → lowestpricesacco hop + upsales pax
  *   (Bijbel §8.4; evidence 13: totalPrice 1424 → 1893)
- * - 4 travellers / 2 rooms with party ISO DOBs → lowestpricesacco hop + upsales pax
+ * - 4 travellers / 2 rooms → lowestpricesacco hop + upsales pax
  *   (Bijbel §8.4 occupancy-price on upsales; §10.3 pax[].roomNr multi-room)
  *
- * Real user ISO DOBs are never rewritten into lowestpricesacco partyComposition
- * tokens and always win over the adult reference DOB. The reference DOB is not
- * applied to children or babies.
+ * The gate (`ok`) does not depend on `reference`; `pax` of a party with children is empty
+ * without a return date, so request builders must fail closed on that.
  */
 export function resolveCorendonLiveOccupancy(
   params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
+  reference?: TripDobReference,
 ): CorendonLiveOccupancy | { ok: false; reason: 'invalid_occupancy' } {
   const party = params.party;
   if (party && party.length > 0) {
+    if (!partyHasValidAges(party)) {
+      return { ok: false, reason: 'invalid_occupancy' };
+    }
     if (party.length === 4) {
-      if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
-        return { ok: false, reason: 'invalid_occupancy' };
-      }
       const roomCounts = [0, 0];
       for (const traveller of party) {
         if (traveller.roomIndex !== 0 && traveller.roomIndex !== 1) {
@@ -184,16 +196,10 @@ export function resolveCorendonLiveOccupancy(
         ok: true,
         roomCount: 2,
         pricingRoute: 'upsales',
-        pax: party.map((traveller) => ({
-          birthDate: traveller.dateOfBirth as string,
-          roomNr: (traveller.roomIndex + 1) as 1 | 2,
-        })),
+        pax: syntheticUpsalesPax(party, reference, (traveller) => (traveller.roomIndex + 1) as 1 | 2),
       };
     }
     if (party.length === 3) {
-      if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
-        return { ok: false, reason: 'invalid_occupancy' };
-      }
       const rooms = new Set(party.map((traveller) => traveller.roomIndex));
       if (rooms.size !== 1) {
         return { ok: false, reason: 'invalid_occupancy' };
@@ -206,10 +212,7 @@ export function resolveCorendonLiveOccupancy(
         ok: true,
         roomCount: 1,
         pricingRoute: 'upsales',
-        pax: party.map((traveller) => ({
-          birthDate: traveller.dateOfBirth as string,
-          roomNr: 1 as const,
-        })),
+        pax: syntheticUpsalesPax(party, reference, () => 1),
       };
     }
     if (party.length !== 2) {
@@ -235,29 +238,16 @@ export function resolveCorendonLiveOccupancy(
         return { ok: false, reason: 'invalid_occupancy' };
       }
     }
-    if (party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
-      return {
-        ok: true,
-        roomCount,
-        pricingRoute: 'upsales',
-        pax: party.map((traveller) => ({
-          birthDate: traveller.dateOfBirth as string,
-          roomNr: (roomCount === 1 ? 1 : traveller.roomIndex + 1) as 1 | 2,
-        })),
-      };
-    }
-    if (
-      canUseAdultReferenceDob(params, roomCount) &&
-      party.every((traveller) => !isIsoDob(traveller.dateOfBirth))
-    ) {
-      return {
-        ok: true,
-        roomCount: 1,
-        pricingRoute: 'upsales',
-        pax: adultReferenceUpsalesPax(),
-      };
-    }
-    return { ok: true, roomCount, pricingRoute: 'lowest' };
+    return {
+      ok: true,
+      roomCount,
+      pricingRoute: 'upsales',
+      pax: syntheticUpsalesPax(
+        party,
+        reference,
+        (traveller) => (roomCount === 1 ? 1 : traveller.roomIndex + 1) as 1 | 2,
+      ),
+    };
   }
 
   const adults = params.adults ?? 2;
@@ -301,11 +291,6 @@ export function buildCorendonLiveContext(
   if (!isCorendon(offer)) {
     return null;
   }
-  const occupancy = resolveCorendonLiveOccupancy(params);
-  if (!occupancy.ok) {
-    return null;
-  }
-
   const selected = listing ?? listingFromOfferDeepLink(offer);
   if (!selected?.deepLink) {
     return null;
@@ -326,6 +311,15 @@ export function buildCorendonLiveContext(
 
   const departureIso = corendonFragmentDateToIso(fragment.dateYymmdd);
   if (!departureIso) {
+    return null;
+  }
+
+  // DEC-019: child DOBs are synthetic, relative to the calculated return date of this trip.
+  const occupancy = resolveCorendonLiveOccupancy(params, tripDobReferenceForOffer(offer, departureIso));
+  if (!occupancy.ok) {
+    return null;
+  }
+  if (occupancy.pricingRoute === 'upsales' && occupancy.pax.length === 0) {
     return null;
   }
 

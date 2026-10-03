@@ -1,3 +1,4 @@
+import { writeTravelerQueryFromParams } from '@/lib/search/traveler-contract';
 import type { SearchParams } from '@/types/travel';
 
 export const RESULTS_PAGE_DEFAULT = 1;
@@ -252,36 +253,8 @@ export function buildResultsSearchQuery(params: SearchParams, page: number): URL
     query.set('accommodationTypes', params.accommodationTypes.join(','));
   }
 
-  if (params.adults !== undefined && !Number.isNaN(params.adults)) {
-    query.set('adults', String(params.adults));
-  }
-
-  if (params.children !== undefined && !Number.isNaN(params.children)) {
-    query.set('children', String(params.children));
-  }
-
-  if (params.babies !== undefined && !Number.isNaN(params.babies)) {
-    query.set('babies', String(params.babies));
-  }
-
-  if (params.rooms !== undefined && !Number.isNaN(params.rooms)) {
-    query.set('rooms', String(params.rooms));
-  }
-
-  if (params.party && params.party.length > 0) {
-    query.set('dob', params.party.map((traveller) => traveller.dateOfBirth ?? '').join(','));
-    const maxRoomIndex = params.party.reduce(
-      (highest, traveller) => Math.max(highest, traveller.roomIndex),
-      0,
-    );
-    const roomCount = Math.max(params.rooms ?? 1, maxRoomIndex + 1);
-    if (roomCount > 1) {
-      if (!query.has('rooms')) {
-        query.set('rooms', String(roomCount));
-      }
-      query.set('partyRooms', params.party.map((traveller) => String(traveller.roomIndex + 1)).join(','));
-    }
-  }
+  // DEC-019: the single traveller writer (adults + childAges + derived counts + rooms); never a DOB.
+  writeTravelerQueryFromParams(query, params);
 
   if (params.departureStart) {
     query.set('departureStart', params.departureStart);

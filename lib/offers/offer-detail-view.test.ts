@@ -28,10 +28,10 @@ const FOUR_PAX_TWO_ROOMS = {
   children: 2,
   rooms: 2,
   party: [
-    { dateOfBirth: '1990-01-15', roomIndex: 0 },
-    { dateOfBirth: '1988-03-03', roomIndex: 0 },
-    { dateOfBirth: '2014-06-14', roomIndex: 1 },
-    { dateOfBirth: '2018-01-22', roomIndex: 1 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 12, roomIndex: 1 },
+    { age: 8, roomIndex: 1 },
   ],
 };
 
@@ -68,8 +68,10 @@ test('affiliate href keeps stored Sunweb feed deepLink for 2A/1R', () => {
 });
 
 test('affiliate href rewrites Sunweb 4p/2r click-out inside TT wrap', () => {
+  // 8 days from 2026-09-26: last travel day (synthetic DOB reference) = 2026-10-03.
   const offer = makeOffer({
     id: 'sunweb-84012-2026-09-26-8-BRU-Logies-427',
+    nights: 8,
     deepLink: SUNWEB_PRODUCT_URL,
   });
   const href = affiliateHref(offer, FOUR_PAX_TWO_ROOMS);
@@ -77,10 +79,10 @@ test('affiliate href rewrites Sunweb 4p/2r click-out inside TT wrap', () => {
   const outer = new URL(href);
   assert.equal(outer.searchParams.get('tt'), '1393_1754875_511747_');
   const landing = new URL(unwrapSunwebProductUrl(href));
-  assert.equal(landing.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(landing.searchParams.get('Participants[0][1]'), '1988-03-03');
-  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-06-14');
-  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(landing.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[0][1]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-10-03');
+  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-10-03');
   assert.equal(landing.searchParams.get('Duration[0]'), '8');
   assert.equal(landing.searchParams.get('DepartureAirport[0]'), 'BRU');
   assert.equal(landing.searchParams.get('DepartureDate[0]'), '2026-09-26');
@@ -123,9 +125,11 @@ test('affiliate href keeps stored Eliza feed deepLink for 2A/1R', () => {
 });
 
 test('affiliate href rewrites Eliza 4p/2r click-out inside TT wrap', () => {
+  // 8 days from 2026-11-19: last travel day (synthetic DOB reference) = 2026-11-26.
   const offer = makeOffer({
     id: 'eliza-6270665',
     provider: 'Eliza was here',
+    nights: 8,
     deepLink: ELIZA_PRODUCT_URL,
   });
   const href = affiliateHref(offer, FOUR_PAX_TWO_ROOMS);
@@ -133,10 +137,10 @@ test('affiliate href rewrites Eliza 4p/2r click-out inside TT wrap', () => {
   const outer = new URL(href);
   assert.equal(outer.searchParams.get('tt'), '1327_2084000_511747_');
   const landing = new URL(unwrapElizaProductUrl(href));
-  assert.equal(landing.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(landing.searchParams.get('Participants[0][1]'), '1988-03-03');
-  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-06-14');
-  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(landing.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[0][1]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-11-26');
+  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-11-26');
   assert.equal(landing.searchParams.get('Duration[0]'), '8');
   assert.equal(landing.searchParams.get('DepartureAirport[0]'), 'BRU');
   assert.equal(landing.searchParams.get('DepartureDate[0]'), '2026-11-19');
@@ -235,8 +239,8 @@ test('occupancy summary: 2 adults from DOBs', () => {
   assert.equal(
     formatOccupancySummary({
       party: [
-        { dateOfBirth: '1990-01-15', roomIndex: 0 },
-        { dateOfBirth: '1988-03-03', roomIndex: 0 },
+        { age: null, roomIndex: 0 },
+        { age: null, roomIndex: 0 },
       ],
     }),
     '2 volwassenen • 1 kamer',
@@ -248,9 +252,9 @@ test('occupancy summary: 2 adults + 1 child', () => {
     formatOccupancySummary({
       rooms: 1,
       party: [
-        { dateOfBirth: '1990-01-15', roomIndex: 0 },
-        { dateOfBirth: '1988-03-03', roomIndex: 0 },
-        { dateOfBirth: '2014-06-14', roomIndex: 0 },
+        { age: null, roomIndex: 0 },
+        { age: null, roomIndex: 0 },
+        { age: 12, roomIndex: 0 },
       ],
     }),
     '2 volwassenen • 1 kind • 1 kamer',
@@ -262,10 +266,10 @@ test('occupancy summary: 2 adults + 2 children + 2 rooms, not 4 volwassenen', ()
     adults: 4,
     rooms: 2,
     party: [
-      { dateOfBirth: '1990-01-15', roomIndex: 0 },
-      { dateOfBirth: '1988-03-03', roomIndex: 0 },
-      { dateOfBirth: '2014-06-14', roomIndex: 1 },
-      { dateOfBirth: '2018-01-22', roomIndex: 1 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: 12, roomIndex: 1 },
+      { age: 8, roomIndex: 1 },
     ],
   });
   assert.equal(summary, '2 volwassenen • 2 kinderen • 2 kamers');
@@ -277,8 +281,8 @@ test('occupancy summary: adults only with multiple rooms', () => {
     formatOccupancySummary({
       rooms: 2,
       party: [
-        { dateOfBirth: '1990-01-15', roomIndex: 0 },
-        { dateOfBirth: '1988-03-03', roomIndex: 1 },
+        { age: null, roomIndex: 0 },
+        { age: null, roomIndex: 1 },
       ],
     }),
     '2 volwassenen • 2 kamers',
@@ -392,7 +396,7 @@ test('Corendon return date uses catalog days minus one', () => {
   );
 });
 
-test('Sunweb return date uses catalog days as calendar offset', () => {
+test('Sunweb/Eliza return date is the last travel day: departure + days - 1 (t355u: was 15 okt)', () => {
   assert.match(
     formatOfferReturnDateLabel(
       makeOffer({
@@ -401,7 +405,21 @@ test('Sunweb return date uses catalog days as calendar offset', () => {
         departureDate: '2026-10-07',
       }),
     ) ?? '',
-    /15\s*okt\.?\s*2026/i,
+    /14\s*okt\.?\s*2026/i,
+  );
+  for (const provider of ['Sunweb', 'Eliza was here', 'Corendon']) {
+    assert.match(
+      formatOfferReturnDateLabel(makeOffer({ provider, nights: 8, departureDate: '2026-10-10' })) ?? '',
+      /17\s*okt\.?\s*2026/i,
+      provider,
+    );
+  }
+  // nights offer: 10 Oct + 7 nights = 17 Oct
+  assert.match(
+    formatOfferReturnDateLabel(
+      makeOffer({ provider: 'Other', nights: 7, durationType: 'nachten', departureDate: '2026-10-10' }),
+    ) ?? '',
+    /17\s*okt\.?\s*2026/i,
   );
 });
 

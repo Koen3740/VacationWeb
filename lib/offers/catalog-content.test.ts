@@ -125,14 +125,15 @@ test('room selection changes Detail state via the room query param', () => {
 
 test('room selection survives Detail href round-trip with search context', () => {
   const href = buildOfferDetailHref('corendon-14398', {
-    adults: 4,
+    adults: 2,
+    children: 2,
     rooms: 2,
     selectedRoom: 'FZ1',
     party: [
-      { dateOfBirth: '1975-03-12', roomIndex: 0 },
-      { dateOfBirth: '1978-06-04', roomIndex: 0 },
-      { dateOfBirth: '2010-09-01', roomIndex: 0 },
-      { dateOfBirth: '2022-01-22', roomIndex: 1 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: 16, roomIndex: 0 },
+      { age: 4, roomIndex: 1 },
     ],
     departureAirport: 'AMS',
     departureStart: '2026-10-27',
@@ -141,12 +142,15 @@ test('room selection survives Detail href round-trip with search context', () =>
   });
   const parsed = parseSearchParams(Object.fromEntries(new URL(href, 'https://vacationmap.be').searchParams));
   assert.equal(parsed.selectedRoom, 'FZ1');
-  assert.equal(parsed.adults, 4);
+  assert.equal(parsed.adults, 2);
+  assert.equal(parsed.children, 2);
   assert.equal(parsed.rooms, 2);
+  assert.deepEqual(parsed.childAges, [16, 4]);
   assert.deepEqual(
-    parsed.party?.map((traveller) => traveller.dateOfBirth),
-    ['1975-03-12', '1978-06-04', '2010-09-01', '2022-01-22'],
+    parsed.party?.map((traveller) => traveller.age),
+    [null, null, 16, 4],
   );
+  assert.equal(href.includes('dob='), false);
   assert.deepEqual(
     parsed.party?.map((traveller) => traveller.roomIndex),
     [0, 0, 0, 1],
@@ -155,16 +159,17 @@ test('room selection survives Detail href round-trip with search context', () =>
   assert.equal(parsed.page, 2);
 });
 
-test('Reisgezelschap V2 DOB, room count and assignments stay on Detail and back', () => {
+test('Reisgezelschap V2 child ages, room count and assignments stay on Detail and back', () => {
   const detailHref = buildOfferDetailHref('corendon-14398', {
-    adults: 4,
+    adults: 2,
+    children: 2,
     rooms: 2,
     selectedRoom: 'DD',
     party: [
-      { dateOfBirth: '1980-03-12', roomIndex: 0 },
-      { dateOfBirth: '1982-08-07', roomIndex: 0 },
-      { dateOfBirth: '2011-06-14', roomIndex: 0 },
-      { dateOfBirth: '2022-01-22', roomIndex: 1 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: 15, roomIndex: 0 },
+      { age: 4, roomIndex: 1 },
     ],
     departureAirport: 'BRU',
     page: 3,
@@ -180,7 +185,7 @@ test('Reisgezelschap V2 DOB, room count and assignments stay on Detail and back'
   const backHref = buildResultsPageHref(detailParams, detailParams.page ?? 1);
   const back = parseSearchParams(Object.fromEntries(new URL(backHref, 'https://vacationmap.be').searchParams));
   assert.equal(back.selectedRoom, undefined);
-  assert.equal(back.adults, 4);
+  assert.equal(back.adults, 2);
   assert.equal(back.rooms, 2);
   assert.deepEqual(back.party, detailParams.party);
   assert.equal(back.departureAirport, 'BRU');

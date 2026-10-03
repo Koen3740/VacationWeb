@@ -34,6 +34,7 @@ export function stateFromUrl(searchParams: URLSearchParams): ResultsBarSearchSta
 
   const travelers: TravelersState =
     parseTravelersFromQuery({
+      childAges: searchParams.get('childAges') ?? undefined,
       dob: searchParams.get('dob') ?? undefined,
       partyRooms: searchParams.get('partyRooms') ?? undefined,
       adults: searchParams.get('adults') ?? undefined,
