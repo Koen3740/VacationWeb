@@ -38,8 +38,16 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>Zoekparameters (bestemming, datums, luchthaven, reisgezelschap).</li>
           <li>
-            Geboortedata van reizigers wanneer nodig voor een accurate prijs/beschikbaarheid bij
-            reisaanbieders — zie ook cookiebeleid en zoekflow.
+            Aantal volwassenen en leeftijden van kinderen (een baby wordt uit de leeftijd afgeleid)
+            als onderdeel van je zoekopdracht. Volledige geboortedata van reizigers vraagt
+            VacationWeb niet als standaard zoekgegeven.
+          </li>
+          <li>
+            Wanneer een reisaanbieder technisch een geboortedatum nodig heeft om een prijs of
+            beschikbaarheid op te vragen, kan VacationWeb in de technische aanvraag en in de
+            doorverwijzing naar die aanbieder een synthetische geboortedatum gebruiken (afgeleid uit
+            de reisdatums en de opgegeven leeftijd). Dat is niet de geboortedatum van een reiziger.
+            Een echte geboortedatum geef je, indien nodig, pas bij de reisaanbieder zelf op.
           </li>
           <li>Lokaal bewaarde favorieten in je browser (niet naar trackingdiensten gestuurd).</li>
           <li>Technische gegevens die je browser meestuurt bij het bezoeken van de site.</li>
@@ -48,8 +56,8 @@ export default function PrivacyPage() {
           Grondslagen en bewaartermijnen: <OwnerLegalInput label="grondslagen en bewaartermijnen" />
         </p>
         <p>
-          Beoordeling kinder-/DOB-verwerking:{' '}
-          <OwnerLegalInput label="kinder/DOB juridische beoordeling" />
+          Beoordeling verwerking van kindleeftijden en synthetische geboortedatum:{' '}
+          <OwnerLegalInput label="kindleeftijd/synthetische DOB juridische beoordeling" />
         </p>
       </section>
 
@@ -81,8 +89,8 @@ export default function PrivacyPage() {
         <p>
           Favorieten en cookievoorkeuren kunnen lokaal in je browser worden bewaard. Zoekstatus kan
           tijdelijk in sessionStorage staan. Live-prijsresultaten kunnen tijdelijk in
-          server-side cache/object storage staan zonder volledige geboortedatum in de
-          cache-identiteit.
+          server-side cache/object storage staan zonder geboortedatum in de
+          cache-identiteit (kindleeftijden alleen als gehashte waarde).
         </p>
         <p>
           Juridische kwalificatie van favorieten-localStorage:{' '}

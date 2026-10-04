@@ -28,7 +28,7 @@ const inventory = [
   {
     name: 'vacationweb.shared-search-state',
     type: 'sessionStorage',
-    purpose: 'Tijdelijke zoekstatus (kan reisgezelschap/geboortedata bevatten voor de sessie).',
+    purpose: 'Tijdelijke zoekstatus (kan reisgezelschap bevatten voor de sessie: aantal volwassenen en leeftijden van kinderen, geen geboortedata).',
     provider: 'VacationWeb',
     retention: 'Tot het browsertabblad/sessie eindigt',
     consent: 'Noodzakelijk voor zoekflow',
