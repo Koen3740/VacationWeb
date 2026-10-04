@@ -44,8 +44,16 @@ import { decodeDestinationLabel, destinationDisplayLabel } from '@/components/se
 import { attachSiteMarket } from '@/lib/search/site-market';
 import { SearchParams } from '@/types/travel';
 import { headers } from 'next/headers';
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+// Privacy (t361u): result URLs carry the search party (adults/childAges). Never index or follow them.
+// Paired with the noindex/no-store response headers in next.config.js. Do NOT also Disallow in
+// robots.txt: a crawler that cannot fetch the page would never see the noindex.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 function buildSummaryLine(params: SearchParams): string {
   const parts: string[] = [];
