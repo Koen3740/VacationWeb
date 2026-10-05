@@ -5,8 +5,8 @@ import path from 'node:path';
 export const HOMEPAGE_ACTION_IMAGE_DIR = path.join('data', 'tradetracker-creatives', 'homepage-actions');
 
 const FILES: Record<string, string> = {
-  'warme-winter-weken-1168x500.jpg': 'image/jpeg',
-  'last-minutes-oktober-november-1168x500.jpg': 'image/jpeg',
+  'warme-winter-weken-780x320.png': 'image/png',
+  'last-minutes-oktober-november-780x320.png': 'image/png',
 };
 
 export function homepageActionImageContentType(fileName: string): string | null {

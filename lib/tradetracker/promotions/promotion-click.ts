@@ -89,11 +89,11 @@ export function promotionClickHref(creative: PromotionClickSource): string | nul
 /**
  * Campaign deeplink for a Corendon homepage action.
  *
- * HEAD on 2026-10-05: `m=0` with the canonical site and campaign returns 302
- * to the `u` landing, with TradeTracker attribution (`utm_source=tradetracker`,
- * `utm_medium=affiliate`, `utm_content=Vacationweb.nl`). Only the four action
- * pages that the live homepage banners link to are allowed. The string still
- * has to pass `promotionClickHref`.
+ * Shape comes from the feed campaign `trackingURL`:
+ * `/c?c=<campaign>&m=0&a=<site>&r=&u=` plus `encodeURIComponent(landing)`.
+ * Landings are the pages the public homepage banners already link to.
+ * This function does not request `/c`. The string still has to pass
+ * `promotionClickHref`.
  */
 const ACTION_LANDING: Record<TradeTrackerCredentialMarket, ReadonlySet<string>> = {
   nl: new Set(['https://www.corendon.nl/winterzon', 'https://www.corendon.nl/topdeals']),

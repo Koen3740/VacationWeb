@@ -2,44 +2,33 @@
 
 ## Wat de pagina toont
 
-Twee acties, per markt, omdat ze op de live Corendon-site staan en een bestaande VacationWeb-klik daarop landt.
+Twee acties. Het bedrag komt van de Corendon-homepage zoals de eigenaar die na een trackingklik zag, niet uit TradeTracker-SOAP.
 
-| Actie | Bedrag | Publieke pagina | Beeld op de homepage |
+| Actie | Bedrag | Landing in de CTA | Beeld |
 | --- | --- | --- | --- |
-| Warme Winter Weken | tot €600 extra korting | `https://www.corendon.nl/winterzon` en `https://www.corendon.be/winterzon` | `HPTO_WWW_*_Topbanner_1168x500.jpg` |
-| Last minutes oktober en november | tot €200 extra korting | `https://www.corendon.nl/topdeals` en `https://www.corendon.be/topdeals` | `HPTO_LastMinute_NL_Topbanner_1168x500.jpg` |
+| Warme Winter Weken | tot €600 extra korting | `https://www.corendon.nl/winterzon` of `https://www.corendon.be/winterzon` | `HPTO_WWW_NL_Toplaag_Header_780x320.png` |
+| Last minutes | tot €200 extra korting, oktober en november | `https://www.corendon.nl/topdeals` of `https://www.corendon.be/topdeals` | `HPTO_LastMinute_NL_Toplaag_Header_780x320.png` |
 
-De zinnen op die pagina’s, opgehaald op 2026-10-05:
-
-- NL winterzon: “Tijdens de Warme Winter Weken profiteer je van tot € 600 extra korting per boeking naar populaire winterzonbestemmingen zoals Egypte en de Canarische Eilanden.”
-- BE winterzon: “tot €600 extra korting per boeking naar populaire winterzonbestemmingen zoals Curaçao, Bonaire, Kaapverdië, Gambia, Turkije, Spanje en Egypte.”
-- NL en BE topdeals, paginatitel “Last Minutes oktober en november”: “Last minute naar de zon in oktober of november? Boek nu een van onze scherpe Last Minute Deals en profiteer van tot € 200 Last Minute Korting.”
-
-Kidskorting en vertrekdata uit de filters staan niet op VacationWeb. De bestemmingen blijven per markt, omdat NL en BE daar verschillen.
+De landings zijn de `url` van de live homepage-banners (groep 15423 naar `/winterzon`, groep 15424 naar `/topdeals`). Die pagina’s bevatten dezelfde bedragen in de zichtbare tekst. Kidskorting en filterdata zijn niet overgenomen. NL en BE noemen andere winterbestemmingen; de tekst blijft per markt.
 
 ## Affiliatepad
 
-HEAD, zonder de redirect te volgen, op 2026-10-05:
+De feed-structuur is `https://referral.corendon.nl/c?c=38108&m=…&a=512226&r=&u=<encodedLanding>`. België: `referral.corendon.be`, `c=38103`, `a=511873`. Het campagne-`trackingURL` is dezelfde vorm met `m=0` en een lege `u`. De CTA is dat template plus de gecodeerde actiepagina, en gaat daarna door `promotionClickHref`.
 
-`https://referral.corendon.{nl|be}/c?c=38108|38103&m=0&a=512226|511873&r=&u=<actiepagina>`
-
-geeft 302 naar die actiepagina met `utm_source=tradetracker`, `utm_medium=affiliate`, `utm_id` de campagne, en `utm_content=Vacationweb.nl`. Een lege `u` landt op de campagne-homepage, niet op de actie. Daarom gebruikt de CTA de deeplink. `m=0` is het campagneniveau, niet een van de Banner*-materialen.
+Er is in deze correctie geen nieuwe aanroep van `/c`. End-to-end attributie van `m=0` is niet opnieuw getest.
 
 ## Beelden
 
-De homepage-HTML verwijst naar de 1168×500-topbanners, niet naar de 780×320-toplaag. Die toplaagbestanden bestaan wel en tonen dezelfde actietekst (bekeken 2026-10-05). De pagina gebruikt de bestanden die de homepage nu echt toont.
+Server-side opgehaald en opgeslagen onder `data/tradetracker-creatives/homepage-actions/`. De browser laadt `/aanbiedingen/creative-images/homepage/…`, niet de Corendon-CDN en niet `/i`.
 
-Opgeslagen eigen kopieën, sha256:
+| Bestand | Bron | Status | Last-Modified | sha256 |
+| --- | --- | --- | --- | --- |
+| `warme-winter-weken-780x320.png` | `https://images.corendonresources.com/NL/HPTO_WWW_NL_Toplaag_Header_780x320.png` | 200 image/png, 146596 bytes, geen Set-Cookie | Wed, 23 Sep 2026 09:30:51 GMT | `e046e431c1738f1cef582936604cbe0794f130616980f348150eb6ecca9d2bf5` |
+| `last-minutes-oktober-november-780x320.png` | `https://images.corendonresources.com/NL/HPTO_LastMinute_NL_Toplaag_Header_780x320.png` | 200 image/png, 56434 bytes, geen Set-Cookie | Wed, 23 Sep 2026 14:57:38 GMT | `5880f83977df220b0d1532e5ba3a069c5149751e11ed9e31b4dc55b135d35f9f` |
 
-- `warme-winter-weken-1168x500.jpg` — `c2391accffd610af7e60c400dc2055da23a19c6b1a9bd3fd6a5a38efae5ad648` — bron `https://images.corendonresources.com/NL/HPTO_WWW_NL_Topbanner_1168x500.jpg`, last-modified Wed, 23 Sep 2026 09:30:50 GMT. Het BE-bestand `HPTO_WWW_BENL_Topbanner_1168x500.jpg` is bytegelijk.
-- `last-minutes-oktober-november-1168x500.jpg` — `dd3eecc2b0acec221d6e0e36b3eed882b18227fc08932511c5f5c5774efc6577` — bron `https://images.corendonresources.com/NL/HPTO_LastMinute_NL_Topbanner_1168x500.jpg`, last-modified Wed, 23 Sep 2026 14:57:39 GMT. De BE-homepage gebruikt ditzelfde NL-bestand.
+Rechten voor HPTO buiten SOAP zijn in de docs niet formeel vastgelegd. Dat is een LEGAL/OWNER CHECK. De eigenaar wees deze URL’s aan voor de pagina.
 
-De 780×320-toplaag, ter controle, niet als paginabeeld:
-
-- `HPTO_WWW_NL_Toplaag_Header_780x320.png` — 200 image/png, “TOT €600 EXTRA KORTING”
-- `HPTO_LastMinute_NL_Toplaag_Header_780x320.png` — 200 image/png, “TOT €200 EXTRA KORTING”
-
-Serven via `/aanbiedingen/creative-images/homepage/…` uit `data/tradetracker-creatives/homepage-actions/`. Geen catalogus, geen `current.json`, geen live-price.
+Catalogus, `current.json` en live-price zijn niet aangeraakt.
 
 ## Wat niet terugkomt
 

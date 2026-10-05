@@ -1,19 +1,21 @@
 /**
  * The two Corendon homepage actions, per market.
  *
- * Copy is the sentence on the public action page that the live homepage
- * banner links to (fetched 2026-10-05). Images are the homepage HPTO files
- * stored under tradetracker-creatives/homepage-actions. The click is the
- * campaign deeplink that HEAD proved lands on that page with VacationWeb
- * attribution. Kaching and the generic last-minute materials are not here.
+ * Amounts follow the Corendon homepage actions the owner recorded.
+ * The CTA is the campaign tracking URL (`m=0`) plus the encoded landing
+ * the public homepage banner already points at. It is assembled and then
+ * checked by `promotionClickHref`. No request to `/c` is made here.
+ * Images are the mapped 780×320 HPTO files, stored under
+ * tradetracker-creatives/homepage-actions. Kaching and materials
+ * 2499691–2499700 are not here.
  */
 
 import type { EditorialOffer } from './editorial-offers';
 import { corendonActionClickHref } from './promotion-click';
 import type { VacationWebPromotionMarket } from './select-displayable';
 
-const WINTER_IMAGE = '/aanbiedingen/creative-images/homepage/warme-winter-weken-1168x500.jpg';
-const LAST_MINUTE_IMAGE = '/aanbiedingen/creative-images/homepage/last-minutes-oktober-november-1168x500.jpg';
+const WINTER_IMAGE = '/aanbiedingen/creative-images/homepage/warme-winter-weken-780x320.png';
+const LAST_MINUTE_IMAGE = '/aanbiedingen/creative-images/homepage/last-minutes-oktober-november-780x320.png';
 
 function action(offer: Omit<EditorialOffer, 'clickUrl' | 'conditionsUrl'> & { landingUrl: string }): EditorialOffer | null {
   const clickUrl = corendonActionClickHref(offer.market, offer.landingUrl);

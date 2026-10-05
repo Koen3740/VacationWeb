@@ -30,12 +30,13 @@ test('a campaign deeplink only accepts the live action pages', () => {
   assert.equal(corendonActionClickHref('nl', 'https://evil.example/winterzon'), null);
 });
 
-test('stored homepage images are the jpeg bytes and foreign names are refused', async () => {
-  const winter = await readHomepageActionImage('warme-winter-weken-1168x500.jpg');
-  const lastMinute = await readHomepageActionImage('last-minutes-oktober-november-1168x500.jpg');
-  assert.equal(winter?.contentType, 'image/jpeg');
-  assert.equal(winter?.bytes.subarray(0, 3).toString('hex'), 'ffd8ff');
-  assert.equal(lastMinute?.bytes.length, 393590);
-  assert.equal(await readHomepageActionImage('../secrets.jpg'), null);
-  assert.equal(await readHomepageActionImage('Banner1-lastminute.jpg'), null);
+test('stored homepage images are the HPTO png bytes and foreign names are refused', async () => {
+  const winter = await readHomepageActionImage('warme-winter-weken-780x320.png');
+  const lastMinute = await readHomepageActionImage('last-minutes-oktober-november-780x320.png');
+  assert.equal(winter?.contentType, 'image/png');
+  assert.equal(winter?.bytes.subarray(0, 4).toString('hex'), '89504e47');
+  assert.equal(winter?.bytes.length, 146596);
+  assert.equal(lastMinute?.bytes.length, 56434);
+  assert.equal(await readHomepageActionImage('../secrets.png'), null);
+  assert.equal(await readHomepageActionImage('Banner1-lastminute.png'), null);
 });
