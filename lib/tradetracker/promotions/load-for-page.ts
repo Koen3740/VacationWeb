@@ -21,6 +21,13 @@ export type LoadedMarketPromotions = {
 
 const REVALIDATE_SECONDS = 15 * 60;
 
+/**
+ * Secondary source for `/aanbiedingen` (news, incentives, vouchers).
+ * Official banner creatives are loaded separately and shown first.
+ * This function still uses the NL access key, including site 512055 for the
+ * historical BE promotions call. It must not replace creative cards.
+ */
+
 async function ingestSite(affiliateSiteId: string): Promise<TradeTrackerPromotionSnapshot> {
   return ingestTradeTrackerPromotions({ affiliateSiteId });
 }

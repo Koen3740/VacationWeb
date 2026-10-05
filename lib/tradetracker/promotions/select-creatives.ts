@@ -22,10 +22,9 @@ import { compareCalendarDates, utcCalendarDate } from './validity';
 /**
  * Slice 2 selection on top of Slice 1 creative snapshots.
  *
- * Later /aanbiedingen work should read `selected-{market}-{site}.json`
- * from `data/tradetracker-creatives/` via a new loader next to
- * `load-for-page.ts`. News and incentive SOAP stays a separate secondary
- * source. This module does not call TradeTracker and does not request
+ * `/aanbiedingen` reads `selected-{market}-{site}.json` through
+ * `load-aanbiedingen.ts`. News and incentive SOAP stays secondary.
+ * This module does not call TradeTracker and does not request
  * click (`/c`) or impression (`/i`) URLs.
  */
 

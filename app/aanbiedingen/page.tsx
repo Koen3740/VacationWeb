@@ -1,7 +1,7 @@
 import { AanbiedingenPromotionList } from '@/components/promotions/aanbiedingen-promotion-list';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import { resolveSiteMarketFromHost } from '@/lib/search/site-market';
-import { loadDisplayablePromotionsByMarkets } from '@/lib/tradetracker/promotions/load-for-page';
+import { loadAanbiedingenByMarkets } from '@/lib/tradetracker/promotions/load-aanbiedingen';
 import type { VacationWebPromotionMarket } from '@/lib/tradetracker/promotions/select-displayable';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
@@ -35,8 +35,8 @@ function marketTitle(market: VacationWebPromotionMarket): string {
 export default async function AanbiedingenPage() {
   const host = headers().get('host');
   const markets = marketsForHost(host);
-  const sections = await loadDisplayablePromotionsByMarkets(markets);
-  const total = sections.reduce((sum, section) => sum + section.promotions.length, 0);
+  const sections = await loadAanbiedingenByMarkets(markets);
+  const total = sections.reduce((sum, section) => sum + section.cards.length, 0);
 
   return (
     <div className="min-h-screen bg-[#F7F5F1]">
@@ -85,7 +85,7 @@ export default async function AanbiedingenPage() {
                 </p>
               ) : (
                 <AanbiedingenPromotionList
-                  promotions={section.promotions}
+                  cards={section.cards}
                   emptyMessage={`Geen actuele aanbiedingen voor ${marketTitle(section.market)}.`}
                 />
               )}
