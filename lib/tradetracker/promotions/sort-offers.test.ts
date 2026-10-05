@@ -2,14 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { sortOffersNewestFirst } from './sort-offers';
 
-function offer(id: string, listedAt: string | null, providerName = 'Corendon') {
-  return { id, listedAt, providerName };
+function offer(id: string, dates: { publishedAt?: string | null; validFrom?: string | null; ingestedAt?: string | null }) {
+  return {
+    id,
+    publishedAt: dates.publishedAt ?? null,
+    validFrom: dates.validFrom ?? null,
+    ingestedAt: dates.ingestedAt ?? null,
+  };
 }
 
-test('D: a newer offer is placed above an older one', () => {
+test('E: a newer publish date is placed above an older one', () => {
   const sorted = sortOffersNewestFirst([
-    offer('old', '2026-01-01', 'Sunweb'),
-    offer('new', '2026-10-01', 'Corendon'),
+    offer('old', { publishedAt: '2026-01-01' }),
+    offer('new', { publishedAt: '2026-10-01' }),
   ]);
   assert.deepEqual(
     sorted.map((item) => item.id),
@@ -17,21 +22,27 @@ test('D: a newer offer is placed above an older one', () => {
   );
 });
 
-test('E: many offers follow the date only, with no provider priority', () => {
+test('E: undated offers sink under dated ones, and an equal date breaks by id descending', () => {
   const sorted = sortOffersNewestFirst([
-    offer('c-old', '2026-01-01', 'Corendon'),
-    offer('s-mid', '2026-06-01', 'Sunweb'),
-    offer('e-new', '2026-09-01T12:00:00.000Z', 'Eliza was here'),
-    offer('c-undated', null, 'Corendon'),
-    offer('s-same', '2026-06-01', 'Sunweb'),
-    offer('e-older', '2026-03-01', 'Eliza was here'),
-    offer('c-newer', '2026-11-01', 'Corendon'),
-    offer('s-undated', null, 'Sunweb'),
-    offer('e-mid', '2026-06-01T00:00:00.000Z', 'Eliza was here'),
-    offer('c-last', '2025-12-01', 'Corendon'),
+    offer('nl:corendon:last-minutes', {}),
+    offer('nl:corendon:warme-winter-weken', {}),
+    offer('dated', { publishedAt: '2026-08-01' }),
+    offer('same-b', { publishedAt: '2026-08-01' }),
   ]);
   assert.deepEqual(
     sorted.map((item) => item.id),
-    ['c-newer', 'e-new', 's-same', 's-mid', 'e-mid', 'e-older', 'c-old', 'c-last', 's-undated', 'c-undated'],
+    ['same-b', 'dated', 'nl:corendon:warme-winter-weken', 'nl:corendon:last-minutes'],
+  );
+});
+
+test('E: validity start is used when publish is missing, then ingest time', () => {
+  const sorted = sortOffersNewestFirst([
+    offer('ingested', { ingestedAt: '2026-08-01T00:00:00.000Z' }),
+    offer('valid', { validFrom: '2026-09-01' }),
+    offer('published', { publishedAt: '2026-07-01', validFrom: '2026-12-01', ingestedAt: '2026-12-02T00:00:00.000Z' }),
+  ]);
+  assert.deepEqual(
+    sorted.map((item) => item.id),
+    ['valid', 'ingested', 'published'],
   );
 });

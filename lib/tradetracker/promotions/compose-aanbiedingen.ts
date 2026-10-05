@@ -58,6 +58,8 @@ export type AanbiedingenCard = {
   imageWidth: number | null;
   imageHeight: number | null;
   imagePolicy: 'own-storage' | null;
+  /** Creative fetch time, or the promotion snapshot ingest time. */
+  ingestedAt?: string | null;
 };
 
 const ALLOWED = new Set<string>(CREATIVE_ALLOWED_PROVIDERS);
@@ -192,6 +194,7 @@ function creativeCard(
     expirationDate: creative.validToDate,
     campaignUrl: safeCampaignUrl(creative.campaignUrl),
     clickUrl: promotionClickHref(creative),
+    ingestedAt: creative.fetchedAt,
     ...ownImage(images?.get(creativeImageMaterialKey(creative.market, creative.affiliateSiteId, creative.materialItemId))),
   };
 }
@@ -250,6 +253,7 @@ function promotionCard(
     expirationDate: promotion.expirationDate,
     campaignUrl: safeCampaignUrl(promotion.campaignUrl),
     clickUrl: null,
+    ingestedAt: promotion.ingestedAt ?? null,
     imageUrl: null,
     imageWidth: null,
     imageHeight: null,

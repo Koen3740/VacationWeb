@@ -1,16 +1,21 @@
 /**
- * Newest offer first. No provider rank and no hero slot.
+ * Newest active offer first. No provider rank.
  *
- * `listedAt` is the date already on the stream card:
- * a creative's TradeTracker `validFromDate`, or a news item's `publishDate`.
- * A date-only value is the UTC calendar day. A full timestamp is parsed as absolute time.
- * An offer with no usable date sorts after every dated offer.
- * Equal dates, and offers with no date, break the tie by id descending so the order stays stable.
+ * Each offer uses the first date it actually has, in this order:
+ * 1. publish or start date
+ * 2. validity start
+ * 3. ingest time
+ *
+ * A date-only value is the UTC calendar day. A full timestamp is absolute time.
+ * An offer with none of these dates sorts after every dated offer.
+ * Remaining ties break by id descending.
  */
 
 export type DatedOffer = {
   id: string;
-  listedAt: string | null;
+  publishedAt: string | null;
+  validFrom: string | null;
+  ingestedAt: string | null;
 };
 
 export function offerListedAtMs(value: string | null): number | null {
@@ -26,10 +31,14 @@ export function offerListedAtMs(value: string | null): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
+export function offerSortMs(offer: DatedOffer): number | null {
+  return offerListedAtMs(offer.publishedAt) ?? offerListedAtMs(offer.validFrom) ?? offerListedAtMs(offer.ingestedAt);
+}
+
 export function sortOffersNewestFirst<T extends DatedOffer>(offers: readonly T[]): T[] {
   return [...offers].sort((a, b) => {
-    const aMs = offerListedAtMs(a.listedAt);
-    const bMs = offerListedAtMs(b.listedAt);
+    const aMs = offerSortMs(a);
+    const bMs = offerSortMs(b);
     if (aMs !== null && bMs !== null && aMs !== bMs) {
       return bMs - aMs;
     }

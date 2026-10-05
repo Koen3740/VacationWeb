@@ -1,10 +1,8 @@
 import { AanbiedingenExperience } from '@/components/promotions/aanbiedingen-experience';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import { ResultsUspBar } from '@/components/results-v2/results-usp-bar';
-import { corendonHomepageActions } from '@/lib/tradetracker/promotions/corendon-homepage-actions';
-import { editorialOffersFromCards } from '@/lib/tradetracker/promotions/editorial-offers';
 import { loadAanbiedingenByMarkets } from '@/lib/tradetracker/promotions/load-aanbiedingen';
-import { sortOffersNewestFirst } from '@/lib/tradetracker/promotions/sort-offers';
+import { presentAanbiedingenOffers } from '@/lib/tradetracker/promotions/present-aanbiedingen';
 import { resolveSiteMarketFromHost } from '@/lib/search/site-market';
 import type { VacationWebPromotionMarket } from '@/lib/tradetracker/promotions/select-displayable';
 import type { Metadata } from 'next';
@@ -26,7 +24,7 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: 'Aanbiedingen | VacationWeb',
-  description: 'Vakantieacties met een concreet voordeel.',
+  description: 'Extra voordeel op een selectie vakanties.',
 };
 
 export const runtime = 'nodejs';
@@ -49,14 +47,9 @@ export default async function AanbiedingenPage() {
   const markets = marketsForHost(host);
   const loaded = await loadAanbiedingenByMarkets(markets);
   const sections = loaded.map((section) => {
-    const curated = corendonHomepageActions(section.market);
-    const curatedIds = new Set(curated.map((offer) => offer.id));
-    const extra = section.error
-      ? []
-      : editorialOffersFromCards(section.cards).filter((offer) => !curatedIds.has(offer.id));
     return {
       market: section.market,
-      offers: sortOffersNewestFirst([...curated, ...extra]),
+      offers: presentAanbiedingenOffers(section.market, section.error ? [] : section.cards),
       error: false,
     };
   });
@@ -82,7 +75,7 @@ export default async function AanbiedingenPage() {
               Zin in je volgende vakantie?
             </h1>
             <p className="mt-4 max-w-[34rem] text-[17px] leading-relaxed text-[#243E68]">
-              Acties met een concreet voordeel. Bekijk ze en plan je reis.
+              Extra voordeel bij onze reispartners. Kies een actie en plan je reis.
             </p>
           </div>
           <Link href="/" className="text-[14px] font-medium text-[#0A2D62] underline decoration-[#E4D8C4] underline-offset-4">

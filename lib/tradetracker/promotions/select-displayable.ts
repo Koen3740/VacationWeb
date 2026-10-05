@@ -32,6 +32,8 @@ export type DisplayablePromotion = {
   discountVariable?: string | null;
   voucherCode?: string | null;
   conditions?: string | null;
+  /** Promotion snapshot ingest time. Not an offer start date. */
+  ingestedAt?: string | null;
 };
 
 const DISPLAYABLE_NEWS = new Set<string>(DISPLAYABLE_CAMPAIGN_NEWS_TYPES);
@@ -189,22 +191,23 @@ export function selectDisplayablePromotions(
 ): DisplayablePromotion[] {
   const out: DisplayablePromotion[] = [];
 
+  const ingestedAt = snapshot.ingestedAt;
   for (const item of snapshot.newsItems) {
     const selected = fromNews(item, market);
     if (selected) {
-      out.push(selected);
+      out.push({ ...selected, ingestedAt });
     }
   }
   for (const item of snapshot.incentiveOffers) {
     const selected = fromIncentive(item, market);
     if (selected) {
-      out.push(selected);
+      out.push({ ...selected, ingestedAt });
     }
   }
   for (const item of snapshot.vouchers) {
     const selected = fromIncentive(item, market);
     if (selected) {
-      out.push(selected);
+      out.push({ ...selected, ingestedAt });
     }
   }
 

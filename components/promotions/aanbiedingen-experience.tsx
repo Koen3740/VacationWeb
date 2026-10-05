@@ -8,6 +8,9 @@ export type AanbiedingenExperienceSection = {
   error: boolean;
 };
 
+const WIDE_CARD_CLASS =
+  'grid w-full overflow-hidden rounded-[22px] bg-white shadow-[0_22px_50px_rgba(10,45,98,0.08)] ring-1 ring-[#E7DCC8] md:grid-cols-2';
+
 function safeImageSrc(value: string): string | null {
   if (!value || value.includes('/i?') || value.includes('/c?') || value.includes('://') || value.includes('corendonresources.com')) {
     return null;
@@ -33,84 +36,75 @@ function safeClickHref(value: string): string | null {
   }
 }
 
-function sceneKey(id: string): string {
-  const key = id.replace(/[^a-zA-Z0-9]/g, '');
-  return key || 'scene';
+function amountClass(amount: string): string {
+  const compact = amount.replace(/\s+/g, '');
+  if (compact.length <= 5) {
+    return 'text-[4.4rem] leading-[0.84] sm:text-[5.5rem]';
+  }
+  if (amount.length <= 18) {
+    return 'text-[2.35rem] leading-[0.95] sm:text-[2.9rem]';
+  }
+  return 'text-[1.7rem] leading-tight sm:text-[2rem]';
 }
 
-function DiscountBadge({ offer }: { offer: EditorialOffer }) {
+function BenefitBadge({ offer }: { offer: EditorialOffer }) {
+  const long = offer.benefitAmount.length > 8;
   return (
-    <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-[#E8C547] text-center text-[#0A2D62] shadow-[0_16px_40px_rgba(10,45,98,0.18)] ring-4 ring-white/70">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.16em]">{offer.benefitLead}</span>
+    <div
+      className={
+        long
+          ? 'max-w-[13rem] rounded-2xl bg-[#E8C547] px-4 py-3 text-center text-[#0A2D62] shadow-[0_12px_30px_rgba(10,45,98,0.16)] ring-4 ring-white/80'
+          : 'flex h-[7.25rem] w-[7.25rem] flex-col items-center justify-center rounded-full bg-[#E8C547] text-center text-[#0A2D62] shadow-[0_12px_30px_rgba(10,45,98,0.16)] ring-4 ring-white/80'
+      }
+    >
+      {offer.benefitLead ? <span className="text-[10px] font-semibold uppercase tracking-[0.16em]">{offer.benefitLead}</span> : null}
       <span
-        className="mt-1 font-semibold leading-none tracking-[-0.04em] text-[1.65rem]"
+        className={`mt-1 font-semibold tracking-[-0.04em] ${long ? 'text-[1.35rem] leading-tight' : 'max-w-[6.2rem] text-[1.55rem] leading-none'}`}
         style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
       >
         {offer.benefitAmount}
       </span>
       {offer.benefitTail ? (
-        <span className="mt-1 max-w-[6.2rem] text-[8px] font-semibold uppercase leading-tight tracking-[0.06em]">
-          {offer.benefitTail}
-        </span>
+        <span className="mt-1 max-w-[6.2rem] text-[8px] font-semibold uppercase leading-tight tracking-[0.06em]">{offer.benefitTail}</span>
       ) : null}
     </div>
   );
 }
 
-function VacationScene({ offer }: { offer: EditorialOffer }) {
+function OfferVisual({ offer }: { offer: EditorialOffer }) {
   const image = safeImageSrc(offer.imageUrl);
-  const key = sceneKey(offer.id);
+  if (image) {
+    return (
+      <div data-photo="campaign" className="relative min-h-[16.5rem] md:min-h-[19rem]">
+        <img src={image} alt={offer.imageAlt} className="absolute inset-0 h-full w-full object-cover object-center" />
+        <div className="absolute right-4 top-4">
+          <BenefitBadge offer={offer} />
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="relative min-h-[13.5rem] overflow-hidden">
-      {image ? (
-        <img src={image} alt={offer.imageAlt} className="absolute inset-0 h-full w-full object-cover" />
-      ) : (
-        <svg viewBox="0 0 800 560" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden>
-          <defs>
-            <linearGradient id={`${key}-sky`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6EBFEE" />
-              <stop offset="46%" stopColor="#D4F0FF" />
-              <stop offset="100%" stopColor="#F8E7B0" />
-            </linearGradient>
-            <linearGradient id={`${key}-sea`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#49C0DC" />
-              <stop offset="100%" stopColor="#1878A2" />
-            </linearGradient>
-          </defs>
-          <rect width="800" height="560" fill={`url(#${key}-sky)`} />
-          <circle cx="640" cy="118" r="108" fill="#FFF6D0" opacity="0.9" />
-          <circle cx="640" cy="118" r="62" fill="#F3D36A" />
-          <g fill="#FFFFFF">
-            <ellipse cx="168" cy="96" rx="78" ry="24" opacity="0.92" />
-            <ellipse cx="224" cy="84" rx="46" ry="20" opacity="0.92" />
-            <ellipse cx="122" cy="82" rx="36" ry="16" opacity="0.88" />
-            <ellipse cx="430" cy="70" rx="54" ry="16" opacity="0.72" />
-          </g>
-          <path d="M40 318c70-46 130-28 176 6 28 20 18 8 18 8" fill="#8ECAE6" opacity="0.55" />
-          <path d="M520 300c48-36 110-22 168 8v40c-70-28-120-18-168-8z" fill="#7EC4B0" opacity="0.45" />
-          <path d="M0 348c90-28 150 24 250-4 110-30 150 28 260-8 90-28 180 8 290-16v240H0V348z" fill={`url(#${key}-sea)`} />
-          <path d="M0 392c120-36 190 20 310-8 130-30 180 22 300-10 40-8 120 6 190-12" fill="none" stroke="#FFFFFF" strokeOpacity="0.55" strokeWidth="4" />
-          <path d="M0 468c140-28 240 24 400-6 120-22 220 16 400-18v116H0V468z" fill="#F6D7A6" />
-          <path d="M0 500c160 16 280-20 460 8 90 10 200-8 340-4v56H0v-60z" fill="#E8C48A" opacity="0.65" />
-          <g transform="translate(78 250)">
-            <path d="M46 250c10-70 2-130 14-196" fill="none" stroke="#7A5230" strokeWidth="11" strokeLinecap="round" />
-            <ellipse cx="58" cy="48" rx="16" ry="52" fill="#1B6B3C" transform="rotate(-8 58 48)" />
-            <ellipse cx="58" cy="50" rx="14" ry="48" fill="#22864A" transform="rotate(28 58 50)" />
-            <ellipse cx="58" cy="52" rx="13" ry="44" fill="#145C32" transform="rotate(-42 58 52)" />
-            <ellipse cx="58" cy="54" rx="12" ry="40" fill="#2E9458" transform="rotate(62 58 54)" />
-            <ellipse cx="58" cy="56" rx="11" ry="36" fill="#176B38" transform="rotate(-72 58 56)" />
-          </g>
-        </svg>
-      )}
-      <p
-        className="pointer-events-none absolute bottom-4 left-[34%] text-[16px] text-white/95 drop-shadow-sm"
-        style={{ fontFamily: "Segoe Script, 'Apple Chancery', 'Snell Roundhand', cursive" }}
-        aria-hidden
-      >
-        Tijd voor zon.
-      </p>
-      <div className="absolute right-3 top-3">
-        <DiscountBadge offer={offer} />
+    <div
+      data-photo="none"
+      className="relative flex min-h-[16.5rem] items-center overflow-hidden px-8 py-10 md:min-h-[19rem] md:px-10"
+      style={{ backgroundImage: 'linear-gradient(155deg, #FFF8EE 0%, #F7FBFE 58%, #E7F3FB 100%)' }}
+    >
+      <span className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#E8C547]/30" aria-hidden />
+      <span className="pointer-events-none absolute -bottom-24 -left-16 h-52 w-52 rounded-full bg-[#D7EEF8]" aria-hidden />
+      <div className="relative max-w-[16rem]">
+        {offer.benefitLead ? (
+          <p className="text-[12px] font-semibold uppercase tracking-[0.28em] text-[#8A6A32]">{offer.benefitLead}</p>
+        ) : null}
+        <p
+          className={`mt-2 font-semibold tracking-[-0.045em] text-[#0A2D62] ${amountClass(offer.benefitAmount)}`}
+          style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
+        >
+          {offer.benefitAmount}
+        </p>
+        <span className="mt-5 block h-[3px] w-12 rounded-full bg-[#E8C547]" aria-hidden />
+        {offer.benefitTail ? (
+          <p className="mt-3 text-[13px] font-semibold uppercase tracking-[0.16em] text-[#0A2D62]">{offer.benefitTail}</p>
+        ) : null}
       </div>
     </div>
   );
@@ -126,7 +120,7 @@ function CallToAction({ offer }: { offer: EditorialOffer }) {
       href={click}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-[#E8C547] px-4 py-2.5 text-[13px] font-semibold text-[#0A2D62] shadow-[0_8px_20px_rgba(232,197,71,0.35)] transition hover:bg-[#0A2D62] hover:text-white"
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-[#E8C547] px-5 py-2.5 text-[14px] font-semibold text-[#0A2D62] shadow-[0_8px_20px_rgba(232,197,71,0.35)] transition hover:bg-[#0A2D62] hover:text-white"
     >
       Bekijk de actie
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -136,23 +130,20 @@ function CallToAction({ offer }: { offer: EditorialOffer }) {
   );
 }
 
-const OFFER_CARD_CLASS =
-  'flex h-full flex-col overflow-hidden rounded-[16px] bg-white shadow-[0_14px_36px_rgba(10,45,98,0.07)] ring-1 ring-[#E7DCC8]';
-
-function OfferCard({ offer }: { offer: EditorialOffer }) {
+function WideOffer({ offer }: { offer: EditorialOffer }) {
   return (
-    <article data-placement="offer" className={OFFER_CARD_CLASS}>
-      <VacationScene offer={offer} />
-      <div className="flex flex-1 flex-col px-5 py-6">
+    <article data-placement="offer" className={WIDE_CARD_CLASS}>
+      <OfferVisual offer={offer} />
+      <div className="flex flex-col justify-center px-6 py-8 sm:px-8">
         <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#8A6A32]">{offer.providerName}</p>
         <h3
-          className="mt-2 text-[1.55rem] font-semibold leading-tight tracking-[-0.02em] text-[#0A2D62]"
+          className="mt-3 text-[2rem] font-semibold leading-[1.05] tracking-[-0.03em] text-[#0A2D62] sm:text-[2.35rem]"
           style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
         >
           {offer.title}
         </h3>
-        {offer.summary ? <p className="mt-3 flex-1 text-[14px] leading-relaxed text-[#243E68]">{offer.summary}</p> : null}
-        <div className="mt-5">
+        {offer.summary ? <p className="mt-4 text-[15px] leading-relaxed text-[#243E68]">{offer.summary}</p> : null}
+        <div className="mt-6">
           <CallToAction offer={offer} />
         </div>
       </div>
@@ -173,7 +164,7 @@ export function AanbiedingenExperience({
   }
 
   return (
-    <div className="space-y-16">
+    <div className="space-y-14">
       {sections.map((section) => {
         if (section.offers.length === 0) {
           return null;
@@ -187,9 +178,9 @@ export function AanbiedingenExperience({
             >
               {marketLabel}
             </h2>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="flex flex-col gap-8">
               {section.offers.map((offer) => (
-                <OfferCard key={offer.id} offer={offer} />
+                <WideOffer key={offer.id} offer={offer} />
               ))}
             </div>
           </section>

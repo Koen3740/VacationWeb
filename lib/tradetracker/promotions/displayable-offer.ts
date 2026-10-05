@@ -56,6 +56,16 @@ const NEAR_MISS = /last[\s-]?minute|early[\s-]?booking|vroegboek|korting|discoun
 /** Euro amounts and percentages as written. Zero is not a benefit. */
 const AMOUNT_PATTERN = /€\s?\d{1,5}(?:[.,]\d{1,2})?|\d{1,3}(?:[.,]\d+)?\s?%/gi;
 
+/** Concrete non-money benefits. A bare "gratis" or "last minute" does not match. */
+const FREE_BENEFIT =
+  /(?:(?:1|één|een)\s+kind(?:je)?\s+gratis|(?:2e|2de|tweede)\s+persoon\s+gratis|gratis\s+bagage|bagage\s+gratis|gratis\s+transfer|transfer\s+gratis)/i;
+
+export function concreteFreeBenefit(value: string | null | undefined): string | null {
+  const text = clean(value);
+  const match = FREE_BENEFIT.exec(text);
+  return match?.[0] ?? null;
+}
+
 export function isRejectedGenericLastminuteMaterial(materialItemId: string | null | undefined): boolean {
   if (!materialItemId) {
     return false;
@@ -178,6 +188,16 @@ export function evaluateOfferBenefit(input: OfferBenefitFields): OfferBenefitDec
     return {
       outcome: 'displayable',
       benefitText: amounts.join(' · '),
+      matchedTokens: surfaces,
+    };
+  }
+  const freeBenefits = textFields(input)
+    .map((text) => concreteFreeBenefit(text))
+    .filter((value): value is string => Boolean(value));
+  if (freeBenefits.length > 0) {
+    return {
+      outcome: 'displayable',
+      benefitText: freeBenefits[0] ?? null,
       matchedTokens: surfaces,
     };
   }

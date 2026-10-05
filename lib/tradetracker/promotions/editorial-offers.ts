@@ -2,14 +2,16 @@
  * Editorial offers for `/aanbiedingen`.
  *
  * A card is shown only when the TradeTracker stream already carried a
- * concrete amount, percent, or voucher. Homepage claims that are absent
- * from TradeTracker news and banner materials are not copied in here.
+ * concrete amount, percent, voucher, or a named free benefit such as
+ * “1 kind gratis”. Homepage claims that are absent from TradeTracker
+ * news and banner materials are not copied in here.
  * Materials 2499691–2499700 stay excluded. Kaching is not read.
  */
 
 import type { AanbiedingenCard } from './compose-aanbiedingen';
 import { isOwnCreativeImageUrl } from './creative-image-path';
-import { isRejectedGenericLastminuteMaterial } from './displayable-offer';
+import { concreteFreeBenefit, isRejectedGenericLastminuteMaterial } from './displayable-offer';
+import { compareCalendarDates, toCalendarDate, utcCalendarDate } from './validity';
 import { promotionClickHref } from './promotion-click';
 import type { VacationWebPromotionMarket } from './select-displayable';
 import type { CreativeAllowedProvider } from './types';
@@ -23,11 +25,12 @@ export type EditorialOffer = {
   id: string;
   market: VacationWebPromotionMarket;
   providerName: CreativeAllowedProvider;
-  /**
-   * TradeTracker publish or valid-from date, when the source has one.
-   * Null when that date was not in the source. Used only for newest-first order.
-   */
-  listedAt: string | null;
+  /** News publish date, or a creative start date when that is all the source has. */
+  publishedAt: string | null;
+  /** Validity start when it is stored apart from the publish date. */
+  validFrom: string | null;
+  /** Snapshot or creative fetch time. Last resort for newest-first order. */
+  ingestedAt: string | null;
   title: string;
   benefitLead: string;
   benefitAmount: string;
@@ -75,6 +78,9 @@ function concreteBenefit(value: string | null): boolean {
   if (!value) {
     return false;
   }
+  if (concreteFreeBenefit(value)) {
+    return true;
+  }
   const parts = value
     .split(' · ')
     .map((part) => part.trim())
@@ -86,13 +92,15 @@ function usableStoredImage(card: AanbiedingenCard): string | null {
   if (!isOwnCreativeImageUrl(card.imageUrl) || !card.imageUrl) {
     return null;
   }
-  if (card.imageWidth && card.imageHeight) {
-    const ratio = card.imageWidth / card.imageHeight;
-    if (ratio > 3.4 || ratio < 0.45) {
-      return null;
-    }
-  }
   return card.imageUrl;
+}
+
+function isExpired(expirationDate: string | null, asOfMs: number): boolean {
+  const end = toCalendarDate(expirationDate);
+  if (!end) {
+    return false;
+  }
+  return compareCalendarDates(utcCalendarDate(asOfMs), end) > 0;
 }
 
 function cardClick(card: AanbiedingenCard): string | null {
@@ -113,13 +121,16 @@ function cardClick(card: AanbiedingenCard): string | null {
 
 /**
  * Stream cards that already survived the amount rule.
- * Rejected last-minute materials never pass. Extreme banner sizes are not used as the picture.
- * `listedAt` is the card publish date already stored on the stream (`validFromDate` or news `publishDate`).
+ * Rejected last-minute materials never pass. An allowed own-storage image is kept at any ratio;
+ * the page crops it into the wide card. An expired end date stays off the page.
  */
-export function editorialOffersFromCards(cards: readonly AanbiedingenCard[]): EditorialOffer[] {
+export function editorialOffersFromCards(cards: readonly AanbiedingenCard[], asOfMs = Date.now()): EditorialOffer[] {
   const offers: EditorialOffer[] = [];
   for (const card of cards) {
     if (isRejectedGenericLastminuteMaterial(card.materialItemId)) {
+      continue;
+    }
+    if (isExpired(card.expirationDate, asOfMs)) {
       continue;
     }
     if (card.providerName !== 'Corendon' && card.providerName !== 'Sunweb' && card.providerName !== 'Eliza was here') {
@@ -138,7 +149,9 @@ export function editorialOffersFromCards(cards: readonly AanbiedingenCard[]): Ed
       id: card.id,
       market: card.market,
       providerName,
-      listedAt: card.publishDate,
+      publishedAt: card.publishDate,
+      validFrom: card.publishDate,
+      ingestedAt: card.ingestedAt ?? null,
       title: card.title,
       benefitLead: 'Voordeel',
       benefitAmount: benefit,

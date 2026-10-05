@@ -29,7 +29,11 @@ test('the two Corendon actions render their amounts and click hrefs without a Co
   assert.equal(html.includes('2499691'), false);
   assert.equal(html.includes('Kaching'), false);
   assert.equal((html.match(/data-placement="offer"/g) ?? []).length, 2);
+  assert.equal((html.match(/data-photo="none"/g) ?? []).length, 2);
   assert.equal(html.includes('data-placement="hero"'), false);
+  assert.equal(html.includes('Tijd voor zon'), false);
+  assert.equal(html.includes('6EBFEE'), false);
+  assert.equal(html.includes('viewBox="0 0 800'), false);
   assert.equal(html.includes('Er staat nu geen aanbieding'), false);
   assert.equal(html.includes('uit de bron'), false);
 });
@@ -46,9 +50,33 @@ test('A: one offer is one normal card', () => {
     }),
   );
   assert.equal((html.match(/data-placement="offer"/g) ?? []).length, 1);
+  assert.equal(html.includes('flex flex-col'), true);
   assert.equal(html.includes('data-placement="hero"'), false);
+  assert.equal(html.includes('data-photo="none"'), true);
+  assert.equal(html.includes('<img'), false);
   assert.equal(html.includes('min-h-[26rem]'), false);
   assert.equal(html.includes('lg:grid-cols-['), false);
+  assert.equal(html.includes('Tijd voor zon'), false);
+});
+
+test('C: five offers are five equal wide cards', () => {
+  const base = corendonHomepageActions('nl')[0]!;
+  const offers = Array.from({ length: 5 }, (_, index) => ({
+    ...base,
+    id: `five-${index}`,
+    title: `Aanbieding ${index}`,
+  }));
+  const html = renderToStaticMarkup(
+    React.createElement(AanbiedingenExperience, {
+      showMarketTitles: false,
+      sections: [{ market: 'nl', error: false, offers }],
+    }),
+  );
+  const classes = articleClasses(html);
+  assert.equal(classes.length, 5);
+  assert.equal(new Set(classes).size, 1);
+  assert.match(classes[0] ?? '', /w-full/);
+  assert.equal(html.includes('data-placement="hero"'), false);
 });
 
 test('B: two offers use the same card markup', () => {
@@ -63,7 +91,7 @@ test('B: two offers use the same card markup', () => {
   assert.equal(classes[0], classes[1]);
 });
 
-test('C: offers from several providers stay the same card', () => {
+test('D: offers from several providers stay the same card', () => {
   const base = corendonHomepageActions('nl')[0]!;
   const html = renderToStaticMarkup(
     React.createElement(AanbiedingenExperience, {
@@ -109,6 +137,43 @@ test('E: many offers stay equal cards', () => {
   assert.equal(classes.length, 10);
   assert.equal(new Set(classes).size, 1);
   assert.equal(html.includes('data-placement="hero"'), false);
+});
+
+test('G: an allowed campaign image is rendered inside the wide card', () => {
+  const src = '/aanbiedingen/creative-images/nl/512226/38108/88-780x320-abcdef0123456789.png';
+  const html = renderToStaticMarkup(
+    React.createElement(AanbiedingenExperience, {
+      showMarketTitles: false,
+      sections: [
+        {
+          market: 'nl',
+          error: false,
+          offers: [{ ...corendonHomepageActions('nl')[0]!, imageUrl: src, imageAlt: 'Warme Winter Weken' }],
+        },
+      ],
+    }),
+  );
+  assert.match(html, /data-photo="campaign"/);
+  assert.match(html, new RegExp(`src="${src}"`));
+  assert.match(html, /object-cover/);
+  assert.equal(html.includes('corendonresources'), false);
+  assert.equal(html.includes('/i?'), false);
+});
+
+test('H: no allowed image stays photo-less, without a drawn coast', () => {
+  const html = renderToStaticMarkup(
+    React.createElement(AanbiedingenExperience, {
+      showMarketTitles: false,
+      sections: [{ market: 'nl', error: false, offers: corendonHomepageActions('nl') }],
+    }),
+  );
+  assert.equal((html.match(/data-photo="none"/g) ?? []).length, 2);
+  assert.equal(html.includes('<img'), false);
+  assert.equal(html.includes('Tijd voor zon'), false);
+  assert.equal(html.includes('#6EBFEE'), false);
+  assert.equal(html.includes('6EBFEE'), false);
+  assert.equal(html.includes('corendonresources'), false);
+  assert.equal(html.includes('780x320'), false);
 });
 
 test('a tracking image is not rendered', () => {

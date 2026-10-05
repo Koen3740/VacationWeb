@@ -42,8 +42,10 @@ export function corendonHomepageActions(market: VacationWebPromotionMarket): Edi
       id: `${market}:corendon:warme-winter-weken`,
       market,
       providerName: 'Corendon',
-      // No TradeTracker publishDate or validFromDate exists for this homepage action.
-      listedAt: null,
+      // No TradeTracker publish, validity, or ingest date exists for this homepage action.
+      publishedAt: null,
+      validFrom: null,
+      ingestedAt: null,
       title: 'Warme Winter Weken',
       benefitLead: 'tot',
       benefitAmount: '€600',
@@ -58,7 +60,9 @@ export function corendonHomepageActions(market: VacationWebPromotionMarket): Edi
       id: `${market}:corendon:last-minutes`,
       market,
       providerName: 'Corendon',
-      listedAt: null,
+      publishedAt: null,
+      validFrom: null,
+      ingestedAt: null,
       title: 'Last minutes',
       benefitLead: 'tot',
       benefitAmount: '€200',

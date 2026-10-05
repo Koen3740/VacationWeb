@@ -36,6 +36,20 @@ test('a concrete amount in the source is kept and a bare promo word is not an of
   assert.equal(isDisplayableOffer({ name: 'Banner1-lastminute' }), false);
 });
 
+test('L: a named free benefit is an offer and a bare gratis is not', () => {
+  assert.equal(evaluateOfferBenefit({ description: '1 kind gratis bij deze reis' }).outcome, 'displayable');
+  assert.equal(evaluateOfferBenefit({ description: '1 kind gratis bij deze reis' }).benefitText, '1 kind gratis');
+  assert.equal(evaluateOfferBenefit({ description: 'één kindje gratis' }).benefitText, 'één kindje gratis');
+  assert.equal(evaluateOfferBenefit({ title: '2e persoon gratis' }).outcome, 'displayable');
+  assert.equal(evaluateOfferBenefit({ summary: 'gratis bagage' }).benefitText, 'gratis bagage');
+  assert.equal(evaluateOfferBenefit({ conditions: 'transfer gratis' }).benefitText, 'transfer gratis');
+  assert.equal(evaluateOfferBenefit({ description: 'gratis' }).outcome, 'excluded');
+  assert.equal(evaluateOfferBenefit({ title: 'Ontdek Corendon' }).outcome, 'excluded');
+  assert.equal(evaluateOfferBenefit({ title: 'Boek nu' }).outcome, 'excluded');
+  assert.equal(isDisplayableOffer({ description: '1 kind gratis' }), true);
+  assert.equal(isDisplayableOffer({ description: 'gratis' }), false);
+});
+
 test('generic ads and doubtful compounds are not offers', () => {
   for (const name of ['Banner5', 'Banner 12', 'Banner-12', 'Zonvakantie deze zomer', 'Nazomeractie']) {
     const decision = evaluateOfferBenefit({ name });
