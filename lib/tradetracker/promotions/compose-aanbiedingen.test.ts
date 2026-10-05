@@ -256,8 +256,11 @@ test('compose performs no HTTP', () => {
   }
 });
 
+const offlineRemote = async () => null;
+
 test('page loader keeps primary cards when secondary SOAP fails', async () => {
   const section = await loadAanbiedingenForMarket('nl', {
+    readRemote: offlineRemote,
     loadPrimary: async () => ({
       market: 'nl',
       affiliateSiteId: '512226',
@@ -277,6 +280,7 @@ test('page loader keeps primary cards when secondary SOAP fails', async () => {
 
 test('page loader uses secondary promotions when the creative file is missing', async () => {
   const section = await loadAanbiedingenForMarket('be', {
+    readRemote: offlineRemote,
     loadPrimary: async () => ({
       market: 'be',
       affiliateSiteId: '511873',
@@ -330,13 +334,13 @@ test('selected snapshot reader keeps only the requested market', async () => {
     'utf8',
   );
 
-  const loaded = await loadSelectedCreativesForMarket('nl', { root });
+  const loaded = await loadSelectedCreativesForMarket('nl', { root, readRemote: offlineRemote });
   assert.equal(loaded.status, 'ok');
   assert.equal(loaded.affiliateSiteId, '512226');
   assert.deepEqual(loaded.creatives.map((item) => item.materialItemId), ['55']);
   assert.equal(loaded.skipped, 1);
 
-  const missing = await loadSelectedCreativesForMarket('be', { root });
+  const missing = await loadSelectedCreativesForMarket('be', { root, readRemote: offlineRemote });
   assert.equal(missing.status, 'missing');
   assert.equal(missing.creatives.length, 0);
   assert.equal(missing.affiliateSiteId, '511873');
@@ -352,8 +356,8 @@ test('live selected snapshots link the nine BE offers to their click templates',
     t.skip('Selected creative snapshots are gitignored and are not in this checkout');
     return;
   }
-  const nl = await loadSelectedCreativesForMarket('nl');
-  const be = await loadSelectedCreativesForMarket('be');
+  const nl = await loadSelectedCreativesForMarket('nl', { readRemote: offlineRemote });
+  const be = await loadSelectedCreativesForMarket('be', { readRemote: offlineRemote });
   const nlCards = composeAanbiedingenCards({ market: 'nl', creatives: nl.creatives, secondary: [] });
   const beCards = composeAanbiedingenCards({ market: 'be', creatives: be.creatives, secondary: [] });
   assert.equal(nl.creatives.length, 98);

@@ -35,12 +35,14 @@ export async function loadAanbiedingenForMarket(
     loadPrimary?: (market: VacationWebPromotionMarket) => Promise<LoadedSelectedCreatives>;
     /** Test hook. Production uses the news/incentive SOAP loader. */
     loadSecondary?: (market: VacationWebPromotionMarket) => Promise<LoadedMarketPromotions>;
+    /** Test hook. Production reads the isolated object-storage documents. */
+    readRemote?: (key: string) => Promise<string | null>;
   } = {},
 ): Promise<LoadedAanbiedingenSection> {
   const loadPrimary =
     options.loadPrimary ??
     ((nextMarket: VacationWebPromotionMarket) =>
-      loadSelectedCreativesForMarket(nextMarket, { root: options.root }));
+      loadSelectedCreativesForMarket(nextMarket, { root: options.root, readRemote: options.readRemote }));
   const loadSecondary =
     options.loadSecondary ??
     ((nextMarket: VacationWebPromotionMarket) =>
@@ -50,7 +52,7 @@ export async function loadAanbiedingenForMarket(
     market,
     creatives: primary.creatives,
     secondary: secondary.promotions,
-    images: await loadCreativeImageIndex(options.root),
+    images: await loadCreativeImageIndex(options.root, { readRemote: options.readRemote }),
   });
   const primaryCount = cards.filter((card) => card.source === 'creative').length;
   const secondaryCount = cards.length - primaryCount;
@@ -67,7 +69,11 @@ export async function loadAanbiedingenForMarket(
 
 export async function loadAanbiedingenByMarkets(
   markets: VacationWebPromotionMarket[],
-  options: { bypassCache?: boolean; root?: string } = {},
+  options: {
+    bypassCache?: boolean;
+    root?: string;
+    readRemote?: (key: string) => Promise<string | null>;
+  } = {},
 ): Promise<LoadedAanbiedingenSection[]> {
   return Promise.all(markets.map((market) => loadAanbiedingenForMarket(market, options)));
 }

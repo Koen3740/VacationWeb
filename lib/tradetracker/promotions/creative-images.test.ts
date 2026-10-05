@@ -208,10 +208,12 @@ test('ingest stores only displayable offers and never puts tracking URLs in the 
     putIsolatedBytes: async () => {
       throw new Error('second put');
     },
+    publishDocument: async () => 'unavailable',
   });
   assert.equal(again.skipped, 1);
   assert.equal(again.stored, 0);
   assert.equal(again.failed, 0);
+  assert.equal(again.storage, 'local');
 
   const fileName = report.publicPaths[0]?.split('/').pop() ?? '';
   const local = readLocalCreativeImage(
