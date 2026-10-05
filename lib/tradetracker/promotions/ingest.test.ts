@@ -90,6 +90,9 @@ function fakePort(overrides: Partial<AffiliateSoapPort> = {}): AffiliateSoapPort
         },
       };
     },
+    async getMaterialBannerImageItems() {
+      return { materialItems: { materialItem: [] } };
+    },
     ...overrides,
   };
 }
@@ -208,6 +211,9 @@ test('soap port persists session cookie from authenticate headers', async () => 
       return [{}];
     },
     async getMaterialIncentiveVoucherItemsAsync() {
+      return [{}];
+    },
+    async getMaterialBannerImageItemsAsync() {
       return [{}];
     },
   };

@@ -9,20 +9,57 @@ export const TRADETRACKER_SOURCE = 'tradetracker-affiliate-webservice' as const;
 
 export const TRADETRACKER_CUSTOMER_ID_ENV = 'TRADETRACKER_CUSTOMER_ID';
 export const TRADETRACKER_ACCESS_KEY_ENV = 'TRADETRACKER_ACCESS_KEY';
+/** Belgian access key. Same customer id in practice; the key selects the land. */
+export const TRADETRACKER_BE_CUSTOMER_ID_ENV = 'TRADETRACKER_BE_CUSTOMER_ID';
+export const TRADETRACKER_BE_ACCESS_KEY_ENV = 'TRADETRACKER_BE_ACCESS_KEY';
 export const TRADETRACKER_LOCALE_ENV = 'TRADETRACKER_LOCALE';
 export const TRADETRACKER_SANDBOX_ENV = 'TRADETRACKER_SANDBOX';
 export const TRADETRACKER_DEMO_ENV = 'TRADETRACKER_DEMO';
 export const TRADETRACKER_AFFILIATE_SITE_ID_ENV = 'TRADETRACKER_AFFILIATE_SITE_ID';
 
+export type TradeTrackerCredentialMarket = 'nl' | 'be';
+
 /**
- * VacationWeb TradeTracker affiliate sites.
- * Keep BE and NL contexts separated.
+ * Affiliate sites by access key. A session from one key cannot query the other key's sites.
+ *
+ * NL key (`TRADETRACKER_ACCESS_KEY`):
+ * - 512226 Vacationweb.nl — canonical NL creatives site
+ * - 512055 MKDigitalMedia — NL-key site. Previously mislabeled as a Belgian site.
+ *
+ * BE key (`TRADETRACKER_BE_ACCESS_KEY`):
+ * - 511873 Vacationweb.nl — canonical BE creatives site
+ * - 511747 MKDigitalMedia — secondary BE site
  */
 export const VACATIONWEB_NL_AFFILIATE_SITE_ID = '512226';
-export const VACATIONWEB_BE_AFFILIATE_SITE_ID = '512055';
+export const MKDIGITALMEDIA_NL_AFFILIATE_SITE_ID = '512055';
+export const VACATIONWEB_BE_AFFILIATE_SITE_ID = '511873';
+export const MKDIGITALMEDIA_BE_AFFILIATE_SITE_ID = '511747';
 
 /** @deprecated Prefer VACATIONWEB_NL_AFFILIATE_SITE_ID */
 export const VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID = VACATIONWEB_NL_AFFILIATE_SITE_ID;
+
+/**
+ * Slice-1 campaign creatives. Corendon only.
+ * Material ids are not hardcoded; they come from getMaterialBannerImageItems.
+ */
+export const TRADETRACKER_CREATIVE_CAMPAIGNS_V1: Record<
+  TradeTrackerCredentialMarket,
+  readonly { campaignId: string; label: string }[]
+> = {
+  nl: [{ campaignId: '38108', label: 'Corendon NL' }],
+  be: [{ campaignId: '38103', label: 'Corendon BE' }],
+};
+
+export const TRADETRACKER_CREATIVE_CANONICAL_SITE: Record<TradeTrackerCredentialMarket, string> = {
+  nl: VACATIONWEB_NL_AFFILIATE_SITE_ID,
+  be: VACATIONWEB_BE_AFFILIATE_SITE_ID,
+};
+
+/** Optional. The creatives CLI fetches these only with `--include-secondary`. */
+export const TRADETRACKER_CREATIVE_SECONDARY_SITE: Record<TradeTrackerCredentialMarket, string> = {
+  nl: MKDIGITALMEDIA_NL_AFFILIATE_SITE_ID,
+  be: MKDIGITALMEDIA_BE_AFFILIATE_SITE_ID,
+};
 
 /** WSDL Locale enumeration; override with TRADETRACKER_LOCALE. */
 export const TRADETRACKER_DEFAULT_LOCALE = 'nl_BE';

@@ -3,12 +3,15 @@ import path from 'node:path';
 import {
   TRADETRACKER_ACCESS_KEY_ENV,
   TRADETRACKER_AFFILIATE_SITE_ID_ENV,
+  TRADETRACKER_BE_ACCESS_KEY_ENV,
+  TRADETRACKER_BE_CUSTOMER_ID_ENV,
   TRADETRACKER_CUSTOMER_ID_ENV,
   TRADETRACKER_DEFAULT_LOCALE,
   TRADETRACKER_DEMO_ENV,
   TRADETRACKER_LOCALE_ENV,
   TRADETRACKER_SANDBOX_ENV,
   VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID,
+  type TradeTrackerCredentialMarket,
 } from './constants';
 import { TradeTrackerCredentialsError } from './errors';
 import type { TradeTrackerSoapCredentials } from './types';
@@ -55,6 +58,20 @@ type CredentialOptions = {
   loadFiles?: boolean;
   /** Optional env bag; defaults to `process.env`. */
   env?: Record<string, string | undefined>;
+  /**
+   * NL reads TRADETRACKER_CUSTOMER_ID + TRADETRACKER_ACCESS_KEY.
+   * BE reads TRADETRACKER_BE_CUSTOMER_ID + TRADETRACKER_BE_ACCESS_KEY.
+   * Default `nl` keeps existing promotion ingest on the NL key.
+   */
+  market?: TradeTrackerCredentialMarket;
+};
+
+const CREDENTIAL_ENV_BY_MARKET: Record<
+  TradeTrackerCredentialMarket,
+  { customer: string; access: string }
+> = {
+  nl: { customer: TRADETRACKER_CUSTOMER_ID_ENV, access: TRADETRACKER_ACCESS_KEY_ENV },
+  be: { customer: TRADETRACKER_BE_CUSTOMER_ID_ENV, access: TRADETRACKER_BE_ACCESS_KEY_ENV },
 };
 
 function readEnv(name: string, env: Record<string, string | undefined> = process.env): string | undefined {
@@ -75,29 +92,31 @@ export function getTradeTrackerSoapCredentials(
   }
 
   const env = options.env ?? process.env;
-  const customerRaw = readEnv(TRADETRACKER_CUSTOMER_ID_ENV, env);
-  const passphrase = readEnv(TRADETRACKER_ACCESS_KEY_ENV, env);
+  const market = options.market ?? 'nl';
+  const names = CREDENTIAL_ENV_BY_MARKET[market];
+  const customerRaw = readEnv(names.customer, env);
+  const passphrase = readEnv(names.access, env);
 
   if (!customerRaw && !passphrase) {
     throw new TradeTrackerCredentialsError(
-      `Missing required environment variables: ${TRADETRACKER_CUSTOMER_ID_ENV}, ${TRADETRACKER_ACCESS_KEY_ENV}`,
+      `Missing required environment variables: ${names.customer}, ${names.access}`,
     );
   }
   if (!customerRaw) {
     throw new TradeTrackerCredentialsError(
-      `Missing required environment variable: ${TRADETRACKER_CUSTOMER_ID_ENV}`,
+      `Missing required environment variable: ${names.customer}`,
     );
   }
   if (!passphrase) {
     throw new TradeTrackerCredentialsError(
-      `Missing required environment variable: ${TRADETRACKER_ACCESS_KEY_ENV}`,
+      `Missing required environment variable: ${names.access}`,
     );
   }
 
   const customerID = Number(customerRaw);
   if (!Number.isInteger(customerID) || customerID < 0) {
     throw new TradeTrackerCredentialsError(
-      `${TRADETRACKER_CUSTOMER_ID_ENV} must be a non-negative integer`,
+      `${names.customer} must be a non-negative integer`,
     );
   }
 

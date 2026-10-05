@@ -1,4 +1,4 @@
-import type { CampaignNewsType } from './constants';
+import type { CampaignNewsType, TradeTrackerCredentialMarket } from './constants';
 
 export type PromotionalSourceKind =
   | 'campaign'
@@ -115,4 +115,174 @@ export type TradeTrackerSoapCredentials = {
   sandbox: boolean;
   locale: string;
   demo: boolean;
+};
+
+/**
+ * One official banner creative from getMaterialBannerImageItems.
+ * Image bytes are not stored. `embedCode` is the SOAP html `code`.
+ */
+export type TradeTrackerBannerCreativeRecord = {
+  source: typeof import('./constants').TRADETRACKER_SOURCE;
+  kind: 'banner_image';
+  materialItemId: string;
+  name: string;
+  campaignId: string | null;
+  campaignName: string | null;
+  campaignUrl: string | null;
+  affiliateSiteId: string;
+  market: TradeTrackerCredentialMarket;
+  width: number | null;
+  height: number | null;
+  dimensionId: string | null;
+  isMobile: boolean | null;
+  isCommon: boolean | null;
+  referenceSupported: boolean | null;
+  description: string | null;
+  conditions: string | null;
+  validFromDate: string | null;
+  validToDate: string | null;
+  discountFixed: string | null;
+  discountVariable: string | null;
+  voucherCode: string | null;
+  creationDate: string | null;
+  modificationDate: string | null;
+  /** Present only when the SOAP item carries a status field. MaterialItem has none in the WSDL. */
+  status: string | null;
+  embedCode: string | null;
+  trackingClickUrlTemplate: string | null;
+  impressionUrlTemplate: string | null;
+  /** Non-impression image URL found in `code`, such as static.tradetracker.net. No network resolve. */
+  staticImageUrlHint: string | null;
+  validity: PromotionalValidity;
+  fetchedAt: string;
+  sourceMetadata: Record<string, unknown>;
+};
+
+export type TradeTrackerCreativeSnapshotCounts = {
+  creatives: number;
+  campaignsRequested: number;
+  methodErrors: number;
+  byCampaignId: Record<string, number>;
+};
+
+/**
+ * Providers Slice 2 may mark displayable.
+ * Strings match the runtime catalog names (Corendon, Sunweb, Eliza was here).
+ * `unknown` is fail-closed and never appears on a selected creative.
+ */
+export const CREATIVE_ALLOWED_PROVIDERS = ['Corendon', 'Sunweb', 'Eliza was here'] as const;
+
+export type CreativeAllowedProvider = (typeof CREATIVE_ALLOWED_PROVIDERS)[number];
+
+export type CreativeProviderMapping = CreativeAllowedProvider | 'unknown';
+
+/** How a creative relates to other material ids. Different ids are not collapsed. */
+export type CreativeMaterialRelation =
+  | 'unique'
+  | 'dimension_variant'
+  | 'same_dimension_distinct_material';
+
+export type CreativeExclusionReason =
+  | 'unknown_market'
+  | 'market_mismatch'
+  | 'non_canonical_site'
+  | 'unknown_campaign'
+  | 'market_campaign_mismatch'
+  | 'unknown_provider'
+  | 'expired'
+  | 'missing_title'
+  | 'missing_material_id'
+  | 'missing_dimensions'
+  | 'missing_click_template'
+  | 'missing_embed'
+  | 'duplicate_material';
+
+export type CreativeExclusion = {
+  materialItemId: string | null;
+  dedupeKey: string | null;
+  reason: CreativeExclusionReason;
+};
+
+/**
+ * Canonical creative for a later /aanbiedingen loader.
+ * Metadata and URL templates only. No image bytes and no tracking requests.
+ */
+export type SelectedTradeTrackerCreative = {
+  id: string;
+  dedupeKey: string;
+  provider: CreativeAllowedProvider;
+  market: TradeTrackerCredentialMarket;
+  campaignId: string;
+  campaignName: string;
+  campaignUrl: string | null;
+  affiliateSiteId: string;
+  materialItemId: string;
+  title: string;
+  creativeType: 'banner_image';
+  width: number;
+  height: number;
+  dimensionId: string | null;
+  isMobile: boolean | null;
+  isCommon: boolean | null;
+  relation: CreativeMaterialRelation;
+  validity: PromotionalValidity;
+  validFromDate: string | null;
+  validToDate: string | null;
+  /** Null unless TradeTracker supplied the field. Never a synthesized discount claim. */
+  discountFixed: string | null;
+  discountVariable: string | null;
+  voucherCode: string | null;
+  description: string | null;
+  conditions: string | null;
+  embedCode: string | null;
+  staticImageUrlHint: string | null;
+  trackingClickUrlTemplate: string;
+  impressionUrlTemplate: string | null;
+  referenceSupported: boolean | null;
+  source: typeof import('./constants').TRADETRACKER_SOURCE;
+  sourceSnapshot: string;
+  fetchedAt: string;
+  displayable: true;
+};
+
+export type CreativeSelectionDedupe = {
+  /** market|affiliateSiteId|materialItemId. Same id in another market or site stays distinct. */
+  key: 'market|affiliateSiteId|materialItemId';
+  collapsed: number;
+  relations: Record<CreativeMaterialRelation, number>;
+};
+
+export type SelectedTradeTrackerCreativeSnapshot = {
+  source: typeof import('./constants').TRADETRACKER_SOURCE;
+  /** Copied from the source snapshot so regeneration does not depend on the clock. */
+  selectedAt: string;
+  snapshotIngestedAt: string;
+  wsdlUrl: string;
+  market: TradeTrackerCredentialMarket;
+  scopedAffiliateSiteId: string;
+  sourceSnapshot: string;
+  imageDelivery: 'metadata-and-embed-code';
+  inputCount: number;
+  selectedCount: number;
+  excludedCount: number;
+  providers: Record<string, number>;
+  dedupe: CreativeSelectionDedupe;
+  exclusions: CreativeExclusion[];
+  creatives: SelectedTradeTrackerCreative[];
+};
+
+export type TradeTrackerCreativeSnapshot = {
+  source: typeof import('./constants').TRADETRACKER_SOURCE;
+  ingestedAt: string;
+  wsdlUrl: string;
+  market: TradeTrackerCredentialMarket;
+  scopedAffiliateSiteId: string;
+  /** Access key that authenticated this snapshot. Matches `market` for v1. */
+  credentialScope: TradeTrackerCredentialMarket;
+  /** Slice 1 stores SOAP metadata and html `code` only. */
+  imageDelivery: 'metadata-and-embed-code';
+  campaignIds: string[];
+  creatives: TradeTrackerBannerCreativeRecord[];
+  methodErrors: MethodIngestError[];
+  counts: TradeTrackerCreativeSnapshotCounts;
 };

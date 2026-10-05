@@ -95,6 +95,21 @@ test('keeps active Corendon consumer promo and drops Alsa-Nature / Journaway / o
           kind: 'consumer_promotion',
           newsItemId: '1',
           newsType: 'campaign_update_consumer',
+          title: 'Corendon NL - Vroegboek korting',
+          content: 'Vroegboek op geselecteerde vertrekdata.',
+          publishDate: '2026-09-01',
+          expirationDate: '2026-09-30',
+          campaignId: '38108',
+          campaignName: 'Corendon NL',
+          campaignUrl: 'https://www.corendon.nl/',
+          validity: activeValidity('2026-09-01', '2026-09-30'),
+          sourceMetadata: {},
+        },
+        {
+          source: 'tradetracker-affiliate-webservice',
+          kind: 'consumer_promotion',
+          newsItemId: '11',
+          newsType: 'campaign_update_consumer',
           title: 'Corendon NL - Nazomer Deals',
           content: 'Boek nu je nazomervakantie met Corendon.',
           publishDate: '2026-09-01',
@@ -156,8 +171,9 @@ test('keeps active Corendon consumer promo and drops Alsa-Nature / Journaway / o
   );
   assert.equal(selected.length, 1);
   assert.equal(selected[0]?.providerName, 'Corendon');
-  assert.equal(selected[0]?.title, 'Nazomer Deals');
-  assert.match(selected[0]?.summary ?? '', /nazomer/i);
+  assert.equal(selected[0]?.title, 'Vroegboek korting');
+  assert.match(selected[0]?.summary ?? '', /vroegboek/i);
+  assert.equal(selected.some((item) => /nazomer/i.test(item.title)), false);
   assert.equal('affiliateSiteId' in (selected[0] as object), false);
 });
 

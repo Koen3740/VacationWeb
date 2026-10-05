@@ -1,5 +1,6 @@
 import { DISPLAYABLE_CAMPAIGN_NEWS_TYPES } from './constants';
 import { resolveConnectedProvider } from './connected-providers';
+import { isDisplayableOffer } from './displayable-offer';
 import type {
   TradeTrackerCampaignNewsRecord,
   TradeTrackerIncentiveRecord,
@@ -25,6 +26,12 @@ export type DisplayablePromotion = {
   campaignUrl: string | null;
   publishDate: string | null;
   expirationDate: string | null;
+  /** Unsummarized source copy used to re-check the concrete-benefit rule. */
+  sourceText?: string | null;
+  discountFixed?: string | null;
+  discountVariable?: string | null;
+  voucherCode?: string | null;
+  conditions?: string | null;
 };
 
 const DISPLAYABLE_NEWS = new Set<string>(DISPLAYABLE_CAMPAIGN_NEWS_TYPES);
@@ -96,6 +103,10 @@ function fromNews(
     return null;
   }
 
+  if (!isDisplayableOffer({ title: item.title, description: item.content })) {
+    return null;
+  }
+
   const title = cleanTitle(item.title || item.campaignName || '', providerName);
   const summary = summarize(item.content || item.title || '');
   if (!summary && !title) {
@@ -112,6 +123,7 @@ function fromNews(
     campaignUrl: item.campaignUrl,
     publishDate: item.publishDate,
     expirationDate: item.expirationDate,
+    sourceText: stripHtml(item.content || item.title || ''),
   };
 }
 
@@ -131,6 +143,19 @@ function fromIncentive(
     return null;
   }
 
+  if (
+    !isDisplayableOffer({
+      name: item.name,
+      description: item.description,
+      conditions: item.conditions,
+      discountFixed: item.discountFixed,
+      discountVariable: item.discountVariable,
+      voucherCode: item.voucherCode,
+    })
+  ) {
+    return null;
+  }
+
   const title = cleanTitle(item.name, providerName);
   const summary = summarize(
     [item.description, item.conditions].filter(Boolean).join(' ') || item.name,
@@ -146,6 +171,11 @@ function fromIncentive(
     campaignUrl: item.campaignUrl,
     publishDate: item.validFromDate,
     expirationDate: item.validToDate,
+    sourceText: [item.description, item.conditions].filter(Boolean).join(' ') || item.name,
+    discountFixed: item.discountFixed,
+    discountVariable: item.discountVariable,
+    voucherCode: item.voucherCode,
+    conditions: item.conditions,
   };
 }
 
