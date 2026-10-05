@@ -9,10 +9,10 @@ export type AanbiedingenExperienceSection = {
 };
 
 function safeImageSrc(value: string): string | null {
-  if (!value || value.includes('/i?') || value.includes('/c?') || value.includes('://')) {
+  if (!value || value.includes('/i?') || value.includes('/c?') || value.includes('://') || value.includes('corendonresources.com')) {
     return null;
   }
-  if (value.startsWith('/aanbiedingen/creative-images/')) {
+  if (value.startsWith('/aanbiedingen/creative-images/') && !value.includes('/homepage/')) {
     return value;
   }
   return null;
@@ -33,7 +33,29 @@ function safeClickHref(value: string): string | null {
   }
 }
 
-function OfferCopy({ offer, tone }: { offer: EditorialOffer; tone: 'light' | 'ink' }) {
+function Amount({ offer, tone }: { offer: EditorialOffer; tone: 'light' | 'ink' }) {
+  const light = tone === 'light';
+  return (
+    <div>
+      <p className={`text-[13px] font-semibold uppercase tracking-[0.34em] ${light ? 'text-white/70' : 'text-[#8A6A32]'}`}>
+        {offer.benefitLead}
+      </p>
+      <p
+        className={`mt-1 text-[5.4rem] font-semibold leading-[0.85] tracking-[-0.05em] sm:text-[7.5rem] ${light ? 'text-white' : 'text-[#0A2D62]'}`}
+        style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
+      >
+        {offer.benefitAmount}
+      </p>
+      {offer.benefitTail ? (
+        <p className={`mt-3 text-[1.15rem] font-medium tracking-[0.14em] sm:text-[1.35rem] ${light ? 'text-[#E8C547]' : 'text-[#0A2D62]'}`}>
+          {offer.benefitTail}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function OfferText({ offer, tone }: { offer: EditorialOffer; tone: 'light' | 'ink' }) {
   const light = tone === 'light';
   const click = safeClickHref(offer.clickUrl);
   return (
@@ -42,25 +64,11 @@ function OfferCopy({ offer, tone }: { offer: EditorialOffer; tone: 'light' | 'in
         {offer.providerName}
       </p>
       <h2
-        className="mt-3 max-w-[12ch] text-[2.6rem] font-semibold leading-[0.98] tracking-[-0.035em] sm:text-[3.4rem]"
+        className="mt-3 max-w-[12ch] text-[2.5rem] font-semibold leading-[0.98] tracking-[-0.035em] sm:text-[3.3rem]"
         style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
       >
         {offer.title}
       </h2>
-      <p className={`mt-8 text-[13px] font-semibold uppercase tracking-[0.34em] ${light ? 'text-white/75' : 'text-[#8A6A32]'}`}>
-        {offer.benefitLead}
-      </p>
-      <p
-        className="mt-1 text-[5.2rem] font-semibold leading-none tracking-[-0.045em] sm:text-[7rem]"
-        style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
-      >
-        {offer.benefitAmount}
-      </p>
-      {offer.benefitTail ? (
-        <p className={`mt-2 text-[1.2rem] font-medium tracking-[0.12em] sm:text-[1.4rem] ${light ? 'text-[#E8C547]' : 'text-[#0A2D62]'}`}>
-          {offer.benefitTail}
-        </p>
-      ) : null}
       {offer.summary ? (
         <p className={`mt-6 max-w-[34rem] text-[16px] leading-relaxed sm:text-[17px] ${light ? 'text-white/88' : 'text-[#243E68]'}`}>
           {offer.summary}
@@ -82,43 +90,54 @@ function OfferCopy({ offer, tone }: { offer: EditorialOffer; tone: 'light' | 'in
   );
 }
 
-function OfferFigure({ offer, className }: { offer: EditorialOffer; className: string }) {
+function AllowedFigure({ offer }: { offer: EditorialOffer }) {
   const src = safeImageSrc(offer.imageUrl);
   if (!src) {
     return null;
   }
-  return <img src={src} alt={offer.imageAlt} className={className} />;
+  return <img src={src} alt={offer.imageAlt} className="h-full w-full object-cover" />;
 }
 
 function HeroOffer({ offer }: { offer: EditorialOffer }) {
+  const figure = <AllowedFigure offer={offer} />;
   return (
-    <article className="group relative isolate min-h-[38rem] overflow-hidden bg-[#071833] sm:min-h-[42rem]">
-      <OfferFigure
-        offer={offer}
-        className="absolute inset-0 h-full w-full object-cover object-[18%_center] transition duration-700 ease-out group-hover:scale-[1.03]"
-      />
-      <div
-        className="absolute inset-0 bg-gradient-to-t from-[#071833] via-[#071833]/80 to-[#071833]/20 sm:bg-gradient-to-r sm:from-[#071833] sm:via-[#071833]/75 sm:to-[#071833]/10"
+    <article className="relative overflow-hidden bg-[#071833]">
+      <p
+        className="pointer-events-none absolute -right-6 top-6 hidden select-none text-[14rem] font-semibold leading-none tracking-[-0.06em] text-white/[0.05] lg:block"
+        style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
         aria-hidden
-      />
-      <div className="relative z-10 flex min-h-[38rem] flex-col justify-end px-6 py-10 sm:min-h-[42rem] sm:max-w-[40rem] sm:justify-center sm:px-12 sm:py-16">
-        <OfferCopy offer={offer} tone="light" />
+      >
+        {offer.benefitAmount.replace(/[^\d]/g, '')}
+      </p>
+      <div className={`relative grid min-h-[34rem] lg:min-h-[40rem] ${figure ? 'lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]' : 'lg:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)]'}`}>
+        {figure ? (
+          <div className="relative min-h-[16rem] overflow-hidden lg:min-h-full">{figure}</div>
+        ) : (
+          <div className="flex flex-col justify-end px-6 py-12 sm:px-12 sm:py-16">
+            <OfferText offer={offer} tone="light" />
+          </div>
+        )}
+        <div className={`flex flex-col justify-end gap-10 border-t border-white/15 px-6 py-12 sm:px-12 lg:border-l lg:border-t-0 ${figure ? '' : 'lg:justify-end'}`}>
+          {figure ? <OfferText offer={offer} tone="light" /> : null}
+          <Amount offer={offer} tone="light" />
+        </div>
       </div>
     </article>
   );
 }
 
 function SupportingOffer({ offer }: { offer: EditorialOffer }) {
+  const figure = <AllowedFigure offer={offer} />;
   return (
-    <article className="grid overflow-hidden bg-[#fffdf8] shadow-[0_28px_70px_rgba(10,45,98,0.08)] lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-      <div className="group relative min-h-[18rem] overflow-hidden bg-[#0A2D62] sm:min-h-[24rem] lg:min-h-full">
-        <OfferFigure
-          offer={offer}
-          className="absolute inset-0 h-full w-full object-cover object-[22%_center] transition duration-700 ease-out group-hover:scale-[1.035]"
-        />
+    <article className="grid overflow-hidden bg-[#fffdf8] lg:grid-cols-[minmax(14rem,0.78fr)_minmax(0,1.22fr)]">
+      <div className={`flex min-h-[16rem] flex-col justify-end px-6 py-10 sm:px-10 lg:px-12 lg:py-16 ${figure ? 'relative bg-[#0A2D62]' : 'border-b border-[#E4D8C4] lg:border-b-0 lg:border-r'}`}>
+        {figure ? <div className="absolute inset-0">{figure}</div> : <Amount offer={offer} tone="ink" />}
       </div>
       <div className="flex flex-col justify-center px-6 py-10 sm:px-10 lg:px-12 lg:py-16">
-        <OfferCopy offer={offer} tone="ink" />
+        {figure ? <Amount offer={offer} tone="ink" /> : null}
+        <div className={figure ? 'mt-8' : ''}>
+          <OfferText offer={offer} tone="ink" />
+        </div>
       </div>
     </article>
   );
@@ -146,7 +165,7 @@ export function AanbiedingenExperience({
         const supporting = section.offers.filter((offer) => offer.placement !== 'hero');
         const marketLabel = section.market === 'be' ? 'België' : 'Nederland';
         return (
-          <section key={section.market} aria-labelledby={`promotions-${section.market}`} className="space-y-10">
+          <section key={section.market} aria-labelledby={`promotions-${section.market}`} className="space-y-8 lg:space-y-12">
             <h2
               id={`promotions-${section.market}`}
               className={showMarketTitles ? 'text-[13px] font-semibold uppercase tracking-[0.28em] text-[#8A6A32]' : 'sr-only'}

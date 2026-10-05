@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { corendonHomepageActions } from './corendon-homepage-actions';
-import { readHomepageActionImage } from './homepage-action-image';
 import { corendonActionClickHref } from './promotion-click';
 
 test('homepage actions are the two proven Corendon offers with a campaign deeplink', () => {
@@ -21,6 +20,9 @@ test('homepage actions are the two proven Corendon offers with a campaign deepli
   assert.equal(JSON.stringify(nl).includes('2499691'), false);
   assert.equal(JSON.stringify(nl).includes('Kaching'), false);
   assert.equal(nl[0]?.clickUrl.includes('/i?'), false);
+  assert.equal(nl[0]?.imageUrl, '');
+  assert.equal(nl[1]?.imageUrl, '');
+  assert.equal(JSON.stringify(nl).includes('corendonresources'), false);
 });
 
 test('a campaign deeplink only accepts the live action pages', () => {
@@ -30,13 +32,3 @@ test('a campaign deeplink only accepts the live action pages', () => {
   assert.equal(corendonActionClickHref('nl', 'https://evil.example/winterzon'), null);
 });
 
-test('stored homepage images are the HPTO png bytes and foreign names are refused', async () => {
-  const winter = await readHomepageActionImage('warme-winter-weken-780x320.png');
-  const lastMinute = await readHomepageActionImage('last-minutes-oktober-november-780x320.png');
-  assert.equal(winter?.contentType, 'image/png');
-  assert.equal(winter?.bytes.subarray(0, 4).toString('hex'), '89504e47');
-  assert.equal(winter?.bytes.length, 146596);
-  assert.equal(lastMinute?.bytes.length, 56434);
-  assert.equal(await readHomepageActionImage('../secrets.png'), null);
-  assert.equal(await readHomepageActionImage('Banner1-lastminute.png'), null);
-});

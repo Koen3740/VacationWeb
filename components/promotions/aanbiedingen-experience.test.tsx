@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { corendonHomepageActions } from '@/lib/tradetracker/promotions/corendon-homepage-actions';
 import { AanbiedingenExperience } from './aanbiedingen-experience';
 
-test('the two Corendon actions render their amounts, own images, and click hrefs', () => {
+test('the two Corendon actions render their amounts and click hrefs without a Corendon image', () => {
   const html = renderToStaticMarkup(
     React.createElement(AanbiedingenExperience, {
       showMarketTitles: false,
@@ -16,8 +16,9 @@ test('the two Corendon actions render their amounts, own images, and click hrefs
   assert.match(html, /Last minutes/);
   assert.match(html, /€600/);
   assert.match(html, /€200/);
-  assert.match(html, /src="\/aanbiedingen\/creative-images\/homepage\/warme-winter-weken-780x320\.png"/);
-  assert.match(html, /src="\/aanbiedingen\/creative-images\/homepage\/last-minutes-oktober-november-780x320\.png"/);
+  assert.equal(html.includes('<img'), false);
+  assert.equal(html.includes('corendonresources'), false);
+  assert.equal(html.includes('780x320'), false);
   assert.match(html, /href="https:\/\/referral\.corendon\.nl\/c\?c=38108&amp;m=0&amp;a=512226&amp;r=&amp;u=https%3A%2F%2Fwww\.corendon\.nl%2Fwinterzon"/);
   assert.match(html, /href="https:\/\/referral\.corendon\.nl\/c\?c=38108&amp;m=0&amp;a=512226&amp;r=&amp;u=https%3A%2F%2Fwww\.corendon\.nl%2Ftopdeals"/);
   assert.equal((html.match(/\/c\?/g) ?? []).length, 2);

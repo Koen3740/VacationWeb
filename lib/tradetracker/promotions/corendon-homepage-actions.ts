@@ -5,25 +5,23 @@
  * The CTA is the campaign tracking URL (`m=0`) plus the encoded landing
  * the public homepage banner already points at. It is assembled and then
  * checked by `promotionClickHref`. No request to `/c` is made here.
- * Images are the mapped 780×320 HPTO files, stored under
- * tradetracker-creatives/homepage-actions. Kaching and materials
- * 2499691–2499700 are not here.
+ * No CorendonResources file is used as imagery. A TradeTracker creative
+ * for these two actions is not in the banner set, so the page is set in type.
+ * Kaching and materials 2499691–2499700 are not here.
  */
 
 import type { EditorialOffer } from './editorial-offers';
 import { corendonActionClickHref } from './promotion-click';
 import type { VacationWebPromotionMarket } from './select-displayable';
 
-const WINTER_IMAGE = '/aanbiedingen/creative-images/homepage/warme-winter-weken-780x320.png';
-const LAST_MINUTE_IMAGE = '/aanbiedingen/creative-images/homepage/last-minutes-oktober-november-780x320.png';
-
-function action(offer: Omit<EditorialOffer, 'clickUrl' | 'conditionsUrl'> & { landingUrl: string }): EditorialOffer | null {
+function action(offer: Omit<EditorialOffer, 'clickUrl' | 'conditionsUrl' | 'imageUrl'> & { landingUrl: string }): EditorialOffer | null {
   const clickUrl = corendonActionClickHref(offer.market, offer.landingUrl);
   if (!clickUrl) {
     return null;
   }
   return {
     ...offer,
+    imageUrl: '',
     clickUrl,
     conditionsUrl: '',
   };
@@ -48,8 +46,7 @@ export function corendonHomepageActions(market: VacationWebPromotionMarket): Edi
       benefitTail: 'extra korting',
       summary: winterSummary,
       conditions: '',
-      imageUrl: WINTER_IMAGE,
-      imageAlt: 'Warme Winter Weken',
+      imageAlt: '',
       landingUrl: winterLanding,
       sources: [{ label: 'Corendon winterzon', url: winterLanding }],
     }),
@@ -64,8 +61,7 @@ export function corendonHomepageActions(market: VacationWebPromotionMarket): Edi
       benefitTail: 'extra korting',
       summary: 'Last minute naar de zon in oktober of november, met tot € 200 korting.',
       conditions: '',
-      imageUrl: LAST_MINUTE_IMAGE,
-      imageAlt: 'Last minutes oktober en november',
+      imageAlt: '',
       landingUrl: lastMinuteLanding,
       sources: [{ label: 'Corendon topdeals', url: lastMinuteLanding }],
     }),
