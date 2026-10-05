@@ -2,70 +2,36 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { EditorialOffer } from '@/lib/tradetracker/promotions/editorial-offers';
+import { corendonHomepageActions } from '@/lib/tradetracker/promotions/corendon-homepage-actions';
 import { AanbiedingenExperience } from './aanbiedingen-experience';
 
-function amountOffer(overrides: Partial<EditorialOffer> = {}): EditorialOffer {
-  return {
-    id: 'nl:88',
-    market: 'nl',
-    providerName: 'Corendon',
-    placement: 'hero',
-    title: 'Zomer',
-    benefitLead: 'Voordeel',
-    benefitAmount: '€50',
-    benefitTail: '',
-    summary: 'Uit de bron.',
-    conditions: '',
-    imageUrl: '/aanbiedingen/creative-images/nl/512226/38108/88-300x250-abcdef0123456789.png',
-    imageAlt: 'Zomer',
-    clickUrl: 'https://referral.corendon.nl/c?c=38108&m=88&a=512226&r=&u=',
-    conditionsUrl: 'https://www.corendon.nl/',
-    sources: [],
-    ...overrides,
-  };
-}
-
-test('an amount-backed offer renders its own image and a click href, never an impression', () => {
+test('the two Corendon actions render their amounts, own images, and click hrefs', () => {
   const html = renderToStaticMarkup(
     React.createElement(AanbiedingenExperience, {
       showMarketTitles: false,
-      sections: [{ market: 'nl', error: false, offers: [amountOffer()] }],
+      sections: [{ market: 'nl', error: false, offers: corendonHomepageActions('nl') }],
     }),
   );
-  assert.match(html, /Zomer/);
-  assert.match(html, /€50/);
-  assert.match(html, /src="\/aanbiedingen\/creative-images\/nl\/512226\/38108\/88-300x250-abcdef0123456789\.png"/);
-  assert.match(html, /href="https:\/\/referral\.corendon\.nl\/c\?c=38108&amp;m=88&amp;a=512226&amp;r=&amp;u="/);
-  assert.match(html, /target="_blank"/);
-  assert.match(html, /rel="noopener noreferrer"/);
-  assert.equal((html.match(/\/c\?/g) ?? []).length, 1);
+  assert.match(html, /Warme Winter Weken/);
+  assert.match(html, /Last minutes/);
+  assert.match(html, /€600/);
+  assert.match(html, /€200/);
+  assert.match(html, /src="\/aanbiedingen\/creative-images\/homepage\/warme-winter-weken-1168x500\.jpg"/);
+  assert.match(html, /src="\/aanbiedingen\/creative-images\/homepage\/last-minutes-oktober-november-1168x500\.jpg"/);
+  assert.match(html, /href="https:\/\/referral\.corendon\.nl\/c\?c=38108&amp;m=0&amp;a=512226&amp;r=&amp;u=https%3A%2F%2Fwww\.corendon\.nl%2Fwinterzon"/);
+  assert.match(html, /href="https:\/\/referral\.corendon\.nl\/c\?c=38108&amp;m=0&amp;a=512226&amp;r=&amp;u=https%3A%2F%2Fwww\.corendon\.nl%2Ftopdeals"/);
+  assert.equal((html.match(/\/c\?/g) ?? []).length, 2);
   assert.equal(html.includes('/i?'), false);
   assert.equal(html.includes('ti.tradetracker.net'), false);
   assert.equal(html.includes('<iframe'), false);
   assert.equal(html.includes('prefetch'), false);
   assert.equal(html.includes('2499691'), false);
-  assert.equal(html.includes('Banner1-lastminute'), false);
-  assert.equal(html.includes('€600'), false);
-  assert.equal(html.includes('Warme Winter'), false);
+  assert.equal(html.includes('Kaching'), false);
+  assert.equal(html.includes('Er staat nu geen aanbieding'), false);
+  assert.equal(html.includes('uit de bron'), false);
 });
 
-test('an empty section is an honest empty state without offers or tracking', () => {
-  const html = renderToStaticMarkup(
-    React.createElement(AanbiedingenExperience, {
-      showMarketTitles: false,
-      sections: [{ market: 'be', error: false, offers: [] }],
-    }),
-  );
-  assert.match(html, /Er staat nu geen aanbieding/);
-  assert.equal(html.includes('<img'), false);
-  assert.equal(html.includes('/c?'), false);
-  assert.equal(html.includes('/i?'), false);
-  assert.equal(html.includes('€600'), false);
-  assert.equal(html.includes('€200'), false);
-});
-
-test('a tracking image src is not rendered', () => {
+test('a tracking image is not rendered', () => {
   const html = renderToStaticMarkup(
     React.createElement(AanbiedingenExperience, {
       showMarketTitles: true,
@@ -74,11 +40,11 @@ test('a tracking image src is not rendered', () => {
           market: 'be',
           error: false,
           offers: [
-            amountOffer({
-              market: 'be',
+            {
+              ...corendonHomepageActions('be')[0]!,
               imageUrl: 'https://referral.corendon.be/i?c=38103&m=1',
               clickUrl: 'https://referral.corendon.be/i?c=38103&m=1',
-            }),
+            },
           ],
         },
       ],
@@ -88,4 +54,5 @@ test('a tracking image src is not rendered', () => {
   assert.equal(html.includes('/i?'), false);
   assert.equal(html.includes('/c?'), false);
   assert.match(html, /België/);
+  assert.match(html, /€600/);
 });

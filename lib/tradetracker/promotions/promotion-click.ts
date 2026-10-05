@@ -1,4 +1,8 @@
-import type { TradeTrackerCredentialMarket } from './constants';
+import {
+  TRADETRACKER_CREATIVE_CAMPAIGNS_V1,
+  TRADETRACKER_CREATIVE_CANONICAL_SITE,
+  type TradeTrackerCredentialMarket,
+} from './constants';
 
 /**
  * Affiliate click for a banner offer.
@@ -80,4 +84,40 @@ export function promotionClickHref(creative: PromotionClickSource): string | nul
     }
   }
   return raw;
+}
+
+/**
+ * Campaign deeplink for a Corendon homepage action.
+ *
+ * HEAD on 2026-10-05: `m=0` with the canonical site and campaign returns 302
+ * to the `u` landing, with TradeTracker attribution (`utm_source=tradetracker`,
+ * `utm_medium=affiliate`, `utm_content=Vacationweb.nl`). Only the four action
+ * pages that the live homepage banners link to are allowed. The string still
+ * has to pass `promotionClickHref`.
+ */
+const ACTION_LANDING: Record<TradeTrackerCredentialMarket, ReadonlySet<string>> = {
+  nl: new Set(['https://www.corendon.nl/winterzon', 'https://www.corendon.nl/topdeals']),
+  be: new Set(['https://www.corendon.be/winterzon', 'https://www.corendon.be/topdeals']),
+};
+
+export function corendonActionClickHref(
+  market: TradeTrackerCredentialMarket,
+  landingUrl: string,
+): string | null {
+  if (!ACTION_LANDING[market].has(landingUrl)) {
+    return null;
+  }
+  const campaignId = TRADETRACKER_CREATIVE_CAMPAIGNS_V1[market][0]?.campaignId;
+  const affiliateSiteId = TRADETRACKER_CREATIVE_CANONICAL_SITE[market];
+  if (!campaignId || !affiliateSiteId) {
+    return null;
+  }
+  const template = `https://${expectedHost(market)}/c?c=${campaignId}&m=0&a=${affiliateSiteId}&r=&u=${encodeURIComponent(landingUrl)}`;
+  return promotionClickHref({
+    market,
+    campaignId,
+    affiliateSiteId,
+    materialItemId: '0',
+    trackingClickUrlTemplate: template,
+  });
 }

@@ -1,39 +1,49 @@
-# Aanbiedingen V2 — bronnen en blocker, 2026-10-05
+# Aanbiedingen V2 — Corendon-homepageacties, 2026-10-05
 
 ## Wat de pagina toont
 
-Geen Corendon-homepageactie. TradeTracker-nieuws en de Corendon-bannermaterialen bevatten die claims niet. De pagina blijft leeg tot een bedrag in die bron staat.
+Twee acties, per markt, omdat ze op de live Corendon-site staan en een bestaande VacationWeb-klik daarop landt.
 
-Afgewezen en niet zichtbaar:
+| Actie | Bedrag | Publieke pagina | Beeld op de homepage |
+| --- | --- | --- | --- |
+| Warme Winter Weken | tot €600 extra korting | `https://www.corendon.nl/winterzon` en `https://www.corendon.be/winterzon` | `HPTO_WWW_*_Topbanner_1168x500.jpg` |
+| Last minutes oktober en november | tot €200 extra korting | `https://www.corendon.nl/topdeals` en `https://www.corendon.be/topdeals` | `HPTO_LastMinute_NL_Topbanner_1168x500.jpg` |
 
-- BE Banner*-lastminute materialen `2499691`–`2499698` en `2499700`. Die waren “displayable” alleen door het woord lastminute, zonder aangetoond eurobedrag.
-- Generieke banners, waaronder “Vacances Last Minute”.
-- Kaching, inclusief news `322951` en `322932`. Geen aangetoond verband met een last-minute actie voor oktober–november.
+De zinnen op die pagina’s, opgehaald op 2026-10-05:
 
-## Homepageclaims die niet in TradeTracker staan
+- NL winterzon: “Tijdens de Warme Winter Weken profiteer je van tot € 600 extra korting per boeking naar populaire winterzonbestemmingen zoals Egypte en de Canarische Eilanden.”
+- BE winterzon: “tot €600 extra korting per boeking naar populaire winterzonbestemmingen zoals Curaçao, Bonaire, Kaapverdië, Gambia, Turkije, Spanje en Egypte.”
+- NL en BE topdeals, paginatitel “Last Minutes oktober en november”: “Last minute naar de zon in oktober of november? Boek nu een van onze scherpe Last Minute Deals en profiteer van tot € 200 Last Minute Korting.”
 
-Warme Winter Weken / tot €600 en Last minute oktober–november / tot €200 zijn na een trackingklik op corendon.nl als UI-claim gezien. Ze zijn afwezig in TradeTracker-nieuws en in alle Corendon SOAP-banners (geen keyword-hit op winter, warme, last minute, 600, 200 of HPTO). Sub30 vond ze niet in bannertitels. Er zit geen 780×320 HPTO tussen de TradeTracker-banners.
+Kidskorting en vertrekdata uit de filters staan niet op VacationWeb. De bestemmingen blijven per markt, omdat NL en BE daar verschillen.
 
-Die bedragen en data worden daarom niet op `/aanbiedingen` gezet. Een landingpage overnemen zou een bedrag toeschrijven dat TradeTracker niet levert.
+## Affiliatepad
 
-## HPTO-beelden
+HEAD, zonder de redirect te volgen, op 2026-10-05:
 
-HEAD op 2026-10-05, alleen bestandsbestaan. De pixeltekst is niet overgenomen.
+`https://referral.corendon.{nl|be}/c?c=38108|38103&m=0&a=512226|511873&r=&u=<actiepagina>`
 
-| URL | Status | Type | Lengte | Last-Modified |
-| --- | --- | --- | --- | --- |
-| `https://images.corendonresources.com/NL/HPTO_WWW_NL_Toplaag_Header_780x320.png` | 200 | image/png | 146596 | Wed, 23 Sep 2026 09:30:51 GMT |
-| `https://images.corendonresources.com/NL/HPTO_LastMinute_NL_Toplaag_Header_780x320.png` | 200 | image/png | 56434 | Wed, 23 Sep 2026 14:57:38 GMT |
-| `https://images.corendonresources.com/NL/HPTO_WWW_NL_Toplaag_Header_780x320.jpg` | 404 | | | |
-| `https://images.corendonresources.com/NL/HPTO_LastMinute_NL_Toplaag_Header_780x320.jpg` | 404 | | | |
-| `https://images.corendonresources.com/NL/HPTO_WWW_verlengd_NL_Toplaag_Header_780x320.png` | 200 | image/png | 184451 | Tue, 04 Nov 2025 16:05:20 GMT |
-| `https://images.corendonresources.com/NL/HPTO_WWW_NL_Topbanner_1168x500.jpg` | 200 | image/jpeg | 481071 | Wed, 23 Sep 2026 09:30:50 GMT |
-| `https://images.corendonresources.com/NL/HPTO_LastMinute_NL_Topbanner_1168x500.jpg` | 200 | image/jpeg | 393590 | Wed, 23 Sep 2026 14:57:39 GMT |
+geeft 302 naar die actiepagina met `utm_source=tradetracker`, `utm_medium=affiliate`, `utm_id` de campagne, en `utm_content=Vacationweb.nl`. Een lege `u` landt op de campagne-homepage, niet op de actie. Daarom gebruikt de CTA de deeplink. `m=0` is het campagneniveau, niet een van de Banner*-materialen.
 
-De twee 780×320 PNG’s zijn het patroon uit Sub29–32B. Ze komen niet uit TradeTracker `/i`. Er is geen opgeslagen `/c`-template die naar deze bestandsnamen wijst. Bestaande templates zijn `https://referral.corendon.{nl|be}/c?c=38108|38103&m=…&a=…` voor bannermateriaal.
+## Beelden
 
-De pagina rendert deze URL’s niet. Een beeld-`src` mag alleen `/aanbiedingen/creative-images/…` zijn. Zonder kortingstekst in TradeTracker is een homepagebeeld geen aanbieding.
+De homepage-HTML verwijst naar de 1168×500-topbanners, niet naar de 780×320-toplaag. Die toplaagbestanden bestaan wel en tonen dezelfde actietekst (bekeken 2026-10-05). De pagina gebruikt de bestanden die de homepage nu echt toont.
 
-## Klaar voor een latere bron
+Opgeslagen eigen kopieën, sha256:
 
-`editorialOffersFromCards` zet een TradeTracker-kaart pas op de pagina als het bedrag of percentage al in de kaart staat, de aanbieder Corendon, Sunweb of Eliza is, en het materiaal niet in de afgewezen lastminute-lijst zit. De klik blijft `promotionClickHref` op het opgeslagen `/c`-template. Beelden blijven VacationWeb-paden onder `/aanbiedingen/creative-images/`. Smalle bannerformaten sturen de layout niet.
+- `warme-winter-weken-1168x500.jpg` — `c2391accffd610af7e60c400dc2055da23a19c6b1a9bd3fd6a5a38efae5ad648` — bron `https://images.corendonresources.com/NL/HPTO_WWW_NL_Topbanner_1168x500.jpg`, last-modified Wed, 23 Sep 2026 09:30:50 GMT. Het BE-bestand `HPTO_WWW_BENL_Topbanner_1168x500.jpg` is bytegelijk.
+- `last-minutes-oktober-november-1168x500.jpg` — `dd3eecc2b0acec221d6e0e36b3eed882b18227fc08932511c5f5c5774efc6577` — bron `https://images.corendonresources.com/NL/HPTO_LastMinute_NL_Topbanner_1168x500.jpg`, last-modified Wed, 23 Sep 2026 14:57:39 GMT. De BE-homepage gebruikt ditzelfde NL-bestand.
+
+De 780×320-toplaag, ter controle, niet als paginabeeld:
+
+- `HPTO_WWW_NL_Toplaag_Header_780x320.png` — 200 image/png, “TOT €600 EXTRA KORTING”
+- `HPTO_LastMinute_NL_Toplaag_Header_780x320.png` — 200 image/png, “TOT €200 EXTRA KORTING”
+
+Serven via `/aanbiedingen/creative-images/homepage/…` uit `data/tradetracker-creatives/homepage-actions/`. Geen catalogus, geen `current.json`, geen live-price.
+
+## Wat niet terugkomt
+
+- Materialen 2499691–2499698 en 2499700.
+- “Vacances Last Minute” zonder bedrag.
+- Kaching, inclusief news 322951 en 322932.
+- Technische uitleg op de pagina.

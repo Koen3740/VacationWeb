@@ -1,5 +1,6 @@
 import { AanbiedingenExperience } from '@/components/promotions/aanbiedingen-experience';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
+import { corendonHomepageActions } from '@/lib/tradetracker/promotions/corendon-homepage-actions';
 import { editorialOffersFromCards } from '@/lib/tradetracker/promotions/editorial-offers';
 import { loadAanbiedingenByMarkets } from '@/lib/tradetracker/promotions/load-aanbiedingen';
 import { resolveSiteMarketFromHost } from '@/lib/search/site-market';
@@ -23,7 +24,7 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: 'Aanbiedingen | VacationWeb',
-  description: 'Vakantieacties met een kortingsbedrag dat in de bron staat.',
+  description: 'Warme Winter Weken en last minutes van Corendon.',
 };
 
 export const runtime = 'nodejs';
@@ -46,11 +47,15 @@ export default async function AanbiedingenPage() {
   const markets = marketsForHost(host);
   const loaded = await loadAanbiedingenByMarkets(markets);
   const sections = loaded.map((section) => {
-    const offers = section.error ? [] : editorialOffersFromCards(section.cards);
+    const curated = corendonHomepageActions(section.market);
+    const curatedIds = new Set(curated.map((offer) => offer.id));
+    const extra = section.error
+      ? []
+      : editorialOffersFromCards(section.cards).filter((offer) => !curatedIds.has(offer.id));
     return {
       market: section.market,
-      offers,
-      error: offers.length === 0 && Boolean(section.error),
+      offers: [...curated, ...extra],
+      error: false,
     };
   });
 
@@ -71,8 +76,7 @@ export default async function AanbiedingenPage() {
               Aanbiedingen
             </h1>
             <p className="mt-4 text-[17px] leading-relaxed text-[#243E68]">
-              Alleen vakantieacties met een kortingsbedrag uit de bron. Een banner zonder bedrag
-              wordt hier niet als aanbieding getoond.
+              Twee acties van Corendon, met het voordeel dat op hun site staat.
             </p>
           </div>
           <Link href="/" className="text-[14px] font-medium text-[#0A2D62] underline decoration-[#E4D8C4] underline-offset-4">
