@@ -1,12 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { TRADETRACKER_CREATIVE_CANONICAL_SITE, TRADETRACKER_SOURCE } from '../lib/tradetracker/promotions/constants';
+import { TRADETRACKER_CREATIVE_CANONICAL_SITE, TRADETRACKER_SOURCE, type TradeTrackerCredentialMarket } from '../lib/tradetracker/promotions/constants';
 import { creativeSnapshotFileName } from '../lib/tradetracker/promotions/ingest-creatives';
+import {
+  publishIsolatedCreativeDocument,
+  selectedCreativeStorageKey,
+} from '../lib/tradetracker/promotions/creative-documents';
 import {
   selectedCreativeFileName,
   selectTradeTrackerCreatives,
 } from '../lib/tradetracker/promotions/select-creatives';
-import type { TradeTrackerCredentialMarket } from '../lib/tradetracker/promotions/constants';
 import type { TradeTrackerCreativeSnapshot } from '../lib/tradetracker/promotions/types';
 
 /**
@@ -17,6 +20,9 @@ import type { TradeTrackerCreativeSnapshot } from '../lib/tradetracker/promotion
  *
  * Reads data/tradetracker-creatives/snapshot-{market}-{site}.json
  * Writes data/tradetracker-creatives/selected-{market}-{site}.json and selected-index.json.
+ * When OBJECT_STORAGE_* is set, also stores:
+ * tradetracker-creatives/selected-nl-512226.json
+ * tradetracker-creatives/selected-be-511873.json
  */
 
 const SNAPSHOT_DIR = path.join(process.cwd(), 'data', 'tradetracker-creatives');
@@ -34,7 +40,7 @@ function readSnapshot(fileName: string): TradeTrackerCreativeSnapshot {
   return JSON.parse(fs.readFileSync(filePath, 'utf8')) as TradeTrackerCreativeSnapshot;
 }
 
-function main(): void {
+async function main(): Promise<void> {
   fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
   const written: Array<{
     market: string;
@@ -48,6 +54,7 @@ function main(): void {
     providers: Record<string, number>;
     dedupe: { collapsed: number; relations: Record<string, number> };
     exclusionReasons: Record<string, number>;
+    objectStorage: 'stored' | 'unavailable';
   }> = [];
 
   for (const market of MARKETS) {
@@ -62,7 +69,9 @@ function main(): void {
     const selected = selectTradeTrackerCreatives(snapshot, { sourceSnapshot: sourceFile });
     const outFile = selectedCreativeFileName(market, affiliateSiteId);
     const outPath = path.join(SNAPSHOT_DIR, outFile);
-    fs.writeFileSync(outPath, JSON.stringify(selected, null, 2), 'utf8');
+    const body = JSON.stringify(selected, null, 2);
+    fs.writeFileSync(outPath, body, 'utf8');
+    const objectStorage = await publishIsolatedCreativeDocument(selectedCreativeStorageKey(market), body);
     const exclusionReasons: Record<string, number> = {};
     for (const item of selected.exclusions) {
       exclusionReasons[item.reason] = (exclusionReasons[item.reason] ?? 0) + 1;
@@ -79,6 +88,7 @@ function main(): void {
       providers: selected.providers,
       dedupe: { collapsed: selected.dedupe.collapsed, relations: selected.dedupe.relations },
       exclusionReasons,
+      objectStorage,
     });
     printSafe(outFile, {
       inputCount: selected.inputCount,
@@ -87,6 +97,7 @@ function main(): void {
       providers: selected.providers,
       dedupe: selected.dedupe,
       exclusionReasons,
+      objectStorage,
     });
   }
 
@@ -103,4 +114,8 @@ function main(): void {
   printSafe('indexPath', indexPath);
 }
 
-main();
+main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : 'select creatives failed';
+  console.error(message);
+  process.exitCode = 1;
+});

@@ -2,6 +2,11 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { getStorageObjectBytes, putStorageBytes } from '../../storage/object-storage-client';
+import {
+  CREATIVE_IMAGE_MANIFEST_STORAGE_KEY,
+  publishIsolatedCreativeDocument,
+  readIsolatedCreativeDocument,
+} from './creative-documents';
 import { getObjectStorageConfig } from '../../storage/object-storage-config';
 import { CREATIVE_IMAGE_MAX_BYTES, inspectCreativeImage } from './creative-image-bytes';
 import {
@@ -246,8 +251,7 @@ export function loadCreativeImageManifest(root = process.cwd()): CreativeImageMa
   }
 }
 
-export function loadCreativeImageIndex(root = process.cwd()): Map<string, CreativeImageLink> {
-  const manifest = loadCreativeImageManifest(root);
+export function creativeImageIndexFromManifest(manifest: CreativeImageManifest | null): Map<string, CreativeImageLink> {
   const index = new Map<string, CreativeImageLink>();
   for (const entry of manifest?.entries ?? []) {
     if (!isOwnCreativeImageUrl(entry.publicPath)) {
@@ -263,6 +267,35 @@ export function loadCreativeImageIndex(root = process.cwd()): Map<string, Creati
     });
   }
   return index;
+}
+
+export async function loadCreativeImageIndex(
+  root = process.cwd(),
+  options: { readRemote?: (key: string) => Promise<string | null> } = {},
+): Promise<Map<string, CreativeImageLink>> {
+  const localPath = creativeImageManifestPath(root);
+  if (fs.existsSync(localPath)) {
+    return creativeImageIndexFromManifest(loadCreativeImageManifest(root));
+  }
+  const readRemote = options.readRemote ?? readIsolatedCreativeDocument;
+  let raw: string | null;
+  try {
+    raw = await readRemote(CREATIVE_IMAGE_MANIFEST_STORAGE_KEY);
+  } catch {
+    return new Map();
+  }
+  if (!raw) {
+    return new Map();
+  }
+  try {
+    const parsed = JSON.parse(raw) as CreativeImageManifest;
+    if (!parsed || !Array.isArray(parsed.entries)) {
+      return new Map();
+    }
+    return creativeImageIndexFromManifest(parsed);
+  } catch {
+    return new Map();
+  }
 }
 
 function localAbsolutePath(root: string, relativePath: string): string | null {
@@ -293,6 +326,7 @@ export async function ingestDisplayableCreativeImages(options: {
   resyncStorage?: boolean;
   fetchImpression?: ImpressionRequest;
   putIsolatedBytes?: (key: string, body: Buffer, contentType: string) => Promise<'stored' | 'unavailable'>;
+  publishDocument?: (key: string, body: string) => Promise<'stored' | 'unavailable'>;
 }): Promise<CreativeImageIngestReport> {
   const root = options.root ?? process.cwd();
   const request = options.fetchImpression ?? nodeImpressionRequest;
@@ -439,8 +473,11 @@ export async function ingestDisplayableCreativeImages(options: {
   };
   const manifestPath = creativeImageManifestPath(root);
   fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
-  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
-  report.storage = manifest.storage;
+  const manifestJson = JSON.stringify(manifest, null, 2);
+  fs.writeFileSync(manifestPath, manifestJson, 'utf8');
+  const publish = options.publishDocument ?? publishIsolatedCreativeDocument;
+  const published = await publish(CREATIVE_IMAGE_MANIFEST_STORAGE_KEY, manifestJson);
+  report.storage = usedRemote || published === 'stored' ? 'local+r2' : 'local';
   return report;
 }
 

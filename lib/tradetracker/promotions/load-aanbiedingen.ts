@@ -50,7 +50,7 @@ export async function loadAanbiedingenForMarket(
     market,
     creatives: primary.creatives,
     secondary: secondary.promotions,
-    images: loadCreativeImageIndex(options.root),
+    images: await loadCreativeImageIndex(options.root),
   });
   const primaryCount = cards.filter((card) => card.source === 'creative').length;
   const secondaryCount = cards.length - primaryCount;

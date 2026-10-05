@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { TRADETRACKER_CREATIVE_CANONICAL_SITE } from './constants';
+import { readIsolatedCreativeDocument, selectedCreativeStorageKey } from './creative-documents';
 import { mapCreativeProvider, selectedCreativeFileName } from './select-creatives';
 import type { VacationWebPromotionMarket } from './select-displayable';
 import { CREATIVE_ALLOWED_PROVIDERS, type SelectedTradeTrackerCreative, type SelectedTradeTrackerCreativeSnapshot } from './types';
@@ -8,8 +9,8 @@ import { CREATIVE_ALLOWED_PROVIDERS, type SelectedTradeTrackerCreative, type Sel
 /**
  * Primary `/aanbiedingen` source: Slice 2 selected creative snapshots.
  * NL reads selected-nl-512226.json. BE reads selected-be-511873.json.
- * A missing file is an empty primary set so secondary promotions can still show.
- * This module only reads local JSON. It does not call TradeTracker.
+ * A missing local file falls back to object storage under tradetracker-creatives/.
+ * This module does not call TradeTracker.
  */
 
 export type SelectedCreativeLoadStatus = 'ok' | 'missing' | 'invalid';
@@ -76,31 +77,53 @@ export function acceptSelectedCreativeForMarket(
 
 export async function loadSelectedCreativesForMarket(
   market: VacationWebPromotionMarket,
-  options: { root?: string } = {},
+  options: {
+    root?: string;
+    /** Test hook. Production reads the isolated object-storage key. */
+    readRemote?: (key: string) => Promise<string | null>;
+  } = {},
 ): Promise<LoadedSelectedCreatives> {
   const affiliateSiteId = TRADETRACKER_CREATIVE_CANONICAL_SITE[market];
-  const sourceFile = selectedCreativeSnapshotPath(market, options.root);
+  const localPath = selectedCreativeSnapshotPath(market, options.root);
   const empty = {
     market,
     affiliateSiteId,
-    sourceFile,
+    sourceFile: localPath,
     creatives: [] as SelectedTradeTrackerCreative[],
     skipped: 0,
   };
 
-  let raw: string;
+  let raw: string | null = null;
   try {
-    raw = await fs.readFile(sourceFile, 'utf8');
+    raw = await fs.readFile(localPath, 'utf8');
   } catch (error) {
     const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
-    if (code === 'ENOENT') {
+    if (code !== 'ENOENT') {
+      return {
+        ...empty,
+        status: 'invalid',
+        error: 'Selected creative snapshot kon niet worden gelezen',
+      };
+    }
+    const remoteKey = selectedCreativeStorageKey(market);
+    try {
+      raw = await (options.readRemote ?? readIsolatedCreativeDocument)(remoteKey);
+    } catch {
+      return {
+        ...empty,
+        sourceFile: remoteKey,
+        status: 'invalid',
+        error: 'Selected creative snapshot kon niet worden gelezen',
+      };
+    }
+    if (raw == null) {
       return { ...empty, status: 'missing', error: null };
     }
-    return {
-      ...empty,
-      status: 'invalid',
-      error: 'Selected creative snapshot kon niet worden gelezen',
-    };
+    empty.sourceFile = remoteKey;
+  }
+
+  if (raw == null) {
+    return { ...empty, status: 'missing', error: null };
   }
 
   let parsed: SelectedTradeTrackerCreativeSnapshot;

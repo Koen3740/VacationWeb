@@ -136,6 +136,7 @@ test('ingest stores only displayable offers and never puts tracking URLs in the 
   const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'vw-creative-images-'));
   const fetched: string[] = [];
   const storedKeys: string[] = [];
+  const publishedDocuments: string[] = [];
   const report = await ingestDisplayableCreativeImages({
     root,
     generatedAt: '2026-10-05T14:56:36.417Z',
@@ -164,6 +165,14 @@ test('ingest stores only displayable offers and never puts tracking URLs in the 
       assertIsolatedCreativeImageKey(key);
       return 'stored';
     },
+    publishDocument: async (key, body) => {
+      publishedDocuments.push(key);
+      assert.equal(key, 'tradetracker-creatives/creative-image-manifest.json');
+      assert.equal(body.includes('/i?'), false);
+      assert.equal(body.includes('offers.json'), false);
+      assert.equal(body.includes('current.json'), false);
+      return 'stored';
+    },
   });
 
   assert.equal(report.considered, 4);
@@ -173,6 +182,7 @@ test('ingest stores only displayable offers and never puts tracking URLs in the 
   assert.equal(report.stored, 1);
   assert.equal(report.failed, 2);
   assert.equal(report.storage, 'local+r2');
+  assert.deepEqual(publishedDocuments, ['tradetracker-creatives/creative-image-manifest.json']);
   assert.equal(storedKeys.length, 1);
   assert.deepEqual(fetched, [
     'https://referral.corendon.be/i?c=38103&m=12&a=511873&r=',
