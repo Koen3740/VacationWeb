@@ -28,8 +28,56 @@ test('the two Corendon actions render their amounts and click hrefs without a Co
   assert.equal(html.includes('prefetch'), false);
   assert.equal(html.includes('2499691'), false);
   assert.equal(html.includes('Kaching'), false);
+  assert.equal((html.match(/data-placement="hero"/g) ?? []).length, 1);
   assert.equal(html.includes('Er staat nu geen aanbieding'), false);
   assert.equal(html.includes('uit de bron'), false);
+});
+
+test('two marked heroes in one section render as one hero and the rest as cards', () => {
+  const [winter, lastMinute] = corendonHomepageActions('nl');
+  const html = renderToStaticMarkup(
+    React.createElement(AanbiedingenExperience, {
+      showMarketTitles: false,
+      sections: [
+        {
+          market: 'nl',
+          error: false,
+          offers: [
+            { ...winter!, placement: 'hero' },
+            { ...lastMinute!, placement: 'hero' },
+          ],
+        },
+      ],
+    }),
+  );
+  assert.equal((html.match(/data-placement="hero"/g) ?? []).length, 1);
+  assert.equal((html.match(/data-placement="card"/g) ?? []).length, 1);
+});
+
+test('a fixture with three providers shows one hero and keeps every provider visible', () => {
+  const base = corendonHomepageActions('nl')[0]!;
+  const html = renderToStaticMarkup(
+    React.createElement(AanbiedingenExperience, {
+      showMarketTitles: false,
+      sections: [
+        {
+          market: 'nl',
+          error: false,
+          offers: [
+            { ...base, id: 'fixture-corendon', providerName: 'Corendon', title: 'Fixture Corendon', placement: 'hero' },
+            { ...base, id: 'fixture-sunweb', providerName: 'Sunweb', title: 'Fixture Sunweb', placement: 'supporting', benefitAmount: '20%' },
+            { ...base, id: 'fixture-eliza', providerName: 'Eliza was here', title: 'Fixture Eliza', placement: 'supporting', benefitAmount: '1' },
+          ],
+        },
+      ],
+    }),
+  );
+  assert.equal((html.match(/data-placement="hero"/g) ?? []).length, 1);
+  assert.equal((html.match(/data-placement="card"/g) ?? []).length, 2);
+  assert.match(html, /Fixture Corendon/);
+  assert.match(html, /Fixture Sunweb/);
+  assert.match(html, /Fixture Eliza/);
+  assert.equal(html.includes('corendonresources'), false);
 });
 
 test('a tracking image is not rendered', () => {

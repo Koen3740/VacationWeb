@@ -23,9 +23,23 @@ De feed-structuur is `https://referral.corendon.nl/c?c=38108&m=…&a=512226&r=&u
 
 Er is in deze correctie geen nieuwe aanroep van `/c`. End-to-end attributie van `m=0` is niet opnieuw getest.
 
+## V3-vorm
+
+De donkere typografische pagina is vervangen door een lichte pagina: papierachtergrond, luchtverloop, witte kaarten, gouden kortingscirkel en een getekend zon-zee-vlak. Dat vlak is sfeer, geen campagnefoto. Eén aanbieding is de hero, de rest staat in gelijke kleinere kaarten.
+
+Hero-regel in `select-offer-hero.ts`, deterministisch en zonder score:
+
+1. Geen aanbiedingen → geen hero.
+2. Eén aanbieding → die is de hero.
+3. Anders: aanbieders gesorteerd op naam (`localeCompare`, `nl`). De UTC-dagindex (`floor(Date.UTC(y, m, d) / 86400000)`) kiest `aanbieders[dag % aantal]`.
+4. De aanbiedingen van die aanbieder staan gesorteerd op id. Beurt `floor(dag / aantal aanbieders)` kiest de volgende aanbieding van die aanbieder.
+5. Alle andere aanbiedingen zijn gelijke kaarten. Meerdere aanbiedingen van dezelfde aanbieder krijgen nooit twee hero’s op dezelfde dag.
+
+Zelfde dag en dezelfde set geven dezelfde hero. Een nieuwe dag geeft de volgende aanbieder een beurt. Een mooier beeld geeft geen voorrang: de keuze gebruikt alleen id en aanbiedernaam.
+
 ## Beelden
 
-De HPTO-URL’s op `images.corendonresources.com` zijn alleen bronbewijs. Ze worden niet gehotlinkt, niet gedownload, niet gehost, en niet in `tradetracker-creatives` of R2 gezet. Er is geen TradeTracker-creative voor deze twee acties. Materialen 2499691–2499698 en 2499700 blijven buiten de pagina. Daarom is het beeld de typografie: het bedrag is het visuele middelpunt.
+De HPTO-URL’s op `images.corendonresources.com` zijn alleen bronbewijs. Ze worden niet gehotlinkt, niet gedownload, niet gehost, en niet in `tradetracker-creatives` of R2 gezet. Er is geen TradeTracker-creative voor deze twee acties. Materialen 2499691–2499698 en 2499700 blijven buiten de pagina. Zonder toegestaan campagnebeeld blijft de actie staan, met een getekend zon-zee-vlak en het bedrag in een gouden cirkel. De homepage-sfeerfoto van VacationWeb wordt niet als campagnebeeld van deze acties gebruikt.
 
 Catalogus, `current.json` en live-price zijn niet aangeraakt.
 

@@ -1,8 +1,10 @@
 import { AanbiedingenExperience } from '@/components/promotions/aanbiedingen-experience';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
+import { ResultsUspBar } from '@/components/results-v2/results-usp-bar';
 import { corendonHomepageActions } from '@/lib/tradetracker/promotions/corendon-homepage-actions';
 import { editorialOffersFromCards } from '@/lib/tradetracker/promotions/editorial-offers';
 import { loadAanbiedingenByMarkets } from '@/lib/tradetracker/promotions/load-aanbiedingen';
+import { assignHeroPlacement, utcDayIndex } from '@/lib/tradetracker/promotions/select-offer-hero';
 import { resolveSiteMarketFromHost } from '@/lib/search/site-market';
 import type { VacationWebPromotionMarket } from '@/lib/tradetracker/promotions/select-displayable';
 import type { Metadata } from 'next';
@@ -24,7 +26,7 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: 'Aanbiedingen | VacationWeb',
-  description: 'Warme Winter Weken en last minutes van Corendon.',
+  description: 'Vakantieacties met een concreet voordeel.',
 };
 
 export const runtime = 'nodejs';
@@ -46,6 +48,7 @@ export default async function AanbiedingenPage() {
   const host = headers().get('host');
   const markets = marketsForHost(host);
   const loaded = await loadAanbiedingenByMarkets(markets);
+  const dayIndex = utcDayIndex(new Date());
   const sections = loaded.map((section) => {
     const curated = corendonHomepageActions(section.market);
     const curatedIds = new Set(curated.map((offer) => offer.id));
@@ -54,29 +57,33 @@ export default async function AanbiedingenPage() {
       : editorialOffersFromCards(section.cards).filter((offer) => !curatedIds.has(offer.id));
     return {
       market: section.market,
-      offers: [...curated, ...extra],
+      offers: assignHeroPlacement([...curated, ...extra], dayIndex),
       error: false,
     };
   });
 
   return (
     <div
-      className={`${playfair.variable} ${dmSans.variable} min-h-screen bg-[#F6F1E8] text-[#0A2D62] antialiased`}
-      style={{ fontFamily: 'var(--font-vw-sans), system-ui, sans-serif' }}
+      className={`${playfair.variable} ${dmSans.variable} min-h-screen bg-[#FBF6F0] text-[#0A2D62] antialiased`}
+      style={{
+        fontFamily: 'var(--font-vw-sans), system-ui, sans-serif',
+        backgroundImage: 'linear-gradient(180deg, #E5F4FC 0%, #FBF6F0 320px)',
+      }}
     >
       <ResultsSiteHeader />
       <main className="mx-auto max-w-[1180px] px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
         <div className="mb-10 flex flex-wrap items-end justify-between gap-6 sm:mb-12">
           <div className="max-w-[40rem]">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.32em] text-[#8A6A32]">VacationWeb</p>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.32em] text-[#8A6A32]">Aanbiedingen</p>
+            <span className="mt-4 block h-[3px] w-12 rounded-full bg-[#E8C547]" aria-hidden />
             <h1
-              className="mt-3 text-[2.6rem] font-semibold leading-[1.02] tracking-[-0.035em] text-[#0A2D62] sm:text-[3.5rem]"
+              className="mt-4 max-w-[14ch] text-[2.7rem] font-semibold leading-[1.02] tracking-[-0.035em] text-[#0A2D62] sm:text-[3.5rem]"
               style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
             >
-              Aanbiedingen
+              Zin in je volgende vakantie?
             </h1>
-            <p className="mt-4 text-[17px] leading-relaxed text-[#243E68]">
-              Twee acties van Corendon, met het voordeel dat op hun site staat.
+            <p className="mt-4 max-w-[34rem] text-[17px] leading-relaxed text-[#243E68]">
+              Acties met een concreet voordeel. Bekijk ze en plan je reis.
             </p>
           </div>
           <Link href="/" className="text-[14px] font-medium text-[#0A2D62] underline decoration-[#E4D8C4] underline-offset-4">
@@ -85,6 +92,7 @@ export default async function AanbiedingenPage() {
         </div>
         <AanbiedingenExperience sections={sections} showMarketTitles={markets.length > 1} />
       </main>
+      <ResultsUspBar />
     </div>
   );
 }
