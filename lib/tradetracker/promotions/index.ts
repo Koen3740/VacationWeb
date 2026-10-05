@@ -16,6 +16,7 @@ export {
 export { getTradeTrackerSoapCredentials, resolveAffiliateSiteIdForIngest } from './credentials';
 export { ingestTradeTrackerPromotions, snapshotCounts } from './ingest';
 export { creativeIngestTargets, ingestTradeTrackerCreatives } from './ingest-creatives';
+export { mapCreativeProvider, selectTradeTrackerCreatives } from './select-creatives';
 export { loadDisplayablePromotionsByMarkets, loadDisplayablePromotionsForMarket } from './load-for-page';
 export { selectDisplayablePromotions } from './select-displayable';
 export { promotionalValidity } from './validity';
@@ -26,5 +27,7 @@ export type {
   TradeTrackerCreativeSnapshot,
   TradeTrackerIncentiveRecord,
   TradeTrackerPromotionSnapshot,
+  SelectedTradeTrackerCreative,
+  SelectedTradeTrackerCreativeSnapshot,
 } from './types';
 export type { DisplayablePromotion, VacationWebPromotionMarket } from './select-displayable';
