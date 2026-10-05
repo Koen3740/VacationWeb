@@ -1,4 +1,10 @@
+import {
+  creativeImageMaterialKey,
+  isOwnCreativeImageUrl,
+  type CreativeImageLink,
+} from './creative-image-path';
 import { TRADETRACKER_CREATIVE_CANONICAL_SITE } from './constants';
+import { evaluateOfferBenefit } from './displayable-offer';
 import type { DisplayablePromotion, VacationWebPromotionMarket } from './select-displayable';
 import {
   CREATIVE_ALLOWED_PROVIDERS,
@@ -8,11 +14,11 @@ import {
 
 /**
  * `/aanbiedingen` card order:
- * 1. Primary — selected TradeTracker banner creatives for this market.
- * 2. Secondary — existing news, incentive, and voucher promotions.
- * Secondary cards never replace a primary creative. A secondary card with the
- * same material id as a primary creative is dropped.
- * Tracking templates stay off the card. Nothing here performs HTTP.
+ * 1. Primary — selected creatives that are concrete offers (`isDisplayableOffer`).
+ * 2. Secondary — news, incentive, and voucher rows that pass the same rule.
+ * General ads are omitted. Secondary cards never replace a primary creative.
+ * Tracking templates stay off the card. Image src is VacationWeb storage only.
+ * Nothing here performs HTTP.
  */
 
 export type AanbiedingenCardSource = 'creative' | 'promotion';
@@ -24,6 +30,8 @@ export type AanbiedingenCard = {
   providerName: CreativeAllowedProvider;
   title: string;
   summary: string | null;
+  /** Source benefit spelling or raw discount/voucher text. Never an invented amount. */
+  benefitText: string | null;
   campaignId: string | null;
   campaignName: string | null;
   materialItemId: string | null;
@@ -38,8 +46,11 @@ export type AanbiedingenCard = {
   expirationDate: string | null;
   /** Merchant campaign URL only. Never a `/c` or `/i` tracking URL. */
   campaignUrl: string | null;
-  /** Creatives have no safe image in this slice. Slice 4 owns image delivery. */
-  imagePolicy: 'metadata-only' | null;
+  /** Own stored banner. Null until ingest has written a safe public path. */
+  imageUrl: string | null;
+  imageWidth: number | null;
+  imageHeight: number | null;
+  imagePolicy: 'own-storage' | null;
 };
 
 const ALLOWED = new Set<string>(CREATIVE_ALLOWED_PROVIDERS);
@@ -53,6 +64,19 @@ function isTuiText(value: string | null | undefined): boolean {
 
 function isAllowedProvider(value: string): value is CreativeAllowedProvider {
   return ALLOWED.has(value);
+}
+
+function scrubTrackingUrls(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  const scrubbed = value
+    .replace(/https?:\/\/ti\.tradetracker\.net\S*/gi, '')
+    .replace(/https?:\/\/\S*\/i\?\S*/gi, '')
+    .replace(/https?:\/\/\S*\/c\?\S*/gi, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+  return scrubbed || null;
 }
 
 /** Public merchant links only. Affiliate click and impression URLs are refused. */
@@ -90,7 +114,7 @@ function discountText(creative: SelectedTradeTrackerCreative): string | null {
   if (creative.voucherCode) {
     parts.push(creative.voucherCode);
   }
-  return parts.length > 0 ? parts.join(' · ') : null;
+  return parts.length > 0 ? scrubTrackingUrls(parts.join(' · ')) : null;
 }
 
 function dimensionsLabel(creative: SelectedTradeTrackerCreative): string | null {
@@ -107,11 +131,34 @@ function dimensionsLabel(creative: SelectedTradeTrackerCreative): string | null 
   return flags.join(' · ');
 }
 
-function creativeCard(creative: SelectedTradeTrackerCreative): AanbiedingenCard | null {
+function ownImage(link: CreativeImageLink | undefined): Pick<AanbiedingenCard, 'imageUrl' | 'imageWidth' | 'imageHeight' | 'imagePolicy'> {
+  if (!link || !isOwnCreativeImageUrl(link.publicPath)) {
+    return { imageUrl: null, imageWidth: null, imageHeight: null, imagePolicy: null };
+  }
+  return {
+    imageUrl: link.publicPath,
+    imageWidth: link.width,
+    imageHeight: link.height,
+    imagePolicy: 'own-storage',
+  };
+}
+
+function creativeCard(
+  creative: SelectedTradeTrackerCreative,
+  images: ReadonlyMap<string, CreativeImageLink> | undefined,
+): AanbiedingenCard | null {
   if (!isAllowedProvider(creative.provider) || isTuiText(creative.provider) || isTuiText(creative.campaignName) || isTuiText(creative.title)) {
     return null;
   }
   if (creative.affiliateSiteId !== TRADETRACKER_CREATIVE_CANONICAL_SITE[creative.market]) {
+    return null;
+  }
+  const decision = evaluateOfferBenefit(creative);
+  if (decision.outcome !== 'displayable' || !decision.benefitText) {
+    return null;
+  }
+  const benefitText = scrubTrackingUrls(decision.benefitText);
+  if (!benefitText) {
     return null;
   }
   return {
@@ -119,21 +166,22 @@ function creativeCard(creative: SelectedTradeTrackerCreative): AanbiedingenCard 
     source: 'creative',
     market: creative.market,
     providerName: creative.provider,
-    title: creative.title,
-    summary: creative.description,
+    title: scrubTrackingUrls(creative.title) ?? creative.title,
+    summary: scrubTrackingUrls(creative.description),
+    benefitText,
     campaignId: creative.campaignId,
-    campaignName: creative.campaignName,
+    campaignName: scrubTrackingUrls(creative.campaignName),
     materialItemId: creative.materialItemId,
     affiliateSiteId: creative.affiliateSiteId,
     dimensionsLabel: dimensionsLabel(creative),
     isMobile: creative.isMobile,
     isCommon: creative.isCommon,
     discountText: discountText(creative),
-    conditions: creative.conditions,
+    conditions: scrubTrackingUrls(creative.conditions),
     publishDate: creative.validFromDate,
     expirationDate: creative.validToDate,
     campaignUrl: safeCampaignUrl(creative.campaignUrl),
-    imagePolicy: 'metadata-only',
+    ...ownImage(images?.get(creativeImageMaterialKey(creative.market, creative.affiliateSiteId, creative.materialItemId))),
   };
 }
 
@@ -152,13 +200,30 @@ function promotionCard(
   if (!isAllowedProvider(promotion.providerName) || isTuiText(promotion.providerName) || isTuiText(promotion.title)) {
     return null;
   }
+  const decision = evaluateOfferBenefit({
+    title: promotion.title,
+    description: promotion.sourceText ?? promotion.summary,
+    summary: promotion.summary,
+    conditions: promotion.conditions,
+    discountFixed: promotion.discountFixed,
+    discountVariable: promotion.discountVariable,
+    voucherCode: promotion.voucherCode,
+  });
+  if (decision.outcome !== 'displayable' || !decision.benefitText) {
+    return null;
+  }
+  const benefitText = scrubTrackingUrls(decision.benefitText);
+  if (!benefitText) {
+    return null;
+  }
   return {
     id: `promotion:${promotion.id}`,
     source: 'promotion',
     market,
     providerName: promotion.providerName,
-    title: promotion.title,
-    summary: promotion.summary || null,
+    title: scrubTrackingUrls(promotion.title) ?? promotion.title,
+    summary: scrubTrackingUrls(promotion.summary),
+    benefitText,
     campaignId: null,
     campaignName: null,
     materialItemId: materialIdFromPromotion(promotion),
@@ -166,28 +231,48 @@ function promotionCard(
     dimensionsLabel: null,
     isMobile: null,
     isCommon: null,
-    discountText: null,
-    conditions: null,
+    discountText: scrubTrackingUrls(
+      [promotion.discountFixed, promotion.discountVariable, promotion.voucherCode].filter(Boolean).join(' · ') || null,
+    ),
+    conditions: scrubTrackingUrls(promotion.conditions),
     publishDate: promotion.publishDate,
     expirationDate: promotion.expirationDate,
     campaignUrl: safeCampaignUrl(promotion.campaignUrl),
+    imageUrl: null,
+    imageWidth: null,
+    imageHeight: null,
     imagePolicy: null,
   };
+}
+
+function compareCreatives(a: SelectedTradeTrackerCreative, b: SelectedTradeTrackerCreative): number {
+  const campaign = a.campaignId.localeCompare(b.campaignId);
+  if (campaign !== 0) return campaign;
+  const material = Number(a.materialItemId) - Number(b.materialItemId);
+  if (material !== 0) return material;
+  return a.title.localeCompare(b.title, 'nl');
+}
+
+function comparePromotions(a: DisplayablePromotion, b: DisplayablePromotion): number {
+  const provider = a.providerName.localeCompare(b.providerName, 'nl');
+  if (provider !== 0) return provider;
+  const title = a.title.localeCompare(b.title, 'nl');
+  if (title !== 0) return title;
+  return a.id.localeCompare(b.id);
 }
 
 export function composeAanbiedingenCards(args: {
   market: VacationWebPromotionMarket;
   creatives: readonly SelectedTradeTrackerCreative[];
   secondary: readonly DisplayablePromotion[];
+  images?: ReadonlyMap<string, CreativeImageLink>;
 }): AanbiedingenCard[] {
   const cards: AanbiedingenCard[] = [];
   const primaryMaterialIds = new Set<string>();
+  const creatives = args.creatives.filter((creative) => creative.market === args.market).sort(compareCreatives);
 
-  for (const creative of args.creatives) {
-    if (creative.market !== args.market) {
-      continue;
-    }
-    const card = creativeCard(creative);
+  for (const creative of creatives) {
+    const card = creativeCard(creative, args.images);
     if (!card) {
       continue;
     }
@@ -198,7 +283,8 @@ export function composeAanbiedingenCards(args: {
   }
 
   const seenSecondaryMaterials = new Set<string>();
-  for (const promotion of args.secondary) {
+  const secondary = [...args.secondary].sort(comparePromotions);
+  for (const promotion of secondary) {
     const card = promotionCard(promotion, args.market);
     if (!card) {
       continue;

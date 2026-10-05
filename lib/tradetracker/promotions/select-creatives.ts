@@ -23,9 +23,11 @@ import { compareCalendarDates, utcCalendarDate } from './validity';
  * Slice 2 selection on top of Slice 1 creative snapshots.
  *
  * `/aanbiedingen` reads `selected-{market}-{site}.json` through
- * `load-aanbiedingen.ts`. News and incentive SOAP stays secondary.
- * This module does not call TradeTracker and does not request
- * click (`/c`) or impression (`/i`) URLs.
+ * `load-aanbiedingen.ts`. Every selected creative is a canonical banner,
+ * not automatically an offer: the page keeps only rows that pass
+ * `isDisplayableOffer`. News and incentive SOAP stays secondary and uses
+ * the same benefit rule. This module does not call TradeTracker and does
+ * not request click (`/c`) or impression (`/i`) URLs.
  */
 
 const DEDUPE_KEY_LABEL = 'market|affiliateSiteId|materialItemId' as const;

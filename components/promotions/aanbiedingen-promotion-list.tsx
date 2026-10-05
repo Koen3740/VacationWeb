@@ -1,4 +1,6 @@
 import type { AanbiedingenCard } from '@/lib/tradetracker/promotions/compose-aanbiedingen';
+import { isOwnCreativeImageUrl } from '@/lib/tradetracker/promotions/creative-image-path';
+import React from 'react';
 
 function formatDateRange(start: string | null, end: string | null): string | null {
   if (!start && !end) {
@@ -28,6 +30,8 @@ export function AanbiedingenPromotionList({
     <ul className="space-y-3">
       {cards.map((card) => {
         const validity = formatDateRange(card.publishDate, card.expirationDate);
+        const marketLabel = card.market === 'be' ? 'België' : 'Nederland';
+        const imageSrc = isOwnCreativeImageUrl(card.imageUrl) ? card.imageUrl : null;
         return (
           <li
             key={card.id}
@@ -37,6 +41,18 @@ export function AanbiedingenPromotionList({
               {card.providerName}
             </p>
             <h3 className="mt-1 text-[17px] font-semibold tracking-tight text-[#0A2D62]">{card.title}</h3>
+            {imageSrc ? (
+              <img
+                src={imageSrc}
+                alt={card.title}
+                width={card.imageWidth ?? undefined}
+                height={card.imageHeight ?? undefined}
+                className="mt-3 h-auto max-w-full rounded-lg border border-[#E8ECF2]"
+              />
+            ) : null}
+            {card.benefitText ? (
+              <p className="mt-2 text-[14px] leading-relaxed text-[#334155]">Voordeel: {card.benefitText}</p>
+            ) : null}
             {card.summary ? (
               <p className="mt-2 text-[14px] leading-relaxed text-[#334155]">{card.summary}</p>
             ) : null}
@@ -45,10 +61,13 @@ export function AanbiedingenPromotionList({
             ) : null}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-[#64748B]">
               {card.campaignName ? <span>Campagne {card.campaignName}</span> : null}
+              <span>Markt {marketLabel}</span>
               {card.dimensionsLabel ? <span>{card.dimensionsLabel}</span> : null}
               {card.materialItemId ? <span>Materiaal {card.materialItemId}</span> : null}
               {validity ? <span>Geldig: {validity}</span> : null}
-              {card.discountText ? <span>Korting: {card.discountText}</span> : null}
+              {card.discountText && card.discountText !== card.benefitText ? (
+                <span>Korting: {card.discountText}</span>
+              ) : null}
               {card.campaignUrl ? (
                 <a
                   href={card.campaignUrl}
@@ -60,11 +79,6 @@ export function AanbiedingenPromotionList({
                 </a>
               ) : null}
             </div>
-            {card.imagePolicy === 'metadata-only' ? (
-              <p className="mt-2 text-[12px] text-[#64748B]">
-                Geen bannerafbeelding. Alleen officiële gegevens; de afbeelding volgt later.
-              </p>
-            ) : null}
           </li>
         );
       })}

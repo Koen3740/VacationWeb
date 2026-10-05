@@ -7,6 +7,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { TRADETRACKER_CREATIVE_CANONICAL_SITE, TRADETRACKER_SOURCE } from './constants';
 import { composeAanbiedingenCards } from './compose-aanbiedingen';
+import { creativeImageMaterialKey } from './creative-image-path';
 import { loadAanbiedingenForMarket } from './load-aanbiedingen';
 import {
   acceptSelectedCreativeForMarket,
@@ -41,7 +42,7 @@ function creative(
     campaignUrl: market === 'be' ? 'https://www.corendon.be/' : 'https://www.corendon.nl/',
     affiliateSiteId,
     materialItemId,
-    title: 'Banner5',
+    title: 'Banner5-lastminute',
     creativeType: 'banner_image',
     width: 300,
     height: 250,
@@ -117,33 +118,38 @@ test('canonical creative files are NL 512226 and BE 511873', () => {
 test('primary creatives precede secondary promotions and the same material is not repeated', () => {
   const cards = composeAanbiedingenCards({
     market: 'nl',
-    creatives: [creative({ materialItemId: '55', title: 'Banner5' })],
+    creatives: [creative({ materialItemId: '55', title: 'Banner5-lastminute' })],
     secondary: [
-      promotion({ id: 'voucher:55', kind: 'voucher', title: 'Zelfde materiaal' }),
-      promotion({ id: 'incentive_offer:55', kind: 'incentive_offer', title: 'Nog eens' }),
+      promotion({ id: 'voucher:55', kind: 'voucher', title: 'lastminute zelfde materiaal' }),
+      promotion({ id: 'incentive_offer:55', kind: 'incentive_offer', title: 'Nog eens lastminute' }),
       promotion({ id: 'news:9', title: 'Nazomeractie' }),
+      promotion({ id: 'news:10', title: 'Vroegboek', summary: 'Vroegboek op geselecteerde reizen' }),
     ],
   });
   assert.deepEqual(
     cards.map((card) => card.source + ':' + card.title),
-    ['creative:Banner5', 'promotion:Nazomeractie'],
+    ['creative:Banner5-lastminute', 'promotion:Vroegboek'],
   );
   assert.equal(cards[0]?.discountText, null);
-  assert.equal(cards[0]?.imagePolicy, 'metadata-only');
+  assert.equal(cards[0]?.benefitText, 'lastminute');
+  assert.equal(cards[0]?.imagePolicy, null);
+  assert.equal(cards[0]?.imageUrl, null);
   assert.equal(cards[0]?.campaignUrl, 'https://www.corendon.nl/');
   assert.equal(JSON.stringify(cards).includes('/c?'), false);
   assert.equal(JSON.stringify(cards).includes('/i?'), false);
+  assert.equal(JSON.stringify(cards).includes('€'), false);
 });
 
 test('secondary promotions remain when no primary creative exists', () => {
   const cards = composeAanbiedingenCards({
     market: 'nl',
     creatives: [],
-    secondary: [promotion()],
+    secondary: [promotion(), promotion({ id: 'news:10', title: 'Lastminute', summary: 'lastminute naar Turkije' })],
   });
   assert.equal(cards.length, 1);
   assert.equal(cards[0]?.source, 'promotion');
-  assert.equal(cards[0]?.title, 'Nazomeractie');
+  assert.equal(cards[0]?.title, 'Lastminute');
+  assert.equal(cards[0]?.benefitText, 'Lastminute');
 });
 
 test('TUI, unknown providers, and the other market are excluded', () => {
@@ -153,14 +159,54 @@ test('TUI, unknown providers, and the other market are excluded', () => {
       creative({ materialItemId: '1', title: 'TUI week', campaignName: 'TUI' }),
       creative({ materialItemId: '2', provider: 'Prijsvrij' as 'Corendon', campaignName: 'Prijsvrij' }),
       creative({ materialItemId: '3', market: 'be' }),
-      creative({ materialItemId: '4', discountFixed: '25', voucherCode: null }),
+      creative({ materialItemId: '4', title: 'Banner5', discountFixed: '25', voucherCode: null }),
     ],
     secondary: [promotion({ providerName: 'TUI', title: 'TUI deal' })],
   });
   assert.equal(cards.length, 1);
   assert.equal(cards[0]?.materialItemId, '4');
   assert.equal(cards[0]?.discountText, '25');
+  assert.equal(cards[0]?.benefitText, '25');
   assert.equal(cards[0]?.providerName, 'Corendon');
+});
+
+test('generic banners are excluded and offers stay in material-id order', () => {
+  const cards = composeAanbiedingenCards({
+    market: 'nl',
+    creatives: [
+      creative({ materialItemId: '20', title: 'Banner20-lastminute' }),
+      creative({ materialItemId: '3', title: 'Banner3' }),
+      creative({ materialItemId: '4', title: 'Banner4-lastminute' }),
+    ],
+    secondary: [],
+  });
+  assert.deepEqual(
+    cards.map((card) => card.materialItemId),
+    ['4', '20'],
+  );
+  assert.equal(cards.every((card) => card.benefitText === 'lastminute'), true);
+});
+
+test('a card image is the VacationWeb path or nothing', () => {
+  const safe = '/aanbiedingen/creative-images/nl/512226/38108/55-300x250-abcdef0123456789.png';
+  const images = new Map([
+    [creativeImageMaterialKey('nl', '512226', '55'), { publicPath: safe, width: 300, height: 250 }],
+    [
+      creativeImageMaterialKey('nl', '512226', '56'),
+      { publicPath: 'https://referral.corendon.nl/i?c=1', width: 1, height: 1 },
+    ],
+  ]);
+  const cards = composeAanbiedingenCards({
+    market: 'nl',
+    creatives: [creative({ materialItemId: '55' }), creative({ materialItemId: '56', title: 'Banner56-lastminute' })],
+    secondary: [],
+    images,
+  });
+  assert.equal(cards[0]?.imageUrl, safe);
+  assert.equal(cards[0]?.imagePolicy, 'own-storage');
+  assert.equal(cards[1]?.imageUrl, null);
+  assert.equal(JSON.stringify(cards).includes('referral.corendon'), false);
+  assert.equal(JSON.stringify(cards).includes('/i?'), false);
 });
 
 test('a tracking campaign URL is not used as a link', () => {
@@ -232,12 +278,15 @@ test('page loader uses secondary promotions when the creative file is missing', 
       error: null,
     }),
     loadSecondary: async () =>
-      secondaryResult('be', [promotion({ market: 'be', title: 'BE nieuws' })]),
+      secondaryResult('be', [
+        promotion({ market: 'be', title: 'BE nieuws' }),
+        promotion({ market: 'be', id: 'news:10', title: 'Lastminute BE', summary: 'lastminute' }),
+      ]),
   });
   assert.equal(section.affiliateSiteId, '511873');
   assert.equal(section.primaryCount, 0);
   assert.equal(section.secondaryCount, 1);
-  assert.equal(section.cards[0]?.title, 'BE nieuws');
+  assert.equal(section.cards[0]?.title, 'Lastminute BE');
   assert.equal(section.error, null);
 });
 
@@ -300,11 +349,20 @@ test('live selected snapshots become Corendon cards without tracking URLs', asyn
   const beCards = composeAanbiedingenCards({ market: 'be', creatives: be.creatives, secondary: [] });
   assert.equal(nl.creatives.length, 98);
   assert.equal(be.creatives.length, 27);
-  assert.equal(nlCards.length, 98);
-  assert.equal(beCards.length, 27);
-  assert.equal(nlCards.every((card) => card.providerName === 'Corendon' && card.affiliateSiteId === '512226' && card.market === 'nl'), true);
+  assert.equal(nlCards.length, 0);
+  assert.equal(beCards.length, 9);
+  assert.deepEqual(
+    beCards.map((card) => card.materialItemId),
+    ['2499691', '2499692', '2499693', '2499694', '2499695', '2499696', '2499697', '2499698', '2499700'],
+  );
   assert.equal(beCards.every((card) => card.providerName === 'Corendon' && card.affiliateSiteId === '511873' && card.market === 'be'), true);
-  assert.equal(nlCards.every((card) => card.discountText == null), true);
-  assert.equal(JSON.stringify(nlCards).includes('/c?'), false);
-  assert.equal(JSON.stringify(beCards).includes('/i?'), false);
+  assert.equal(beCards.every((card) => card.benefitText === 'lastminute' && /lastminute/i.test(card.title)), true);
+  assert.equal(beCards.every((card) => card.discountText == null), true);
+  assert.equal(beCards.every((card) => card.imageUrl == null), true);
+  const rendered = JSON.stringify(beCards);
+  assert.equal(rendered.includes('/c?'), false);
+  assert.equal(rendered.includes('/i?'), false);
+  assert.equal(rendered.includes('referral.corendon'), false);
+  assert.equal(rendered.includes('ti.tradetracker.net'), false);
+  assert.equal(rendered.includes('€'), false);
 });

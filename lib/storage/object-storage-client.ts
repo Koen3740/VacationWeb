@@ -190,6 +190,11 @@ export async function headStorageObject(
 }
 
 export async function getStorageObject(key: string): Promise<string> {
+  const bytes = await getStorageObjectBytes(key);
+  return bytes.toString('utf8');
+}
+
+export async function getStorageObjectBytes(key: string): Promise<Buffer> {
   const { config, client } = getS3Client();
 
   const response = await client.send(
@@ -203,7 +208,8 @@ export async function getStorageObject(key: string): Promise<string> {
     throw new Error(`Object Storage returned an empty body for ${key}`);
   }
 
-  return response.Body.transformToString();
+  const bytes = await response.Body.transformToByteArray();
+  return Buffer.from(bytes);
 }
 
 export async function downloadStorageObject(

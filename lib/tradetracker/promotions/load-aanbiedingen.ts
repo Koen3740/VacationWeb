@@ -1,4 +1,5 @@
 import { composeAanbiedingenCards, type AanbiedingenCard } from './compose-aanbiedingen';
+import { loadCreativeImageIndex } from './creative-images';
 import {
   loadSelectedCreativesForMarket,
   type LoadedSelectedCreatives,
@@ -49,6 +50,7 @@ export async function loadAanbiedingenForMarket(
     market,
     creatives: primary.creatives,
     secondary: secondary.promotions,
+    images: loadCreativeImageIndex(options.root),
   });
   const primaryCount = cards.filter((card) => card.source === 'creative').length;
   const secondaryCount = cards.length - primaryCount;
