@@ -26,6 +26,7 @@ function card(overrides: Partial<AanbiedingenCard> = {}): AanbiedingenCard {
     publishDate: null,
     expirationDate: null,
     campaignUrl: 'https://www.corendon.be/',
+    clickUrl: 'https://referral.corendon.be/c?c=38103&m=2499691&a=511873&r=&u=',
     imageUrl: '/aanbiedingen/creative-images/be/511873/38103/2499691-120x600-abcdef0123456789.png',
     imageWidth: 120,
     imageHeight: 600,
@@ -43,6 +44,7 @@ test('offer cards render the provider, source benefit and own image only', () =>
           id: 'poison',
           materialItemId: '9',
           imageUrl: 'https://referral.corendon.be/i?c=38103&m=9',
+          clickUrl: 'https://referral.corendon.be/i?c=38103&m=9',
           benefitText: 'lastminute',
           title: 'Banner9-lastminute',
         }),
@@ -56,10 +58,18 @@ test('offer cards render the provider, source benefit and own image only', () =>
   assert.match(html, /Campagne Corendon\.be/);
   assert.match(html, /Markt België/);
   assert.match(html, /src="\/aanbiedingen\/creative-images\/be\/511873\/38103\/2499691-120x600-abcdef0123456789\.png"/);
-  assert.equal(html.includes('referral.corendon'), false);
-  assert.equal(html.includes('ti.tradetracker.net'), false);
+  assert.match(
+    html,
+    /href="https:\/\/referral\.corendon\.be\/c\?c=38103&amp;m=2499691&amp;a=511873&amp;r=&amp;u="/,
+  );
+  assert.match(html, /target="_blank"/);
+  assert.match(html, /rel="noopener noreferrer"/);
+  assert.equal(html.includes('<img src="https://referral.corendon'), false);
   assert.equal(html.includes('/i?'), false);
-  assert.equal(html.includes('/c?'), false);
+  assert.equal(html.includes('ti.tradetracker.net'), false);
+  assert.equal(html.includes('<iframe'), false);
+  assert.equal(html.includes('prefetch'), false);
+  assert.equal((html.match(/\/c\?/g) ?? []).length, 1);
   assert.equal(html.includes('€'), false);
   assert.equal(html.includes('tot €'), false);
 });

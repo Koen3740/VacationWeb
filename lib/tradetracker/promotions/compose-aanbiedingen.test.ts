@@ -32,12 +32,16 @@ function creative(
   const market = overrides.market ?? 'nl';
   const affiliateSiteId = overrides.affiliateSiteId ?? TRADETRACKER_CREATIVE_CANONICAL_SITE[market];
   const materialItemId = overrides.materialItemId ?? '55';
+  const campaignId = overrides.campaignId ?? (market === 'be' ? '38103' : '38108');
+  const click =
+    overrides.trackingClickUrlTemplate ??
+    `https://referral.corendon.${market}/c?c=${campaignId}&m=${materialItemId}&a=${affiliateSiteId}&r=&u=`;
   return {
     id: `${market}|${affiliateSiteId}|${materialItemId}`,
     dedupeKey: `${market}|${affiliateSiteId}|${materialItemId}`,
     provider: 'Corendon',
     market,
-    campaignId: market === 'be' ? '38103' : '38108',
+    campaignId,
     campaignName: market === 'be' ? 'Corendon.be' : 'Corendon NL',
     campaignUrl: market === 'be' ? 'https://www.corendon.be/' : 'https://www.corendon.nl/',
     affiliateSiteId,
@@ -60,7 +64,7 @@ function creative(
     conditions: null,
     embedCode: `<a href="${NL_CLICK}"><img src="${NL_IMPRESSION}" /></a>`,
     staticImageUrlHint: null,
-    trackingClickUrlTemplate: NL_CLICK,
+    trackingClickUrlTemplate: click,
     impressionUrlTemplate: NL_IMPRESSION,
     referenceSupported: true,
     source: TRADETRACKER_SOURCE,
@@ -135,7 +139,9 @@ test('primary creatives precede secondary promotions and the same material is no
   assert.equal(cards[0]?.imagePolicy, null);
   assert.equal(cards[0]?.imageUrl, null);
   assert.equal(cards[0]?.campaignUrl, 'https://www.corendon.nl/');
-  assert.equal(JSON.stringify(cards).includes('/c?'), false);
+  assert.equal(cards[0]?.clickUrl, 'https://referral.corendon.nl/c?c=38108&m=55&a=512226&r=&u=');
+  assert.equal(cards[1]?.clickUrl, null);
+  assert.equal(JSON.stringify(cards[0]?.imageUrl).includes('/c?'), false);
   assert.equal(JSON.stringify(cards).includes('/i?'), false);
   assert.equal(JSON.stringify(cards).includes('€'), false);
 });
@@ -205,18 +211,21 @@ test('a card image is the VacationWeb path or nothing', () => {
   assert.equal(cards[0]?.imageUrl, safe);
   assert.equal(cards[0]?.imagePolicy, 'own-storage');
   assert.equal(cards[1]?.imageUrl, null);
-  assert.equal(JSON.stringify(cards).includes('referral.corendon'), false);
+  assert.equal(JSON.stringify([cards[0]?.imageUrl, cards[1]?.imageUrl]).includes('referral.corendon'), false);
   assert.equal(JSON.stringify(cards).includes('/i?'), false);
+  assert.match(cards[0]?.clickUrl ?? '', /^https:\/\/referral\.corendon\.nl\/c\?/);
 });
 
-test('a tracking campaign URL is not used as a link', () => {
+test('a tracking campaign URL is not used as the merchant link', () => {
+  const foreignClick = 'https://referral.corendon.nl/c?c=38108&m=999&a=512226&r=&u=';
   const cards = composeAanbiedingenCards({
     market: 'nl',
-    creatives: [creative({ campaignUrl: NL_CLICK })],
+    creatives: [creative({ campaignUrl: foreignClick })],
     secondary: [],
   });
   assert.equal(cards[0]?.campaignUrl, null);
-  assert.equal(JSON.stringify(cards).includes(NL_CLICK), false);
+  assert.equal(cards[0]?.clickUrl, NL_CLICK);
+  assert.equal(JSON.stringify(cards).includes(foreignClick), false);
 });
 
 test('compose performs no HTTP', () => {
@@ -333,7 +342,7 @@ test('selected snapshot reader keeps only the requested market', async () => {
   assert.equal(missing.affiliateSiteId, '511873');
 });
 
-test('live selected snapshots become Corendon cards without tracking URLs', async (t) => {
+test('live selected snapshots link the nine BE offers to their click templates', async (t) => {
   const nlPath = selectedCreativeSnapshotPath('nl');
   const bePath = selectedCreativeSnapshotPath('be');
   try {
@@ -359,10 +368,15 @@ test('live selected snapshots become Corendon cards without tracking URLs', asyn
   assert.equal(beCards.every((card) => card.benefitText === 'lastminute' && /lastminute/i.test(card.title)), true);
   assert.equal(beCards.every((card) => card.discountText == null), true);
   assert.equal(beCards.every((card) => card.imageUrl == null), true);
+  assert.equal(beCards.every((card) => card.campaignUrl === 'https://www.corendon.be/'), true);
+  const byId = new Map(be.creatives.map((item) => [item.materialItemId, item.trackingClickUrlTemplate]));
+  assert.equal(
+    beCards.every((card) => card.clickUrl === byId.get(card.materialItemId ?? '') && card.clickUrl?.includes('/c?')),
+    true,
+  );
   const rendered = JSON.stringify(beCards);
-  assert.equal(rendered.includes('/c?'), false);
   assert.equal(rendered.includes('/i?'), false);
-  assert.equal(rendered.includes('referral.corendon'), false);
   assert.equal(rendered.includes('ti.tradetracker.net'), false);
   assert.equal(rendered.includes('€'), false);
+  assert.equal(rendered.includes('/c?'), true);
 });

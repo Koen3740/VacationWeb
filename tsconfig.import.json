@@ -49,6 +49,7 @@
     "lib/tradetracker/promotions/soap-filters.ts",
     "lib/tradetracker/promotions/select-creatives.ts",
     "lib/tradetracker/promotions/displayable-offer.ts",
+    "lib/tradetracker/promotions/promotion-click.ts",
     "lib/tradetracker/promotions/creative-image-path.ts",
     "lib/tradetracker/promotions/creative-image-bytes.ts",
     "lib/tradetracker/promotions/creative-images.ts",

@@ -5,6 +5,7 @@ import {
 } from './creative-image-path';
 import { TRADETRACKER_CREATIVE_CANONICAL_SITE } from './constants';
 import { evaluateOfferBenefit } from './displayable-offer';
+import { promotionClickHref } from './promotion-click';
 import type { DisplayablePromotion, VacationWebPromotionMarket } from './select-displayable';
 import {
   CREATIVE_ALLOWED_PROVIDERS,
@@ -17,8 +18,8 @@ import {
  * 1. Primary — selected creatives that are concrete offers (`isDisplayableOffer`).
  * 2. Secondary — news, incentive, and voucher rows that pass the same rule.
  * General ads are omitted. Secondary cards never replace a primary creative.
- * Tracking templates stay off the card. Image src is VacationWeb storage only.
- * Nothing here performs HTTP.
+ * The affiliate click is the stored `/c` template, validated and placed only on
+ * `clickUrl`. Image src is VacationWeb storage only. Nothing here performs HTTP.
  */
 
 export type AanbiedingenCardSource = 'creative' | 'promotion';
@@ -46,6 +47,11 @@ export type AanbiedingenCard = {
   expirationDate: string | null;
   /** Merchant campaign URL only. Never a `/c` or `/i` tracking URL. */
   campaignUrl: string | null;
+  /**
+   * Stored affiliate click template for a real user click.
+   * Null when the template is missing or does not match this creative.
+   */
+  clickUrl: string | null;
   /** Own stored banner. Null until ingest has written a safe public path. */
   imageUrl: string | null;
   imageWidth: number | null;
@@ -181,6 +187,7 @@ function creativeCard(
     publishDate: creative.validFromDate,
     expirationDate: creative.validToDate,
     campaignUrl: safeCampaignUrl(creative.campaignUrl),
+    clickUrl: promotionClickHref(creative),
     ...ownImage(images?.get(creativeImageMaterialKey(creative.market, creative.affiliateSiteId, creative.materialItemId))),
   };
 }
@@ -238,6 +245,7 @@ function promotionCard(
     publishDate: promotion.publishDate,
     expirationDate: promotion.expirationDate,
     campaignUrl: safeCampaignUrl(promotion.campaignUrl),
+    clickUrl: null,
     imageUrl: null,
     imageWidth: null,
     imageHeight: null,

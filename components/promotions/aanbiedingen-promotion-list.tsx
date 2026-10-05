@@ -1,6 +1,23 @@
 import type { AanbiedingenCard } from '@/lib/tradetracker/promotions/compose-aanbiedingen';
 import { isOwnCreativeImageUrl } from '@/lib/tradetracker/promotions/creative-image-path';
+import { promotionClickHref } from '@/lib/tradetracker/promotions/promotion-click';
 import React from 'react';
+
+function outboundHref(card: AanbiedingenCard): string | null {
+  if (card.source === 'creative') {
+    if (!card.clickUrl || !card.campaignId || !card.affiliateSiteId || !card.materialItemId) {
+      return null;
+    }
+    return promotionClickHref({
+      market: card.market,
+      campaignId: card.campaignId,
+      affiliateSiteId: card.affiliateSiteId,
+      materialItemId: card.materialItemId,
+      trackingClickUrlTemplate: card.clickUrl,
+    });
+  }
+  return card.campaignUrl;
+}
 
 function formatDateRange(start: string | null, end: string | null): string | null {
   if (!start && !end) {
@@ -32,6 +49,7 @@ export function AanbiedingenPromotionList({
         const validity = formatDateRange(card.publishDate, card.expirationDate);
         const marketLabel = card.market === 'be' ? 'België' : 'Nederland';
         const imageSrc = isOwnCreativeImageUrl(card.imageUrl) ? card.imageUrl : null;
+        const href = outboundHref(card);
         return (
           <li
             key={card.id}
@@ -68,9 +86,9 @@ export function AanbiedingenPromotionList({
               {card.discountText && card.discountText !== card.benefitText ? (
                 <span>Korting: {card.discountText}</span>
               ) : null}
-              {card.campaignUrl ? (
+              {href ? (
                 <a
-                  href={card.campaignUrl}
+                  href={href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-[#0A2D62] hover:underline"

@@ -17,6 +17,7 @@ export { getTradeTrackerSoapCredentials, resolveAffiliateSiteIdForIngest } from 
 export { ingestTradeTrackerPromotions, snapshotCounts } from './ingest';
 export { creativeIngestTargets, ingestTradeTrackerCreatives } from './ingest-creatives';
 export { isDisplayableOffer, evaluateOfferBenefit } from './displayable-offer';
+export { RECOMMENDED_LIVE_CLICK_MATERIAL_ID, promotionClickHref } from './promotion-click';
 export { mapCreativeProvider, selectTradeTrackerCreatives } from './select-creatives';
 export { loadDisplayablePromotionsByMarkets, loadDisplayablePromotionsForMarket } from './load-for-page';
 export { selectDisplayablePromotions } from './select-displayable';
