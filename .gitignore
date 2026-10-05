@@ -36,6 +36,7 @@ _preview-check.png
 data/offers.json
 data/offers.detail.json
 data/tradetracker-promotions/*.json
+data/tradetracker-creatives/*.json
 # TradeTracker research secrets / local credentials
 docs/research/tradetracker-webservices/.env
 docs/research/tradetracker-webservices/.env.local

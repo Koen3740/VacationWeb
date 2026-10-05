@@ -5,8 +5,17 @@ import {
   emptyCampaignFilter,
   emptyCampaignNewsItemFilter,
   emptyMaterialItemFilter,
+  materialItemFilter,
+  type MaterialItemFilterOverrides,
 } from './soap-filters';
 import type { TradeTrackerSoapCredentials } from './types';
+
+export type MaterialBannerImageItemsOptions = {
+  campaignID?: number | string | null;
+  materialBannerDimensionID?: number | string | null;
+  limit?: number | null;
+  offset?: number | null;
+};
 
 export type AffiliateSoapPort = {
   authenticate(credentials: TradeTrackerSoapCredentials): Promise<void>;
@@ -15,6 +24,10 @@ export type AffiliateSoapPort = {
   getCampaignNewsItems(): Promise<unknown>;
   getMaterialIncentiveOfferItems(affiliateSiteID: number): Promise<unknown>;
   getMaterialIncentiveVoucherItems(affiliateSiteID: number): Promise<unknown>;
+  getMaterialBannerImageItems(
+    affiliateSiteID: number,
+    options?: MaterialBannerImageItemsOptions,
+  ): Promise<unknown>;
 };
 
 type SoapClientLike = {
@@ -24,10 +37,35 @@ type SoapClientLike = {
   getCampaignNewsItemsAsync: (args: unknown) => Promise<unknown>;
   getMaterialIncentiveOfferItemsAsync: (args: unknown) => Promise<unknown>;
   getMaterialIncentiveVoucherItemsAsync: (args: unknown) => Promise<unknown>;
+  getMaterialBannerImageItemsAsync: (args: unknown) => Promise<unknown>;
   addHttpHeader?: (name: string, value: string) => void;
   lastResponseHeaders?: Record<string, string | string[] | undefined>;
   lastRequest?: string;
 };
+
+function nonNegativeIntegerOption(value: number | string | null | undefined, label: string): number | null {
+  if (value == null || value === '') {
+    return null;
+  }
+  const parsed = typeof value === 'number' ? value : Number(String(value).trim());
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new TradeTrackerSoapError('getMaterialBannerImageItems', `Invalid ${label}: ${String(value)}`);
+  }
+  return parsed;
+}
+
+function bannerImageFilter(options: MaterialBannerImageItemsOptions | undefined): Record<string, number | null> {
+  const overrides: MaterialItemFilterOverrides = {};
+  const campaignID = nonNegativeIntegerOption(options?.campaignID, 'campaignID');
+  const dimensionID = nonNegativeIntegerOption(options?.materialBannerDimensionID, 'materialBannerDimensionID');
+  const limit = nonNegativeIntegerOption(options?.limit, 'limit');
+  const offset = nonNegativeIntegerOption(options?.offset, 'offset');
+  if (campaignID != null) overrides.campaignID = campaignID;
+  if (dimensionID != null) overrides.materialBannerDimensionID = dimensionID;
+  if (limit != null) overrides.limit = limit;
+  if (offset != null) overrides.offset = offset;
+  return materialItemFilter(overrides);
+}
 
 function unwrapSoapResult(result: unknown): unknown {
   if (Array.isArray(result)) {
@@ -123,6 +161,21 @@ export function createAffiliateSoapPort(client: SoapClientLike): AffiliateSoapPo
           affiliateSiteID,
           materialOutputType: TRADETRACKER_MATERIAL_OUTPUT_TYPE,
           options: emptyMaterialItemFilter(),
+        }),
+      );
+    },
+    getMaterialBannerImageItems(affiliateSiteID, options) {
+      let filter: Record<string, number | null>;
+      try {
+        filter = bannerImageFilter(options);
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return callSoap('getMaterialBannerImageItems', () =>
+        client.getMaterialBannerImageItemsAsync({
+          affiliateSiteID,
+          materialOutputType: TRADETRACKER_MATERIAL_OUTPUT_TYPE,
+          options: filter,
         }),
       );
     },

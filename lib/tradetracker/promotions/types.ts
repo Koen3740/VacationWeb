@@ -1,4 +1,4 @@
-import type { CampaignNewsType } from './constants';
+import type { CampaignNewsType, TradeTrackerCredentialMarket } from './constants';
 
 export type PromotionalSourceKind =
   | 'campaign'
@@ -115,4 +115,68 @@ export type TradeTrackerSoapCredentials = {
   sandbox: boolean;
   locale: string;
   demo: boolean;
+};
+
+/**
+ * One official banner creative from getMaterialBannerImageItems.
+ * Image bytes are not stored. `embedCode` is the SOAP html `code`.
+ */
+export type TradeTrackerBannerCreativeRecord = {
+  source: typeof import('./constants').TRADETRACKER_SOURCE;
+  kind: 'banner_image';
+  materialItemId: string;
+  name: string;
+  campaignId: string | null;
+  campaignName: string | null;
+  campaignUrl: string | null;
+  affiliateSiteId: string;
+  market: TradeTrackerCredentialMarket;
+  width: number | null;
+  height: number | null;
+  dimensionId: string | null;
+  isMobile: boolean | null;
+  isCommon: boolean | null;
+  referenceSupported: boolean | null;
+  description: string | null;
+  conditions: string | null;
+  validFromDate: string | null;
+  validToDate: string | null;
+  discountFixed: string | null;
+  discountVariable: string | null;
+  voucherCode: string | null;
+  creationDate: string | null;
+  modificationDate: string | null;
+  /** Present only when the SOAP item carries a status field. MaterialItem has none in the WSDL. */
+  status: string | null;
+  embedCode: string | null;
+  trackingClickUrlTemplate: string | null;
+  impressionUrlTemplate: string | null;
+  /** Non-impression image URL found in `code`, such as static.tradetracker.net. No network resolve. */
+  staticImageUrlHint: string | null;
+  validity: PromotionalValidity;
+  fetchedAt: string;
+  sourceMetadata: Record<string, unknown>;
+};
+
+export type TradeTrackerCreativeSnapshotCounts = {
+  creatives: number;
+  campaignsRequested: number;
+  methodErrors: number;
+  byCampaignId: Record<string, number>;
+};
+
+export type TradeTrackerCreativeSnapshot = {
+  source: typeof import('./constants').TRADETRACKER_SOURCE;
+  ingestedAt: string;
+  wsdlUrl: string;
+  market: TradeTrackerCredentialMarket;
+  scopedAffiliateSiteId: string;
+  /** Access key that authenticated this snapshot. Matches `market` for v1. */
+  credentialScope: TradeTrackerCredentialMarket;
+  /** Slice 1 stores SOAP metadata and html `code` only. */
+  imageDelivery: 'metadata-and-embed-code';
+  campaignIds: string[];
+  creatives: TradeTrackerBannerCreativeRecord[];
+  methodErrors: MethodIngestError[];
+  counts: TradeTrackerCreativeSnapshotCounts;
 };

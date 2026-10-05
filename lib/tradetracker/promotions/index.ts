@@ -1,5 +1,8 @@
 export {
+  MKDIGITALMEDIA_BE_AFFILIATE_SITE_ID,
+  MKDIGITALMEDIA_NL_AFFILIATE_SITE_ID,
   TRADETRACKER_AFFILIATE_WSDL_URL,
+  TRADETRACKER_CREATIVE_CAMPAIGNS_V1,
   TRADETRACKER_SOURCE,
   VACATIONWEB_BE_AFFILIATE_SITE_ID,
   VACATIONWEB_NL_AFFILIATE_SITE_ID,
@@ -12,12 +15,15 @@ export {
 } from './connected-providers';
 export { getTradeTrackerSoapCredentials, resolveAffiliateSiteIdForIngest } from './credentials';
 export { ingestTradeTrackerPromotions, snapshotCounts } from './ingest';
+export { creativeIngestTargets, ingestTradeTrackerCreatives } from './ingest-creatives';
 export { loadDisplayablePromotionsByMarkets, loadDisplayablePromotionsForMarket } from './load-for-page';
 export { selectDisplayablePromotions } from './select-displayable';
 export { promotionalValidity } from './validity';
 export type {
+  TradeTrackerBannerCreativeRecord,
   TradeTrackerCampaignNewsRecord,
   TradeTrackerCampaignRecord,
+  TradeTrackerCreativeSnapshot,
   TradeTrackerIncentiveRecord,
   TradeTrackerPromotionSnapshot,
 } from './types';
