@@ -19,19 +19,21 @@ test('structured discount or voucher is a displayable offer and the source text 
   assert.equal(evaluateOfferBenefit({ name: 'Banner5', discountFixed: 'tot €600' }).benefitText, 'tot €600');
 });
 
-test('explicit promo tokens are taken from source text and amounts are not invented', () => {
-  assert.equal(evaluateOfferBenefit({ name: 'Banner1-lastminute' }).benefitText, 'lastminute');
-  assert.equal(evaluateOfferBenefit({ name: 'Banner1-lastminute' }).benefitText?.includes('€'), false);
-  assert.equal(evaluateOfferBenefit({ title: 'Last-Minute' }).benefitText, 'Last-Minute');
-  assert.equal(evaluateOfferBenefit({ description: 'Last minute naar Turkije' }).benefitText, 'Last minute');
-  assert.equal(evaluateOfferBenefit({ conditions: '10% korting op een selectie' }).benefitText, 'korting');
-  assert.equal(evaluateOfferBenefit({ summary: 'Early booking voor mei' }).benefitText, 'Early booking');
-  assert.equal(evaluateOfferBenefit({ description: 'vroegboek' }).outcome, 'displayable');
-  assert.equal(evaluateOfferBenefit({ name: 'summer discount' }).benefitText, 'discount');
-  assert.equal(
-    evaluateOfferBenefit({ name: 'Banner-lastminute', description: 'extra korting' }).benefitText,
-    'lastminute · korting',
-  );
+test('a concrete amount in the source is kept and a bare promo word is not an offer', () => {
+  assert.equal(evaluateOfferBenefit({ name: 'Banner1-lastminute' }).outcome, 'excluded');
+  assert.equal(evaluateOfferBenefit({ name: 'Banner1-lastminute' }).benefitText, null);
+  assert.equal(evaluateOfferBenefit({ title: 'Last-Minute' }).outcome, 'excluded');
+  assert.equal(evaluateOfferBenefit({ description: 'Last minute naar Turkije' }).outcome, 'excluded');
+  assert.equal(evaluateOfferBenefit({ description: 'Boek nu' }).outcome, 'excluded');
+  assert.equal(evaluateOfferBenefit({ summary: 'Early booking voor mei' }).outcome, 'excluded');
+  assert.equal(evaluateOfferBenefit({ description: 'vroegboek' }).outcome, 'excluded');
+  assert.equal(evaluateOfferBenefit({ name: 'summer discount' }).outcome, 'excluded');
+  assert.equal(evaluateOfferBenefit({ name: 'Banner-lastminute', description: 'extra korting' }).outcome, 'excluded');
+  assert.equal(evaluateOfferBenefit({ conditions: '10% korting op een selectie' }).outcome, 'displayable');
+  assert.equal(evaluateOfferBenefit({ conditions: '10% korting op een selectie' }).benefitText, '10%');
+  assert.equal(evaluateOfferBenefit({ description: 'tot € 200 extra korting' }).benefitText, '€ 200');
+  assert.equal(evaluateOfferBenefit({ title: 'Tot €600 extra korting' }).benefitText, '€600');
+  assert.equal(isDisplayableOffer({ name: 'Banner1-lastminute' }), false);
 });
 
 test('generic ads and doubtful compounds are not offers', () => {
@@ -51,7 +53,7 @@ test('generic ads and doubtful compounds are not offers', () => {
   assert.equal(isDisplayableOffer({}), false);
 });
 
-test('this snapshot has 9 BE lastminute offers, 0 NL offers, 116 generic ads and 0 doubts', (t) => {
+test('this snapshot has no amount-backed offers: the 9 BE lastminute banners are excluded', (t) => {
   const dir = path.join(process.cwd(), 'data', 'tradetracker-creatives');
   const nlPath = path.join(dir, 'snapshot-nl-512226.json');
   const bePath = path.join(dir, 'snapshot-be-511873.json');
@@ -80,16 +82,19 @@ test('this snapshot has 9 BE lastminute offers, 0 NL offers, 116 generic ads and
     if (decision.outcome === 'displayable') {
       counts[row.market] += 1;
       ids.push(row.creative.materialItemId);
-      assert.equal(decision.benefitText, 'lastminute');
+    }
+    if (/lastminute/i.test(row.creative.name)) {
+      assert.equal(decision.outcome, 'excluded');
+      assert.equal(decision.benefitText, null);
+      assert.equal(row.creative.discountFixed, null);
       assert.equal(row.creative.staticImageUrlHint, null);
-      assert.match(row.creative.embedCode ?? '', /\/i\?/);
     }
   }
   assert.equal(rows.length, 125);
-  assert.equal(counts.displayable, 9);
-  assert.equal(counts.excluded, 116);
+  assert.equal(counts.displayable, 0);
+  assert.equal(counts.excluded, 125);
   assert.equal(counts.doubt, 0);
   assert.equal(counts.nl, 0);
-  assert.equal(counts.be, 9);
-  assert.deepEqual(ids.sort(), ['2499691', '2499692', '2499693', '2499694', '2499695', '2499696', '2499697', '2499698', '2499700'].sort());
+  assert.equal(counts.be, 0);
+  assert.deepEqual(ids, []);
 });

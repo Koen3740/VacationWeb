@@ -4,7 +4,7 @@ import {
   type CreativeImageLink,
 } from './creative-image-path';
 import { TRADETRACKER_CREATIVE_CANONICAL_SITE } from './constants';
-import { evaluateOfferBenefit } from './displayable-offer';
+import { evaluateOfferBenefit, isRejectedGenericLastminuteMaterial } from './displayable-offer';
 import { promotionClickHref } from './promotion-click';
 import type { DisplayablePromotion, VacationWebPromotionMarket } from './select-displayable';
 import {
@@ -15,9 +15,10 @@ import {
 
 /**
  * `/aanbiedingen` card order:
- * 1. Primary — selected creatives that are concrete offers (`isDisplayableOffer`).
+ * 1. Primary — selected creatives with a concrete amount, percent, or voucher.
  * 2. Secondary — news, incentive, and voucher rows that pass the same rule.
- * General ads are omitted. Secondary cards never replace a primary creative.
+ * Generic last-minute banners, including materials 2499691–2499700, are omitted.
+ * Secondary cards never replace a primary creative.
  * The affiliate click is the stored `/c` template, validated and placed only on
  * `clickUrl`. Image src is VacationWeb storage only. Nothing here performs HTTP.
  */
@@ -153,6 +154,9 @@ function creativeCard(
   creative: SelectedTradeTrackerCreative,
   images: ReadonlyMap<string, CreativeImageLink> | undefined,
 ): AanbiedingenCard | null {
+  if (isRejectedGenericLastminuteMaterial(creative.materialItemId)) {
+    return null;
+  }
   if (!isAllowedProvider(creative.provider) || isTuiText(creative.provider) || isTuiText(creative.campaignName) || isTuiText(creative.title)) {
     return null;
   }
