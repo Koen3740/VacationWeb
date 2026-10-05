@@ -30,6 +30,9 @@ function action(offer: Omit<EditorialOffer, 'clickUrl' | 'conditionsUrl' | 'imag
 export function corendonHomepageActions(market: VacationWebPromotionMarket): EditorialOffer[] {
   const winterLanding = market === 'be' ? 'https://www.corendon.be/winterzon' : 'https://www.corendon.nl/winterzon';
   const lastMinuteLanding = market === 'be' ? 'https://www.corendon.be/topdeals' : 'https://www.corendon.nl/topdeals';
+  // Destination lists are the public /winterzon sentences fetched 2026-10-05, not invented.
+  // NL: “naar populaire winterzonbestemmingen zoals Egypte en de Canarische Eilanden.”
+  // BE: “zoals Curaçao, Bonaire, Kaapverdië, Gambia, Turkije, Spanje en Egypte.”
   const winterSummary =
     market === 'be'
       ? 'Tot €600 extra korting per boeking naar populaire winterzonbestemmingen zoals Curaçao, Bonaire, Kaapverdië, Gambia, Turkije, Spanje en Egypte.'
@@ -59,6 +62,7 @@ export function corendonHomepageActions(market: VacationWebPromotionMarket): Edi
       benefitLead: 'tot',
       benefitAmount: '€200',
       benefitTail: 'extra korting',
+      // Period is the /topdeals title and sentence “oktober of november”, fetched 2026-10-05.
       summary: 'Last minute naar de zon in oktober of november, met tot € 200 korting.',
       conditions: '',
       imageAlt: '',
