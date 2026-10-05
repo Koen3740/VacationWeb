@@ -107,13 +107,15 @@ function VacationScene({ offer, large }: { offer: EditorialOffer; large: boolean
           </g>
         </svg>
       )}
-      <p
-        className={`pointer-events-none absolute text-white/90 drop-shadow-sm ${large ? 'bottom-8 left-6 text-[22px] sm:left-8 sm:text-[26px]' : 'bottom-3 left-4 text-[16px]'}`}
-        style={{ fontFamily: "Segoe Script, 'Apple Chancery', 'Snell Roundhand', cursive" }}
-        aria-hidden
-      >
-        Tijd voor zon.
-      </p>
+      {large ? (
+        <p
+          className="pointer-events-none absolute bottom-7 left-[34%] text-[22px] text-white/95 drop-shadow-sm sm:text-[26px]"
+          style={{ fontFamily: "Segoe Script, 'Apple Chancery', 'Snell Roundhand', cursive" }}
+          aria-hidden
+        >
+          Tijd voor zon.
+        </p>
+      ) : null}
       <div className={`absolute ${large ? 'right-5 top-5 sm:right-8 sm:top-8' : 'right-3 top-3'}`}>
         <DiscountBadge offer={offer} size={large ? 'hero' : 'card'} />
       </div>
@@ -148,12 +150,12 @@ function OfferCopy({ offer, prominent }: { offer: EditorialOffer; prominent: boo
     <div className={prominent ? 'flex flex-col justify-center px-6 py-8 sm:px-10 sm:py-12' : 'flex flex-1 flex-col px-5 py-6'}>
       <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#8A6A32]">{offer.providerName}</p>
       {prominent ? (
-        <h2
+        <h3
           className="mt-3 max-w-[12ch] text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.03em] text-[#0A2D62] sm:text-[3.15rem]"
           style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
         >
           {offer.title}
-        </h2>
+        </h3>
       ) : (
         <h3
           className="mt-2 text-[1.55rem] font-semibold leading-tight tracking-[-0.02em] text-[#0A2D62]"

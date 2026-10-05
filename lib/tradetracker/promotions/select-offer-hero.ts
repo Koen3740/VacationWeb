@@ -43,7 +43,7 @@ export function selectHeroOfferId(offers: readonly HeroCandidate[], dayIndex: nu
 export function assignHeroPlacement<T extends HeroCandidate & { placement: 'hero' | 'supporting' }>(
   offers: readonly T[],
   dayIndex: number,
-): T[] {
+): Array<Omit<T, 'placement'> & { placement: 'hero' | 'supporting' }> {
   const heroId = selectHeroOfferId(offers, dayIndex);
   return offers.map((offer) => ({
     ...offer,
