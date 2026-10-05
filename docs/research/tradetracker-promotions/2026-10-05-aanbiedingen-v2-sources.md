@@ -23,19 +23,18 @@ De feed-structuur is `https://referral.corendon.nl/c?c=38108&m=…&a=512226&r=&u
 
 Er is in deze correctie geen nieuwe aanroep van `/c`. End-to-end attributie van `m=0` is niet opnieuw getest.
 
-## V3-vorm
+## V3.1-volgorde
 
-De donkere typografische pagina is vervangen door een lichte pagina: papierachtergrond, luchtverloop, witte kaarten, gouden kortingscirkel en een getekend zon-zee-vlak. Dat vlak is sfeer, geen campagnefoto. Eén aanbieding is de hero, de rest staat in gelijke kleinere kaarten.
+De hero, de UTC-dagindex en het verschil tussen een grote en een kleine kaart zijn weg. Elke aanbieding is dezelfde kaart.
 
-Hero-regel in `select-offer-hero.ts`, deterministisch en zonder score:
+Sorteersleutel in `sort-offers.ts`: `listedAt`.
 
-1. Geen aanbiedingen → geen hero.
-2. Eén aanbieding → die is de hero.
-3. Anders: aanbieders gesorteerd op naam (`localeCompare`, `nl`). De UTC-dagindex (`floor(Date.UTC(y, m, d) / 86400000)`) kiest `aanbieders[dag % aantal]`.
-4. De aanbiedingen van die aanbieder staan gesorteerd op id. Beurt `floor(dag / aantal aanbieders)` kiest de volgende aanbieding van die aanbieder.
-5. Alle andere aanbiedingen zijn gelijke kaarten. Meerdere aanbiedingen van dezelfde aanbieder krijgen nooit twee hero’s op dezelfde dag.
-
-Zelfde dag en dezelfde set geven dezelfde hero. Een nieuwe dag geeft de volgende aanbieder een beurt. Een mooier beeld geeft geen voorrang: de keuze gebruikt alleen id en aanbiedernaam.
+- Bij een creative is dat het bestaande TradeTracker-veld `validFromDate`, al op de kaart gezet als `publishDate`.
+- Bij campaign news is dat het bestaande `publishDate`.
+- Een datum `YYYY-MM-DD` telt als UTC-kalenderdag. Een volledige timestamp telt als absoluut tijdstip.
+- De nieuwste datum staat bovenaan.
+- De twee Corendon-homepageacties hebben geen `publishDate` en geen `validFromDate` in TradeTracker. De fetch van 2026-10-05 is een observatie, geen startdatum, en wordt niet als sorteerdatum gebruikt. Zij krijgen `listedAt: null`.
+- Zonder bruikbare datum zakt de aanbieding onder elke gedateerde aanbieding. Bij een gelijke datum, en tussen ongedateerde aanbiedingen, beslist `id` aflopend. Dat is alleen een stabiele volgorde, geen claim welke actie nieuwer is.
 
 ## Beelden
 

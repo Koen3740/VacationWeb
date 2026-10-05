@@ -4,7 +4,7 @@ import { ResultsUspBar } from '@/components/results-v2/results-usp-bar';
 import { corendonHomepageActions } from '@/lib/tradetracker/promotions/corendon-homepage-actions';
 import { editorialOffersFromCards } from '@/lib/tradetracker/promotions/editorial-offers';
 import { loadAanbiedingenByMarkets } from '@/lib/tradetracker/promotions/load-aanbiedingen';
-import { assignHeroPlacement, utcDayIndex } from '@/lib/tradetracker/promotions/select-offer-hero';
+import { sortOffersNewestFirst } from '@/lib/tradetracker/promotions/sort-offers';
 import { resolveSiteMarketFromHost } from '@/lib/search/site-market';
 import type { VacationWebPromotionMarket } from '@/lib/tradetracker/promotions/select-displayable';
 import type { Metadata } from 'next';
@@ -48,7 +48,6 @@ export default async function AanbiedingenPage() {
   const host = headers().get('host');
   const markets = marketsForHost(host);
   const loaded = await loadAanbiedingenByMarkets(markets);
-  const dayIndex = utcDayIndex(new Date());
   const sections = loaded.map((section) => {
     const curated = corendonHomepageActions(section.market);
     const curatedIds = new Set(curated.map((offer) => offer.id));
@@ -57,7 +56,7 @@ export default async function AanbiedingenPage() {
       : editorialOffersFromCards(section.cards).filter((offer) => !curatedIds.has(offer.id));
     return {
       market: section.market,
-      offers: assignHeroPlacement([...curated, ...extra], dayIndex),
+      offers: sortOffersNewestFirst([...curated, ...extra]),
       error: false,
     };
   });

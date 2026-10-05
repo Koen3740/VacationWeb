@@ -28,33 +28,42 @@ test('the two Corendon actions render their amounts and click hrefs without a Co
   assert.equal(html.includes('prefetch'), false);
   assert.equal(html.includes('2499691'), false);
   assert.equal(html.includes('Kaching'), false);
-  assert.equal((html.match(/data-placement="hero"/g) ?? []).length, 1);
+  assert.equal((html.match(/data-placement="offer"/g) ?? []).length, 2);
+  assert.equal(html.includes('data-placement="hero"'), false);
   assert.equal(html.includes('Er staat nu geen aanbieding'), false);
   assert.equal(html.includes('uit de bron'), false);
 });
 
-test('two marked heroes in one section render as one hero and the rest as cards', () => {
-  const [winter, lastMinute] = corendonHomepageActions('nl');
+function articleClasses(html: string): string[] {
+  return [...html.matchAll(/<article[^>]*class="([^"]*)"/g)].map((match) => match[1] ?? '');
+}
+
+test('A: one offer is one normal card', () => {
   const html = renderToStaticMarkup(
     React.createElement(AanbiedingenExperience, {
       showMarketTitles: false,
-      sections: [
-        {
-          market: 'nl',
-          error: false,
-          offers: [
-            { ...winter!, placement: 'hero' },
-            { ...lastMinute!, placement: 'hero' },
-          ],
-        },
-      ],
+      sections: [{ market: 'nl', error: false, offers: [corendonHomepageActions('nl')[0]!] }],
     }),
   );
-  assert.equal((html.match(/data-placement="hero"/g) ?? []).length, 1);
-  assert.equal((html.match(/data-placement="card"/g) ?? []).length, 1);
+  assert.equal((html.match(/data-placement="offer"/g) ?? []).length, 1);
+  assert.equal(html.includes('data-placement="hero"'), false);
+  assert.equal(html.includes('min-h-[26rem]'), false);
+  assert.equal(html.includes('lg:grid-cols-['), false);
 });
 
-test('a fixture with three providers shows one hero and keeps every provider visible', () => {
+test('B: two offers use the same card markup', () => {
+  const html = renderToStaticMarkup(
+    React.createElement(AanbiedingenExperience, {
+      showMarketTitles: false,
+      sections: [{ market: 'nl', error: false, offers: corendonHomepageActions('nl') }],
+    }),
+  );
+  const classes = articleClasses(html);
+  assert.equal(classes.length, 2);
+  assert.equal(classes[0], classes[1]);
+});
+
+test('C: offers from several providers stay the same card', () => {
   const base = corendonHomepageActions('nl')[0]!;
   const html = renderToStaticMarkup(
     React.createElement(AanbiedingenExperience, {
@@ -64,20 +73,42 @@ test('a fixture with three providers shows one hero and keeps every provider vis
           market: 'nl',
           error: false,
           offers: [
-            { ...base, id: 'fixture-corendon', providerName: 'Corendon', title: 'Fixture Corendon', placement: 'hero' },
-            { ...base, id: 'fixture-sunweb', providerName: 'Sunweb', title: 'Fixture Sunweb', placement: 'supporting', benefitAmount: '20%' },
-            { ...base, id: 'fixture-eliza', providerName: 'Eliza was here', title: 'Fixture Eliza', placement: 'supporting', benefitAmount: '1' },
+            { ...base, id: 'fixture-corendon', providerName: 'Corendon', title: 'Fixture Corendon' },
+            { ...base, id: 'fixture-sunweb', providerName: 'Sunweb', title: 'Fixture Sunweb', benefitAmount: '20%' },
+            { ...base, id: 'fixture-eliza', providerName: 'Eliza was here', title: 'Fixture Eliza', benefitAmount: 'gratis' },
           ],
         },
       ],
     }),
   );
-  assert.equal((html.match(/data-placement="hero"/g) ?? []).length, 1);
-  assert.equal((html.match(/data-placement="card"/g) ?? []).length, 2);
+  const classes = articleClasses(html);
+  assert.equal(classes.length, 3);
+  assert.equal(new Set(classes).size, 1);
   assert.match(html, /Fixture Corendon/);
   assert.match(html, /Fixture Sunweb/);
   assert.match(html, /Fixture Eliza/);
   assert.equal(html.includes('corendonresources'), false);
+  assert.equal(html.includes('data-placement="hero"'), false);
+});
+
+test('E: many offers stay equal cards', () => {
+  const base = corendonHomepageActions('nl')[0]!;
+  const offers = Array.from({ length: 10 }, (_, index) => ({
+    ...base,
+    id: `many-${index}`,
+    title: `Aanbieding ${index}`,
+    providerName: (index % 3 === 0 ? 'Corendon' : index % 3 === 1 ? 'Sunweb' : 'Eliza was here') as typeof base.providerName,
+  }));
+  const html = renderToStaticMarkup(
+    React.createElement(AanbiedingenExperience, {
+      showMarketTitles: false,
+      sections: [{ market: 'nl', error: false, offers }],
+    }),
+  );
+  const classes = articleClasses(html);
+  assert.equal(classes.length, 10);
+  assert.equal(new Set(classes).size, 1);
+  assert.equal(html.includes('data-placement="hero"'), false);
 });
 
 test('a tracking image is not rendered', () => {

@@ -81,9 +81,8 @@ test('rejected lastminute materials and bare banners never become editorial offe
   const offers = editorialOffersFromCards([banner, namedWithoutAmount, winterClaim, amount, structured]);
   assert.equal(offers.length, 2);
   assert.equal(offers[0]?.benefitAmount, '€50');
-  assert.equal(offers[0]?.placement, 'hero');
+  assert.equal(offers[0]?.listedAt, null);
   assert.equal(offers[1]?.benefitAmount, '25 · ZOMER');
-  assert.equal(offers[1]?.placement, 'supporting');
   assert.equal(offers.some((offer) => /winter|600|200/i.test(offer.title + offer.benefitAmount)), false);
   assert.equal(offers.some((offer) => REJECTED_GENERIC_LASTMINUTE_MATERIAL_IDS.some((id) => offer.id.includes(id))), false);
   assert.equal(offers[0]?.imageUrl.includes('120x600'), false);

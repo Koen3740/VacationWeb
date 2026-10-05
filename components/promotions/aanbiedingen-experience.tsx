@@ -38,23 +38,18 @@ function sceneKey(id: string): string {
   return key || 'scene';
 }
 
-function DiscountBadge({ offer, size }: { offer: EditorialOffer; size: 'hero' | 'card' }) {
-  const hero = size === 'hero';
+function DiscountBadge({ offer }: { offer: EditorialOffer }) {
   return (
-    <div
-      className={`flex flex-col items-center justify-center rounded-full bg-[#E8C547] text-center text-[#0A2D62] shadow-[0_16px_40px_rgba(10,45,98,0.18)] ring-4 ring-white/70 ${
-        hero ? 'h-40 w-40 sm:h-48 sm:w-48' : 'h-24 w-24'
-      }`}
-    >
-      <span className={`font-semibold uppercase tracking-[0.18em] ${hero ? 'text-[11px]' : 'text-[9px]'}`}>{offer.benefitLead}</span>
+    <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-[#E8C547] text-center text-[#0A2D62] shadow-[0_16px_40px_rgba(10,45,98,0.18)] ring-4 ring-white/70">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em]">{offer.benefitLead}</span>
       <span
-        className={`mt-1 font-semibold leading-none tracking-[-0.04em] ${hero ? 'text-[2.7rem] sm:text-[3.15rem]' : 'text-[1.35rem]'}`}
+        className="mt-1 font-semibold leading-none tracking-[-0.04em] text-[1.65rem]"
         style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
       >
         {offer.benefitAmount}
       </span>
       {offer.benefitTail ? (
-        <span className={`mt-1 max-w-[7.2rem] font-semibold uppercase leading-tight tracking-[0.06em] ${hero ? 'text-[10px]' : 'text-[8px]'}`}>
+        <span className="mt-1 max-w-[6.2rem] text-[8px] font-semibold uppercase leading-tight tracking-[0.06em]">
           {offer.benefitTail}
         </span>
       ) : null}
@@ -62,11 +57,11 @@ function DiscountBadge({ offer, size }: { offer: EditorialOffer; size: 'hero' | 
   );
 }
 
-function VacationScene({ offer, large }: { offer: EditorialOffer; large: boolean }) {
+function VacationScene({ offer }: { offer: EditorialOffer }) {
   const image = safeImageSrc(offer.imageUrl);
   const key = sceneKey(offer.id);
   return (
-    <div className={`relative overflow-hidden ${large ? 'min-h-[20rem] sm:min-h-[26rem]' : 'min-h-[11.5rem]'}`}>
+    <div className="relative min-h-[13.5rem] overflow-hidden">
       {image ? (
         <img src={image} alt={offer.imageAlt} className="absolute inset-0 h-full w-full object-cover" />
       ) : (
@@ -107,23 +102,21 @@ function VacationScene({ offer, large }: { offer: EditorialOffer; large: boolean
           </g>
         </svg>
       )}
-      {large ? (
-        <p
-          className="pointer-events-none absolute bottom-7 left-[34%] text-[22px] text-white/95 drop-shadow-sm sm:text-[26px]"
-          style={{ fontFamily: "Segoe Script, 'Apple Chancery', 'Snell Roundhand', cursive" }}
-          aria-hidden
-        >
-          Tijd voor zon.
-        </p>
-      ) : null}
-      <div className={`absolute ${large ? 'right-5 top-5 sm:right-8 sm:top-8' : 'right-3 top-3'}`}>
-        <DiscountBadge offer={offer} size={large ? 'hero' : 'card'} />
+      <p
+        className="pointer-events-none absolute bottom-4 left-[34%] text-[16px] text-white/95 drop-shadow-sm"
+        style={{ fontFamily: "Segoe Script, 'Apple Chancery', 'Snell Roundhand', cursive" }}
+        aria-hidden
+      >
+        Tijd voor zon.
+      </p>
+      <div className="absolute right-3 top-3">
+        <DiscountBadge offer={offer} />
       </div>
     </div>
   );
 }
 
-function CallToAction({ offer, prominent }: { offer: EditorialOffer; prominent: boolean }) {
+function CallToAction({ offer }: { offer: EditorialOffer }) {
   const click = safeClickHref(offer.clickUrl);
   if (!click) {
     return null;
@@ -133,9 +126,7 @@ function CallToAction({ offer, prominent }: { offer: EditorialOffer; prominent: 
       href={click}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-flex items-center justify-center gap-2 rounded-[12px] bg-[#E8C547] font-semibold text-[#0A2D62] shadow-[0_8px_20px_rgba(232,197,71,0.35)] transition hover:bg-[#0A2D62] hover:text-white ${
-        prominent ? 'min-h-12 px-6 py-3 text-[15px]' : 'min-h-11 px-4 py-2.5 text-[13px]'
-      }`}
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-[#E8C547] px-4 py-2.5 text-[13px] font-semibold text-[#0A2D62] shadow-[0_8px_20px_rgba(232,197,71,0.35)] transition hover:bg-[#0A2D62] hover:text-white"
     >
       Bekijk de actie
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -145,69 +136,28 @@ function CallToAction({ offer, prominent }: { offer: EditorialOffer; prominent: 
   );
 }
 
-function OfferCopy({ offer, prominent }: { offer: EditorialOffer; prominent: boolean }) {
+const OFFER_CARD_CLASS =
+  'flex h-full flex-col overflow-hidden rounded-[16px] bg-white shadow-[0_14px_36px_rgba(10,45,98,0.07)] ring-1 ring-[#E7DCC8]';
+
+function OfferCard({ offer }: { offer: EditorialOffer }) {
   return (
-    <div className={prominent ? 'flex flex-col justify-center px-6 py-8 sm:px-10 sm:py-12' : 'flex flex-1 flex-col px-5 py-6'}>
-      <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#8A6A32]">{offer.providerName}</p>
-      {prominent ? (
-        <h3
-          className="mt-3 max-w-[12ch] text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.03em] text-[#0A2D62] sm:text-[3.15rem]"
-          style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
-        >
-          {offer.title}
-        </h3>
-      ) : (
+    <article data-placement="offer" className={OFFER_CARD_CLASS}>
+      <VacationScene offer={offer} />
+      <div className="flex flex-1 flex-col px-5 py-6">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#8A6A32]">{offer.providerName}</p>
         <h3
           className="mt-2 text-[1.55rem] font-semibold leading-tight tracking-[-0.02em] text-[#0A2D62]"
           style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
         >
           {offer.title}
         </h3>
-      )}
-      {offer.summary ? (
-        <p className={`leading-relaxed text-[#243E68] ${prominent ? 'mt-5 max-w-[34rem] text-[16.5px]' : 'mt-3 flex-1 text-[14px]'}`}>{offer.summary}</p>
-      ) : null}
-      <div className={prominent ? 'mt-8' : 'mt-5'}>
-        <CallToAction offer={offer} prominent={prominent} />
+        {offer.summary ? <p className="mt-3 flex-1 text-[14px] leading-relaxed text-[#243E68]">{offer.summary}</p> : null}
+        <div className="mt-5">
+          <CallToAction offer={offer} />
+        </div>
       </div>
-    </div>
-  );
-}
-
-function HeroOffer({ offer }: { offer: EditorialOffer }) {
-  return (
-    <article
-      data-placement="hero"
-      className="grid overflow-hidden rounded-[20px] bg-white shadow-[0_22px_60px_rgba(10,45,98,0.10)] ring-1 ring-[#E7DCC8] lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]"
-    >
-      <VacationScene offer={offer} large />
-      <OfferCopy offer={offer} prominent />
     </article>
   );
-}
-
-function CardOffer({ offer, wide }: { offer: EditorialOffer; wide: boolean }) {
-  return (
-    <article
-      data-placement="card"
-      className={`flex h-full overflow-hidden rounded-[16px] bg-white shadow-[0_14px_36px_rgba(10,45,98,0.07)] ring-1 ring-[#E7DCC8] ${
-        wide ? 'flex-col md:grid md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]' : 'flex-col'
-      }`}
-    >
-      <VacationScene offer={offer} large={false} />
-      <OfferCopy offer={offer} prominent={false} />
-    </article>
-  );
-}
-
-function cardGridClass(count: number): string {
-  if (count <= 1) {
-    return 'grid';
-  }
-  if (count >= 5) {
-    return 'grid gap-5 sm:grid-cols-2 xl:grid-cols-3';
-  }
-  return 'grid gap-6 md:grid-cols-2';
 }
 
 export function AanbiedingenExperience({
@@ -228,8 +178,6 @@ export function AanbiedingenExperience({
         if (section.offers.length === 0) {
           return null;
         }
-        const hero = section.offers.find((offer) => offer.placement === 'hero') ?? null;
-        const cards = section.offers.filter((offer) => offer !== hero);
         const marketLabel = section.market === 'be' ? 'België' : 'Nederland';
         return (
           <section key={section.market} aria-labelledby={`promotions-${section.market}`} className="space-y-6">
@@ -239,14 +187,11 @@ export function AanbiedingenExperience({
             >
               {marketLabel}
             </h2>
-            {hero ? <HeroOffer offer={hero} /> : null}
-            {cards.length > 0 ? (
-              <div className={cardGridClass(cards.length)}>
-                {cards.map((offer) => (
-                  <CardOffer key={offer.id} offer={offer} wide={cards.length === 1} />
-                ))}
-              </div>
-            ) : null}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {section.offers.map((offer) => (
+                <OfferCard key={offer.id} offer={offer} />
+              ))}
+            </div>
           </section>
         );
       })}

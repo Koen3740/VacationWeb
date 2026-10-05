@@ -14,8 +14,6 @@ import { promotionClickHref } from './promotion-click';
 import type { VacationWebPromotionMarket } from './select-displayable';
 import type { CreativeAllowedProvider } from './types';
 
-export type EditorialOfferPlacement = 'hero' | 'supporting';
-
 export type EditorialOfferSource = {
   label: string;
   url: string;
@@ -25,7 +23,11 @@ export type EditorialOffer = {
   id: string;
   market: VacationWebPromotionMarket;
   providerName: CreativeAllowedProvider;
-  placement: EditorialOfferPlacement;
+  /**
+   * TradeTracker publish or valid-from date, when the source has one.
+   * Null when that date was not in the source. Used only for newest-first order.
+   */
+  listedAt: string | null;
   title: string;
   benefitLead: string;
   benefitAmount: string;
@@ -111,8 +113,8 @@ function cardClick(card: AanbiedingenCard): string | null {
 
 /**
  * Stream cards that already survived the amount rule.
- * The first amount-backed card is the hero. Rejected last-minute
- * materials never pass. Extreme banner sizes are not used as the picture.
+ * Rejected last-minute materials never pass. Extreme banner sizes are not used as the picture.
+ * `listedAt` is the card publish date already stored on the stream (`validFromDate` or news `publishDate`).
  */
 export function editorialOffersFromCards(cards: readonly AanbiedingenCard[]): EditorialOffer[] {
   const offers: EditorialOffer[] = [];
@@ -136,7 +138,7 @@ export function editorialOffersFromCards(cards: readonly AanbiedingenCard[]): Ed
       id: card.id,
       market: card.market,
       providerName,
-      placement: offers.length === 0 ? 'hero' : 'supporting',
+      listedAt: card.publishDate,
       title: card.title,
       benefitLead: 'Voordeel',
       benefitAmount: benefit,
