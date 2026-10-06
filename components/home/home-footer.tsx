@@ -4,7 +4,7 @@ import Link from 'next/link';
 const ontdekLinks = [
   { label: 'Bestemmingen', href: '/bestemmingen' },
   { label: 'Inspiratie', href: '/#inspiratie' },
-  { label: 'Aanbod', href: '/aanbiedingen' },
+  { label: 'Aanbiedingen', href: '/aanbiedingen' },
 ] as const;
 
 const overLinks = [

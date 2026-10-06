@@ -3,7 +3,7 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { corendonHomepageActions } from '@/lib/tradetracker/promotions/corendon-homepage-actions';
-import { AanbiedingenExperience } from './aanbiedingen-experience';
+import { AanbiedingenEmptyState, AanbiedingenExperience } from './aanbiedingen-experience';
 
 // Fixture markup only. The live page does not load these homepage actions.
 
@@ -202,4 +202,17 @@ test('a tracking image is not rendered', () => {
   assert.equal(html.includes('/c?'), false);
   assert.match(html, /België/);
   assert.match(html, /€600/);
+});
+
+test('zero offers show the customer empty state and a home search link', () => {
+  const html = renderToStaticMarkup(React.createElement(AanbiedingenEmptyState));
+  assert.match(html, /Momenteel zijn er geen actuele aanbiedingen\./);
+  assert.match(html, /href="\/"/);
+  assert.match(html, /Zoek een vakantie/);
+  assert.equal(html.includes('Kaching'), false);
+  assert.equal(html.includes('€600'), false);
+  assert.equal(html.includes('€200'), false);
+  assert.equal(html.includes('/i?'), false);
+  assert.equal(html.includes('/c?'), false);
+  assert.equal(html.includes('beschikbaar'), false);
 });

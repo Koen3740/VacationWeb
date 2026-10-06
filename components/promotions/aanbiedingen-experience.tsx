@@ -151,6 +151,20 @@ function WideOffer({ offer }: { offer: EditorialOffer }) {
   );
 }
 
+export function AanbiedingenEmptyState() {
+  return (
+    <div className="rounded-[22px] bg-white px-6 py-12 text-center shadow-[0_22px_50px_rgba(10,45,98,0.08)] ring-1 ring-[#E7DCC8] sm:px-10">
+      <p className="text-[18px] leading-relaxed text-[#243E68]">Momenteel zijn er geen actuele aanbiedingen.</p>
+      <a
+        href="/"
+        className="mt-6 inline-flex min-h-11 items-center justify-center rounded-[12px] bg-[#E8C547] px-5 py-2.5 text-[14px] font-semibold text-[#0A2D62] shadow-[0_8px_20px_rgba(232,197,71,0.35)]"
+      >
+        Zoek een vakantie
+      </a>
+    </div>
+  );
+}
+
 export function AanbiedingenExperience({
   sections,
   showMarketTitles,

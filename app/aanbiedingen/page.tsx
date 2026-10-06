@@ -1,10 +1,9 @@
-import { AanbiedingenExperience } from '@/components/promotions/aanbiedingen-experience';
+import { AanbiedingenEmptyState, AanbiedingenExperience } from '@/components/promotions/aanbiedingen-experience';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import { ResultsUspBar } from '@/components/results-v2/results-usp-bar';
 import { loadAanbiedingenByMarkets } from '@/lib/tradetracker/promotions/load-aanbiedingen';
 import { presentAanbiedingenOffers } from '@/lib/tradetracker/promotions/present-aanbiedingen';
-import { resolveSiteMarketFromHost } from '@/lib/search/site-market';
-import type { VacationWebPromotionMarket } from '@/lib/tradetracker/promotions/select-displayable';
+import { promotionMarketsForHost } from '@/lib/search/site-market';
 import type { Metadata } from 'next';
 import { DM_Sans, Playfair_Display } from 'next/font/google';
 import { headers } from 'next/headers';
@@ -31,20 +30,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-function marketsForHost(host: string | null): VacationWebPromotionMarket[] {
-  const market = resolveSiteMarketFromHost(host);
-  if (market === 'be') {
-    return ['be'];
-  }
-  if (market === 'nl') {
-    return ['nl'];
-  }
-  return ['nl', 'be'];
-}
-
 export default async function AanbiedingenPage() {
   const host = headers().get('host');
-  const markets = marketsForHost(host);
+  const markets = promotionMarketsForHost(host);
   const loaded = await loadAanbiedingenByMarkets(markets);
   const sections = loaded.map((section) => {
     return {
@@ -85,7 +73,11 @@ export default async function AanbiedingenPage() {
             Terug naar home
           </Link>
         </div>
-        <AanbiedingenExperience sections={sections} showMarketTitles={markets.length > 1} />
+        {offerCount > 0 ? (
+          <AanbiedingenExperience sections={sections} showMarketTitles={markets.length > 1} />
+        ) : (
+          <AanbiedingenEmptyState />
+        )}
       </main>
       <ResultsUspBar />
     </div>
