@@ -206,6 +206,26 @@ test('M: old Banner lastminute material ids never become offers', () => {
   assert.equal(offers.length, 0);
 });
 
+test('N: a Corendon news item about Kaching is not an editorial offer', () => {
+  const offers = editorialOffersFromCards([
+    streamCard({
+      id: 'news:322951',
+      source: 'promotion',
+      providerName: 'Corendon',
+      title: 'Kaching: extra voordelige vakantiedeals',
+      summary: 'Corendon NL heeft een nieuwe actie: Kaching: extra voordelige vakantiedeals. Actie: tot wel € 200,- extra korting.',
+      benefitText: '€ 200 · € 100',
+      discountText: '€ 200 · € 100',
+      clickUrl: null,
+      campaignUrl: 'https://www.corendon.nl/',
+      materialItemId: null,
+      campaignId: null,
+      affiliateSiteId: null,
+    }),
+  ]);
+  assert.equal(offers.length, 0);
+});
+
 test('N: Kaching is not an editorial offer', () => {
   const offers = editorialOffersFromCards([
     streamCard({

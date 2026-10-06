@@ -36,6 +36,16 @@ test('a concrete amount in the source is kept and a bare promo word is not an of
   assert.equal(isDisplayableOffer({ name: 'Banner1-lastminute' }), false);
 });
 
+test('Kaching is excluded even when the Corendon news states an amount', () => {
+  const decision = evaluateOfferBenefit({
+    title: 'Kaching: extra voordelige vakantiedeals',
+    description: 'Corendon NL heeft een nieuwe actie: Kaching. Actie: tot wel € 200,- extra korting, daarbovenop tot € 100,- kidskorting.',
+  });
+  assert.equal(decision.outcome, 'excluded');
+  assert.equal(decision.benefitText, null);
+  assert.equal(isDisplayableOffer({ title: 'Kaching: extra voordelige cruisedeals', description: 'tot wel € 200,- extra korting' }), false);
+});
+
 test('L: a named free benefit is an offer and a bare gratis is not', () => {
   assert.equal(evaluateOfferBenefit({ description: '1 kind gratis bij deze reis' }).outcome, 'displayable');
   assert.equal(evaluateOfferBenefit({ description: '1 kind gratis bij deze reis' }).benefitText, '1 kind gratis');

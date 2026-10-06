@@ -1,6 +1,6 @@
 import { DISPLAYABLE_CAMPAIGN_NEWS_TYPES } from './constants';
 import { resolveConnectedProvider } from './connected-providers';
-import { isDisplayableOffer } from './displayable-offer';
+import { isDisplayableOffer, mentionsKaching } from './displayable-offer';
 import type {
   TradeTrackerCampaignNewsRecord,
   TradeTrackerIncentiveRecord,
@@ -92,6 +92,9 @@ function fromNews(
   if (!DISPLAYABLE_NEWS.has(item.newsType)) {
     return null;
   }
+  if (mentionsKaching([item.title, item.content, item.campaignName])) {
+    return null;
+  }
   const kind = newsKind(item.newsType);
   if (!kind) {
     return null;
@@ -134,6 +137,9 @@ function fromIncentive(
   market: VacationWebPromotionMarket,
 ): DisplayablePromotion | null {
   if (!item.validity.isActive) {
+    return null;
+  }
+  if (mentionsKaching([item.name, item.description, item.conditions, item.campaignName, item.voucherCode])) {
     return null;
   }
 
