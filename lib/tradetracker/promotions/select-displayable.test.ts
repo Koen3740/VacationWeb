@@ -96,7 +96,7 @@ test('keeps active Corendon consumer promo and drops Alsa-Nature / Journaway / o
           newsItemId: '1',
           newsType: 'campaign_update_consumer',
           title: 'Corendon NL - Vroegboek korting',
-          content: 'Vroegboek op geselecteerde vertrekdata.',
+          content: 'Tot €200 vroegboekkorting op geselecteerde vertrekdata.',
           publishDate: '2026-09-01',
           expirationDate: '2026-09-30',
           campaignId: '38108',

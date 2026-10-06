@@ -122,20 +122,20 @@ test('canonical creative files are NL 512226 and BE 511873', () => {
 test('primary creatives precede secondary promotions and the same material is not repeated', () => {
   const cards = composeAanbiedingenCards({
     market: 'nl',
-    creatives: [creative({ materialItemId: '55', title: 'Banner5-lastminute' })],
+    creatives: [creative({ materialItemId: '55', title: 'Winterweken', discountFixed: '25' })],
     secondary: [
-      promotion({ id: 'voucher:55', kind: 'voucher', title: 'lastminute zelfde materiaal' }),
-      promotion({ id: 'incentive_offer:55', kind: 'incentive_offer', title: 'Nog eens lastminute' }),
+      promotion({ id: 'voucher:55', kind: 'voucher', title: 'zelfde materiaal', voucherCode: 'ZOMER' }),
+      promotion({ id: 'incentive_offer:55', kind: 'incentive_offer', title: 'Nog eens', discountFixed: '10' }),
       promotion({ id: 'news:9', title: 'Nazomeractie' }),
-      promotion({ id: 'news:10', title: 'Vroegboek', summary: 'Vroegboek op geselecteerde reizen' }),
+      promotion({ id: 'news:10', title: 'Tot €100 korting', summary: 'Tot €100 korting op geselecteerde reizen' }),
     ],
   });
   assert.deepEqual(
     cards.map((card) => card.source + ':' + card.title),
-    ['creative:Banner5-lastminute', 'promotion:Vroegboek'],
+    ['creative:Winterweken', 'promotion:Tot €100 korting'],
   );
-  assert.equal(cards[0]?.discountText, null);
-  assert.equal(cards[0]?.benefitText, 'lastminute');
+  assert.equal(cards[0]?.discountText, '25');
+  assert.equal(cards[0]?.benefitText, '25');
   assert.equal(cards[0]?.imagePolicy, null);
   assert.equal(cards[0]?.imageUrl, null);
   assert.equal(cards[0]?.campaignUrl, 'https://www.corendon.nl/');
@@ -143,19 +143,20 @@ test('primary creatives precede secondary promotions and the same material is no
   assert.equal(cards[1]?.clickUrl, null);
   assert.equal(JSON.stringify(cards[0]?.imageUrl).includes('/c?'), false);
   assert.equal(JSON.stringify(cards).includes('/i?'), false);
-  assert.equal(JSON.stringify(cards).includes('€'), false);
+  assert.equal(cards[0]?.benefitText?.includes('€'), false);
+  assert.equal(cards[1]?.benefitText, '€100');
 });
 
 test('secondary promotions remain when no primary creative exists', () => {
   const cards = composeAanbiedingenCards({
     market: 'nl',
     creatives: [],
-    secondary: [promotion(), promotion({ id: 'news:10', title: 'Lastminute', summary: 'lastminute naar Turkije' })],
+    secondary: [promotion(), promotion({ id: 'news:10', title: 'Tot €200 korting', summary: 'Tot €200 korting op een selectie' })],
   });
   assert.equal(cards.length, 1);
   assert.equal(cards[0]?.source, 'promotion');
-  assert.equal(cards[0]?.title, 'Lastminute');
-  assert.equal(cards[0]?.benefitText, 'Lastminute');
+  assert.equal(cards[0]?.title, 'Tot €200 korting');
+  assert.equal(cards[0]?.benefitText, '€200');
 });
 
 test('TUI, unknown providers, and the other market are excluded', () => {
@@ -176,21 +177,23 @@ test('TUI, unknown providers, and the other market are excluded', () => {
   assert.equal(cards[0]?.providerName, 'Corendon');
 });
 
-test('generic banners are excluded and offers stay in material-id order', () => {
+test('generic lastminute banners are excluded and an amount stays in material-id order', () => {
   const cards = composeAanbiedingenCards({
     market: 'nl',
     creatives: [
+      creative({ materialItemId: '2499691', title: 'Banner1-lastminute', discountFixed: 'tot €200' }),
       creative({ materialItemId: '20', title: 'Banner20-lastminute' }),
       creative({ materialItemId: '3', title: 'Banner3' }),
+      creative({ materialItemId: '8', title: 'Winter', discountFixed: '€200' }),
       creative({ materialItemId: '4', title: 'Banner4-lastminute' }),
     ],
     secondary: [],
   });
   assert.deepEqual(
     cards.map((card) => card.materialItemId),
-    ['4', '20'],
+    ['8'],
   );
-  assert.equal(cards.every((card) => card.benefitText === 'lastminute'), true);
+  assert.equal(cards[0]?.benefitText, '€200');
 });
 
 test('a card image is the VacationWeb path or nothing', () => {
@@ -204,7 +207,10 @@ test('a card image is the VacationWeb path or nothing', () => {
   ]);
   const cards = composeAanbiedingenCards({
     market: 'nl',
-    creatives: [creative({ materialItemId: '55' }), creative({ materialItemId: '56', title: 'Banner56-lastminute' })],
+    creatives: [
+      creative({ materialItemId: '55', discountFixed: '25' }),
+      creative({ materialItemId: '56', title: 'Banner56', discountFixed: '10' }),
+    ],
     secondary: [],
     images,
   });
@@ -220,7 +226,7 @@ test('a tracking campaign URL is not used as the merchant link', () => {
   const foreignClick = 'https://referral.corendon.nl/c?c=38108&m=999&a=512226&r=&u=';
   const cards = composeAanbiedingenCards({
     market: 'nl',
-    creatives: [creative({ campaignUrl: foreignClick })],
+    creatives: [creative({ campaignUrl: foreignClick, discountFixed: '25' })],
     secondary: [],
   });
   assert.equal(cards[0]?.campaignUrl, null);
@@ -244,7 +250,7 @@ test('compose performs no HTTP', () => {
   try {
     const cards = composeAanbiedingenCards({
       market: 'be',
-      creatives: [creative({ market: 'be', materialItemId: '9' })],
+      creatives: [creative({ market: 'be', materialItemId: '9', discountFixed: '15' })],
       secondary: [],
     });
     assert.equal(cards[0]?.affiliateSiteId, '511873');
@@ -265,7 +271,7 @@ test('page loader keeps primary cards when secondary SOAP fails', async () => {
       market: 'nl',
       affiliateSiteId: '512226',
       sourceFile: 'selected-nl-512226.json',
-      creatives: [creative()],
+      creatives: [creative({ discountFixed: '25', title: 'Winter' })],
       skipped: 0,
       status: 'ok',
       error: null,
@@ -293,13 +299,13 @@ test('page loader uses secondary promotions when the creative file is missing', 
     loadSecondary: async () =>
       secondaryResult('be', [
         promotion({ market: 'be', title: 'BE nieuws' }),
-        promotion({ market: 'be', id: 'news:10', title: 'Lastminute BE', summary: 'lastminute' }),
+        promotion({ market: 'be', id: 'news:10', title: 'Tot €200 korting', summary: 'Tot €200 korting' }),
       ]),
   });
   assert.equal(section.affiliateSiteId, '511873');
   assert.equal(section.primaryCount, 0);
   assert.equal(section.secondaryCount, 1);
-  assert.equal(section.cards[0]?.title, 'Lastminute BE');
+  assert.equal(section.cards[0]?.title, 'Tot €200 korting');
   assert.equal(section.error, null);
 });
 
@@ -346,7 +352,7 @@ test('selected snapshot reader keeps only the requested market', async () => {
   assert.equal(missing.affiliateSiteId, '511873');
 });
 
-test('live selected snapshots link the nine BE offers to their click templates', async (t) => {
+test('live selected snapshots do not surface the generic lastminute banners', async (t) => {
   const nlPath = selectedCreativeSnapshotPath('nl');
   const bePath = selectedCreativeSnapshotPath('be');
   try {
@@ -363,24 +369,9 @@ test('live selected snapshots link the nine BE offers to their click templates',
   assert.equal(nl.creatives.length, 98);
   assert.equal(be.creatives.length, 27);
   assert.equal(nlCards.length, 0);
-  assert.equal(beCards.length, 9);
-  assert.deepEqual(
-    beCards.map((card) => card.materialItemId),
-    ['2499691', '2499692', '2499693', '2499694', '2499695', '2499696', '2499697', '2499698', '2499700'],
-  );
-  assert.equal(beCards.every((card) => card.providerName === 'Corendon' && card.affiliateSiteId === '511873' && card.market === 'be'), true);
-  assert.equal(beCards.every((card) => card.benefitText === 'lastminute' && /lastminute/i.test(card.title)), true);
-  assert.equal(beCards.every((card) => card.discountText == null), true);
-  assert.equal(beCards.every((card) => card.imageUrl == null), true);
-  assert.equal(beCards.every((card) => card.campaignUrl === 'https://www.corendon.be/'), true);
-  const byId = new Map(be.creatives.map((item) => [item.materialItemId, item.trackingClickUrlTemplate]));
-  assert.equal(
-    beCards.every((card) => card.clickUrl === byId.get(card.materialItemId ?? '') && card.clickUrl?.includes('/c?')),
-    true,
-  );
-  const rendered = JSON.stringify(beCards);
+  assert.equal(beCards.length, 0);
+  const rendered = JSON.stringify([...nlCards, ...beCards]);
+  assert.equal(rendered.includes('2499691'), false);
   assert.equal(rendered.includes('/i?'), false);
-  assert.equal(rendered.includes('ti.tradetracker.net'), false);
-  assert.equal(rendered.includes('€'), false);
-  assert.equal(rendered.includes('/c?'), true);
+  assert.equal(rendered.includes('/c?'), false);
 });

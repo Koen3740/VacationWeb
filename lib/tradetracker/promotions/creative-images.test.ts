@@ -53,7 +53,7 @@ function creative(overrides: Partial<SelectedTradeTrackerCreative> = {}): Select
     validity: promotionalValidity({ startDate: null, endDate: null, asOfMs: AS_OF }),
     validFromDate: null,
     validToDate: null,
-    discountFixed: null,
+    discountFixed: 'tot €200',
     discountVariable: null,
     voucherCode: null,
     description: null,
@@ -142,7 +142,7 @@ test('ingest stores only displayable offers and never puts tracking URLs in the 
     generatedAt: '2026-10-05T14:56:36.417Z',
     creatives: [
       creative(),
-      creative({ materialItemId: '10', title: 'Banner10' }),
+      creative({ materialItemId: '10', title: 'Banner10', discountFixed: null, description: null }),
       creative({
         materialItemId: '11',
         title: 'Banner11-lastminute',

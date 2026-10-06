@@ -1,15 +1,30 @@
-import { AanbiedingenPromotionList } from '@/components/promotions/aanbiedingen-promotion-list';
+import { AanbiedingenExperience } from '@/components/promotions/aanbiedingen-experience';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
-import { resolveSiteMarketFromHost } from '@/lib/search/site-market';
+import { ResultsUspBar } from '@/components/results-v2/results-usp-bar';
 import { loadAanbiedingenByMarkets } from '@/lib/tradetracker/promotions/load-aanbiedingen';
+import { presentAanbiedingenOffers } from '@/lib/tradetracker/promotions/present-aanbiedingen';
+import { resolveSiteMarketFromHost } from '@/lib/search/site-market';
 import type { VacationWebPromotionMarket } from '@/lib/tradetracker/promotions/select-displayable';
 import type { Metadata } from 'next';
+import { DM_Sans, Playfair_Display } from 'next/font/google';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-vw-serif',
+  display: 'swap',
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-vw-sans',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: 'Aanbiedingen | VacationWeb',
-  description: 'Actuele aanbiedingen van de reispartners van VacationWeb.',
+  description: 'Extra voordeel op een selectie vakanties.',
 };
 
 export const runtime = 'nodejs';
@@ -24,75 +39,55 @@ function marketsForHost(host: string | null): VacationWebPromotionMarket[] {
   if (market === 'nl') {
     return ['nl'];
   }
-  // Preview / localhost: show both markets separately (never mixed without labels).
   return ['nl', 'be'];
-}
-
-function marketTitle(market: VacationWebPromotionMarket): string {
-  return market === 'be' ? 'België' : 'Nederland';
 }
 
 export default async function AanbiedingenPage() {
   const host = headers().get('host');
   const markets = marketsForHost(host);
-  const sections = await loadAanbiedingenByMarkets(markets);
-  const total = sections.reduce((sum, section) => sum + section.cards.length, 0);
+  const loaded = await loadAanbiedingenByMarkets(markets);
+  const sections = loaded.map((section) => {
+    return {
+      market: section.market,
+      offers: presentAanbiedingenOffers(section.market, section.error ? [] : section.cards),
+      error: false,
+    };
+  });
+  const offerCount = sections.reduce((sum, section) => sum + section.offers.length, 0);
 
   return (
-    <div className="min-h-screen bg-[#F7F5F1]">
+    <div
+      className={`${playfair.variable} ${dmSans.variable} min-h-screen bg-[#FBF6F0] text-[#0A2D62] antialiased`}
+      style={{
+        fontFamily: 'var(--font-vw-sans), system-ui, sans-serif',
+        backgroundImage: 'linear-gradient(180deg, #E5F4FC 0%, #FBF6F0 320px)',
+      }}
+    >
       <ResultsSiteHeader />
-      <main className="mx-auto max-w-[800px] px-6 py-8 lg:px-8">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-[28px] font-bold tracking-tight text-[#0A2D62]">Aanbiedingen</h1>
-            <p className="mt-1 max-w-[36rem] text-[14px] text-[#64748B]">
-              Actuele acties van onze reispartners. Geen volledige vakantielijst — alleen echte
-              promoties.
-            </p>
+      <main className="mx-auto max-w-[1180px] px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-6 sm:mb-12">
+          <div className="max-w-[40rem]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.32em] text-[#8A6A32]">Aanbiedingen</p>
+            <span className="mt-4 block h-[3px] w-12 rounded-full bg-[#E8C547]" aria-hidden />
+            <h1
+              className="mt-4 max-w-[14ch] text-[2.7rem] font-semibold leading-[1.02] tracking-[-0.035em] text-[#0A2D62] sm:text-[3.5rem]"
+              style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
+            >
+              Zin in je volgende vakantie?
+            </h1>
+            {offerCount > 0 ? (
+              <p className="mt-4 max-w-[34rem] text-[17px] leading-relaxed text-[#243E68]">
+                Extra voordeel bij onze reispartners. Kies een actie en plan je reis.
+              </p>
+            ) : null}
           </div>
-          <Link href="/" className="text-[13px] font-medium text-[#0A2D62] hover:underline">
+          <Link href="/" className="text-[14px] font-medium text-[#0A2D62] underline decoration-[#E4D8C4] underline-offset-4">
             Terug naar home
           </Link>
         </div>
-
-        <p className="mb-6 text-[13px] text-[#64748B]">
-          {total === 0
-            ? 'Momenteel geen actuele aanbiedingen'
-            : total === 1
-              ? '1 actuele aanbieding'
-              : `${total} actuele aanbiedingen`}
-        </p>
-
-        <div className="space-y-10">
-          {sections.map((section) => (
-            <section key={section.market} aria-labelledby={`promotions-${section.market}`}>
-              {markets.length > 1 ? (
-                <h2
-                  id={`promotions-${section.market}`}
-                  className="mb-4 text-[18px] font-semibold tracking-tight text-[#0A2D62]"
-                >
-                  {marketTitle(section.market)}
-                </h2>
-              ) : (
-                <h2 id={`promotions-${section.market}`} className="sr-only">
-                  {marketTitle(section.market)}
-                </h2>
-              )}
-
-              {section.error ? (
-                <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-[14px] text-[#991B1B]">
-                  Aanbiedingen konden nu niet worden geladen. Probeer het later opnieuw.
-                </p>
-              ) : (
-                <AanbiedingenPromotionList
-                  cards={section.cards}
-                  emptyMessage={`Geen actuele aanbiedingen voor ${marketTitle(section.market)}.`}
-                />
-              )}
-            </section>
-          ))}
-        </div>
+        <AanbiedingenExperience sections={sections} showMarketTitles={markets.length > 1} />
       </main>
+      <ResultsUspBar />
     </div>
   );
 }
