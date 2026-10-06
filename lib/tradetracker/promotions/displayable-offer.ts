@@ -66,6 +66,11 @@ export function concreteFreeBenefit(value: string | null | undefined): string | 
   return match?.[0] ?? null;
 }
 
+/** Kaching is never an offer, even when a Corendon news item states an amount. */
+export function mentionsKaching(values: readonly (string | null | undefined)[]): boolean {
+  return values.some((value) => value != null && /\bkaching\b/i.test(value));
+}
+
 export function isRejectedGenericLastminuteMaterial(materialItemId: string | null | undefined): boolean {
   if (!materialItemId) {
     return false;
@@ -142,6 +147,20 @@ function textFields(input: OfferBenefitFields): string[] {
 }
 
 export function evaluateOfferBenefit(input: OfferBenefitFields): OfferBenefitDecision {
+  if (
+    mentionsKaching([
+      input.name,
+      input.title,
+      input.description,
+      input.summary,
+      input.conditions,
+      input.discountFixed,
+      input.discountVariable,
+      input.voucherCode,
+    ])
+  ) {
+    return { outcome: 'excluded', benefitText: null, matchedTokens: [] };
+  }
   const structured = [input.discountFixed, input.discountVariable, input.voucherCode]
     .map((value) => structuredSource(value))
     .filter((value): value is string => Boolean(value));

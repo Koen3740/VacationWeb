@@ -10,7 +10,7 @@
 
 import type { AanbiedingenCard } from './compose-aanbiedingen';
 import { isOwnCreativeImageUrl } from './creative-image-path';
-import { concreteFreeBenefit, isRejectedGenericLastminuteMaterial } from './displayable-offer';
+import { concreteFreeBenefit, isRejectedGenericLastminuteMaterial, mentionsKaching } from './displayable-offer';
 import { compareCalendarDates, toCalendarDate, utcCalendarDate } from './validity';
 import { promotionClickHref } from './promotion-click';
 import type { VacationWebPromotionMarket } from './select-displayable';
@@ -128,6 +128,9 @@ export function editorialOffersFromCards(cards: readonly AanbiedingenCard[], asO
   const offers: EditorialOffer[] = [];
   for (const card of cards) {
     if (isRejectedGenericLastminuteMaterial(card.materialItemId)) {
+      continue;
+    }
+    if (mentionsKaching([card.title, card.summary, card.benefitText, card.discountText, card.campaignName, card.conditions])) {
       continue;
     }
     if (isExpired(card.expirationDate, asOfMs)) {

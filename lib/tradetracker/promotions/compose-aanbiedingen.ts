@@ -4,7 +4,7 @@ import {
   type CreativeImageLink,
 } from './creative-image-path';
 import { TRADETRACKER_CREATIVE_CANONICAL_SITE } from './constants';
-import { evaluateOfferBenefit, isRejectedGenericLastminuteMaterial } from './displayable-offer';
+import { evaluateOfferBenefit, isRejectedGenericLastminuteMaterial, mentionsKaching } from './displayable-offer';
 import { promotionClickHref } from './promotion-click';
 import type { DisplayablePromotion, VacationWebPromotionMarket } from './select-displayable';
 import {
@@ -157,6 +157,9 @@ function creativeCard(
   images: ReadonlyMap<string, CreativeImageLink> | undefined,
 ): AanbiedingenCard | null {
   if (isRejectedGenericLastminuteMaterial(creative.materialItemId)) {
+    return null;
+  }
+  if (mentionsKaching([creative.campaignName, creative.title, creative.description, creative.conditions])) {
     return null;
   }
   if (!isAllowedProvider(creative.provider) || isTuiText(creative.provider) || isTuiText(creative.campaignName) || isTuiText(creative.title)) {
