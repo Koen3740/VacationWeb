@@ -19,7 +19,8 @@
     "ingest:tradetracker-promotions": "tsc -p tsconfig.import.json && node dist/import/scripts/ingest-tradetracker-promotions.js",
     "ingest:tradetracker-creatives": "tsc -p tsconfig.import.json && node dist/import/scripts/ingest-tradetracker-creatives.js",
     "select:tradetracker-creatives": "tsc -p tsconfig.import.json && node dist/import/scripts/select-tradetracker-creatives.js",
-    "ingest:tradetracker-creative-images": "tsc -p tsconfig.import.json && node dist/import/scripts/ingest-tradetracker-creative-images.js"
+    "ingest:tradetracker-creative-images": "tsc -p tsconfig.import.json && node dist/import/scripts/ingest-tradetracker-creative-images.js",
+    "refresh:tradetracker-creatives": "tsc -p tsconfig.import.json && node dist/import/scripts/refresh-tradetracker-creatives.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",

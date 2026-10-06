@@ -53,6 +53,7 @@ export default async function AanbiedingenPage() {
       error: false,
     };
   });
+  const offerCount = sections.reduce((sum, section) => sum + section.offers.length, 0);
 
   return (
     <div
@@ -74,9 +75,11 @@ export default async function AanbiedingenPage() {
             >
               Zin in je volgende vakantie?
             </h1>
-            <p className="mt-4 max-w-[34rem] text-[17px] leading-relaxed text-[#243E68]">
-              Extra voordeel bij onze reispartners. Kies een actie en plan je reis.
-            </p>
+            {offerCount > 0 ? (
+              <p className="mt-4 max-w-[34rem] text-[17px] leading-relaxed text-[#243E68]">
+                Extra voordeel bij onze reispartners. Kies een actie en plan je reis.
+              </p>
+            ) : null}
           </div>
           <Link href="/" className="text-[14px] font-medium text-[#0A2D62] underline decoration-[#E4D8C4] underline-offset-4">
             Terug naar home

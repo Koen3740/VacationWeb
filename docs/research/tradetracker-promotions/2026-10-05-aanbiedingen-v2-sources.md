@@ -33,7 +33,7 @@ Sorteersleutel in `sort-offers.ts`, eerste datum die de bron echt heeft:
 2. `validFrom` — alleen als die apart van de publicatiedatum bewaard is.
 3. `ingestedAt` — `fetchedAt` van de creative, of `ingestedAt` van de promotionsnapshot.
 
-Een datum `YYYY-MM-DD` telt als UTC-kalenderdag. Een volledige timestamp telt als absoluut tijdstip. De nieuwste staat bovenaan. Zonder datum zakt de aanbieding onder elke gedateerde aanbieding. Bij een gelijke sleutel beslist `id` aflopend. Dat is alleen een stabiele volgorde. De twee Corendon-homepageacties hebben geen TradeTracker-publicatie-, geldigheids- of ingestdatum. De fetch van 2026-10-05 is een observatie en wordt niet als startdatum gebruikt. Een latere gedateerde stroomaanbieding komt daardoor vanzelf boven hen.
+Een datum `YYYY-MM-DD` telt als UTC-kalenderdag. Een volledige timestamp telt als absoluut tijdstip. De nieuwste staat bovenaan. Zonder datum zakt de aanbieding onder elke gedateerde aanbieding. Bij een gelijke sleutel beslist `id` aflopend. Dat is alleen een stabiele volgorde. De hardcoded Corendon-homepageacties zijn geen bron en geen fallback. Levert TradeTracker geen concrete actie, dan toont de pagina geen aanbiedingen.
 
 De pagina is `force-dynamic`. Bij een request leest `loadAanbiedingenByMarkets` de geselecteerde creative-snapshots en, via `loadDisplayablePromotionsForMarket`, de SOAP-promoties met een cache van 15 minuten. Nieuwe en gewijzigde TradeTracker-acties met een concreet voordeel komen zo op de pagina zonder dat de eigenaar ze invoert. Een creative met `validity.status === 'expired'` valt af in `select-creatives`. News, incentives en vouchers zonder `validity.isActive` vallen af in `select-displayable`. Een kaart waarvan `expirationDate` vóór de UTC-dag van vandaag ligt, valt daarna nog eens af in `editorialOffersFromCards`.
 
@@ -47,7 +47,7 @@ Een campagnefoto wordt alleen gebruikt als het een eigen VacationWeb-pad is onde
 
 Zonder zo’n bestand blijft de actie staan, gezet in type: licht vlak, provider, groot voordeel, de actietitel en de CTA. Er is geen getekende kust, geen neppe vakantiefoto en geen homepage-sfeerfoto.
 
-`presentAanbiedingenOffers` koppelt een toegestaan eigen beeld automatisch aan Warme Winter Weken of Last minutes zodra een creative naar `/winterzon` of `/topdeals` wijst (`u=` in de klik-URL, of het campagnepad). Die creative wordt niet nog eens als tweede kaart getoond. De eigenaar hoeft het beeld niet aan te leveren.
+De verversing is één entrypoint, `npm run refresh:tradetracker-creatives`: creative-ingest, selectie, daarna server-side beeldingest. Er staat geen aparte nightly scheduler in deze repository. Een eigen beeld hoort bij de creative zelf. Zonder toegestaan bestand blijft een echte actie typografisch.
 
 Catalogus, `current.json` en live-price zijn niet aangeraakt.
 

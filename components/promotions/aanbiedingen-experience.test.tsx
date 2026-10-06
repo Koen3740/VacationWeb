@@ -5,6 +5,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { corendonHomepageActions } from '@/lib/tradetracker/promotions/corendon-homepage-actions';
 import { AanbiedingenExperience } from './aanbiedingen-experience';
 
+// Fixture markup only. The live page does not load these homepage actions.
+
 test('the two Corendon actions render their amounts and click hrefs without a Corendon image', () => {
   const html = renderToStaticMarkup(
     React.createElement(AanbiedingenExperience, {

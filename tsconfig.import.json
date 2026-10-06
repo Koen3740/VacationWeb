@@ -32,6 +32,7 @@
     "scripts/ingest-tradetracker-creatives.ts",
     "scripts/select-tradetracker-creatives.ts",
     "scripts/ingest-tradetracker-creative-images.ts",
+    "scripts/refresh-tradetracker-creatives.ts",
     "lib/offers/has-car-rental.ts",
     "lib/offers/hotel-geo.ts",
     "lib/offers/hotel-key.ts",

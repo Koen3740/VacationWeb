@@ -1,4 +1,7 @@
 /**
+ * FIXTURE ONLY. Not a production source and not a fallback when TradeTracker
+ * is empty. `/aanbiedingen` must not import this module.
+ *
  * The two Corendon homepage actions, per market.
  *
  * Amounts follow the Corendon homepage actions the owner recorded.
