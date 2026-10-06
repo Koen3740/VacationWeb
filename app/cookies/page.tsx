@@ -20,15 +20,15 @@ const inventory = [
   {
     name: 'vacationweb.favorites.v1',
     type: 'localStorage',
-    purpose: 'Lokale favorietenlijst (hotel, provider, prijs, bestemming, savedAt).',
+    purpose: 'Lokale favorietenlijst: hotel, afbeelding, provider, prijs, bestemming en tijdstip van opslaan. Alleen in je browser; niet naar VacationWeb of derden gestuurd en niet gekoppeld aan een account.',
     provider: 'VacationWeb',
-    retention: 'Tot je favorieten wist of browserdata verwijdert',
+    retention: 'Tot je favorieten verwijdert of je browsergegevens wist',
     consent: 'OWNER/LEGAL INPUT OPEN — juridische kwalificatie',
   },
   {
     name: 'vacationweb.shared-search-state',
     type: 'sessionStorage',
-    purpose: 'Tijdelijke zoekstatus (kan reisgezelschap/geboortedata bevatten voor de sessie).',
+    purpose: 'Tijdelijke zoekstatus (kan reisgezelschap bevatten voor de sessie: aantal volwassenen en leeftijden van kinderen, geen geboortedata).',
     provider: 'VacationWeb',
     retention: 'Tot het browsertabblad/sessie eindigt',
     consent: 'Noodzakelijk voor zoekflow',
@@ -74,8 +74,21 @@ export default function CookiesPage() {
           </table>
         </div>
         <p className="text-[12.5px] text-slate-500">
-          HTTP-cookies van VacationWeb zelf: geen vastgesteld. Externe cookies na clickout naar
-          reisaanbieders/affiliate: <OwnerLegalInput label="partnercookie-gedrag na clickout" />.
+          HTTP-cookies van VacationWeb zelf: geen vastgesteld. Na een klik op ‘Boeken’ ga je naar de
+          website van de reisaanbieder; die en eventueel TradeTracker kunnen daar eigen cookies
+          plaatsen of lezen, buiten het bereik van VacationWeb (zie hun cookiebeleid). Externe
+          cookies na clickout naar reisaanbieders/affiliate:{' '}
+          <OwnerLegalInput label="partnercookie-gedrag na clickout" />.
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-[18px] font-semibold text-[#0A2D62]">Favorieten</h2>
+        <p>
+          Favorieten worden alleen in je browser opgeslagen. Ze worden niet naar VacationWeb of
+          derden gestuurd en zijn niet gekoppeld aan een VacationWeb-account. Daarom zijn je
+          favorieten niet automatisch beschikbaar op een ander toestel of in een andere browser. Ze
+          blijven bewaard totdat je ze verwijdert of je browsergegevens wist.
         </p>
       </section>
 

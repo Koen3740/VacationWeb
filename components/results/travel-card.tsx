@@ -11,7 +11,7 @@ import {
 } from '@/components/results-v2/results-design-tokens';
 import { TravelCardGallery } from '@/components/results/travel-card-gallery';
 import { collectCardHighlights, layoutCardHighlightSlots } from '@/lib/offers/card-highlights';
-import { catalogReturnDateOffsetDays } from '@/lib/offers/duration-semantics';
+import { catalogReturnDateIso } from '@/lib/offers/duration-semantics';
 import { collectOrderedOfferImages } from '@/lib/offers/offer-images';
 import { displayHotelName } from '@/lib/offers/display-hotel-name';
 import { formatNightsLabel } from '@/lib/offers/offer-detail-view';
@@ -109,14 +109,10 @@ function formatCardStayPeriodLabel(
   if (!startIso) {
     return undefined;
   }
-  const offsetDays = catalogReturnDateOffsetDays(offer);
-  if (!offsetDays) {
+  const endIso = catalogReturnDateIso(offer, startIso);
+  if (!endIso) {
     return formatCardDateCompact(startIso);
   }
-  const [year, month, day] = startIso.split('-').map(Number);
-  const endDate = new Date(Date.UTC(year, month - 1, day));
-  endDate.setUTCDate(endDate.getUTCDate() + offsetDays);
-  const endIso = endDate.toISOString().slice(0, 10);
   const startLabel = formatCardDateCompact(startIso);
   const endLabel = formatCardDateCompact(endIso);
   if (startLabel === endLabel) {

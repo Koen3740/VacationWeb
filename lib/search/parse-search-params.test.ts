@@ -41,35 +41,83 @@ test('G. existing URL without dob remains readable and does not invent dates', (
   assert.equal(params.party, undefined);
 });
 
-test('party dob and room assignment parse without storing age categories', () => {
+function isoYearsAgo(years: number): string {
+  return `${new Date().getFullYear() - years}-01-01`;
+}
+
+test('childAges, adults and room assignment parse into party without a DOB', () => {
   const params = parseSearchParams({
-    adults: '4',
-    dob: '1980-03-12,1982-08-07,2011-06-14,2022-01-22',
+    adults: '2',
+    childAges: '15,4',
     rooms: '2',
     partyRooms: '1,1,1,2',
   });
 
-  assert.equal(params.adults, 4);
+  assert.equal(params.adults, 2);
+  assert.equal(params.children, 2);
+  assert.equal(params.babies, 0);
+  assert.deepEqual(params.childAges, [15, 4]);
   assert.equal(params.rooms, 2);
   assert.deepEqual(params.party, [
-    { dateOfBirth: '1980-03-12', roomIndex: 0 },
-    { dateOfBirth: '1982-08-07', roomIndex: 0 },
-    { dateOfBirth: '2011-06-14', roomIndex: 0 },
-    { dateOfBirth: '2022-01-22', roomIndex: 1 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 15, roomIndex: 0 },
+    { age: 4, roomIndex: 1 },
   ]);
-  assert.ok(params.party?.every((traveller) => !('category' in traveller)));
+  assert.ok(params.party?.every((traveller) => !('category' in traveller) && !('dateOfBirth' in traveller)));
+});
+
+test('children and babies are derived from childAges (0,1 => baby; 2,17 => child)', () => {
+  const params = parseSearchParams({ adults: '2', childAges: '0,1,2,17' });
+  assert.deepEqual([params.adults, params.children, params.babies], [2, 2, 2]);
+  const fromUrl = parseSearchParams({ adults: '2', children: '9', babies: '9', childAges: '5,1' });
+  assert.deepEqual([fromUrl.adults, fromUrl.children, fromUrl.babies], [2, 1, 1]);
+});
+
+test('invalid child ages (-1, 18, text) make the party incomplete and are not invented', () => {
+  for (const childAges of ['-1', '18', 'abc', '5,']) {
+    const params = parseSearchParams({ adults: '2', childAges });
+    if (childAges === '5,') {
+      assert.deepEqual(params.childAges, [5]);
+    } else {
+      assert.equal(params.party, undefined, childAges);
+      assert.equal(params.childAges, undefined, childAges);
+    }
+  }
+});
+
+test('legacy dob= links are still readable: age as of today, no DOB kept', () => {
+  const params = parseSearchParams({
+    adults: '4',
+    dob: `1980-03-12,1982-08-07,${isoYearsAgo(11)},${isoYearsAgo(1)}`,
+    rooms: '2',
+    partyRooms: '1,1,1,2',
+  });
+
+  assert.equal(params.adults, 2);
+  assert.equal(params.children, 1);
+  assert.equal(params.babies, 1);
+  assert.equal(params.rooms, 2);
+  assert.deepEqual(params.childAges, [11, 1]);
+  assert.deepEqual(params.party, [
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 11, roomIndex: 0 },
+    { age: 1, roomIndex: 1 },
+  ]);
+  assert.equal(JSON.stringify(params).includes('1980-03-12'), false);
 });
 
 test('Detail room query is parsed without becoming occupancy', () => {
   const params = parseSearchParams({
     adults: '2',
-    dob: '1975-03-12,1978-06-04',
+    childAges: '',
     rooms: '1',
     room: 'DD',
   });
   assert.equal(params.selectedRoom, 'DD');
   assert.equal(params.adults, 2);
-  assert.deepEqual(params.party?.map((traveller) => traveller.dateOfBirth), ['1975-03-12', '1978-06-04']);
+  assert.deepEqual(params.party?.map((traveller) => traveller.age), [null, null]);
 });
 
 test('hasCarRental=1 parses as true; absent or 0 is off', () => {

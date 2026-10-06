@@ -28,10 +28,10 @@ const FOUR_PAX_TWO_ROOMS = {
   children: 2,
   rooms: 2,
   party: [
-    { dateOfBirth: '1990-01-15', roomIndex: 0 },
-    { dateOfBirth: '1988-03-03', roomIndex: 0 },
-    { dateOfBirth: '2014-06-14', roomIndex: 1 },
-    { dateOfBirth: '2018-01-22', roomIndex: 1 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 12, roomIndex: 1 },
+    { age: 8, roomIndex: 1 },
   ],
 };
 

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
+import type { Metadata } from 'next';
 import { OfferDetailContent } from '@/components/offers/offer-detail-content';
 import {
   catalogSectionsForDisplay,
@@ -20,6 +21,11 @@ import { hasValidPresentablePrice } from '@/lib/search/presentable-price';
 import { priceOfferForDetail } from '@/lib/search/price-offer-for-detail';
 
 export const dynamic = 'force-dynamic';
+
+// Privacy (t361u): offer detail URLs can carry the search party (adults/childAges). Never index or follow.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function OfferDetailPage({
   params,

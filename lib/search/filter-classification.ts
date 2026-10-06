@@ -47,6 +47,7 @@ export const NEW_SEARCH_OCCUPANCY_PARAMS = [
   'children',
   'babies',
   'rooms',
+  'childAges',
   'dob',
   'partyRooms',
 ] as const;
@@ -58,7 +59,11 @@ function occupancyValue(params: URLSearchParams, key: (typeof NEW_SEARCH_OCCUPAN
   if (key === 'rooms') {
     return params.get(key) || '1';
   }
-  if (key === 'dob' || key === 'partyRooms') {
+  if (key === 'dob') {
+    // Legacy blank `dob=,` carries no traveller data.
+    return (params.get(key) || '').replace(/[,\s]/g, '') ? params.get(key) || '' : '';
+  }
+  if (key === 'childAges' || key === 'partyRooms') {
     return params.get(key) || '';
   }
   return params.get(key) || '0';

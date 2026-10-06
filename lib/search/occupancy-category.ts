@@ -1,9 +1,8 @@
-import { derivedAgeYears } from '@/components/search/travelers-popup/travelers-popup-utils';
 import type { SearchParams } from '@/types/travel';
 
 /**
- * Display-only age bands derived from dateOfBirth.
- * Not stored on party-state and not a provider occupancy encoding.
+ * Display-only age bands derived from the child ages of the party (DEC-019).
+ * Not a provider occupancy encoding; no date of birth is involved.
  *
  * - baby: 0–1
  * - child: 2–17
@@ -18,7 +17,7 @@ export type OccupancyAgeCounts = {
   babies: number;
   persons: number;
   rooms: number;
-  /** True when every traveller could be classified from a valid DOB, or legacy A/C/B counts were used. */
+  /** True when every traveller could be classified from a valid age, or legacy A/C/B counts were used. */
   classified: boolean;
 };
 
@@ -40,24 +39,21 @@ function ageBandFromYears(age: number): 'A' | 'C' | 'B' {
   return 'A';
 }
 
-export function occupancyAgeCountsFromSearchParams(
-  params: SearchParams,
-  today: Date = new Date(),
-): OccupancyAgeCounts {
+export function occupancyAgeCountsFromSearchParams(params: SearchParams): OccupancyAgeCounts {
   const rooms = roomCountFromSearchParams(params);
 
   if (params.party && params.party.length > 0) {
     const persons = params.party.length;
     const counts = { A: 0, C: 0, B: 0 };
     for (const traveller of params.party) {
-      if (!traveller.dateOfBirth) {
+      if (traveller.age === null) {
+        counts.A += 1;
+        continue;
+      }
+      if (!Number.isInteger(traveller.age) || traveller.age < 0 || traveller.age >= DISPLAY_ADULT_MIN_AGE) {
         return { adults: 0, children: 0, babies: 0, persons, rooms, classified: false };
       }
-      const age = derivedAgeYears(traveller.dateOfBirth, today);
-      if (age == null) {
-        return { adults: 0, children: 0, babies: 0, persons, rooms, classified: false };
-      }
-      counts[ageBandFromYears(age)] += 1;
+      counts[ageBandFromYears(traveller.age)] += 1;
     }
     return {
       adults: counts.A,
@@ -80,7 +76,7 @@ export function occupancyAgeCountsFromSearchParams(
 }
 
 /**
- * SearchParams occupancy fields from party DOBs.
+ * SearchParams occupancy fields from party ages.
  * Uses occupancyAgeCountsFromSearchParams as the only classifier.
  * Unclassified 2 travellers / 1 room stays the existing 2A contract.
  * Other unclassified parties keep party/rooms and do not invent A/C/B.
@@ -88,9 +84,8 @@ export function occupancyAgeCountsFromSearchParams(
 export function searchParamsOccupancyFromParty(
   party: NonNullable<SearchParams['party']>,
   rooms: number,
-  today: Date = new Date(),
 ): Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'> {
-  const counts = occupancyAgeCountsFromSearchParams({ party, rooms }, today);
+  const counts = occupancyAgeCountsFromSearchParams({ party, rooms });
   if (counts.classified) {
     return {
       party,
@@ -119,11 +114,8 @@ export function searchParamsOccupancyFromParty(
  * Compact occupancy category for telemetry, e.g. `2A / 1R`, `2A+2C / 2R`, `4P / 2R`.
  * Never includes dates of birth.
  */
-export function occupancyCategoryFromSearchParams(
-  params: SearchParams,
-  today: Date = new Date(),
-): string {
-  const counts = occupancyAgeCountsFromSearchParams(params, today);
+export function occupancyCategoryFromSearchParams(params: SearchParams): string {
+  const counts = occupancyAgeCountsFromSearchParams(params);
   if (!counts.classified) {
     return `${counts.persons}P / ${counts.rooms}R`;
   }
@@ -149,14 +141,13 @@ function nlCountLabel(count: number, one: string, many: string): string {
 }
 
 /**
- * Dutch UI composition from party DOBs (or legacy A/C/B params).
- * Canonical storage remains travellers[].dateOfBirth.
+ * Dutch UI composition from party child ages (or legacy A/C/B params).
  */
 export function formatOccupancySummaryParts(
   params: SearchParams,
-  options: { includeRooms?: boolean; today?: Date } = {},
+  options: { includeRooms?: boolean } = {},
 ): string[] {
-  const counts = occupancyAgeCountsFromSearchParams(params, options.today);
+  const counts = occupancyAgeCountsFromSearchParams(params);
   const parts: string[] = [];
 
   if (!counts.classified) {

@@ -1,5 +1,21 @@
+// Privacy (t361u): /results and /offers/[id] URLs can carry the search party (adults/childAges).
+// Response headers only for these two routes (not /_next/static, not other pages):
+// - Cache-Control: no-store -> browsers/CDNs/proxies must not store these responses
+// - X-Robots-Tag: noindex, nofollow -> same signal as the page metadata, also for non-HTML responses
+// No robots.txt Disallow for these paths on purpose (a blocked crawler would never see the noindex).
+const PRIVATE_SEARCH_ROUTE_HEADERS = [
+  { key: 'Cache-Control', value: 'no-store' },
+  { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [
+      { source: '/results', headers: PRIVATE_SEARCH_ROUTE_HEADERS },
+      { source: '/offers/:path+', headers: PRIVATE_SEARCH_ROUTE_HEADERS },
+    ];
+  },
   reactStrictMode: true,
   staticPageGenerationTimeout: 600,
   images: {

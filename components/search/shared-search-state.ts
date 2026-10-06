@@ -6,7 +6,7 @@ import {
   createDefaultTravelersState,
   getTravelersTotals,
   normalizeTravelersState,
-  serializeTravelersToQuery,
+  writeTravelersToQuery,
   type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
 import { sanitizeDepartureSearchWindow } from '@/lib/search/departure-date';
@@ -93,20 +93,9 @@ export function saveSharedSearchState(state: SharedSearchState): void {
 }
 
 export function buildResultsHref(state: SharedSearchState): string {
-  const travelers = normalizeTravelersState(state.travelers);
-  const party = serializeTravelersToQuery(travelers);
-  const params = new URLSearchParams({
-    adults: party.adults,
-    dob: party.dob,
-  });
-
-  if (party.rooms) {
-    params.set('rooms', party.rooms);
-  }
-
-  if (party.partyRooms) {
-    params.set('partyRooms', party.partyRooms);
-  }
+  const params = new URLSearchParams();
+  // DEC-019: adults count + child ages (+ derived children/babies, rooms). Never a date of birth.
+  writeTravelersToQuery(params, normalizeTravelersState(state.travelers));
 
   if (state.selectedCountries.length > 0) {
     params.set('country', state.selectedCountries.join(','));
@@ -163,11 +152,9 @@ export function sharedStateFromSearchForm(form: {
     ? [form.nightsMin]
     : [form.nightsMin, form.nightsMax];
 
-  const travellerCount = Math.max(1, Math.floor(form.adults) + Math.floor(form.children));
-  const travellers = Array.from({ length: Math.min(9, travellerCount) }, (_, index) => ({
-    id: `t-${index + 1}`,
-    dateOfBirth: null,
-  }));
+  // Legacy count-based form: children have no known age (null) until the popup sets it.
+  const adults = Math.max(1, Math.floor(form.adults));
+  const childAges = Array.from({ length: Math.max(0, Math.floor(form.children)) }, () => null);
 
   return {
     selectedCountries: form.countries,
@@ -179,7 +166,8 @@ export function sharedStateFromSearchForm(form: {
     selectedDurations,
     selectedDepartureAirports: [],
     travelers: normalizeTravelersState({
-      travellers,
+      adults,
+      childAges,
       roomCount: form.rooms,
       roomAssignments: [],
     }),
@@ -212,7 +200,7 @@ export function mergeSharedStateIntoSearchForm<T extends {
     nightsMin: shared.selectedDurations.length > 0 ? Math.min(...shared.selectedDurations) : form.nightsMin,
     nightsMax: shared.selectedDurations.length > 0 ? Math.max(...shared.selectedDurations) : form.nightsMax,
     adults: totals.adults,
-    children: totals.children,
+    children: totals.children + totals.babies,
     rooms: travelers.roomCount,
   };
 }

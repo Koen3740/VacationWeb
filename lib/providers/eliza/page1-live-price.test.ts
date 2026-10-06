@@ -59,7 +59,7 @@ function makeOffer(
     hotelName: 'Casita Paradise Island',
     destinationCountry: 'Spanje',
     departureDate: '2026-11-19',
-    nights: 7,
+    nights: 8,
     flightIncluded: 'true',
     price: 599,
     pricePerDay: 86,
@@ -307,10 +307,10 @@ const FOUR_PAX_TWO_ROOMS = {
   children: 2,
   rooms: 2,
   party: [
-    { dateOfBirth: '1990-01-15', roomIndex: 0 },
-    { dateOfBirth: '1988-03-03', roomIndex: 0 },
-    { dateOfBirth: '2014-06-14', roomIndex: 1 },
-    { dateOfBirth: '2018-01-22', roomIndex: 1 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 12, roomIndex: 1 },
+    { age: 8, roomIndex: 1 },
   ],
 };
 
@@ -342,14 +342,14 @@ test('page1: Eliza 4p/2r uses proven GetPromotedPrice occupancy, not feed 2A', a
   assert.equal(eliza.livePriceSource, 'getPromotedPrice');
   assert.equal(eliza.price, 890);
   const landing = new URL(landingUrl);
-  assert.equal(landing.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(landing.searchParams.get('Participants[0][1]'), '1988-03-03');
-  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-06-14');
-  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(landing.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[0][1]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-11-26');
+  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-11-26');
   assert.ok(!landingUrl.includes('1996-07-30'));
   const promoted = new URL(promotedUrl);
-  assert.equal(promoted.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(promoted.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(promoted.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(promoted.searchParams.get('Participants[1][1]'), '2018-11-26');
   assert.equal(promoted.searchParams.get('Participants[0][2]'), null);
 });
 

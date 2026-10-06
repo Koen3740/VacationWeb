@@ -209,16 +209,17 @@ test('results and detail hrefs round-trip hasCarRental=1', () => {
   assert.equal(offQuery.get('hasCarRental'), null);
 });
 
-test('pagination keeps party dates of birth and room assignment', () => {
+test('pagination keeps adults, child ages and room assignment (no date of birth)', () => {
   const href = buildResultsPageHref(
     {
-      adults: 4,
+      adults: 2,
+      children: 2,
       rooms: 2,
       party: [
-        { dateOfBirth: '1980-03-12', roomIndex: 0 },
-        { dateOfBirth: '1982-08-07', roomIndex: 0 },
-        { dateOfBirth: '2011-06-14', roomIndex: 0 },
-        { dateOfBirth: '2022-01-22', roomIndex: 1 },
+        { age: null, roomIndex: 0 },
+        { age: null, roomIndex: 0 },
+        { age: 15, roomIndex: 0 },
+        { age: 4, roomIndex: 1 },
       ],
       departureStart: '2026-09-01',
       nights: [7],
@@ -229,10 +230,14 @@ test('pagination keeps party dates of birth and room assignment', () => {
     2,
   );
   const query = new URLSearchParams(href.split('?')[1]);
-  assert.equal(query.get('dob'), '1980-03-12,1982-08-07,2011-06-14,2022-01-22');
+  assert.equal(query.get('dob'), null);
+  assert.equal(query.get('childAges'), '15,4');
   assert.equal(query.get('partyRooms'), '1,1,1,2');
   assert.equal(query.get('rooms'), '2');
-  assert.equal(query.get('adults'), '4');
+  assert.equal(query.get('adults'), '2');
+  assert.equal(query.get('children'), '2');
+  assert.equal(query.get('babies'), null);
+  assert.equal(/\d{4}-\d{2}-\d{2}/.test(decodeURIComponent(href).replace('2026-09-01', '')), false);
   assert.equal(query.get('departureStart'), '2026-09-01');
   assert.equal(query.get('nights'), '7');
   assert.equal(query.get('departureAirport'), 'BRU');

@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
-import { travelersStateToParty } from '@/components/search/travelers-popup/travelers-popup-utils';
+import {
+  isTravelersStateComplete,
+  travelersStateToParty,
+  type TravelersState,
+} from '@/components/search/travelers-popup/travelers-popup-utils';
+import { tripDobReferenceForOffer } from '@/lib/providers/synthetic-dob';
 import { resolveCorendonLiveOccupancy } from '@/lib/providers/corendon/offer-context';
 import { searchParamsOccupancyFromParty } from '@/lib/search/occupancy-category';
 import { parseSearchParams } from '@/lib/search/parse-search-params';
@@ -14,47 +19,28 @@ import {
 import { clearLivePriceInflightForTests } from '@/lib/providers/prijsvrij/page1-receipt-pricing';
 import type { TravelOffer } from '@/types/travel';
 
-const TODAY = new Date(2026, 7, 23);
 const CORENDON_TRIP = '9514.COSPY.BRUCFU.270826.3-4-3.SZ-U.BRUCFU4C.CFU';
 
-const TWO_A_STATE = {
-  travellers: [
-    { id: 't-1', dateOfBirth: null as string | null },
-    { id: 't-2', dateOfBirth: null as string | null },
-  ],
-  roomCount: 1,
-  roomAssignments: [0, 0],
-};
+const TWO_A_STATE: TravelersState = { adults: 2, childAges: [], roomCount: 1, roomAssignments: [0, 0] };
 
-const TWO_A_ONE_C_STATE = {
-  travellers: [
-    { id: 't-1', dateOfBirth: '1980-03-12' },
-    { id: 't-2', dateOfBirth: '1982-08-07' },
-    { id: 't-3', dateOfBirth: '2016-01-01' },
-  ],
+const TWO_A_ONE_C_STATE: TravelersState = {
+  adults: 2,
+  childAges: [10],
   roomCount: 1,
   roomAssignments: [0, 0, 0],
 };
 
-const MISSING_CHILD_DOB_STATE = {
-  travellers: [
-    { id: 't-1', dateOfBirth: '1980-03-12' },
-    { id: 't-2', dateOfBirth: '1982-08-07' },
-    { id: 't-3', dateOfBirth: null as string | null },
-  ],
+const MISSING_CHILD_AGE_STATE: TravelersState = {
+  adults: 2,
+  childAges: [null],
   roomCount: 1,
   roomAssignments: [0, 0, 0],
 };
 
-function detailParamsFromTravelers(state: {
-  travellers: Array<{ id: string; dateOfBirth: string | null }>;
-  roomCount: number;
-  roomAssignments: number[];
-}) {
+function detailParamsFromTravelers(state: TravelersState) {
   const occupancy = searchParamsOccupancyFromParty(
     travelersStateToParty(state),
     state.roomCount,
-    TODAY,
   );
   const href = buildOfferDetailHref('corendon-9514', {
     adults: undefined,
@@ -63,7 +49,12 @@ function detailParamsFromTravelers(state: {
     rooms: undefined,
     ...occupancy,
   });
+  expectNoDob(href);
   return parseSearchParams(Object.fromEntries(new URL(href, 'https://vacationmap.be').searchParams));
+}
+
+function expectNoDob(href: string): void {
+  assert.equal(/dob=|\d{4}-\d{2}-\d{2}/.test(decodeURIComponent(href)), false);
 }
 
 function makeOffer(): TravelOffer {
@@ -144,9 +135,10 @@ test('B/C. Detail 2A+1C serializes adults=2 children=1 and keeps room 1', () => 
   assert.equal(params.rooms ?? 1, 1);
   assert.equal(params.party?.length, 3);
   assert.deepEqual(
-    params.party?.map((traveller) => traveller.dateOfBirth),
-    ['1980-03-12', '1982-08-07', '2016-01-01'],
+    params.party?.map((traveller) => traveller.age),
+    [null, null, 10],
   );
+  assert.deepEqual(params.childAges, [10]);
   assert.deepEqual(
     params.party?.map((traveller) => traveller.roomIndex),
     [0, 0, 0],
@@ -155,7 +147,8 @@ test('B/C. Detail 2A+1C serializes adults=2 children=1 and keeps room 1', () => 
 
 test('F. Corendon 2A+1C Detail params use the existing upsales occupancy', () => {
   const params = detailParamsFromTravelers(TWO_A_ONE_C_STATE);
-  const occupancy = resolveCorendonLiveOccupancy(params);
+  // Return date = departure 2026-08-27 + (4 nights - 1) = 2026-08-30 (Corendon semantics).
+  const occupancy = resolveCorendonLiveOccupancy(params, tripDobReferenceForOffer(makeOffer()));
   assert.equal(occupancy.ok, true);
   if (occupancy.ok) {
     assert.equal(occupancy.pricingRoute, 'upsales');
@@ -164,7 +157,7 @@ test('F. Corendon 2A+1C Detail params use the existing upsales occupancy', () =>
       assert.equal(occupancy.pax.length, 3);
       assert.deepEqual(
         occupancy.pax.map((traveller) => traveller.birthDate),
-        ['1980-03-12', '1982-08-07', '2016-01-01'],
+        ['1986-01-01', '1986-01-01', '2016-08-30'],
       );
       assert.ok(occupancy.pax.every((traveller) => traveller.roomNr === 1));
     }
@@ -198,21 +191,10 @@ test('D. Detail 2A+1C keeps provider total 1893, not pp × 3', async () => {
   assert.equal(hasProvenLiveTotalPrice(priced), true);
 });
 
-test('negative: missing child DOB does not invent a child or a proven total', async () => {
-  const params = detailParamsFromTravelers(MISSING_CHILD_DOB_STATE);
-  assert.notEqual(params.adults, 3);
-  assert.notEqual(params.children, 1);
-  assert.equal(params.party?.[2]?.dateOfBirth, null);
-  const occupancy = resolveCorendonLiveOccupancy(params);
-  assert.equal(occupancy.ok, false);
-  const twoA = detailParamsFromTravelers(TWO_A_STATE);
-  assert.notEqual(livePriceCacheKey('corendon-9514', twoA), livePriceCacheKey('corendon-9514', params));
-  const priced = await priceOfferForDetail(makeOffer(), params, {
-    fetchImpl: async () => {
-      throw new Error('live HTTP must not run for invalid 2A+1C occupancy');
-    },
-  });
-  assert.equal(priced.livePriceStatus, 'unpriced');
-  assert.equal(priced.liveTotalPrice, undefined);
-  assert.equal(hasProvenLiveTotalPrice(priced), false);
+test('negative: a child without an age is not invented and the state is not searchable', () => {
+  assert.equal(isTravelersStateComplete(MISSING_CHILD_AGE_STATE), false);
+  assert.equal(isTravelersStateComplete(TWO_A_ONE_C_STATE), true);
+  const party = travelersStateToParty(MISSING_CHILD_AGE_STATE);
+  assert.equal(party.length, 2);
+  assert.ok(party.every((traveller) => traveller.age === null));
 });

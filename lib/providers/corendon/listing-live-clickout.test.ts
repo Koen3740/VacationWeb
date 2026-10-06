@@ -239,12 +239,12 @@ test('feed/catalog price is never used as live fallback', async () => {
 
 test('DOB is part of the cache key and kept on Detail href', () => {
   const partyA = [
-    { dateOfBirth: '1975-03-12', roomIndex: 0 },
-    { dateOfBirth: '1978-06-04', roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
   ];
   const partyB = [
-    { dateOfBirth: '1975-03-12', roomIndex: 0 },
-    { dateOfBirth: '2010-04-01', roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 16, roomIndex: 0 },
   ];
   assert.notEqual(
     livePriceCacheKey('corendon-9514', { adults: 2, party: partyA }),
@@ -267,15 +267,15 @@ test('room count uses proven nested partyComposition on lowestpricesacco', () =>
     adults: 2,
     rooms: 2,
     party: [
-      { dateOfBirth: '1975-03-12', roomIndex: 0 },
-      { dateOfBirth: '1978-06-04', roomIndex: 1 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 1 },
     ],
   });
   assert.ok(ctx);
   assert.equal(ctx.pricingRoute, 'upsales');
   assert.deepEqual(ctx.upsalesPax, [
-    { birthDate: '1975-03-12', roomNr: 1 },
-    { birthDate: '1978-06-04', roomNr: 2 },
+    { birthDate: '1986-01-01', roomNr: 1 },
+    { birthDate: '1986-01-01', roomNr: 2 },
   ]);
   assert.deepEqual(ctx.partyComposition, CORENDON_TWO_ROOM_2A_PARTY);
   const url = new URL(buildCorendonLowestpricesaccoUrl(ctx));
@@ -285,12 +285,12 @@ test('room count uses proven nested partyComposition on lowestpricesacco', () =>
 
 test('room assignments stay in the cache key', () => {
   const sameRoom = [
-    { dateOfBirth: '1975-03-12', roomIndex: 0 },
-    { dateOfBirth: '1978-06-04', roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
   ];
   const splitRooms = [
-    { dateOfBirth: '1975-03-12', roomIndex: 0 },
-    { dateOfBirth: '1978-06-04', roomIndex: 1 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 1 },
   ];
   assert.notEqual(
     livePriceCacheKey('corendon-9514', { adults: 2, rooms: 2, party: sameRoom }),
@@ -335,7 +335,7 @@ test('cache key blocks cross-listing and cross-occupancy reuse', () => {
     livePriceCacheKey('corendon-9514', {
       adults: 2,
       listingKey: 'www.corendon.be|corendon-benl',
-      party: [{ dateOfBirth: '1975-03-12', roomIndex: 0 }, { dateOfBirth: '1978-06-04', roomIndex: 0 }],
+      party: [{ age: null, roomIndex: 0 }, { age: null, roomIndex: 0 }],
     }),
   );
 });
@@ -344,8 +344,8 @@ test('Detail click-out keeps Results occupancy and selected listing host', async
   const href = buildOfferDetailHref('corendon-9514', {
     adults: 2,
     party: [
-      { dateOfBirth: '1975-03-12', roomIndex: 0 },
-      { dateOfBirth: '1978-06-04', roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
     ],
     departureAirport: 'BRU',
     departureStart: '2026-08-20',

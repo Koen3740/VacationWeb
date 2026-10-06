@@ -31,8 +31,8 @@ const TWO_ADULTS = {
   adults: 2,
   rooms: 1,
   party: [
-    { dateOfBirth: '1980-03-12', roomIndex: 0 },
-    { dateOfBirth: '1982-08-07', roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
   ],
 };
 
@@ -40,8 +40,8 @@ const TWO_ADULTS_NO_DOB = {
   adults: 2,
   rooms: 1,
   party: [
-    { dateOfBirth: null, roomIndex: 0 },
-    { dateOfBirth: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
   ],
 };
 
@@ -50,9 +50,9 @@ const TWO_ADULTS_ONE_CHILD = {
   children: 1,
   rooms: 1,
   party: [
-    { dateOfBirth: '1986-01-01', roomIndex: 0 },
-    { dateOfBirth: '1986-01-01', roomIndex: 0 },
-    { dateOfBirth: '2016-01-01', roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 10, roomIndex: 0 },
   ],
 };
 
@@ -492,6 +492,7 @@ test('C. Sunweb 2A+child keeps PromotedPrice total 1407, not 2A avg × 3', async
       provider: 'Sunweb',
       price: 427,
       departureDate: '2026-09-26',
+      nights: 8,
       deepLink: SUNWEB_PRODUCT_URL,
     }),
     TWO_ADULTS_ONE_CHILD,
@@ -499,7 +500,7 @@ test('C. Sunweb 2A+child keeps PromotedPrice total 1407, not 2A avg × 3', async
       fetchImpl: async (input) => {
         const url = String(input);
         if (url.includes('GetPromotedPriceApi')) {
-          assert.equal(new URL(url).searchParams.get('Participants[0][2]'), '2016-01-01');
+          assert.equal(new URL(url).searchParams.get('Participants[0][2]'), '2016-10-03');
           return new Response(
             okPromotedBody({ averagePrice: 469, totalPrice: 1407 }),
             { status: 200 },
@@ -569,6 +570,7 @@ test('D. Eliza 2A+child keeps PromotedPrice total 2498, not 2A pp × 3', async (
       provider: 'Eliza was here',
       price: 599,
       departureDate: '2026-11-19',
+      nights: 8,
       deepLink: ELIZA_PRODUCT_URL,
     }),
     TWO_ADULTS_ONE_CHILD,
@@ -576,7 +578,7 @@ test('D. Eliza 2A+child keeps PromotedPrice total 2498, not 2A pp × 3', async (
       fetchImpl: async (input) => {
         const url = String(input);
         if (url.includes('GetPromotedPriceApi')) {
-          assert.equal(new URL(url).searchParams.get('Participants[0][2]'), '2016-01-01');
+          assert.equal(new URL(url).searchParams.get('Participants[0][2]'), '2016-11-26');
           return new Response(
             JSON.stringify({
               accommodationId: 133863,
@@ -599,6 +601,59 @@ test('D. Eliza 2A+child keeps PromotedPrice total 2498, not 2A pp × 3', async (
   assert.equal(priced.price, 833);
   assert.equal(priced.liveTotalPrice, 2498);
   assert.notEqual(priced.liveTotalPrice, 950 * 3);
+  assert.equal(hasProvenLiveTotalPrice(priced), true);
+});
+
+test('D2. Eliza 2A+baby (t355u) is priced with synthetic baby DOB = return date - age', async () => {
+  const priced = await priceOfferForDetail(
+    makeOffer({
+      id: 'eliza-133863',
+      provider: 'Eliza was here',
+      price: 599,
+      departureDate: '2026-11-19',
+      nights: 8,
+      deepLink: ELIZA_PRODUCT_URL,
+    }),
+    {
+      adults: 2,
+      babies: 1,
+      rooms: 1,
+      party: [
+        { age: null, roomIndex: 0 },
+        { age: null, roomIndex: 0 },
+        { age: 1, roomIndex: 0 },
+      ],
+    },
+    {
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('GetPromotedPriceApi')) {
+          const q = new URL(url).searchParams;
+          assert.equal(q.get('Participants[0][0]'), '1986-01-01');
+          assert.equal(q.get('Participants[0][1]'), '1986-01-01');
+          // 2026-11-19 + 8 days - 1 = 2026-11-26; baby age 1 -> 2025-11-26
+          assert.equal(q.get('Participants[0][2]'), '2025-11-26');
+          return new Response(
+            JSON.stringify({
+              accommodationId: 133863,
+              duration: 8,
+              price: { totalPrice: 2150, averagePrice: 717, value: 717, legend: 'Vanafprijs p.p.' },
+              departureDate: { raw: '2026-11-19' },
+              acmInformation: { mealplanCode: 'LG' },
+            }),
+            { status: 200 },
+          );
+        }
+        if (url.includes('elizawashere.be')) {
+          return new Response(ELIZA_LANDING_HTML, { status: 200 });
+        }
+        throw new Error(`unexpected fetch ${url}`);
+      },
+    },
+  );
+
+  assert.equal(priced.price, 717);
+  assert.equal(priced.liveTotalPrice, 2150);
   assert.equal(hasProvenLiveTotalPrice(priced), true);
 });
 

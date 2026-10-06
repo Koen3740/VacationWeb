@@ -5,6 +5,12 @@ import {
   SUNWEB_PROVIDER_NAME,
   type SunwebFeHost,
 } from './constants';
+import {
+  partyHasValidAges,
+  syntheticDobForMember,
+  tripDobReferenceForOffer,
+  type TripDobReference,
+} from '../synthetic-dob';
 
 export type SunwebParticipant = { key: string; value: string };
 
@@ -33,10 +39,6 @@ export type SunwebLiveOccupancy =
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const IATA = /^[A-Z]{3}$/;
-
-function isIsoDob(value: string | null | undefined): value is string {
-  return typeof value === 'string' && ISO_DATE.test(value);
-}
 
 export function isSunweb(offer: Pick<TravelOffer, 'provider'>): boolean {
   return offer.provider === SUNWEB_PROVIDER_NAME;
@@ -97,12 +99,24 @@ export function isSunwebFourTravellerTwoRoomSearch(
   return rooms === 2 && adults + children + babies === 4;
 }
 
+type SunwebPartyMember = NonNullable<SearchParams['party']>[number];
+
+/**
+ * Synthetic DOBs for the whole party (DEC-019); `null` when a child cannot get one
+ * because the trip reference (calculated return date) is missing.
+ */
+function syntheticPartyDobs(
+  party: readonly SunwebPartyMember[],
+  reference: TripDobReference | undefined,
+): string[] | null {
+  const dobs = party.map((member) => syntheticDobForMember(member, reference));
+  return dobs.every((dob): dob is string => dob !== null) ? dobs : null;
+}
+
 function participantsFromSameRoomParty(
-  party: Array<{ dateOfBirth: string | null; roomIndex: number }>,
+  party: readonly SunwebPartyMember[],
+  reference: TripDobReference | undefined,
 ): SunwebParticipant[] | null {
-  if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
-    return null;
-  }
   const rooms = new Set(party.map((traveller) => traveller.roomIndex));
   if (rooms.size !== 1) {
     return null;
@@ -111,50 +125,62 @@ function participantsFromSameRoomParty(
   if (roomIndex !== 0 && roomIndex !== 1) {
     return null;
   }
-  return party.map((traveller, personIndex) => ({
+  // Without a trip reference the shape is valid but no child DOB can be derived: no participants.
+  const dobs = syntheticPartyDobs(party, reference);
+  if (!dobs) {
+    return [];
+  }
+  return party.map((_, personIndex) => ({
     key: `Participants[${roomIndex}][${personIndex}]`,
-    value: traveller.dateOfBirth as string,
+    value: dobs[personIndex],
   }));
 }
 
 /**
  * Proven live occupancies (Bijbel §6 / §7; Fase 3 evidence `13`–`15`):
- * - 2A / 1 room: feed Participants or party ISO DOBs
- * - 2A+1C / 1 room and 2A+1B / 1 room with party ISO DOBs
- * - 4 travellers / 2 rooms with party ISO DOBs
+ * - 2A / 1 room: feed Participants or party DOBs
+ * - 2A+1C / 1 room and 2A+1B / 1 room
+ * - 4 travellers / 2 rooms
  *
- * Real ISO DOBs are never replaced with feed or placeholder birthdates.
+ * DEC-019: the party carries child ages, never a DOB. Sunweb Participants get synthetic
+ * DOBs (adult 1986-01-01; child = calculated return date minus age). The gate (`ok`) does
+ * not depend on `reference`; `participants` for a party with children is empty without a
+ * return date, so callers that build a request must fail closed on that.
  * Results live-prices all proven occupancies below (same contract as Detail).
  */
 export function resolveSunwebLiveOccupancy(
   params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
+  reference?: TripDobReference,
 ): SunwebLiveOccupancy {
   const party = params.party;
+  if (party && party.length > 0 && !partyHasValidAges(party)) {
+    return { ok: false, reason: 'invalid_occupancy' };
+  }
   if (party && party.length === 4) {
-    if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
-      return { ok: false, reason: 'invalid_occupancy' };
-    }
-
-    const rooms: string[][] = [[], []];
+    const rooms: SunwebPartyMember[][] = [[], []];
     for (const traveller of party) {
       if (traveller.roomIndex !== 0 && traveller.roomIndex !== 1) {
         return { ok: false, reason: 'invalid_occupancy' };
       }
-      rooms[traveller.roomIndex].push(traveller.dateOfBirth as string);
+      rooms[traveller.roomIndex].push(traveller);
     }
     if (rooms[0].length < 1 || rooms[1].length < 1) {
       return { ok: false, reason: 'invalid_occupancy' };
     }
 
     const participants: SunwebParticipant[] = [];
-    rooms.forEach((birthdates, roomIndex) => {
-      birthdates.forEach((birthDate, personIndex) => {
+    for (const [roomIndex, members] of rooms.entries()) {
+      const dobs = syntheticPartyDobs(members, reference);
+      if (!dobs) {
+        return { ok: true, mode: 'party', participants: [] };
+      }
+      dobs.forEach((birthDate, personIndex) => {
         participants.push({
           key: `Participants[${roomIndex}][${personIndex}]`,
           value: birthDate,
         });
       });
-    });
+    }
 
     return { ok: true, mode: 'party', participants };
   }
@@ -169,7 +195,7 @@ export function resolveSunwebLiveOccupancy(
     if (!provenChildOrBaby) {
       return { ok: false, reason: 'invalid_occupancy' };
     }
-    const participants = participantsFromSameRoomParty(party);
+    const participants = participantsFromSameRoomParty(party, reference);
     if (!participants) {
       return { ok: false, reason: 'invalid_occupancy' };
     }
@@ -184,7 +210,7 @@ export function resolveSunwebLiveOccupancy(
     if (adults !== 2 || children !== 0 || babies !== 0 || rooms !== 1) {
       return { ok: false, reason: 'invalid_occupancy' };
     }
-    const participants = participantsFromSameRoomParty(party);
+    const participants = participantsFromSameRoomParty(party, reference);
     if (!participants) {
       return { ok: false, reason: 'invalid_occupancy' };
     }
@@ -206,71 +232,25 @@ export function resolveSunwebLiveOccupancy(
   return { ok: false, reason: 'invalid_occupancy' };
 }
 
-
-/** Results-only default adult age when DOBs are absent (GO4). Detail must not use this. */
-export const SUNWEB_RESULTS_DEFAULT_ADULT_AGE_YEARS = 35;
-
-function isSunwebResultsTwoAdultsOneRoom(
-  params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms'>,
-): boolean {
-  const adults = params.adults ?? 2;
-  const children = params.children ?? 0;
-  const babies = params.babies ?? 0;
-  const rooms = params.rooms ?? 1;
-  return adults === 2 && children === 0 && babies === 0 && rooms === 1;
-}
-
-/** True when party is absent/empty or both travellers lack ISO DOBs (dob=,). */
-function sunwebResultsPartyDobsMissing(party: SearchParams['party']): boolean {
-  if (!party || party.length === 0) {
-    return true;
-  }
-  if (party.length !== 2) {
-    return false;
-  }
-  return party.every((traveller) => !isIsoDob(traveller.dateOfBirth));
-}
-
-function sunwebDobAtAgeOnDeparture(departureIso: string, ageYears: number): string | null {
-  if (!ISO_DATE.test(departureIso)) {
-    return null;
-  }
-  const [year, month, day] = departureIso.split('-').map(Number);
-  const departure = new Date(Date.UTC(year, month - 1, day));
-  if (
-    departure.getUTCFullYear() !== year ||
-    departure.getUTCMonth() !== month - 1 ||
-    departure.getUTCDate() !== day
-  ) {
-    return null;
-  }
-  const birth = new Date(Date.UTC(year - ageYears, month - 1, day));
-  const iso = `${String(birth.getUTCFullYear()).padStart(4, '0')}-${String(birth.getUTCMonth() + 1).padStart(2, '0')}-${String(birth.getUTCDate()).padStart(2, '0')}`;
-  return ISO_DATE.test(iso) ? iso : null;
-}
-
 /**
- * GO4 — Results-only pure helper.
- * When search is 2 adults / 0 children / 0 babies / 1 room and DOBs are missing
- * (incl. `dob=,`), fill both adults with DOB = age 35 on departureIso.
- * Real ISO DOBs are never replaced. Does not mutate `params`.
- * Must not be used for Detail / click-out / deeplink building.
+ * Results live params (Results-only; not for click-out). DEC-019: adults are a count with a
+ * fixed synthetic DOB (no GO4 age-35 default). A party-less 2 adults / 1 room search (feed
+ * links carry no Participants) becomes an explicit two-adult party so the request gets the
+ * synthetic adult DOBs, as GO4 did with default DOBs. A known party is returned unchanged.
  */
-export function withSunwebResultsDefaultAdultDobs(
+export function withSunwebResultsLiveParams(
   params: SearchParams,
-  departureIso: string,
+  _offerDepartureIso?: string | null,
 ): SearchParams {
-  if (!isSunwebResultsTwoAdultsOneRoom(params)) {
+  if (params.party && params.party.length > 0) {
     return params;
   }
-  if (!sunwebResultsPartyDobsMissing(params.party)) {
-    return params;
-  }
-  const dateOfBirth = sunwebDobAtAgeOnDeparture(
-    departureIso,
-    SUNWEB_RESULTS_DEFAULT_ADULT_AGE_YEARS,
-  );
-  if (!dateOfBirth) {
+  if (
+    (params.adults ?? 2) !== 2 ||
+    (params.children ?? 0) !== 0 ||
+    (params.babies ?? 0) !== 0 ||
+    (params.rooms ?? 1) !== 1
+  ) {
     return params;
   }
   return {
@@ -280,41 +260,10 @@ export function withSunwebResultsDefaultAdultDobs(
     babies: 0,
     rooms: 1,
     party: [
-      { dateOfBirth, roomIndex: 0 },
-      { dateOfBirth, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
     ],
   };
-}
-
-/**
- * Departure ISO used to synthesize Results default adult DOBs.
- * Prefer offer trip date, then search window, then a stable gate-only fallback.
- */
-export function resolveSunwebResultsDefaultDobDepartureIso(
-  params: Pick<SearchParams, 'departureStart' | 'departureEnd'>,
-  offerDepartureIso?: string | null,
-): string {
-  if (typeof offerDepartureIso === 'string' && ISO_DATE.test(offerDepartureIso)) {
-    return offerDepartureIso;
-  }
-  if (typeof params.departureStart === 'string' && ISO_DATE.test(params.departureStart)) {
-    return params.departureStart;
-  }
-  if (typeof params.departureEnd === 'string' && ISO_DATE.test(params.departureEnd)) {
-    return params.departureEnd;
-  }
-  return '2099-01-01';
-}
-
-/** Results live params: apply GO4 default adult DOBs when missing. */
-export function withSunwebResultsLiveParams(
-  params: SearchParams,
-  offerDepartureIso?: string | null,
-): SearchParams {
-  return withSunwebResultsDefaultAdultDobs(
-    params,
-    resolveSunwebResultsDefaultDobDepartureIso(params, offerDepartureIso),
-  );
 }
 
 /** Proven Sunweb occupancies that Results may live-price (matches Detail). */
@@ -324,9 +273,7 @@ export function requiresSunwebResultsLivePrice(
     'adults' | 'children' | 'babies' | 'rooms' | 'party' | 'departureStart' | 'departureEnd'
   >,
 ): boolean {
-  // GO4: missing DOBs must not block Results live pricing for 2A/1R.
-  const liveParams = withSunwebResultsLiveParams(params as SearchParams);
-  return resolveSunwebLiveOccupancy(liveParams).ok;
+  return resolveSunwebLiveOccupancy(withSunwebResultsLiveParams(params as SearchParams)).ok;
 }
 
 function readParam(url: URL, indexed: string, plain: string): string {
@@ -408,11 +355,6 @@ export function buildSunwebLiveContext(
   if (!isSunweb(offer)) {
     return null;
   }
-  const occupancy = resolveSunwebLiveOccupancy(params);
-  if (!occupancy.ok) {
-    return null;
-  }
-
   const accoId = extractSunwebAccommodationId(offer.id);
   const feHost = offer.deepLink ? resolveSunwebFeHost(offer.deepLink) : null;
   if (!accoId || !feHost || !offer.deepLink) {
@@ -421,6 +363,18 @@ export function buildSunwebLiveContext(
 
   const trip = parseSunwebLandingQuery(offer.deepLink, accoId);
   if (!trip) {
+    return null;
+  }
+
+  // DEC-019: child DOBs are synthetic, relative to the calculated return date of this trip.
+  const occupancy = resolveSunwebLiveOccupancy(
+    params,
+    tripDobReferenceForOffer(offer, trip.departureDate),
+  );
+  if (!occupancy.ok) {
+    return null;
+  }
+  if (occupancy.mode === 'party' && occupancy.participants.length !== (params.party?.length ?? 0)) {
     return null;
   }
 

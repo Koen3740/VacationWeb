@@ -33,24 +33,24 @@ function hrefQuery(href: string): Record<string, string | string[] | undefined> 
   return record;
 }
 
-test('homepage 2 adults with real DOBs reach Results party unchanged', () => {
+test('homepage 2 adults reach Results party unchanged (adults count, no DOB)', () => {
   const href = buildResultsHref({
     ...createDefaultSharedSearchState(),
     travelers: {
-      travellers: [
-        { id: 't-1', dateOfBirth: '1980-03-12' },
-        { id: 't-2', dateOfBirth: '1982-08-07' },
-      ],
+      adults: 2,
+      childAges: [],
       roomCount: 1,
       roomAssignments: [0, 0],
     },
   });
   const query = hrefQuery(href);
-  assert.equal(query.dob, '1980-03-12,1982-08-07');
+  assert.equal(query.adults, '2');
+  assert.equal(query.childAges, '');
+  assert.equal(query.dob, undefined);
   const params = parseSearchParams(query);
   assert.deepEqual(params.party, [
-    { dateOfBirth: '1980-03-12', roomIndex: 0 },
-    { dateOfBirth: '1982-08-07', roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
   ]);
 });
 
@@ -59,10 +59,11 @@ test('homepage default search carries 2 adults into Results params', () => {
   assert.match(href, /^\/results\?/);
   const params = parseSearchParams(hrefQuery(href));
   assert.equal(params.adults, 2);
-  assert.equal(params.children, undefined);
+  assert.equal(params.children, 0);
+  assert.equal(params.babies, 0);
   assert.deepEqual(params.party, [
-    { dateOfBirth: null, roomIndex: 0 },
-    { dateOfBirth: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
   ]);
   assert.equal(params.sort, 'value');
   assert.equal(params.page, 1);
@@ -99,36 +100,36 @@ test('F. homepage → Results keeps party, rooms, dates, nights and airport', ()
     selectedDurations: [7, 8],
     selectedDepartureAirports: ['BRU'],
     travelers: {
-      travellers: [
-        { id: 't-1', dateOfBirth: '1980-03-12' },
-        { id: 't-2', dateOfBirth: '1982-08-07' },
-        { id: 't-3', dateOfBirth: '2011-06-14' },
-        { id: 't-4', dateOfBirth: '2022-01-22' },
-      ],
+      adults: 2,
+      childAges: [15, 4],
       roomCount: 2,
       roomAssignments: [0, 0, 0, 1],
     },
   });
 
   const query = hrefQuery(href);
-  assert.equal(query.adults, '4');
-  assert.equal(query.dob, '1980-03-12,1982-08-07,2011-06-14,2022-01-22');
+  // DEC-019: adults count + child ages + derived counts; adults is no longer the total.
+  assert.equal(query.adults, '2');
+  assert.equal(query.childAges, '15,4');
+  assert.equal(query.children, '2');
+  assert.equal(query.babies, undefined);
+  assert.equal(query.dob, undefined);
   assert.equal(query.rooms, '2');
   assert.equal(query.partyRooms, '1,1,1,2');
   assert.equal(query.departureStart, '2026-10-01');
   assert.equal(query.nights, '7,8');
   assert.equal(query.departureAirport, 'BRU');
-  assert.equal(query.children, undefined);
-  assert.equal(query.babies, undefined);
 
   const params = parseSearchParams(query);
-  assert.equal(params.adults, 4);
+  assert.equal(params.adults, 2);
+  assert.equal(params.children, 2);
+  assert.deepEqual(params.childAges, [15, 4]);
   assert.equal(params.rooms, 2);
   assert.deepEqual(params.party, [
-    { dateOfBirth: '1980-03-12', roomIndex: 0 },
-    { dateOfBirth: '1982-08-07', roomIndex: 0 },
-    { dateOfBirth: '2011-06-14', roomIndex: 0 },
-    { dateOfBirth: '2022-01-22', roomIndex: 1 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 15, roomIndex: 0 },
+    { age: 4, roomIndex: 1 },
   ]);
   assert.equal(params.departureStart, '2026-10-01');
   assert.deepEqual(params.nights, [7, 8]);
@@ -137,12 +138,44 @@ test('F. homepage → Results keeps party, rooms, dates, nights and airport', ()
   const pageHref = buildResultsPageHref(params, 2);
   const pageParams = parseSearchParams(hrefQuery(pageHref));
   assert.deepEqual(pageParams.party, params.party);
-  assert.equal(pageParams.adults, 4);
+  assert.equal(pageParams.adults, 2);
+  assert.deepEqual(pageParams.childAges, [15, 4]);
   assert.equal(pageParams.rooms, 2);
   assert.equal(pageParams.departureStart, '2026-10-01');
   assert.deepEqual(pageParams.nights, [7, 8]);
   assert.equal(pageParams.departureAirport, 'BRU');
   assert.equal(pageParams.page, 2);
+});
+
+test('homepage 2A + children 5 and 1 derive children=1 and babies=1 in the URL and in Results params', () => {
+  const href = buildResultsHref({
+    ...createDefaultSharedSearchState(),
+    travelers: { adults: 2, childAges: [5, 1], roomCount: 1, roomAssignments: [0, 0, 0, 0] },
+  });
+  const query = hrefQuery(href);
+  assert.equal(query.adults, '2');
+  assert.equal(query.childAges, '5,1');
+  assert.equal(query.children, '1');
+  assert.equal(query.babies, '1');
+  assert.equal(href.includes('dob'), false);
+  const params = parseSearchParams(query);
+  assert.deepEqual([params.adults, params.children, params.babies], [2, 1, 1]);
+  assert.deepEqual(params.childAges, [5, 1]);
+});
+
+test('legacy dob= links stay readable: ages are derived, no DOB is written back', () => {
+  const today = new Date();
+  const iso = (yearsAgo: number) => `${today.getFullYear() - yearsAgo}-01-01`;
+  const params = parseSearchParams({
+    adults: '3',
+    dob: `1980-03-12,1982-08-07,${iso(6)}`,
+    country: 'Spanje',
+  });
+  assert.equal(params.adults, 2);
+  assert.deepEqual(params.childAges, [6]);
+  const href = buildResultsPageHref(params, 1);
+  assert.equal(href.includes('dob'), false);
+  assert.equal(/\d{4}-\d{2}-\d{2}/.test(decodeURIComponent(href)), false);
 });
 
 test('G. Results URL without new party params stays readable', () => {
@@ -180,8 +213,8 @@ test('card → detail → back keeps occupancy and dates', () => {
   const detailParams = parseSearchParams(hrefQuery(detailHref));
   assert.equal(detailParams.adults, 2);
   assert.deepEqual(detailParams.party, [
-    { dateOfBirth: null, roomIndex: 0 },
-    { dateOfBirth: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
   ]);
   assert.equal(detailParams.departureStart, '2026-10-01');
   assert.equal(detailParams.country, 'Spanje');
