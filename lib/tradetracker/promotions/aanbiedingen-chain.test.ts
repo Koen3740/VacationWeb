@@ -259,16 +259,24 @@ test('8–16: an allowed image is stored once, updated when the creative changes
   assert.equal(fetched.some((url) => url.includes('/c?')), false);
 });
 
-test('the refresh entrypoint chains the existing creative scripts and leaves the catalog alone', () => {
-  const source = fs.readFileSync(path.join(process.cwd(), 'scripts/refresh-tradetracker-creatives.ts'), 'utf8');
-  const ingestAt = source.indexOf('ingest-tradetracker-creatives.js');
-  const selectAt = source.indexOf('select-tradetracker-creatives.js');
-  const imagesAt = source.indexOf('ingest-tradetracker-creative-images.js');
+test('the refresh entrypoint chains the existing creative modules and leaves the catalog alone', () => {
+  const script = fs.readFileSync(path.join(process.cwd(), 'scripts/refresh-tradetracker-creatives.ts'), 'utf8');
+  const source = fs.readFileSync(path.join(process.cwd(), 'lib/tradetracker/promotions/refresh-creatives.ts'), 'utf8');
+  assert.equal(script.includes('refreshTradeTrackerCreatives'), true);
+  assert.equal(script.includes('spawnSync'), false);
+  const ingestAt = source.indexOf('ingestTradeTrackerCreatives({');
+  const selectAt = source.indexOf('selectTradeTrackerCreatives(');
+  const imagesAt = source.indexOf('deps.ingestImages(');
   assert.equal(ingestAt > 0 && ingestAt < selectAt && selectAt < imagesAt, true);
+  assert.equal(source.includes('ingestDisplayableCreativeImages'), true);
+  assert.equal(script.includes('corendon-homepage-actions'), false);
   assert.equal(source.includes('corendon-homepage-actions'), false);
   assert.equal(source.includes('import-all-feeds'), false);
   assert.equal(source.includes('upload-offers'), false);
   assert.equal(source.includes('publish-generation'), false);
+  assert.equal(script.includes('import-all-feeds'), false);
+  assert.equal(script.includes('upload-offers'), false);
+  assert.equal(script.includes('publish-generation'), false);
   const page = fs.readFileSync(path.join(process.cwd(), 'app/aanbiedingen/page.tsx'), 'utf8');
   const presenter = fs.readFileSync(path.join(process.cwd(), 'lib/tradetracker/promotions/present-aanbiedingen.ts'), 'utf8');
   assert.equal(page.includes('corendon-homepage-actions'), false);

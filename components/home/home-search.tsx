@@ -35,6 +35,7 @@ import {
   createDefaultTravelersState,
   formatRoomsLabel,
   formatTravelersLabel,
+  isTravelersStateComplete,
   type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
 import { requestHomeLivePricePrefetch } from '@/components/home/home-live-price-prefetch-client';
@@ -256,6 +257,11 @@ export function HomeSearch({
 
   const handleSearch = () => {
     if (searchStartedRef.current || searchBusy) {
+      return;
+    }
+    if (!isTravelersStateComplete(travelers)) {
+      // Every child needs an age; let the traveller popup ask for it.
+      setTravelersPopupOpen(true);
       return;
     }
     searchStartedRef.current = true;

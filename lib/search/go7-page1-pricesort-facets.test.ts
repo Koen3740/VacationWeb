@@ -16,14 +16,15 @@ test('GO7: blank dob= does not invent a 1-person party (falls back to adults)', 
     rooms: '1',
   });
   assert.ok(fromBlankDob);
-  assert.equal(fromBlankDob!.travellers.length, 2);
+  assert.equal(fromBlankDob!.adults, 2);
+  assert.equal(fromBlankDob!.childAges.length, 0);
 
   const fromCommaDob = parseTravelersFromQuery({
     dob: ',',
     adults: '2',
   });
   assert.ok(fromCommaDob);
-  assert.equal(fromCommaDob!.travellers.length, 2);
+  assert.equal(fromCommaDob!.adults, 2);
 
   const params = parseSearchParams({
     country: 'Griekenland',
@@ -31,8 +32,8 @@ test('GO7: blank dob= does not invent a 1-person party (falls back to adults)', 
     adults: '2',
     dob: '',
   });
-  assert.ok(params.party);
-  assert.equal(params.party!.length, 2);
+  assert.equal(params.adults, 2);
+  assert.equal(params.party, undefined);
 });
 
 test('GO7: Results shell does not await prepareResultsOffers on price-sort branch', () => {

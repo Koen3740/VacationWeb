@@ -44,13 +44,17 @@ export interface SearchParams {
   babies?: number;
   rooms?: number;
   /**
-   * Canonical party from homepage V2. dateOfBirth is ISO YYYY-MM-DD or null.
-   * roomIndex is 0-based. No provider age category is stored here.
+   * Canonical party (DEC-019): adults are a count, children an age (0-17 on the
+   * calculated return date). No date of birth is stored here; providers get a
+   * synthetic DOB derived per offer. `age: null` = adult. roomIndex is 0-based;
+   * adults come first, then children in `childAges` order.
    */
   party?: Array<{
-    dateOfBirth: string | null;
+    age: number | null;
     roomIndex: number;
   }>;
+  /** Child ages 0-17 (age < 2 = baby, >= 2 = child). Derived from the URL `childAges`. */
+  childAges?: number[];
   departureStart?: string;
   departureEnd?: string;
   flexibilityDays?: number;

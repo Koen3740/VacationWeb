@@ -284,7 +284,8 @@ test('regression: travelers, rooms and the full href (all params together) are u
   assert.equal(query.get('nights'), '8');
   assert.equal(query.get('departureAirport'), 'BRU');
   assert.ok(query.get('adults'));
-  assert.ok(query.get('dob'));
+  assert.equal(query.get('childAges'), '');
+  assert.equal(query.get('dob'), null);
   const parsed = parseSearchParams(Object.fromEntries(query));
   assert.deepEqual(parsed.countries, ['Spanje']);
   assert.deepEqual(parsed.nights, [8]);

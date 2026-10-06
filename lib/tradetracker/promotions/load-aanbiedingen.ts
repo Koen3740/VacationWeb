@@ -4,17 +4,33 @@ import {
   loadSelectedCreativesForMarket,
   type LoadedSelectedCreatives,
 } from './load-selected-creatives';
-import {
-  loadDisplayablePromotionsForMarket,
-  type LoadedMarketPromotions,
-} from './load-for-page';
-import type { VacationWebPromotionMarket } from './select-displayable';
+import { readCachedCreativeDocument } from './published-creative-cache';
+import type { DisplayablePromotion, VacationWebPromotionMarket } from './select-displayable';
 
 /**
  * Market page data for `/aanbiedingen`.
- * Primary creative snapshots win. Secondary SOAP promotions follow and cannot
- * overwrite a creative or repeat its material id. Markets are loaded apart.
+ * Reads the published selected snapshots and the creative image manifest only.
+ * A visitor request does not call TradeTracker. Campaign news is not loaded.
+ * Markets are loaded apart.
  */
+
+type SnapshotPromotions = {
+  market: VacationWebPromotionMarket;
+  affiliateSiteId: string;
+  promotions: DisplayablePromotion[];
+  ingestedAt: string | null;
+  error: string | null;
+};
+
+function emptyPromotions(market: VacationWebPromotionMarket): SnapshotPromotions {
+  return {
+    market,
+    affiliateSiteId: market === 'be' ? '511873' : '512226',
+    promotions: [],
+    ingestedAt: null,
+    error: null,
+  };
+}
 
 export type LoadedAanbiedingenSection = {
   market: VacationWebPromotionMarket;
@@ -33,26 +49,24 @@ export async function loadAanbiedingenForMarket(
     root?: string;
     /** Test hook. Production uses the selected-creative snapshot reader. */
     loadPrimary?: (market: VacationWebPromotionMarket) => Promise<LoadedSelectedCreatives>;
-    /** Test hook. Production uses the news/incentive SOAP loader. */
-    loadSecondary?: (market: VacationWebPromotionMarket) => Promise<LoadedMarketPromotions>;
+    /** Test hook. Production passes an empty list; the page does not call TradeTracker. */
+    loadSecondary?: (market: VacationWebPromotionMarket) => Promise<SnapshotPromotions>;
     /** Test hook. Production reads the isolated object-storage documents. */
     readRemote?: (key: string) => Promise<string | null>;
   } = {},
 ): Promise<LoadedAanbiedingenSection> {
+  const readRemote = options.readRemote ?? readCachedCreativeDocument;
   const loadPrimary =
     options.loadPrimary ??
     ((nextMarket: VacationWebPromotionMarket) =>
-      loadSelectedCreativesForMarket(nextMarket, { root: options.root, readRemote: options.readRemote }));
-  const loadSecondary =
-    options.loadSecondary ??
-    ((nextMarket: VacationWebPromotionMarket) =>
-      loadDisplayablePromotionsForMarket(nextMarket, { bypassCache: options.bypassCache }));
+      loadSelectedCreativesForMarket(nextMarket, { root: options.root, readRemote }));
+  const loadSecondary = options.loadSecondary ?? (async (nextMarket: VacationWebPromotionMarket) => emptyPromotions(nextMarket));
   const [primary, secondary] = await Promise.all([loadPrimary(market), loadSecondary(market)]);
   const cards = composeAanbiedingenCards({
     market,
     creatives: primary.creatives,
     secondary: secondary.promotions,
-    images: await loadCreativeImageIndex(options.root, { readRemote: options.readRemote }),
+    images: await loadCreativeImageIndex(options.root, { readRemote }),
   });
   const primaryCount = cards.filter((card) => card.source === 'creative').length;
   const secondaryCount = cards.length - primaryCount;

@@ -74,6 +74,8 @@ export type CreativeImageIngestReport = {
   storage: 'local' | 'local+r2';
   publicPaths: string[];
   failures: { materialItemId: string; reason: string }[];
+  /** Set when this run built a manifest. Remote publish may still be deferred. */
+  manifest?: CreativeImageManifest;
 };
 
 export class CreativeImageFetchError extends Error {
@@ -324,6 +326,13 @@ export async function ingestDisplayableCreativeImages(options: {
   root?: string;
   generatedAt: string;
   resyncStorage?: boolean;
+  /**
+   * When false, image bytes may still be stored but the manifest document is not
+   * published. The refresh entrypoint publishes it only after the run succeeds.
+   */
+  publishRemote?: boolean;
+  /** When false, leave the previous local manifest file untouched. */
+  writeLocalManifest?: boolean;
   fetchImpression?: ImpressionRequest;
   putIsolatedBytes?: (key: string, body: Buffer, contentType: string) => Promise<'stored' | 'unavailable'>;
   publishDocument?: (key: string, body: string) => Promise<'stored' | 'unavailable'>;
@@ -471,13 +480,20 @@ export async function ingestDisplayableCreativeImages(options: {
     storage: usedRemote ? 'local+r2' : 'local',
     entries,
   };
-  const manifestPath = creativeImageManifestPath(root);
-  fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+  report.manifest = manifest;
+  if (options.writeLocalManifest !== false) {
+    const manifestPath = creativeImageManifestPath(root);
+    fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+  }
+  if (options.publishRemote === false) {
+    return report;
+  }
   const manifestJson = JSON.stringify(manifest, null, 2);
-  fs.writeFileSync(manifestPath, manifestJson, 'utf8');
   const publish = options.publishDocument ?? publishIsolatedCreativeDocument;
   const published = await publish(CREATIVE_IMAGE_MANIFEST_STORAGE_KEY, manifestJson);
   report.storage = usedRemote || published === 'stored' ? 'local+r2' : 'local';
+  report.manifest = { ...manifest, storage: report.storage };
   return report;
 }
 

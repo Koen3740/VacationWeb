@@ -25,6 +25,7 @@ import {
   DurationIcon,
   TravelersIcon,
 } from '@/components/home/home-search-icons';
+import { formatNightsLabel } from '@/lib/offers/offer-detail-view';
 import { useState, type ReactNode } from 'react';
 
 /** Preview demo: period selection (uses central departure display rules) */
@@ -322,7 +323,7 @@ function StaticFilters() {
 }
 
 function MockCard({ card }: { card: (typeof MOCK_CARDS)[number] }) {
-  const metaLine = `${card.nights} nachten • ${card.board} • ${card.airport}`;
+  const metaLine = `${formatNightsLabel(card.nights, 'dagen')} • ${card.board} • ${card.airport}`;
 
   return (
     <article

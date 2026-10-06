@@ -23,6 +23,15 @@ export function resolveSiteMarketFromHost(host: string | undefined | null): Site
   return undefined;
 }
 
+/** NL and BE hosts, including www, each map to their own market. Other hosts see both. */
+export function promotionMarketsForHost(host: string | undefined | null): SiteMarket[] {
+  const market = resolveSiteMarketFromHost(host);
+  if (market === 'nl' || market === 'be') {
+    return [market];
+  }
+  return ['nl', 'be'];
+}
+
 export function attachSiteMarket(params: SearchParams, host: string | undefined | null): SearchParams {
   const siteMarket = resolveSiteMarketFromHost(host);
   if (!siteMarket) {

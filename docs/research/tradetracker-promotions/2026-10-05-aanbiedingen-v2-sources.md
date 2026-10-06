@@ -1,6 +1,8 @@
-# Aanbiedingen V2 — Corendon-homepageacties, 2026-10-05
+# Aanbiedingen V2 — bronnen, 2026-10-06
 
-## Wat de pagina toont
+De live pagina toont alleen gepubliceerde creative-snapshots. De Corendon-homepageacties hieronder zijn historisch bronbewijs en een testfixture. Ze zijn geen productiebron en geen fallback.
+
+## Historische homepageacties (niet live)
 
 Twee acties, gezet in typografie. Het bedrag komt van de Corendon-homepage zoals de eigenaar die na een trackingklik zag. Het staat niet in TradeTracker-SOAP.
 
@@ -35,7 +37,9 @@ Sorteersleutel in `sort-offers.ts`, eerste datum die de bron echt heeft:
 
 Een datum `YYYY-MM-DD` telt als UTC-kalenderdag. Een volledige timestamp telt als absoluut tijdstip. De nieuwste staat bovenaan. Zonder datum zakt de aanbieding onder elke gedateerde aanbieding. Bij een gelijke sleutel beslist `id` aflopend. Dat is alleen een stabiele volgorde. De hardcoded Corendon-homepageacties zijn geen bron en geen fallback. Levert TradeTracker geen concrete actie, dan toont de pagina geen aanbiedingen.
 
-De pagina is `force-dynamic`. Bij een request leest `loadAanbiedingenByMarkets` de geselecteerde creative-snapshots en, via `loadDisplayablePromotionsForMarket`, de SOAP-promoties met een cache van 15 minuten. Nieuwe en gewijzigde TradeTracker-acties met een concreet voordeel komen zo op de pagina zonder dat de eigenaar ze invoert. Een creative met `validity.status === 'expired'` valt af in `select-creatives`. News, incentives en vouchers zonder `validity.isActive` vallen af in `select-displayable`. Een kaart waarvan `expirationDate` vóór de UTC-dag van vandaag ligt, valt daarna nog eens af in `editorialOffersFromCards`.
+De pagina is `force-dynamic` en leest alleen gepubliceerde VacationWeb-data: `selected-nl-512226.json`, `selected-be-511873.json` en `creative-image-manifest.json`. Lokaal bestand eerst, anders het object onder `tradetracker-creatives/` in R2. Die R2-read zit in een cache van 5 minuten (`unstable_cache`, revalidate 300). Een bezoek roept TradeTracker niet aan. Er is geen campaign-newsfeed op het requestpad.
+
+Een creative met `validity.status === 'expired'` valt af in `select-creatives`. Een kaart waarvan `expirationDate` vóór de UTC-dag van vandaag ligt, valt daarna nog eens af in `editorialOffersFromCards`. Levert de snapshot geen kaart op, dan toont de pagina “Momenteel zijn er geen actuele aanbiedingen.” en een link naar home (`Zoek een vakantie`). Geen debugtekst en geen homepage-aanbieding.
 
 Een aanbieding bestaat alleen bij een concreet voordeel: bedrag, percentage, voucher, of een benoemd gratis voordeel (`1 kind gratis`, `2e persoon gratis`, `gratis bagage`, `gratis transfer`). “Last Minute”, “Zonvakantie”, “Boek nu”, “Ontdek Corendon” en een kale “gratis” zijn geen aanbieding. Een TradeTracker-creative is daardoor niet vanzelf een kaart.
 
@@ -47,9 +51,27 @@ Een campagnefoto wordt alleen gebruikt als het een eigen VacationWeb-pad is onde
 
 Zonder zo’n bestand blijft de actie staan, gezet in type: licht vlak, provider, groot voordeel, de actietitel en de CTA. Er is geen getekende kust, geen neppe vakantiefoto en geen homepage-sfeerfoto.
 
-De verversing is één entrypoint, `npm run refresh:tradetracker-creatives`: creative-ingest, selectie, daarna server-side beeldingest. Er staat geen aparte nightly scheduler in deze repository. Een eigen beeld hoort bij de creative zelf. Zonder toegestaan bestand blijft een echte actie typografisch.
+De verversing is één functie, `refreshTradeTrackerCreatives`. `npm run refresh:tradetracker-creatives` en de cron-route roepen diezelfde functie aan: creative-ingest, selectie, benefit-filter, server-side beeldingest, daarna pas de snapshot en als laatste het image-manifest. Een eigen beeld hoort bij de creative zelf, onder `/aanbiedingen/creative-images/` (R2-prefix `tradetracker-creatives/images/`). Zonder toegestaan bestand blijft een echte actie typografisch.
 
-Catalogus, `current.json` en live-price zijn niet aangeraakt.
+## Dagelijkse cron
+
+`vercel.json` plant één job: `17 2 * * *` op `/api/cron/tradetracker-creatives`. Dat is 02:17 UTC, 04:17 CEST en 03:17 CET. Op Vercel Hobby valt de start binnen dat uur, niet op de minuut. De route is Node.js, `maxDuration` 60. Vercel stuurt `Authorization: Bearer <CRON_SECRET>`. Zonder secret, of met een andere bearer, antwoordt de route 401 en draait de refresh niet. Op Vercel schrijft de run alleen onder `/tmp` en naar de bestaande R2-sleutels.
+
+## Fail-safe
+
+Een mislukte ingest, selectie of R2-fout publiceert de snapshot van die markt niet. NL (`512226`) en BE (`511873`) staan apart: een fout in de ene markt laat de laatste geldige snapshot van de andere staan. Het gedeelde manifest wordt bij een gedeeltelijke run alleen bijgewerkt met de geslaagde markt; entries van de andere markt blijven. Een geslaagde run met 0 toonbare aanbiedingen is wél een publicatie, zodat een verdwenen campagne ook verdwijnt. De cron eist een geslaagde R2-publicatie (`requireRemote`). De npm-run op een machine zonder object storage schrijft lokaal en laat R2 met rust.
+
+## TradeTracker-context
+
+Eén TradeTracker-account. NL gebruikt `TRADETRACKER_CUSTOMER_ID` en `TRADETRACKER_ACCESS_KEY`, site 512226, campagne 38108. BE gebruikt `TRADETRACKER_BE_CUSTOMER_ID` en `TRADETRACKER_BE_ACCESS_KEY`, site 511873, campagne 38103. Alleen providers Corendon, Sunweb en Eliza was here kunnen een kaart worden. Een creative zonder concreet voordeel (bedrag, percentage, voucher of een benoemd gratis voordeel) blijft uit de pagina.
+
+## Wat niet is gebouwd
+
+Campaign News is een mogelijke latere ontdekkings- of triggerlaag. Die laag draait niet in de creative-refresh en niet op `/aanbiedingen`. Mailbox-, Outlook- of Graph-integratie is niet gebouwd. Er is geen tweede refreshketen en geen tweede R2-store.
+
+Catalogus, `current.json`, live-price en de productfeed zijn niet aangeraakt.
+
+De homepage-header en -footer linken “Aanbiedingen” naar `/aanbiedingen`. Het resultaten-menu deed dat al. Er is geen teller en geen badge.
 
 ## Wat niet terugkomt
 

@@ -129,8 +129,8 @@ test('page1: Corendon 2A with party ISO DOBs is presentable via upsales total', 
     adults: 2,
     rooms: 1,
     party: [
-      { dateOfBirth: '1980-03-12', roomIndex: 0 },
-      { dateOfBirth: '1982-08-07', roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
     ],
   };
   const page = await pricePage1WithPrijsvrijReceipts(
@@ -289,10 +289,10 @@ const FOUR_PAX_TWO_ROOMS = {
   children: 2,
   rooms: 2,
   party: [
-    { dateOfBirth: '1990-01-15', roomIndex: 0 },
-    { dateOfBirth: '1988-03-03', roomIndex: 0 },
-    { dateOfBirth: '2014-06-14', roomIndex: 1 },
-    { dateOfBirth: '2018-01-22', roomIndex: 1 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: 12, roomIndex: 1 },
+    { age: 8, roomIndex: 1 },
   ],
 };
 
@@ -523,8 +523,8 @@ const TWO_ADULTS_ISO = {
   babies: 0,
   rooms: 1,
   party: [
-    { dateOfBirth: '1980-03-12', roomIndex: 0 },
-    { dateOfBirth: '1982-08-07', roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
   ],
 };
 

@@ -22,9 +22,12 @@ import { parseCatalogGenerationParam } from '@/lib/search/catalog-generation-fre
 import { parseProviderParam } from '@/lib/search/provider-filter';
 import { parseVacationTypesParam } from '@/lib/search/vacation-type';
 import {
-  parseTravelersFromQuery,
-  travelersStateToParty,
-} from '@/components/search/travelers-popup/travelers-popup-utils';
+  deriveOccupancyCounts,
+  hasCompleteChildAges,
+  partyFromModel,
+  readTravelerQuery,
+  type TravelerModel,
+} from '@/lib/search/traveler-contract';
 import { sanitizeDepartureSearchWindow } from '@/lib/search/departure-date';
 import type { SearchParams } from '@/types/travel';
 
@@ -46,6 +49,33 @@ function parseSelectedRoomParam(raw: string | undefined): string | undefined {
  * Occupancy and dates must survive card → detail → back.
  */
 export function parseSearchParams(searchParams: ResultsSearchParamsInput): SearchParams {
+  const str = (key: string): string | undefined =>
+    typeof searchParams[key] === 'string' ? (searchParams[key] as string) : undefined;
+  // DEC-019: one reader for the traveller contract (childAges; legacy dob/counts).
+  const travelerQuery = readTravelerQuery({
+    adults: str('adults'),
+    children: str('children'),
+    babies: str('babies'),
+    childAges: str('childAges'),
+    dob: str('dob'),
+    partyRooms: str('partyRooms'),
+    rooms: str('rooms'),
+  });
+  const knownParty: TravelerModel | null =
+    // Legacy count-only links (no childAges, no dob) keep their raw counts and get no party.
+    travelerQuery &&
+    travelerQuery.source !== 'legacy-counts' &&
+    hasCompleteChildAges(travelerQuery.childAges)
+      ? {
+          adults: travelerQuery.adults,
+          childAges: travelerQuery.childAges,
+          roomCount: travelerQuery.roomCount,
+          roomAssignments: travelerQuery.roomAssignments,
+        }
+      : null;
+  const derivedCounts = knownParty
+    ? deriveOccupancyCounts(knownParty.adults, knownParty.childAges)
+    : null;
   const boardTypes = typeof searchParams.boardTypes === 'string' ? searchParams.boardTypes.split(',') : undefined;
   const countryRaw = typeof searchParams.country === 'string' ? searchParams.country : undefined;
   const countries = countryRaw
@@ -79,37 +109,26 @@ export function parseSearchParams(searchParams: ResultsSearchParamsInput): Searc
       const parsed = parseAccommodationTypesParam(searchParams.accommodationTypes);
       return parsed.length > 0 ? parsed : undefined;
     })(),
-    adults: typeof searchParams.adults === 'string' ? Number(searchParams.adults) : undefined,
-    children: typeof searchParams.children === 'string' ? Number(searchParams.children) : undefined,
-    babies: typeof searchParams.babies === 'string' ? Number(searchParams.babies) : undefined,
+    // With a known party the counts are derived from the child ages (consistent with the URL);
+    // a count-only legacy link keeps its raw counts.
+    adults: derivedCounts
+      ? derivedCounts.adults
+      : typeof searchParams.adults === 'string'
+        ? Number(searchParams.adults)
+        : undefined,
+    children: derivedCounts
+      ? derivedCounts.children
+      : typeof searchParams.children === 'string'
+        ? Number(searchParams.children)
+        : undefined,
+    babies: derivedCounts
+      ? derivedCounts.babies
+      : typeof searchParams.babies === 'string'
+        ? Number(searchParams.babies)
+        : undefined,
     rooms: typeof searchParams.rooms === 'string' ? Number(searchParams.rooms) : undefined,
-    party: (() => {
-      const parsed = parseTravelersFromQuery({
-        dob: typeof searchParams.dob === 'string' ? searchParams.dob : undefined,
-        partyRooms: typeof searchParams.partyRooms === 'string' ? searchParams.partyRooms : undefined,
-        adults: typeof searchParams.adults === 'string' ? searchParams.adults : undefined,
-        children: typeof searchParams.children === 'string' ? searchParams.children : undefined,
-        babies: typeof searchParams.babies === 'string' ? searchParams.babies : undefined,
-        rooms: typeof searchParams.rooms === 'string' ? searchParams.rooms : undefined,
-      });
-      if (!parsed) {
-        return undefined;
-      }
-      // GO7: allow party from adults/children when dob is blank; only require dob string
-      // when it carries real tokens (legacy quirk kept for ISO DOB URLs).
-      const dobRaw = typeof searchParams.dob === 'string' ? searchParams.dob : undefined;
-      const dobHasToken =
-        typeof dobRaw === 'string' && dobRaw.split(',').some((token) => token.trim().length > 0);
-      if (dobRaw !== undefined && !dobHasToken) {
-        // blank dob= → party from adults/children parse result
-        return travelersStateToParty(parsed);
-      }
-      if (dobRaw === undefined) {
-        // no dob param: party only if adults/children produced parsed state
-        return travelersStateToParty(parsed);
-      }
-      return travelersStateToParty(parsed);
-    })(),
+    childAges: knownParty && knownParty.childAges.length > 0 ? knownParty.childAges : undefined,
+    party: knownParty ? partyFromModel(knownParty) : undefined,
     ...(() => {
       const rawStart =
         typeof searchParams.departureStart === 'string' ? searchParams.departureStart : undefined;

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/tradetracker-creatives",
+      "schedule": "17 2 * * *"
+    }
+  ]
+}

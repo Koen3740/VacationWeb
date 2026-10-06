@@ -5,6 +5,12 @@ import {
   ELIZA_PROVIDER_NAME,
   type ElizaFeHost,
 } from './constants';
+import {
+  partyHasValidAges,
+  syntheticDobForMember,
+  tripDobReferenceForOffer,
+  type TripDobReference,
+} from '../synthetic-dob';
 
 export type ElizaParticipant = { key: string; value: string };
 
@@ -70,8 +76,18 @@ export function resolveElizaFeHost(productUrl: string): ElizaFeHost | null {
   }
 }
 
-function isIsoDob(value: string | null | undefined): value is string {
-  return typeof value === 'string' && ISO_DATE.test(value);
+type ElizaPartyMember = NonNullable<SearchParams['party']>[number];
+
+/**
+ * Synthetic DOBs for the party (DEC-019); `null` when a child cannot get one because the
+ * trip reference (calculated return date) is missing.
+ */
+function syntheticPartyDobs(
+  party: readonly ElizaPartyMember[],
+  reference: TripDobReference | undefined,
+): string[] | null {
+  const dobs = party.map((member) => syntheticDobForMember(member, reference));
+  return dobs.every((dob): dob is string => dob !== null) ? dobs : null;
 }
 
 /**
@@ -101,54 +117,55 @@ export function isElizaFourTravellerTwoRoomSearch(
 
 function resolveElizaFourTravellerTwoRoomOccupancy(
   params: Pick<SearchParams, 'party'>,
+  reference: TripDobReference | undefined,
 ): ElizaLiveOccupancy {
   const party = params.party;
-  if (!party || party.length !== 4) {
-    return { ok: false, reason: 'invalid_occupancy' };
-  }
-  if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
+  if (!party || party.length !== 4 || !partyHasValidAges(party)) {
     return { ok: false, reason: 'invalid_occupancy' };
   }
 
-  const rooms: string[][] = [[], []];
+  const rooms: ElizaPartyMember[][] = [[], []];
   for (const traveller of party) {
     if (traveller.roomIndex !== 0 && traveller.roomIndex !== 1) {
       return { ok: false, reason: 'invalid_occupancy' };
     }
-    rooms[traveller.roomIndex].push(traveller.dateOfBirth as string);
+    rooms[traveller.roomIndex].push(traveller);
   }
   if (rooms[0].length < 1 || rooms[1].length < 1) {
     return { ok: false, reason: 'invalid_occupancy' };
   }
 
   const participants: ElizaParticipant[] = [];
-  rooms.forEach((birthdates, roomIndex) => {
-    birthdates.forEach((birthDate, personIndex) => {
+  for (const [roomIndex, members] of rooms.entries()) {
+    const dobs = syntheticPartyDobs(members, reference);
+    if (!dobs) {
+      // Valid shape, but no child DOB without a return date: callers building a request fail closed.
+      return { ok: true, mode: 'four-travellers-two-rooms', participants: [] };
+    }
+    dobs.forEach((birthDate, personIndex) => {
       participants.push({
         key: `Participants[${roomIndex}][${personIndex}]`,
         value: birthDate,
       });
     });
-  });
+  }
 
   return { ok: true, mode: 'four-travellers-two-rooms', participants };
 }
 
 function resolveElizaSameRoomPartyOccupancy(
   params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
+  reference: TripDobReference | undefined,
 ): ElizaLiveOccupancy {
   const party = params.party;
-  if (!party || party.length !== 3) {
-    return { ok: false, reason: 'invalid_occupancy' };
-  }
-  if (!party.every((traveller) => isIsoDob(traveller.dateOfBirth))) {
+  if (!party || party.length !== 3 || !partyHasValidAges(party)) {
     return { ok: false, reason: 'invalid_occupancy' };
   }
   const adults = params.adults ?? 2;
   const children = params.children ?? 0;
   const babies = params.babies ?? 0;
   const rooms = params.rooms ?? 1;
-  if (adults !== 2 || children !== 1 || babies !== 0 || rooms !== 1) {
+  if (adults !== 2 || children + babies !== 1 || rooms !== 1) {
     return { ok: false, reason: 'invalid_occupancy' };
   }
   const roomIndexes = new Set(party.map((traveller) => traveller.roomIndex));
@@ -159,31 +176,37 @@ function resolveElizaSameRoomPartyOccupancy(
   if (roomIndex !== 0 && roomIndex !== 1) {
     return { ok: false, reason: 'invalid_occupancy' };
   }
+  const dobs = syntheticPartyDobs(party, reference);
   return {
     ok: true,
     mode: 'party',
-    participants: party.map((traveller, personIndex) => ({
-      key: `Participants[${roomIndex}][${personIndex}]`,
-      value: traveller.dateOfBirth as string,
-    })),
+    participants: dobs
+      ? dobs.map((value, personIndex) => ({
+          key: `Participants[${roomIndex}][${personIndex}]`,
+          value,
+        }))
+      : [],
   };
 }
 
 /**
  * Proven live occupancies for Eliza:
  * - Package 1: 2A / 0C / 0B / 1 room uses feed Participants (no invented DOBs)
- * - 2A+1C / 1 room with party ISO DOBs (Bijbel §6; case 133863)
- * - 4 travellers / 2 rooms with party ISO DOBs encoded as
- *   `Participants[roomIndex][personIndex]=YYYY-MM-DD`
+ * - 2A+1C or 2A+1 baby / 1 room (Bijbel §6; case 133863; baby: t355u own-adapter probe, priced OK)
+ * - 4 travellers / 2 rooms, encoded as `Participants[roomIndex][personIndex]=YYYY-MM-DD`
  *   (Bijbel §5–6; 22_closure_multiroom.json 2A1C_2rooms + 2A_2rooms_split)
  *
- * Real ISO DOBs are never replaced with feed or placeholder birthdates.
+ * DEC-019: the party carries child ages, never a DOB. Participants get synthetic DOBs
+ * (adult 1986-01-01; child = calculated return date minus age). The gate (`ok`) does not
+ * depend on `reference`; without a return date the participants of a party with children
+ * are empty and request builders must fail closed.
  */
 export function resolveElizaLiveOccupancy(
   params: Pick<SearchParams, 'adults' | 'children' | 'babies' | 'rooms' | 'party'>,
+  reference?: TripDobReference,
 ): ElizaLiveOccupancy {
   if (isElizaFourTravellerTwoRoomSearch(params)) {
-    return resolveElizaFourTravellerTwoRoomOccupancy(params);
+    return resolveElizaFourTravellerTwoRoomOccupancy(params, reference);
   }
 
   const adults = params.adults ?? 2;
@@ -200,8 +223,8 @@ export function resolveElizaLiveOccupancy(
     return { ok: false, reason: 'invalid_occupancy' };
   }
 
-  if (adults === 2 && children === 1 && babies === 0 && rooms === 1) {
-    return resolveElizaSameRoomPartyOccupancy(params);
+  if (adults === 2 && children + babies === 1 && rooms === 1) {
+    return resolveElizaSameRoomPartyOccupancy(params, reference);
   }
 
   if (adults !== 2 || children !== 0 || babies !== 0 || rooms !== 1) {
@@ -341,20 +364,25 @@ export function buildElizaLiveContext(
   if (!isEliza(offer)) {
     return null;
   }
-  const occupancy = resolveElizaLiveOccupancy(params);
-  if (!occupancy.ok) {
-    return null;
-  }
-
   const accoId = extractElizaAccommodationId(offer.id);
   const feHost = offer.deepLink ? resolveElizaFeHost(offer.deepLink) : null;
   if (!accoId || !feHost || !offer.deepLink) {
     return null;
   }
 
+  // DEC-019: child DOBs are synthetic, relative to the calculated return date of this trip.
+  const tripForReference = parseElizaTripQuery(offer.deepLink, accoId);
+  const occupancy = resolveElizaLiveOccupancy(
+    params,
+    tripDobReferenceForOffer(offer, tripForReference?.departureDate),
+  );
+  if (!occupancy.ok) {
+    return null;
+  }
+
   if (occupancy.mode === 'four-travellers-two-rooms' || occupancy.mode === 'party') {
-    const trip = parseElizaTripQuery(offer.deepLink, accoId);
-    if (!trip) {
+    const trip = tripForReference;
+    if (!trip || occupancy.participants.length !== (params.party?.length ?? 0)) {
       return null;
     }
     const landingUrl = applyElizaOccupancyToLandingUrl(
@@ -482,7 +510,7 @@ export function buildElizaOccupancyClickOutHref(
   if (resolveElizaFeHost(clickOut) !== ctx.feHost) {
     return null;
   }
-  if (!clickOutLandingHasOccupancy(clickOut, ctx.landingUrl, occupancy.participants)) {
+  if (!clickOutLandingHasOccupancy(clickOut, ctx.landingUrl, ctx.query.participants)) {
     return null;
   }
   return clickOut;

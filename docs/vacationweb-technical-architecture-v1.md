@@ -76,6 +76,7 @@ De eerste versie werkt met één feed, maar de architectuur moet later eenvoudig
 
 ### 3.7 Hosting and infrastructure
 - Vercel voor frontend en server-rendering
+- Vercel Cron, één keer per nacht: `17 2 * * *` (02:17 UTC) op `/api/cron/tradetracker-creatives`. Die job ververst alleen de creative-snapshots. Campaign News en mailbox-integratie zijn niet gebouwd.
 - managed PostgreSQL service
 - managed Elasticsearch/OpenSearch service
 - managed Redis service

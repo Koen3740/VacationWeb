@@ -13,6 +13,7 @@ import {
   isSunwebFourTravellerTwoRoomSearch,
 } from '@/lib/providers/sunweb/offer-context';
 import {
+  addCalendarDaysIso,
   catalogDurationUsesDays,
   catalogReturnDateOffsetDays,
   formatCatalogDurationDaysLabel,
@@ -189,52 +190,21 @@ export function formatOccupancySummary(params: SearchParams): string | undefined
   return formatOccupancyCompositionNl(params, { includeRooms: true }) || undefined;
 }
 
-export function formatDateOfBirthLabel(value: string | null | undefined): string {
-  if (!value?.trim()) {
-    return 'geboortedatum niet ingevuld';
+/**
+ * Traveller label from the age on the calculated return date (DEC-019).
+ * `null` = adult (counted, no age). No date of birth is involved.
+ */
+export function formatTravelerAgeLabel(age: number | null | undefined): string {
+  if (age === null || age === undefined) {
+    return 'volwassene';
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleDateString('nl-NL', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-/** Age band for display — avoids rendering full DOB in detail HTML when possible. */
-export function formatTravelerAgeLabel(
-  dateOfBirth: string | null | undefined,
-  referenceIsoDate?: string | null,
-): string {
-  if (!dateOfBirth?.trim()) {
-    return 'leeftijd onbekend';
-  }
-  const birth = new Date(dateOfBirth);
-  if (Number.isNaN(birth.getTime())) {
-    return 'leeftijd onbekend';
-  }
-  const ref = referenceIsoDate ? new Date(referenceIsoDate) : new Date();
-  if (Number.isNaN(ref.getTime())) {
-    return 'leeftijd onbekend';
-  }
-  let age = ref.getUTCFullYear() - birth.getUTCFullYear();
-  const m = ref.getUTCMonth() - birth.getUTCMonth();
-  if (m < 0 || (m === 0 && ref.getUTCDate() < birth.getUTCDate())) {
-    age -= 1;
-  }
-  if (age < 0 || age > 120) {
+  if (!Number.isInteger(age) || age < 0 || age > 17) {
     return 'leeftijd onbekend';
   }
   if (age < 2) {
     return 'baby';
   }
-  if (age < 18) {
-    return `${age} jaar`;
-  }
-  return `volwassene (${age} jaar)`;
+  return `${age} jaar`;
 }
 
 export function formatTravelerLines(params: SearchParams): string[] {
@@ -243,7 +213,7 @@ export function formatTravelerLines(params: SearchParams): string[] {
   }
   return params.party.map((traveller, index) => {
     const room = traveller.roomIndex + 1;
-    return `Reiziger ${index + 1}: ${formatTravelerAgeLabel(traveller.dateOfBirth, params.departureStart)} • kamer ${room}`;
+    return `Reiziger ${index + 1}: ${formatTravelerAgeLabel(traveller.age)} • kamer ${room}`;
   });
 }
 
@@ -295,23 +265,21 @@ export function stripSimpleHtml(value: string | undefined): string | undefined {
   return next;
 }
 
+/** Formats departure + `offsetDays` (from `catalogReturnDateOffsetDays`); no own offset logic. */
 export function formatReturnDateLabel(
   departureDate: string | undefined,
-  nights: number | undefined,
+  offsetDays: number | undefined,
 ): string | undefined {
-  if (!nights || nights < 1) {
+  if (!offsetDays || offsetDays < 1) {
     return undefined;
   }
   const iso = normalizeDepartureDateToIso(departureDate);
-  if (!iso) {
+  const endIso = iso ? addCalendarDaysIso(iso, offsetDays) : null;
+  if (!endIso) {
     return undefined;
   }
-  const [year, month, day] = iso.split('-').map(Number);
-  if (!year || !month || !day) {
-    return undefined;
-  }
+  const [year, month, day] = endIso.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCDate(date.getUTCDate() + nights);
   return date.toLocaleDateString('nl-NL', {
     day: 'numeric',
     month: 'short',

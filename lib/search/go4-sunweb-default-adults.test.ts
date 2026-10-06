@@ -1,6 +1,6 @@
 /**
- * GO4: Sunweb Results default adult DOBs when search DOBs are missing.
- * Detail / click-out must remain untouched (no synthetic DOBs).
+ * DEC-019 (replaces the GO4 default-age-35 adult DOBs): Sunweb adults are a count only and get
+ * the fixed synthetic DOB 1986-01-01 for Results, Detail and click-out alike.
  */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -11,8 +11,6 @@ import {
   buildSunwebOccupancyClickOutHref,
   requiresSunwebResultsLivePrice,
   resolveSunwebLiveOccupancy,
-  SUNWEB_RESULTS_DEFAULT_ADULT_AGE_YEARS,
-  withSunwebResultsDefaultAdultDobs,
   withSunwebResultsLiveParams,
 } from '@/lib/providers/sunweb';
 import {
@@ -28,7 +26,7 @@ const LANDING =
 const PRODUCT_URL =
   'https://tc.tradetracker.net/?c=1&m=1&a=1&r=' + encodeURIComponent(LANDING);
 
-function twoAdultsMissingDob(overrides: Partial<SearchParams> = {}): SearchParams {
+function twoAdultsParty(overrides: Partial<SearchParams> = {}): SearchParams {
   return {
     adults: 2,
     children: 0,
@@ -37,8 +35,8 @@ function twoAdultsMissingDob(overrides: Partial<SearchParams> = {}): SearchParam
     departureStart: '2026-10-01',
     departureEnd: '2026-10-31',
     party: [
-      { dateOfBirth: null, roomIndex: 0 },
-      { dateOfBirth: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
     ],
     ...overrides,
   };
@@ -59,116 +57,99 @@ function makeSunwebOffer(overrides: Partial<TravelOffer> = {}): TravelOffer {
   } as TravelOffer;
 }
 
-test('GO4 withSunwebResultsDefaultAdultDobs: injects age-35 DOBs for 2A missing DOB', () => {
-  const params = twoAdultsMissingDob();
-  const next = withSunwebResultsDefaultAdultDobs(params, '2026-10-10');
-  assert.notEqual(next, params);
-  assert.ok(next.party);
-  assert.equal(next.party!.length, 2);
-  assert.equal(next.party![0]!.dateOfBirth, '1991-10-10');
-  assert.equal(next.party![1]!.dateOfBirth, '1991-10-10');
-  assert.equal(SUNWEB_RESULTS_DEFAULT_ADULT_AGE_YEARS, 35);
-  // pure: original unchanged
-  assert.equal(params.party![0]!.dateOfBirth, null);
+test('DEC-019 Sunweb: 2 adults get the synthetic adult DOB (no age-35 default, no real DOB)', () => {
+  const occupancy = resolveSunwebLiveOccupancy(twoAdultsParty());
+  assert.equal(occupancy.ok && occupancy.mode, 'party');
+  assert.deepEqual(occupancy.ok && occupancy.mode === 'party' ? occupancy.participants : null, [
+    { key: 'Participants[0][0]', value: '1986-01-01' },
+    { key: 'Participants[0][1]', value: '1986-01-01' },
+  ]);
 });
 
-test('GO4 withSunwebResultsDefaultAdultDobs: also covers empty party / adults-only 2A', () => {
-  const params: SearchParams = {
-    adults: 2,
-    children: 0,
-    babies: 0,
-    rooms: 1,
-    departureStart: '2026-10-01',
-  };
-  const next = withSunwebResultsDefaultAdultDobs(params, '2026-10-03');
-  assert.equal(next.party?.[0]?.dateOfBirth, '1991-10-03');
-  assert.equal(resolveSunwebLiveOccupancy(next).ok, true);
-  if (resolveSunwebLiveOccupancy(next).ok) {
-    const occ = resolveSunwebLiveOccupancy(next);
-    assert.equal(occ.ok && occ.mode, 'party');
-  }
+test('DEC-019 Sunweb: 2A without a party keeps the feed-two-adults route', () => {
+  const params: SearchParams = { adults: 2, children: 0, babies: 0, rooms: 1, departureStart: '2026-10-01' };
+  const occupancy = resolveSunwebLiveOccupancy(params);
+  assert.equal(occupancy.ok && occupancy.mode, 'feed-two-adults');
 });
 
-test('GO4 withSunwebResultsDefaultAdultDobs: real ISO DOBs are never replaced', () => {
-  const params = twoAdultsMissingDob({
-    party: [
-      { dateOfBirth: '1988-05-01', roomIndex: 0 },
-      { dateOfBirth: '1990-12-15', roomIndex: 0 },
-    ],
-  });
-  const next = withSunwebResultsDefaultAdultDobs(params, '2026-10-10');
-  assert.equal(next, params);
-  assert.equal(next.party![0]!.dateOfBirth, '1988-05-01');
-  assert.equal(next.party![1]!.dateOfBirth, '1990-12-15');
+test('DEC-019 withSunwebResultsLiveParams: a known party is returned unchanged', () => {
+  const params = twoAdultsParty();
+  assert.equal(withSunwebResultsLiveParams(params, '2026-10-10'), params);
 });
 
-test('GO4 withSunwebResultsDefaultAdultDobs: not injected for children / other occupancy', () => {
-  const withChild: SearchParams = {
-    adults: 2,
-    children: 1,
-    babies: 0,
-    rooms: 1,
-    party: [
-      { dateOfBirth: null, roomIndex: 0 },
-      { dateOfBirth: null, roomIndex: 0 },
-      { dateOfBirth: null, roomIndex: 0 },
-    ],
-  };
-  assert.equal(withSunwebResultsDefaultAdultDobs(withChild, '2026-10-10'), withChild);
+test('DEC-019 withSunwebResultsLiveParams: party-less 2A/1R becomes a two-adult party (feed link without Participants stays priceable)', () => {
+  const params: SearchParams = { adults: 2, children: 0, babies: 0, rooms: 1, sort: 'price' };
+  const live = withSunwebResultsLiveParams(params);
+  assert.deepEqual(live.party, [
+    { age: null, roomIndex: 0 },
+    { age: null, roomIndex: 0 },
+  ]);
+  assert.equal(params.party, undefined);
+  const offer = makeSunwebOffer();
+  assert.equal(canAttemptLivePrice(offer, params), true);
+  const ctx = buildSunwebLiveContext(offer, live);
+  assert.ok(ctx);
+  assert.equal(ctx!.query.participants.length, 2);
+  assert.equal(ctx!.query.participants[0]?.value, '1986-01-01');
+  assert.equal(ctx!.query.participants[1]?.value, '1986-01-01');
+});
 
+test('DEC-019 withSunwebResultsLiveParams: other party-less shapes are not changed', () => {
+  const threeAdults: SearchParams = { adults: 3, children: 0, babies: 0, rooms: 1 };
+  assert.equal(withSunwebResultsLiveParams(threeAdults), threeAdults);
+  const oneChild: SearchParams = { adults: 2, children: 1, babies: 0, rooms: 1 };
+  assert.equal(withSunwebResultsLiveParams(oneChild), oneChild);
+});
+
+test('DEC-019 other occupancies are unchanged: 3 adults / 2 adults in 2 rooms stay invalid', () => {
   const threeAdults: SearchParams = {
     adults: 3,
     children: 0,
     babies: 0,
     rooms: 1,
     party: [
-      { dateOfBirth: null, roomIndex: 0 },
-      { dateOfBirth: null, roomIndex: 0 },
-      { dateOfBirth: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 0 },
     ],
   };
-  assert.equal(withSunwebResultsDefaultAdultDobs(threeAdults, '2026-10-10'), threeAdults);
-
+  assert.equal(resolveSunwebLiveOccupancy(threeAdults).ok, false);
   const twoRooms: SearchParams = {
     adults: 2,
     children: 0,
     babies: 0,
     rooms: 2,
     party: [
-      { dateOfBirth: null, roomIndex: 0 },
-      { dateOfBirth: null, roomIndex: 1 },
+      { age: null, roomIndex: 0 },
+      { age: null, roomIndex: 1 },
     ],
   };
-  assert.equal(withSunwebResultsDefaultAdultDobs(twoRooms, '2026-10-10'), twoRooms);
+  assert.equal(resolveSunwebLiveOccupancy(twoRooms).ok, false);
 });
 
-test('GO4 requiresSunwebResultsLivePrice: true for Results 2A with missing DOBs', () => {
-  const params = twoAdultsMissingDob();
-  // Without helper, occupancy is invalid for null party DOBs:
-  assert.equal(resolveSunwebLiveOccupancy(params).ok, false);
-  // Results gate now applies defaults:
+test('DEC-019 requiresSunwebResultsLivePrice / gate: true for Results 2A', () => {
+  const params = twoAdultsParty();
   assert.equal(requiresSunwebResultsLivePrice(params), true);
   assert.equal(isLivePriceProviderOffer(makeSunwebOffer(), params), true);
 });
 
-test('GO4 canAttemptLivePrice: Sunweb 2A missing DOB becomes attemptable when context buildable', () => {
-  const params = twoAdultsMissingDob();
+test('DEC-019 canAttemptLivePrice: Sunweb 2A builds a context with the synthetic adult DOB', () => {
+  const params = twoAdultsParty();
   const offer = makeSunwebOffer();
-  // Context with defaults must be non-null for this feed URL shape (trip fields present,
-  // Participants injected via party mode).
-  const liveParams = withSunwebResultsLiveParams(params, offer.departureDate);
-  const ctx = buildSunwebLiveContext(offer, liveParams);
-  assert.ok(ctx, 'expected live context with default DOBs');
-  assert.equal(ctx!.query.participants[0]?.value, '1991-10-10');
-  assert.equal(ctx!.query.participants[1]?.value, '1991-10-10');
+  const ctx = buildSunwebLiveContext(offer, params);
+  assert.ok(ctx, 'expected live context with synthetic DOBs');
+  assert.equal(ctx!.query.participants[0]?.value, '1986-01-01');
+  assert.equal(ctx!.query.participants[1]?.value, '1986-01-01');
   assert.equal(canAttemptLivePrice(offer, params), true);
 });
 
-test('GO4 Detail/click-out path unaffected: no synthetic DOBs without Results helper', () => {
-  const params = twoAdultsMissingDob();
-  const offer = makeSunwebOffer();
-  // Click-out uses raw params — still fail-closed without real party DOBs.
-  assert.equal(buildSunwebOccupancyClickOutHref(offer, params), null);
-  // Raw build without Results defaults stays null (feed has no Participants).
-  assert.equal(buildSunwebLiveContext(offer, params), null);
+test('DEC-019 click-out: 2A target URL only carries the synthetic adult DOB', () => {
+  const params = twoAdultsParty();
+  const href = buildSunwebOccupancyClickOutHref(makeSunwebOffer(), params);
+  assert.ok(href);
+  const target = decodeURIComponent(href!);
+  assert.match(target, /Participants\[0\]\[0\]=1986-01-01/);
+  assert.match(target, /Participants\[0\]\[1\]=1986-01-01/);
+  const dates = target.match(/\d{4}-\d{2}-\d{2}/g) ?? [];
+  assert.deepEqual([...new Set(dates)].sort(), ['1986-01-01', '2026-10-10']);
 });

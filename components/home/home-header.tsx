@@ -6,7 +6,7 @@ const navLinks = [
   { label: 'Zoeken', href: '/#hero' },
   { label: 'Bestemmingen', href: '/bestemmingen' },
   { label: 'Inspiratie', href: '/#inspiratie' },
-  { label: 'Aanbod', href: '/aanbiedingen' },
+  { label: 'Aanbiedingen', href: '/aanbiedingen' },
   { label: 'Over ons', href: '/#value' },
 ] as const;
 

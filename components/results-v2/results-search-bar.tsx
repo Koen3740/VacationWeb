@@ -15,6 +15,7 @@ import { TravelersPopup } from '@/components/search/travelers-popup/travelers-po
 import {
   formatRoomsLabel,
   formatTravelersLabel,
+  isTravelersStateComplete,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
 import { getDepartureDisplay } from '@/components/search/departure-display';
 import {
@@ -180,6 +181,10 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
 
   /** Commit after a multi-step popup closes (travelers / departure). */
   function applyAfterPopupClose() {
+    // DEC-019: a child without an age is not a searchable party; keep the current results.
+    if (!isTravelersStateComplete(stateRef.current.travelers)) {
+      return;
+    }
     applyBarState(stateRef.current);
   }
 
