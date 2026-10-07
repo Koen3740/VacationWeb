@@ -27,7 +27,6 @@
     "scripts/publish-generation.ts",
     "scripts/validate-local-generation.ts",
     "scripts/r2-generation-read-test.ts",
-    "scripts/cutover-generation.ts",
     "scripts/ingest-tradetracker-promotions.ts",
     "scripts/ingest-tradetracker-creatives.ts",
     "scripts/select-tradetracker-creatives.ts",
