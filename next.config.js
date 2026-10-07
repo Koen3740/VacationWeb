@@ -23,6 +23,13 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     remotePatterns: [
       {
+        // Official TradeTracker campaign images (getCampaigns info.imageURL), used as provider logo
+        // on /aanbiedingen. Path-restricted: only /<cc>/campaign_image_square/**.
+        protocol: 'https',
+        hostname: 'cdn.tradetracker.net',
+        pathname: '/*/campaign_image_square/**',
+      },
+      {
         protocol: 'https',
         hostname: 'images.corendonresources.com',
       },

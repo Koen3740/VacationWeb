@@ -126,7 +126,7 @@ export function normalizeCampaign(
     campaignCategoryId: category.id,
     campaignCategoryName: category.name,
     assignmentStatus: textField(info?.assignmentStatus),
-    logoUrl: textField(record.logoURL),
+    logoUrl: textField(record.logoURL) ?? textField(info?.imageURL),
     trackingUrl: textField(info?.trackingURL),
     campaignStartDate: toCalendarDate(info?.startDate),
     campaignStopDate: toCalendarDate(info?.stopDate),

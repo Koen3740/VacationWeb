@@ -21,6 +21,18 @@ export const TRADETRACKER_AFFILIATE_SITE_ID_ENV = 'TRADETRACKER_AFFILIATE_SITE_I
 export const VACATIONWEB_NL_AFFILIATE_SITE_ID = '512226';
 export const VACATIONWEB_BE_AFFILIATE_SITE_ID = '512055';
 
+/**
+ * Every active VacationWeb click-out context used for promotions.
+ *
+ * The list is deliberately data-shaped rather than BE/NL branching: adding a
+ * future market only requires another entry. These contexts are fetched
+ * separately, then their promotions are merged before they reach the UI.
+ */
+export const VACATIONWEB_PROMOTION_AFFILIATE_SITES = [
+  { affiliateSiteId: VACATIONWEB_BE_AFFILIATE_SITE_ID, market: 'be' },
+  { affiliateSiteId: VACATIONWEB_NL_AFFILIATE_SITE_ID, market: 'nl' },
+] as const;
+
 /** @deprecated Prefer VACATIONWEB_NL_AFFILIATE_SITE_ID */
 export const VACATIONWEB_TRADETRACKER_AFFILIATE_SITE_ID = VACATIONWEB_NL_AFFILIATE_SITE_ID;
 

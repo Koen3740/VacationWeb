@@ -5,7 +5,7 @@ import {
   getConnectedTradeTrackerCampaignIds,
   resolveConnectedProvider,
 } from './connected-providers';
-import { selectDisplayablePromotions } from './select-displayable';
+import { dedupeDisplayablePromotions, selectDisplayablePromotions } from './select-displayable';
 import type { TradeTrackerPromotionSnapshot } from './types';
 
 const AS_OF = '2026-09-09T12:00:00.000Z';
@@ -158,7 +158,7 @@ test('keeps active Corendon consumer promo and drops Alsa-Nature / Journaway / o
   assert.equal(selected[0]?.providerName, 'Corendon');
   assert.equal(selected[0]?.title, 'Nazomer Deals');
   assert.match(selected[0]?.summary ?? '', /nazomer/i);
-  assert.equal('affiliateSiteId' in (selected[0] as object), false);
+  assert.equal(selected[0]?.affiliateContexts[0]?.affiliateSiteId, 'nl');
 });
 
 test('excludes expired promotions even for connected providers', () => {
@@ -219,4 +219,118 @@ test('H10 Hotels voucher is excluded because provider is not connected', () => {
     'be',
   );
   assert.equal(selected.length, 0);
+});
+
+function corendonNews(args: {
+  affiliateSiteId: string;
+  newsItemId: string;
+  campaignId: string;
+  title?: string;
+  content?: string;
+  campaignUrl?: string | null;
+  expirationDate?: string;
+}) {
+  return selectDisplayablePromotions(
+    baseSnapshot({
+      scopedAffiliateSiteId: args.affiliateSiteId,
+      newsItems: [
+        {
+          source: 'tradetracker-affiliate-webservice',
+          kind: 'consumer_promotion',
+          newsItemId: args.newsItemId,
+          newsType: 'campaign_update_consumer',
+          title: args.title ?? 'Corendon NL - Nazomer Deals',
+          content: args.content ?? 'Boek nu je nazomervakantie met Corendon.',
+          publishDate: '2026-09-01',
+          expirationDate: args.expirationDate ?? '2026-09-30',
+          campaignId: args.campaignId,
+          campaignName: 'Corendon',
+          campaignUrl: args.campaignUrl ?? 'https://www.corendon.nl/nazomer',
+          validity: activeValidity('2026-09-01', args.expirationDate ?? '2026-09-30'),
+          sourceMetadata: {},
+        },
+      ],
+    }),
+    args.affiliateSiteId,
+  )[0]!;
+}
+
+test('deduplicates the same promotion from BE and NL into one card', () => {
+  const be = corendonNews({
+    affiliateSiteId: '512055',
+    newsItemId: 'be-1',
+    campaignId: '38103',
+    title: 'Corendon BE - Nazomer Deals',
+    campaignUrl: 'https://www.corendon.be/nazomer',
+  });
+  const nl = corendonNews({ affiliateSiteId: '512226', newsItemId: 'nl-1', campaignId: '38108' });
+
+  const promotions = dedupeDisplayablePromotions([be, nl]);
+  assert.equal(promotions.length, 1);
+  assert.deepEqual(promotions[0]?.applicableDomains, ['corendon.be', 'corendon.nl']);
+});
+
+test('deduplicates an identical promotion from any number of future affiliate sites', () => {
+  const be = corendonNews({
+    affiliateSiteId: '512055', newsItemId: 'be-1', campaignId: '38103',
+    title: 'Corendon BE - Nazomer Deals', campaignUrl: 'https://www.corendon.be/nazomer',
+  });
+  const nl = corendonNews({ affiliateSiteId: '512226', newsItemId: 'nl-1', campaignId: '38108' });
+  const fr = corendonNews({
+    affiliateSiteId: 'future-fr', newsItemId: 'fr-1', campaignId: 'future-campaign',
+    title: 'Corendon FR - Nazomer Deals', campaignUrl: 'https://www.corendon.fr/nazomer',
+  });
+
+  const promotions = dedupeDisplayablePromotions([be, nl, fr]);
+  assert.equal(promotions.length, 1);
+  assert.equal(promotions[0]?.affiliateContexts.length, 3);
+});
+
+test('retains promotions whose complete content, validity, or landing URL differs', () => {
+  const first = corendonNews({ affiliateSiteId: '512055', newsItemId: 'be-1', campaignId: '38103' });
+  const differentCopy = corendonNews({
+    affiliateSiteId: '512226', newsItemId: 'nl-1', campaignId: '38108',
+    content: 'Boek nu je wintervakantie met Corendon.',
+  });
+  const differentUrl = corendonNews({
+    affiliateSiteId: 'future-fr', newsItemId: 'fr-1', campaignId: 'future-campaign',
+    campaignUrl: 'https://www.corendon.fr/andere-actie',
+  });
+
+  assert.equal(dedupeDisplayablePromotions([first, differentCopy, differentUrl]).length, 3);
+});
+
+test('deduplicates a repeated native source ID within one affiliate site', () => {
+  const record = corendonNews({ affiliateSiteId: '512226', newsItemId: 'same-id', campaignId: '38108' });
+  assert.equal(dedupeDisplayablePromotions([record, record]).length, 1);
+});
+
+test('merges applicable provider domains while retaining each click-out context', () => {
+  const be = corendonNews({
+    affiliateSiteId: '512055', newsItemId: 'be-1', campaignId: '38103',
+    title: 'Corendon BE - Nazomer Deals', campaignUrl: 'https://www.corendon.be/nazomer',
+  });
+  const nl = corendonNews({ affiliateSiteId: '512226', newsItemId: 'nl-1', campaignId: '38108' });
+  const promotion = dedupeDisplayablePromotions([be, nl])[0]!;
+
+  assert.deepEqual(promotion.applicableDomains, ['corendon.be', 'corendon.nl']);
+  assert.deepEqual(
+    promotion.affiliateContexts.map((context) => context.campaignUrl).sort(),
+    ['https://www.corendon.be/nazomer', 'https://www.corendon.nl/nazomer'],
+  );
+});
+
+test('does not aggressively deduplicate records with missing complete source content', () => {
+  const be = corendonNews({
+    affiliateSiteId: '512055', newsItemId: 'be-1', campaignId: '38103',
+    title: 'Corendon BE - Nazomer Deals', content: '', campaignUrl: 'https://www.corendon.be/nazomer',
+  });
+  const nl = corendonNews({
+    affiliateSiteId: '512226', newsItemId: 'nl-1', campaignId: '38108',
+    content: '', campaignUrl: 'https://www.corendon.nl/nazomer',
+  });
+
+  assert.equal(be.contentKey, null);
+  assert.equal(nl.contentKey, null);
+  assert.equal(dedupeDisplayablePromotions([be, nl]).length, 2);
 });

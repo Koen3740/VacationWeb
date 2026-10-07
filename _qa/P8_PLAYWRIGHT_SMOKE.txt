@@ -1,0 +1,97 @@
+
+==== desktop {"width":1280,"height":800} ====
+cookies dismissed via button:has-text("Accepteren")
+cookie overlay still visible? false
+cookie modal buttons 0
+no cookie modal
+Logo true http://localhost:3005/
+cookie modal buttons 0
+no cookie modal
+Nav /bestemmingen PASS http://localhost:3005/bestemmingen
+cookie modal buttons 0
+no cookie modal
+Nav /aanbiedingen FAIL http://localhost:3005/
+cookie modal buttons 0
+no cookie modal
+Nav /favorieten PASS http://localhost:3005/favorieten
+cookie modal buttons 0
+no cookie modal
+Discover albania PASS http://localhost:3005/ontdekt/albania
+cookie modal buttons 0
+no cookie modal
+Discover sicily PASS http://localhost:3005/ontdekt/sicily
+cookie modal buttons 0
+no cookie modal
+Discover crete PASS http://localhost:3005/ontdekt/crete
+cookie modal buttons 0
+no cookie modal
+Discover sardinia PASS http://localhost:3005/ontdekt/sardinia
+cookie modal buttons 0
+no cookie modal
+Inspiration PASS http://localhost:3005/ontdekt/sicily
+cookie modal buttons 0
+no cookie modal
+Popular 5 ["/results?country=Griekenland","/results?country=Spanje","/results?country=Turkije","/results?country=Itali%C3%AB","/results?country=Portugal"]
+PopularHit /results?country=Griekenland 200 PASS
+PopularHit /results?country=Spanje 200 PASS
+PopularHit /results?country=Turkije 200 PASS
+PopularHit /results?country=Itali%C3%AB 200 PASS
+PopularHit /results?country=Portugal 200 PASS
+cookie modal buttons 0
+no cookie modal
+Newsletter type button FAIL-dead
+Newsletter feedback? no
+cookie modal buttons 0
+no cookie modal
+SearchBtn Vakanties vergelijken →
+SearchNav http://localhost:3005/results?adults=2&dob=%2C&country=Portugal&page1Ids=corendon-14383-EINLIS-291126-7-DZF%2Ccorendon-14124-EINLIS-130127-2-DZF%2Ccorendon-11497-BRUFAO-141026-7-2AU%2Ccorendon-13656-BRUFAO-041026-3-3VSU%2Ccorendon-9641-BRUFAO-020327-3-DZF%2Ccorendon-8690-BRUFAO-041026-3-2AU%2Ccorendon-9445-BRUFAO-111026-3-DZF%2Ccorendon-4876-BRUFAO-241126-3-DZF%2Ccorendon-14042-BRUFAO-251026-3-SZU%2Ccorendon-8923-BRUFAO-160227-3-DZF PASS
+cookie modal buttons 0
+no cookie modal
+Dest popup open PASS 1
+Hash#hero PASS
+Hash#ontdekt PASS
+Hash#inspiratie PASS
+Hash#value PASS
+ConsoleErr 19
+  Failed to load resource: the server responded with a status of 404 (Not Found)
+  PAGE Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+  PAGE Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+  PAGE Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+  PAGE Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+  PAGE Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+  PAGE Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+  PAGE Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+  PAGE Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+  PAGE Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+  PAGE Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+  PAGE Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+NetFail 0
+
+==== mobile {"width":390,"height":844} ====
+cookies dismissed via button:has-text("Accepteren")
+cookie overlay still visible? false
+cookie modal buttons 0
+no cookie modal
+Logo true http://localhost:3005/
+cookie modal buttons 0
+no cookie modal
+ERR locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator('a[href="/bestemmingen"]').first()
+    - locator resolved to <a href="/bestemmingen" class="text-[13.5px] font-medium text-[#1E293B] transition hover:text-[#0A2D62]">Bestemmingen</a>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not visible
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is not visible
+    - retrying click action
+      - waiting 100ms
+    58 × waiting for element to be visible, enabled and stable
+       - element is not visible
+     - retrying click action
+       - waiting 500ms
+
+    at run (C:\Users\koenm\Documents\vw-pw-tools\pw-qa.js:75:53)
+    at async C:\Users\koenm\Documents\vw-pw-tools\pw-qa.js:199:5

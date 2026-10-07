@@ -12,8 +12,11 @@ export {
 } from './connected-providers';
 export { getTradeTrackerSoapCredentials, resolveAffiliateSiteIdForIngest } from './credentials';
 export { ingestTradeTrackerPromotions, snapshotCounts } from './ingest';
-export { loadDisplayablePromotionsByMarkets, loadDisplayablePromotionsForMarket } from './load-for-page';
-export { selectDisplayablePromotions } from './select-displayable';
+export {
+  loadDisplayablePromotions,
+  loadDisplayablePromotionsForAffiliateSite,
+} from './load-for-page';
+export { dedupeDisplayablePromotions, selectDisplayablePromotions } from './select-displayable';
 export { promotionalValidity } from './validity';
 export type {
   TradeTrackerCampaignNewsRecord,
@@ -21,4 +24,12 @@ export type {
   TradeTrackerIncentiveRecord,
   TradeTrackerPromotionSnapshot,
 } from './types';
-export type { DisplayablePromotion, VacationWebPromotionMarket } from './select-displayable';
+export type { DisplayablePromotion, PromotionAffiliateContext } from './select-displayable';
+export { extractPromotionFacts } from './promotion-facts';
+export {
+  compareForDisplay,
+  providerFilterOptions,
+  toPromotionCards,
+} from './present-promotions';
+export type { PromotionFacts } from './promotion-facts';
+export type { PromotionCard, ProviderFilterOption } from './present-promotions';

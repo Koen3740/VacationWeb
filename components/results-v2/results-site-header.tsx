@@ -1,4 +1,5 @@
 import { FavoritesNavLink } from '@/components/favorites/favorites-nav-link';
+import { ResultsMobileNav } from '@/components/results-v2/results-mobile-nav';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -20,7 +21,7 @@ function NavChevron() {
 
 export function ResultsSiteHeader() {
   return (
-    <header className="border-b border-[#E8ECF2] bg-white">
+    <header className="relative border-b border-[#E8ECF2] bg-white">
       <div className="mx-auto flex h-[64px] max-w-[1600px] items-center justify-between gap-6 px-6 lg:px-8">
         <Link href="/" className="inline-flex shrink-0 items-center">
           <Image
@@ -46,6 +47,8 @@ export function ResultsSiteHeader() {
           ))}
           <FavoritesNavLink />
         </nav>
+
+        <ResultsMobileNav links={NAV_LINKS} />
       </div>
     </header>
   );

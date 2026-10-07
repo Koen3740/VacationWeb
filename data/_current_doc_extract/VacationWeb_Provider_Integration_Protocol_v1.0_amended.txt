@@ -1,3 +1,9 @@
+<<< EXTRACT — NIET SSOT >>>
+Bronmap (leidend): C:\Users\koenm\Documents\VacationWeb\VacationWeb_Master_Handbook\Current\
+Extract van: VacationWeb_Provider_Integration_Protocol_v1.0_amended (bestandsnaam kan licht afwijken van Current-versie)
+Dit is geen Current en geen SSOT. Zie _current_doc_extract/README.md en DOC-002.
+<<< EINDE HEADER >>>
+
 ﻿VACATIONWEBPROVIDER INTEGRATION PROTOCOL
 Central procedural standard â€” Provider onboarding, validation and acceptance
 Status: Current central procedural standard â€” amended after catalog/live mismatch finding

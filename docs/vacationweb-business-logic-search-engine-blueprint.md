@@ -1,3 +1,5 @@
+> **Niet Current / niet SSOT.** Officiële handleidingen staan uitsluitend in `C:\Users\koenm\Documents\VacationWeb\VacationWeb_Master_Handbook\Current\`. Dit bestand is repo-/projectcontext onder VacationWebNext. Zie PROJECT_LOG DOC-002.
+
 # VacationWeb Business Logic & Search Engine Blueprint
 
 ## 1. Doel van dit document

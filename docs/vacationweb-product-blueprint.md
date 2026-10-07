@@ -1,3 +1,5 @@
+> **Niet Current / niet SSOT.** Officiële handleidingen staan uitsluitend in `C:\Users\koenm\Documents\VacationWeb\VacationWeb_Master_Handbook\Current\`. Dit bestand is repo-/projectcontext onder VacationWebNext. Zie PROJECT_LOG DOC-002.
+
 # VacationWeb – Product Blueprint
 
 ## 0. Productprincipe
@@ -119,6 +121,9 @@ VacationWeb is het objectieve vergelijkingsplatform voor vakanties waarbij de ge
 ## 4. Homepage-architectuur
 
 De homepage moet niet alleen een zoekmodule zijn, maar het centrale commercieel-inhoudelijke startpunt van het platform.
+
+
+
 
 ### Homepage-onderdelen
 1. Hero-sectie

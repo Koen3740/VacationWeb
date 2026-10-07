@@ -1,97 +1,96 @@
 import { AanbiedingenPromotionList } from '@/components/promotions/aanbiedingen-promotion-list';
+import { AanbiedingenStateMessage } from '@/components/promotions/aanbiedingen-state-message';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
-import { resolveSiteMarketFromHost } from '@/lib/search/site-market';
-import { loadDisplayablePromotionsByMarkets } from '@/lib/tradetracker/promotions/load-for-page';
-import type { VacationWebPromotionMarket } from '@/lib/tradetracker/promotions/select-displayable';
+import { loadDisplayablePromotions } from '@/lib/tradetracker/promotions/load-for-page';
+import {
+  joinProviderNames,
+  providerFilterOptions,
+  toPromotionCards,
+} from '@/lib/tradetracker/promotions/present-promotions';
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
-import Link from 'next/link';
+
+const PAGE_TITLE = 'Vakantie-aanbiedingen en acties | VacationWeb';
+const PAGE_DESCRIPTION =
+  'Actuele vakantieacties en kortingen van reisaanbieders, overzichtelijk bij elkaar. Bekijk de actie en boek rechtstreeks bij de aanbieder.';
 
 export const metadata: Metadata = {
-  title: 'Aanbiedingen | VacationWeb',
-  description: 'Actuele aanbiedingen van de reispartners van VacationWeb.',
+  title: PAGE_TITLE,
+  description: PAGE_DESCRIPTION,
+  openGraph: { title: PAGE_TITLE, description: PAGE_DESCRIPTION, type: 'website' },
 };
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-function marketsForHost(host: string | null): VacationWebPromotionMarket[] {
-  const market = resolveSiteMarketFromHost(host);
-  if (market === 'be') {
-    return ['be'];
-  }
-  if (market === 'nl') {
-    return ['nl'];
-  }
-  // Preview / localhost: show both markets separately (never mixed without labels).
-  return ['nl', 'be'];
-}
-
-function marketTitle(market: VacationWebPromotionMarket): string {
-  return market === 'be' ? 'België' : 'Nederland';
-}
+const SERIF = { fontFamily: 'var(--font-vw-serif), Georgia, serif' } as const;
 
 export default async function AanbiedingenPage() {
-  const host = headers().get('host');
-  const markets = marketsForHost(host);
-  const sections = await loadDisplayablePromotionsByMarkets(markets);
-  const total = sections.reduce((sum, section) => sum + section.promotions.length, 0);
+  const { promotions, error } = await loadDisplayablePromotions();
+  const cards = error ? [] : toPromotionCards(promotions);
+  const providers = providerFilterOptions(cards);
 
   return (
     <div className="min-h-screen bg-[#F7F5F1]">
       <ResultsSiteHeader />
-      <main className="mx-auto max-w-[800px] px-6 py-8 lg:px-8">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-[28px] font-bold tracking-tight text-[#0A2D62]">Aanbiedingen</h1>
-            <p className="mt-1 max-w-[36rem] text-[14px] text-[#64748B]">
-              Actuele acties van onze reispartners. Geen volledige vakantielijst — alleen echte
-              promoties.
-            </p>
+      <main>
+        <section
+          aria-labelledby="aanbiedingen-title"
+          className="mx-auto max-w-[1120px] px-6 pb-10 pt-12 sm:pt-16 lg:px-8 lg:pb-12 lg:pt-20"
+        >
+          <span aria-hidden className="block h-[3px] w-12 rounded-full bg-[#89ACD3]" />
+          <h1
+            id="aanbiedingen-title"
+            style={SERIF}
+            className="mt-5 text-[38px] font-semibold leading-[1.1] tracking-tight text-[#0A2D62] sm:text-[48px]"
+          >
+            Aanbiedingen
+          </h1>
+          <p className="mt-4 max-w-[34rem] text-[17px] leading-relaxed text-[#475569]">
+            Actuele vakantieacties en kortingen van reisaanbieders.
+          </p>
+        </section>
+
+        <section
+          aria-labelledby="aanbiedingen-list-title"
+          className="mx-auto max-w-[1120px] px-6 pb-16 lg:px-8 lg:pb-24"
+        >
+          <div className="mb-6 flex flex-col gap-1">
+            <h2
+              id="aanbiedingen-list-title"
+              style={SERIF}
+              className="text-[24px] font-semibold tracking-tight text-[#0A2D62]"
+            >
+              Actuele aanbiedingen
+            </h2>
+            {cards.length > 0 ? (
+              <p className="text-[14px] text-[#475569]">
+                {cards.length === 1 ? '1 actie' : `${cards.length} acties`} van{' '}
+                {joinProviderNames(providers.map((provider) => provider.name))}
+              </p>
+            ) : null}
           </div>
-          <Link href="/" className="text-[13px] font-medium text-[#0A2D62] hover:underline">
-            Terug naar home
-          </Link>
-        </div>
 
-        <p className="mb-6 text-[13px] text-[#64748B]">
-          {total === 0
-            ? 'Momenteel geen actuele aanbiedingen'
-            : total === 1
-              ? '1 actuele aanbieding'
-              : `${total} actuele aanbiedingen`}
-        </p>
-
-        <div className="space-y-10">
-          {sections.map((section) => (
-            <section key={section.market} aria-labelledby={`promotions-${section.market}`}>
-              {markets.length > 1 ? (
-                <h2
-                  id={`promotions-${section.market}`}
-                  className="mb-4 text-[18px] font-semibold tracking-tight text-[#0A2D62]"
-                >
-                  {marketTitle(section.market)}
-                </h2>
-              ) : (
-                <h2 id={`promotions-${section.market}`} className="sr-only">
-                  {marketTitle(section.market)}
-                </h2>
-              )}
-
-              {section.error ? (
-                <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-[14px] text-[#991B1B]">
-                  Aanbiedingen konden nu niet worden geladen. Probeer het later opnieuw.
-                </p>
-              ) : (
-                <AanbiedingenPromotionList
-                  promotions={section.promotions}
-                  emptyMessage={`Geen actuele aanbiedingen voor ${marketTitle(section.market)}.`}
-                />
-              )}
-            </section>
-          ))}
-        </div>
+          {error ? (
+            <AanbiedingenStateMessage
+              title="Aanbiedingen zijn tijdelijk niet beschikbaar."
+              body="We kunnen de acties nu niet laden. Probeer het later opnieuw."
+            />
+          ) : cards.length === 0 ? (
+            <AanbiedingenStateMessage
+              title="Op dit moment hebben we geen actieve aanbiedingen."
+              body="Kom binnenkort terug, of ontdek alvast waar je naartoe kunt reizen."
+            />
+          ) : (
+            <>
+              <AanbiedingenPromotionList cards={cards} providers={providers} />
+              <p className="mt-10 max-w-[44rem] text-[13px] leading-relaxed text-[#475569]">
+                De acties, voorwaarden en prijzen worden bepaald door de reisaanbieder en kunnen
+                wijzigen. Je boekt rechtstreeks bij de reisaanbieder.
+              </p>
+            </>
+          )}
+        </section>
       </main>
     </div>
   );
