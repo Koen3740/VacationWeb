@@ -82,7 +82,10 @@ describe('GO11 pool ≠ 150 / heading / facets / price-sort / browse cap', () =>
   it('facet badges count proven B (same family as heading)', () => {
     const facets = read('components/results/results-facet-counts.tsx');
     assert.match(facets, /countResultsPool/);
-    assert.match(facets, /hydrateResultsLivePriceOverlaysFromL2/);
+    // t63u OPTIE B: same background (never awaited) L2 hydrate as the heading.
+    assert.match(facets, /startResultsPoolL2Hydrate\(ranked,\s*facetFiltering\)/);
+    assert.match(facets, /countResultsPool\(ranked,\s*facetFiltering\)/);
+    assert.doesNotMatch(facets, /await\s+hydrateResultsLivePriceOverlaysFromL2/);
     assert.doesNotMatch(facets, /loadPresentableResultsCount/);
   });
 

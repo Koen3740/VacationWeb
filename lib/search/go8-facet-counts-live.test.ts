@@ -9,7 +9,8 @@ test('GO8/GO11: Results facet badges count proven B via countResultsPool (uncapp
   const facetSrc = readFileSync(join(ROOT, 'components/results/results-facet-counts.tsx'), 'utf8');
   assert.ok(facetSrc.includes('countResultsPool'));
   assert.ok(facetSrc.includes('loadPreparedResultsOffers'));
-  assert.ok(facetSrc.includes('hydrateResultsLivePriceOverlaysFromL2'));
+  // t63u: L2 hydrate in the background (results-pool-hydrate), never awaited.
+  assert.ok(facetSrc.includes('startResultsPoolL2Hydrate'));
   assert.ok(!facetSrc.includes('loadPresentableResultsCount'));
 });
 
