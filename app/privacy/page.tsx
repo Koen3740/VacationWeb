@@ -130,7 +130,7 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-[18px] font-semibold text-[#0A2D62]">7. Cookies en instellingen</h2>
         <p>
-          Zie het <Link href="/cookies" className="font-medium text-[#0A2D62] underline underline-offset-2">cookiebeleid</Link> en pas keuzes aan via{' '}
+          Zie het <Link href="/cookies" className="font-medium text-[#0A2D62] underline underline-offset-2">cookiebeleid</Link>. Je kunt je toestemming altijd wijzigen of intrekken via{' '}
           <Link href="/cookie-settings" className="font-medium text-[#0A2D62] underline underline-offset-2">cookie-instellingen</Link>.
         </p>
       </section>

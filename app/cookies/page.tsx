@@ -95,7 +95,7 @@ export default function CookiesPage() {
       <section className="space-y-2">
         <h2 className="text-[18px] font-semibold text-[#0A2D62]">Jouw keuzes</h2>
         <p>
-          Pas toestemming aan via{' '}
+          Je kunt je toestemming altijd wijzigen of intrekken via{' '}
           <Link href="/cookie-settings" className="font-medium text-[#0A2D62] underline underline-offset-2">
             cookie-instellingen
           </Link>
