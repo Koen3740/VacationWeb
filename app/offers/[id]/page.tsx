@@ -17,6 +17,7 @@ import { loadOfferById } from '@/lib/offers/load-offer-by-id';
 import { buildResultsPageHref } from '@/lib/search/pagination';
 import { parseSearchParams } from '@/lib/search/parse-search-params';
 import { attachSiteMarket } from '@/lib/search/site-market';
+import { offerForSiteMarket } from '@/lib/search/market-inventory';
 import { hasValidPresentablePrice } from '@/lib/search/presentable-price';
 import { priceOfferForDetail } from '@/lib/search/price-offer-for-detail';
 
@@ -45,7 +46,12 @@ export default async function OfferDetailPage({
     parseSearchParams(searchParams),
     headers().get('x-forwarded-host') ?? headers().get('host'),
   );
-  const offer = await priceOfferForDetail(catalogOffer, resultsParams);
+  // SUB 33D: an offer outside this host's market universe is not eligible (same 404 as unknown id).
+  const marketOffer = offerForSiteMarket(catalogOffer, resultsParams.siteMarket);
+  if (!marketOffer) {
+    notFound();
+  }
+  const offer = await priceOfferForDetail(marketOffer, resultsParams);
   const rooms = resolveOfferRoomTypes(offer);
   const selectedRoom = selectCatalogRoom(rooms, resultsParams.selectedRoom);
   const presentable =

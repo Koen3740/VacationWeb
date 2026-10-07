@@ -1,6 +1,7 @@
 import { AanbiedingenEmptyState, AanbiedingenExperience } from '@/components/promotions/aanbiedingen-experience';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import { ResultsUspBar } from '@/components/results-v2/results-usp-bar';
+import { crossMarketSections, dedupeCrossMarketOffers } from '@/lib/tradetracker/promotions/cross-market-offers';
 import { loadAanbiedingenByMarkets } from '@/lib/tradetracker/promotions/load-aanbiedingen';
 import { presentAanbiedingenOffers } from '@/lib/tradetracker/promotions/present-aanbiedingen';
 import { promotionMarketsForHost } from '@/lib/search/site-market';
@@ -34,13 +35,13 @@ export default async function AanbiedingenPage() {
   const host = headers().get('host');
   const markets = promotionMarketsForHost(host);
   const loaded = await loadAanbiedingenByMarkets(markets);
-  const sections = loaded.map((section) => {
-    return {
-      market: section.market,
-      offers: presentAanbiedingenOffers(section.market, section.error ? [] : section.cards),
-      error: false,
-    };
-  });
+  // Each market is collected apart. Exact BE/NL equals merge afterwards; each site
+  // shows its own market's offers with its own market's clickout.
+  const perMarket = loaded.map((section) => ({
+    market: section.market,
+    offers: presentAanbiedingenOffers(section.market, section.error ? [] : section.cards),
+  }));
+  const sections = crossMarketSections(dedupeCrossMarketOffers(perMarket), markets);
   const offerCount = sections.reduce((sum, section) => sum + section.offers.length, 0);
 
   return (

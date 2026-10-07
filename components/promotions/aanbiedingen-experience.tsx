@@ -4,8 +4,16 @@ import React from 'react';
 
 export type AanbiedingenExperienceSection = {
   market: VacationWebPromotionMarket;
+  /** Markets of this section. Two markets means offers that BE and NL carry identically. */
+  markets?: readonly VacationWebPromotionMarket[];
+  key?: string;
   offers: EditorialOffer[];
   error: boolean;
+};
+
+const MARKET_LABEL: Record<VacationWebPromotionMarket, string> = {
+  be: 'België',
+  nl: 'Nederland',
 };
 
 const WIDE_CARD_CLASS =
@@ -110,23 +118,43 @@ function OfferVisual({ offer }: { offer: EditorialOffer }) {
   );
 }
 
+const CTA_CLASS =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-[#E8C547] px-5 py-2.5 text-[14px] font-semibold text-[#0A2D62] shadow-[0_8px_20px_rgba(232,197,71,0.35)] transition hover:bg-[#0A2D62] hover:text-white';
+
+/** One clickout per market. A single-market offer keeps its own `clickUrl`. */
+function offerClickouts(offer: EditorialOffer): { market: VacationWebPromotionMarket | null; url: string }[] {
+  if (offer.clickouts && offer.clickouts.length > 0) {
+    return offer.clickouts.map((clickout) => ({ market: clickout.market, url: clickout.url }));
+  }
+  return [{ market: null, url: offer.clickUrl }];
+}
+
 function CallToAction({ offer }: { offer: EditorialOffer }) {
-  const click = safeClickHref(offer.clickUrl);
-  if (!click) {
+  const clickouts = offerClickouts(offer)
+    .map((clickout) => ({ ...clickout, href: safeClickHref(clickout.url) }))
+    .filter((clickout): clickout is { market: VacationWebPromotionMarket | null; url: string; href: string } => Boolean(clickout.href));
+  if (clickouts.length === 0) {
     return null;
   }
+  const labelled = clickouts.length > 1;
   return (
-    <a
-      href={click}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-[#E8C547] px-5 py-2.5 text-[14px] font-semibold text-[#0A2D62] shadow-[0_8px_20px_rgba(232,197,71,0.35)] transition hover:bg-[#0A2D62] hover:text-white"
-    >
-      Bekijk de actie
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </a>
+    <div className="flex flex-wrap gap-3">
+      {clickouts.map((clickout) => (
+        <a
+          key={clickout.market ?? 'default'}
+          href={clickout.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-market={clickout.market ?? undefined}
+          className={CTA_CLASS}
+        >
+          {labelled && clickout.market ? `Bekijk de actie (${MARKET_LABEL[clickout.market]})` : 'Bekijk de actie'}
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </a>
+      ))}
+    </div>
   );
 }
 
@@ -183,11 +211,13 @@ export function AanbiedingenExperience({
         if (section.offers.length === 0) {
           return null;
         }
-        const marketLabel = section.market === 'be' ? 'België' : 'Nederland';
+        const markets = section.markets && section.markets.length > 0 ? section.markets : [section.market];
+        const marketLabel = markets.map((market) => MARKET_LABEL[market]).join(' en ');
+        const sectionKey = section.key ?? markets.join('-');
         return (
-          <section key={section.market} aria-labelledby={`promotions-${section.market}`} className="space-y-6">
+          <section key={sectionKey} aria-labelledby={`promotions-${sectionKey}`} className="space-y-6">
             <h2
-              id={`promotions-${section.market}`}
+              id={`promotions-${sectionKey}`}
               className={showMarketTitles ? 'text-[13px] font-semibold uppercase tracking-[0.28em] text-[#8A6A32]' : 'sr-only'}
             >
               {marketLabel}

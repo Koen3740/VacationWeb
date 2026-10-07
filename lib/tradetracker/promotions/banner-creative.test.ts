@@ -25,15 +25,16 @@ test('canonical creative sites are NL 512226 and BE 511873', () => {
   assert.equal(MKDIGITALMEDIA_NL_AFFILIATE_SITE_ID, '512055');
   assert.equal(MKDIGITALMEDIA_BE_AFFILIATE_SITE_ID, '511747');
   assert.notEqual(VACATIONWEB_BE_AFFILIATE_SITE_ID, MKDIGITALMEDIA_NL_AFFILIATE_SITE_ID);
+  // SUB 33C: no fixed campaign list. Each run reads the market's accepted campaigns.
   assert.deepEqual(
     creativeIngestTargets(false).map((target) => ({
       market: target.market,
       affiliateSiteId: target.affiliateSiteId,
-      campaignIds: [...target.campaignIds],
+      campaignIds: target.campaignIds,
     })),
     [
-      { market: 'nl', affiliateSiteId: '512226', campaignIds: ['38108'] },
-      { market: 'be', affiliateSiteId: '511873', campaignIds: ['38103'] },
+      { market: 'nl', affiliateSiteId: '512226', campaignIds: undefined },
+      { market: 'be', affiliateSiteId: '511873', campaignIds: undefined },
     ],
   );
   assert.equal(TRADETRACKER_CREATIVE_CANONICAL_SITE.be, '511873');

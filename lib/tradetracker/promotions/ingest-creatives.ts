@@ -1,6 +1,5 @@
 import {
   TRADETRACKER_AFFILIATE_WSDL_URL,
-  TRADETRACKER_CREATIVE_CAMPAIGNS_V1,
   TRADETRACKER_CREATIVE_CANONICAL_SITE,
   TRADETRACKER_CREATIVE_SECONDARY_SITE,
   TRADETRACKER_SOURCE,
@@ -10,31 +9,42 @@ import { getTradeTrackerSoapCredentials } from './credentials';
 import { TradeTrackerSoapError, publicErrorMessage } from './errors';
 import {
   extractAffiliateSites,
+  extractCampaigns,
   extractMaterialItems,
   isMalformedSoapEnvelope,
   normalizeAffiliateSite,
   normalizeBannerCreativeItem,
+  normalizeCampaign,
 } from './normalize';
+import { mapCreativeProvider } from './select-creatives';
 import type { AffiliateSoapPort } from './soap-client';
 import { createLiveAffiliateSoapPort } from './soap-client';
 import type {
   MethodIngestError,
+  TradeTrackerAccessibleCampaign,
   TradeTrackerAffiliateSiteRecord,
   TradeTrackerBannerCreativeRecord,
   TradeTrackerCreativeSnapshot,
   TradeTrackerSoapCredentials,
 } from './types';
 
+/**
+ * One market source: the market's own access key and its own site.
+ * Campaigns are not listed here. Each run asks TradeTracker which campaigns
+ * this site is accepted for (getCampaigns, assignmentStatus=accepted).
+ */
 export type CreativeIngestTarget = {
   market: TradeTrackerCredentialMarket;
   affiliateSiteId: string;
-  campaignIds: readonly string[];
+  /** Optional narrowing for research and tests. Never widens the accepted set. */
+  campaignIds?: readonly string[];
 };
 
 export type IngestCreativesOptions = {
   market: TradeTrackerCredentialMarket;
   affiliateSiteId: string;
-  campaignIds: readonly string[];
+  /** Optional narrowing. Only campaigns accepted for this market and site are fetched. */
+  campaignIds?: readonly string[];
   port?: AffiliateSoapPort;
   credentials?: TradeTrackerSoapCredentials;
   asOfMs?: number;
@@ -45,7 +55,11 @@ export function creativeSnapshotFileName(market: string, affiliateSiteId: string
   return `snapshot-${market}-${affiliateSiteId}.json`;
 }
 
-/** Canonical NL 512226 / BE 511873. Secondary sites only when requested. */
+/**
+ * Canonical NL 512226 / BE 511873. Secondary sites only when requested.
+ * Each target is collected with its own market key. NL is never derived from BE
+ * and BE is never derived from NL.
+ */
 export function creativeIngestTargets(includeSecondarySites = false): CreativeIngestTarget[] {
   const markets: TradeTrackerCredentialMarket[] = ['nl', 'be'];
   const targets: CreativeIngestTarget[] = [];
@@ -54,12 +68,52 @@ export function creativeIngestTargets(includeSecondarySites = false): CreativeIn
     if (includeSecondarySites) {
       sites.push(TRADETRACKER_CREATIVE_SECONDARY_SITE[market]);
     }
-    const campaignIds = TRADETRACKER_CREATIVE_CAMPAIGNS_V1[market].map((item) => item.campaignId);
     for (const affiliateSiteId of sites) {
-      targets.push({ market, affiliateSiteId, campaignIds });
+      targets.push({ market, affiliateSiteId });
     }
   }
   return targets;
+}
+
+function numericFirst(a: string, b: string): number {
+  const left = Number(a);
+  const right = Number(b);
+  if (Number.isInteger(left) && Number.isInteger(right) && left !== right) {
+    return left - right;
+  }
+  return a.localeCompare(b);
+}
+
+/**
+ * Campaigns this market's key may promote on this site.
+ * A row with an explicit non-accepted status is dropped even though the filter asked for accepted.
+ */
+export function acceptedCampaignsFromPayload(
+  payload: unknown,
+  site: { siteId: string; name: string | null },
+): TradeTrackerAccessibleCampaign[] {
+  const byId = new Map<string, TradeTrackerAccessibleCampaign>();
+  for (const item of extractCampaigns(payload)) {
+    const campaign = normalizeCampaign(item, site);
+    if (!campaign) {
+      continue;
+    }
+    const status = campaign.assignmentStatus?.trim().toLowerCase() ?? 'accepted';
+    if (status !== 'accepted') {
+      continue;
+    }
+    if (byId.has(campaign.campaignId)) {
+      continue;
+    }
+    byId.set(campaign.campaignId, {
+      campaignId: campaign.campaignId,
+      campaignName: campaign.campaignName,
+      campaignUrl: campaign.campaignUrl,
+      assignmentStatus: 'accepted',
+      provider: mapCreativeProvider({ campaignName: campaign.campaignName, campaignUrl: campaign.campaignUrl }),
+    });
+  }
+  return [...byId.values()].sort((a, b) => numericFirst(a.campaignId, b.campaignId));
 }
 
 function siteIdNumber(siteId: string): number {
@@ -93,7 +147,11 @@ function countsFor(
 
 /**
  * Authenticate with the market key and fetch banner creatives for one affiliate site.
- * One call per campaign. Limit stays unset; the proven Corendon sets fit in one response.
+ *
+ * 1. getCampaigns(site, assignmentStatus=accepted) with this market's key: the access truth.
+ * 2. Banner creatives for each accepted campaign of a connected provider, one call per campaign.
+ *
+ * Read-only SOAP only. Limit stays unset; the proven sets fit in one response.
  */
 export async function ingestTradeTrackerCreatives(
   options: IngestCreativesOptions,
@@ -105,8 +163,9 @@ export async function ingestTradeTrackerCreatives(
     getTradeTrackerSoapCredentials({ market: options.market });
   const port = options.port ?? (await createLiveAffiliateSoapPort(options.wsdlUrl));
   const methodErrors: MethodIngestError[] = [];
-  const requestedCampaignIds = options.campaignIds.map((id) => id.trim()).filter((id) => id.length > 0);
-  const requested = new Set(requestedCampaignIds);
+  const narrowing = options.campaignIds
+    ? new Set(options.campaignIds.map((id) => id.trim()).filter((id) => id.length > 0))
+    : null;
 
   try {
     await port.authenticate(credentials);
@@ -133,6 +192,23 @@ export async function ingestTradeTrackerCreatives(
   }
 
   const affiliateSiteID = siteIdNumber(options.affiliateSiteId);
+  const site = sites.find((item) => item.siteId === options.affiliateSiteId)!;
+
+  // Access truth for this market and site. A failure here fails the market;
+  // the refresh then keeps the previous published snapshot.
+  const campaignsPayload = await port.getCampaigns(affiliateSiteID, { assignmentStatus: 'accepted' });
+  if (isMalformedSoapEnvelope(campaignsPayload)) {
+    throw new TradeTrackerSoapError('getCampaigns', 'Malformed response');
+  }
+  const acceptedCampaigns = acceptedCampaignsFromPayload(campaignsPayload, {
+    siteId: site.siteId,
+    name: site.name,
+  });
+  const requestedCampaignIds = acceptedCampaigns
+    .filter((campaign) => campaign.provider !== 'unknown')
+    .filter((campaign) => !narrowing || narrowing.has(campaign.campaignId))
+    .map((campaign) => campaign.campaignId);
+  const requested = new Set(requestedCampaignIds);
   const creatives: TradeTrackerBannerCreativeRecord[] = [];
 
   for (const campaignId of requestedCampaignIds) {
@@ -174,6 +250,7 @@ export async function ingestTradeTrackerCreatives(
     credentialScope: options.market,
     imageDelivery: 'metadata-and-embed-code',
     campaignIds: requestedCampaignIds,
+    acceptedCampaigns,
     creatives,
     methodErrors,
     counts: countsFor(creatives, requestedCampaignIds, methodErrors),

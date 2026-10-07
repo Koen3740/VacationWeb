@@ -9,6 +9,7 @@
 import type { FetchLike } from '@/lib/providers/prijsvrij/auth';
 import { priceLiveRequiredMatchset, stampUnpricedWhenLiveOccupancyUnsupported } from '@/lib/providers/prijsvrij/page1-receipt-pricing';
 import { loadOffers } from '@/lib/offers/load-offers';
+import { siteMarketUniverse } from '@/lib/search/market-inventory';
 import { excludeParkedResultsProviders } from '@/lib/search/presentable-price';
 import {
   offerNeedsLivePriceWork,
@@ -175,7 +176,10 @@ export function scheduleHomeLivePricePrefetch(
       if (genAtSchedule < latestPrefetchGeneration) {
         return;
       }
-      const offers = excludeParkedResultsProviders(await loadOffers());
+      // SUB 33D: prefetch prices only this market's universe.
+      const offers = excludeParkedResultsProviders(
+        siteMarketUniverse(await loadOffers(), params.siteMarket),
+      );
       await runHomeLivePricePrefetchWorkset(offers, params, {
         fetchImpl: options.fetchImpl,
         generation: genAtSchedule,

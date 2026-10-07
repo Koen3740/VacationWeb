@@ -1,8 +1,6 @@
 import { unstable_cache } from 'next/cache';
-import {
-  MKDIGITALMEDIA_NL_AFFILIATE_SITE_ID,
-  VACATIONWEB_NL_AFFILIATE_SITE_ID,
-} from './constants';
+import { TRADETRACKER_CREATIVE_CANONICAL_SITE } from './constants';
+import { getTradeTrackerSoapCredentials } from './credentials';
 import { ingestTradeTrackerPromotions } from './ingest';
 import {
   selectDisplayablePromotions,
@@ -22,27 +20,29 @@ export type LoadedMarketPromotions = {
 const REVALIDATE_SECONDS = 15 * 60;
 
 /**
- * Secondary source for `/aanbiedingen` (news, incentives, vouchers).
- * Official banner creatives are loaded separately and shown first.
- * This function still uses the NL access key, including site 512055 for the
- * historical BE promotions call. It must not replace creative cards.
+ * Secondary source (news, incentives, vouchers). Not used by `/aanbiedingen`,
+ * which reads published creative snapshots only. It must not replace creative cards.
+ *
+ * Each market authenticates with its own access key and queries its own canonical
+ * site: NL key + 512226, BE key + 511873. BE promotions are never derived from the
+ * NL key or an NL site (SUB 33C; before, BE used the NL key with NL site 512055).
  */
 
-async function ingestSite(affiliateSiteId: string): Promise<TradeTrackerPromotionSnapshot> {
-  return ingestTradeTrackerPromotions({ affiliateSiteId });
+async function ingestSite(market: VacationWebPromotionMarket): Promise<TradeTrackerPromotionSnapshot> {
+  return ingestTradeTrackerPromotions({
+    affiliateSiteId: affiliateSiteIdForMarket(market),
+    credentials: getTradeTrackerSoapCredentials({ market }),
+  });
 }
 
 const cachedIngestSite = unstable_cache(
-  async (affiliateSiteId: string) => ingestSite(affiliateSiteId),
-  ['tradetracker-promotions-site'],
+  async (market: VacationWebPromotionMarket) => ingestSite(market),
+  ['tradetracker-promotions-market-site'],
   { revalidate: REVALIDATE_SECONDS },
 );
 
 export function affiliateSiteIdForMarket(market: VacationWebPromotionMarket): string {
-  // This loader still authenticates with the NL access key.
-  // Site 512055 is MKDigitalMedia on that NL key, not a Belgian TradeTracker site.
-  // Belgian banner creatives use site 511873 via the creatives snapshot ingest.
-  return market === 'be' ? MKDIGITALMEDIA_NL_AFFILIATE_SITE_ID : VACATIONWEB_NL_AFFILIATE_SITE_ID;
+  return TRADETRACKER_CREATIVE_CANONICAL_SITE[market];
 }
 
 export async function loadDisplayablePromotionsForMarket(
@@ -51,9 +51,7 @@ export async function loadDisplayablePromotionsForMarket(
 ): Promise<LoadedMarketPromotions> {
   const affiliateSiteId = affiliateSiteIdForMarket(market);
   try {
-    const snapshot = options.bypassCache
-      ? await ingestSite(affiliateSiteId)
-      : await cachedIngestSite(affiliateSiteId);
+    const snapshot = options.bypassCache ? await ingestSite(market) : await cachedIngestSite(market);
     return {
       market,
       affiliateSiteId,

@@ -1,4 +1,5 @@
 import { loadPresentedFilterOptions } from '@/lib/offers/present-active-filter-options';
+import type { SiteMarket } from '@/lib/search/site-market';
 import type { FilterOptions } from '@/types/travel';
 
 /**
@@ -12,6 +13,7 @@ export function listActiveDestinationCountries(options: FilterOptions): string[]
     .sort((left, right) => left.localeCompare(right, 'nl'));
 }
 
-export async function loadActiveDestinationCountries(): Promise<string[]> {
-  return listActiveDestinationCountries(await loadPresentedFilterOptions());
+/** SUB 33D: on a market host only countries with offers in that market. */
+export async function loadActiveDestinationCountries(siteMarket?: SiteMarket): Promise<string[]> {
+  return listActiveDestinationCountries(await loadPresentedFilterOptions(siteMarket));
 }

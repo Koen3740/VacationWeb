@@ -61,6 +61,19 @@ export const TRADETRACKER_CREATIVE_SECONDARY_SITE: Record<TradeTrackerCredential
   be: MKDIGITALMEDIA_BE_AFFILIATE_SITE_ID,
 };
 
+/**
+ * Every affiliate site of the account, keyed to the market of the access key that owns it
+ * (SUB 33B: a key only sees its own sites). The site id in a TradeTracker click-out
+ * (`a=` on a redirect link, third part of `tt=` on a direct link) is therefore the market
+ * of that inventory. Used by Results market isolation (SUB 33D). Not a provider list.
+ */
+export const TRADETRACKER_AFFILIATE_SITE_MARKET: Readonly<Record<string, TradeTrackerCredentialMarket>> = {
+  [VACATIONWEB_NL_AFFILIATE_SITE_ID]: 'nl',
+  [MKDIGITALMEDIA_NL_AFFILIATE_SITE_ID]: 'nl',
+  [VACATIONWEB_BE_AFFILIATE_SITE_ID]: 'be',
+  [MKDIGITALMEDIA_BE_AFFILIATE_SITE_ID]: 'be',
+};
+
 /** WSDL Locale enumeration; override with TRADETRACKER_LOCALE. */
 export const TRADETRACKER_DEFAULT_LOCALE = 'nl_BE';
 

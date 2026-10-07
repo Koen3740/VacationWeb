@@ -37,25 +37,39 @@ function banner(id: number, campaignId: number, name: string) {
   };
 }
 
+// getCampaigns(site, accepted) result. Campaign IDs are market-specific.
+const DEFAULT_ACCEPTED = [
+  { ID: 38108, name: 'Corendon NL', URL: 'https://www.corendon.nl/', info: { assignmentStatus: 'accepted' } },
+  { ID: 38103, name: 'Corendon.be', URL: 'https://www.corendon.be/', info: { assignmentStatus: 'accepted' } },
+];
+
 function portFor(options: {
   sites: Array<{ ID: number; name: string }>;
   bannersByCampaign: Record<string, unknown[]>;
   failCampaign?: string;
+  accepted?: unknown[];
   onAuthenticate?: (credentials: TradeTrackerSoapCredentials) => void;
-}): AffiliateSoapPort & { bannerCalls: Array<{ affiliateSiteID: number; options?: MaterialBannerImageItemsOptions }> } {
+}): AffiliateSoapPort & {
+  bannerCalls: Array<{ affiliateSiteID: number; options?: MaterialBannerImageItemsOptions }>;
+  campaignCalls: Array<{ affiliateSiteID: number; assignmentStatus: string | null }>;
+} {
   const bannerCalls: Array<{ affiliateSiteID: number; options?: MaterialBannerImageItemsOptions }> = [];
+  const campaignCalls: Array<{ affiliateSiteID: number; assignmentStatus: string | null }> = [];
   const port: AffiliateSoapPort & {
     bannerCalls: Array<{ affiliateSiteID: number; options?: MaterialBannerImageItemsOptions }>;
+    campaignCalls: Array<{ affiliateSiteID: number; assignmentStatus: string | null }>;
   } = {
     bannerCalls,
+    campaignCalls,
     async authenticate(credentials) {
       options.onAuthenticate?.(credentials);
     },
     async getAffiliateSites() {
       return { affiliateSites: { affiliateSite: options.sites } };
     },
-    async getCampaigns() {
-      return { campaigns: { campaign: [] } };
+    async getCampaigns(affiliateSiteID, query) {
+      campaignCalls.push({ affiliateSiteID, assignmentStatus: query?.assignmentStatus ?? null });
+      return { campaigns: { campaign: options.accepted ?? DEFAULT_ACCEPTED } };
     },
     async getCampaignNewsItems() {
       return { campaignNewsItems: { campaignNewsItem: [] } };
@@ -107,6 +121,7 @@ test('NL ingest fetches Corendon 38108 for site 512226 and omits the passphrase'
   });
 
   assert.equal(seenPassphrase, NL_CREDENTIALS.passphrase);
+  assert.deepEqual(port.campaignCalls, [{ affiliateSiteID: 512226, assignmentStatus: 'accepted' }]);
   assert.deepEqual(port.bannerCalls, [{ affiliateSiteID: 512226, options: { campaignID: '38108' } }]);
   assert.equal(snapshot.market, 'nl');
   assert.equal(snapshot.credentialScope, 'nl');
@@ -171,4 +186,53 @@ test('a banner method fault is recorded without dropping the snapshot or the pas
   assert.equal(snapshot.methodErrors[0]?.message.includes(NL_CREDENTIALS.passphrase), false);
   assert.equal(snapshot.methodErrors[0]?.message.includes(BE_CREDENTIALS.passphrase), false);
   assert.equal(JSON.stringify(snapshot).includes('be-secret-passphrase'), false);
+});
+
+test('without narrowing, every accepted campaign of a connected provider is fetched for this market only', async () => {
+  const port = portFor({
+    sites: [{ ID: 511873, name: 'Vacationweb.nl' }],
+    bannersByCampaign: {},
+    accepted: [
+      { ID: 1393, name: 'Sunweb Zon', URL: 'https://www.sunweb.be/nl/vakantie', info: { assignmentStatus: 'accepted' } },
+      { ID: 1327, name: 'Elizawashere.be', URL: 'https://www.elizawashere.be', info: { assignmentStatus: 'accepted' } },
+      { ID: 38103, name: 'Corendon.be', URL: 'https://www.corendon.be/', info: { assignmentStatus: 'accepted' } },
+      { ID: 3060, name: 'Cheaptickets.be', URL: 'https://www.cheaptickets.be', info: { assignmentStatus: 'accepted' } },
+      { ID: 2830, name: 'Sunweb NL', URL: 'https://www.sunweb.nl', info: { assignmentStatus: 'notsignedup' } },
+    ],
+  });
+
+  const snapshot = await ingestTradeTrackerCreatives({
+    market: 'be',
+    affiliateSiteId: '511873',
+    credentials: BE_CREDENTIALS,
+    port,
+    asOfMs: Date.UTC(2026, 9, 6),
+  });
+
+  assert.deepEqual(port.campaignCalls, [{ affiliateSiteID: 511873, assignmentStatus: 'accepted' }]);
+  assert.deepEqual(
+    port.bannerCalls.map((call) => call.options?.campaignID),
+    ['1327', '1393', '38103'],
+  );
+  assert.deepEqual(snapshot.campaignIds, ['1327', '1393', '38103']);
+  assert.deepEqual(
+    snapshot.acceptedCampaigns?.map((campaign) => [campaign.campaignId, campaign.provider]),
+    [
+      ['1327', 'Eliza was here'],
+      ['1393', 'Sunweb'],
+      ['3060', 'unknown'],
+      ['38103', 'Corendon'],
+    ],
+  );
+});
+
+test('a getCampaigns failure fails the market instead of publishing an empty set', async () => {
+  const port = portFor({ sites: [{ ID: 511873, name: 'Vacationweb.nl' }], bannersByCampaign: {} });
+  port.getCampaigns = async () => {
+    throw new Error('SOAP fault');
+  };
+  await assert.rejects(() =>
+    ingestTradeTrackerCreatives({ market: 'be', affiliateSiteId: '511873', credentials: BE_CREDENTIALS, port }),
+  );
+  assert.equal(port.bannerCalls.length, 0);
 });

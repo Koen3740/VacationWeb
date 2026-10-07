@@ -63,7 +63,30 @@ Een mislukte ingest, selectie of R2-fout publiceert de snapshot van die markt ni
 
 ## TradeTracker-context
 
-Eén TradeTracker-account. NL gebruikt `TRADETRACKER_CUSTOMER_ID` en `TRADETRACKER_ACCESS_KEY`, site 512226, campagne 38108. BE gebruikt `TRADETRACKER_BE_CUSTOMER_ID` en `TRADETRACKER_BE_ACCESS_KEY`, site 511873, campagne 38103. Alleen providers Corendon, Sunweb en Eliza was here kunnen een kaart worden. Een creative zonder concreet voordeel (bedrag, percentage, voucher of een benoemd gratis voordeel) blijft uit de pagina.
+Eén TradeTracker-account, twee markten. NL gebruikt `TRADETRACKER_CUSTOMER_ID` en `TRADETRACKER_ACCESS_KEY`, canonieke site 512226. BE gebruikt `TRADETRACKER_BE_CUSTOMER_ID` en `TRADETRACKER_BE_ACCESS_KEY`, canonieke site 511873. De markt volgt uit de sleutel, nooit uit de andere markt.
+
+## Markten en cross-market dedupe (SUB 33C)
+
+Bedrijfsregel:
+
+> VacationWeb publiceert campagnes waarvoor het daadwerkelijk toegang heeft per TradeTracker-markt. BE en NL worden afzonderlijk verzameld. Alleen wanneer dezelfde campagne in beide markten exact dezelfde klantgerichte inhoud heeft, wordt zij cross-market gededupliceerd. Verschillen in bedrag, promotietekst of relevante voorwaarden betekenen afzonderlijke aanbiedingen.
+
+Uitwerking:
+
+- Bron van beschikbaarheid: `getCampaigns(site, assignmentStatus=accepted)` per markt, met de eigen sleutel en de eigen canonieke site. Er is geen vaste campagnelijst meer; `campaignIds` in een ingest-target is alleen nog een optionele vernauwing. Mislukt `getCampaigns` voor een markt, dan mislukt die markt en blijft haar vorige snapshot staan.
+- Banners worden opgehaald voor geaccepteerde campagnes van een gekoppelde provider (Corendon, Sunweb, Eliza was here). Geaccepteerde campagnes van andere adverteerders komen in de snapshot (`acceptedCampaigns`) maar niet op de pagina; uitbreiden van de providerlijst is een aparte bedrijfskeuze.
+- Selectie: een creative van een campagne die in die markt niet geaccepteerd is, valt af met `campaign_not_accepted_in_market`.
+- Clickout: de site in de link moet de canonieke site van de markt zijn. Twee TradeTracker-formaten zijn toegestaan: redirect `https://referral.<adverteerder>/c?c&m&a&r&u` (host = de Corendon-host van die markt of `referral.<domein van de campagne-URL>`) en direct link `https://<host van de campagne-URL>/…?tt=<campagne>_<materiaal>_<site>_<ref>&r=`. Campagne, materiaal en site moeten kloppen. VacationWeb vraagt deze links nooit op.
+- Campagne-identiteit over markten heen: campagne-ID's verschillen per markt (BE 38103 Corendon.be, NL 38108 Corendon NL), dus ID en naam alleen zijn nooit genoeg. Twee aanbiedingen zijn dezelfde campagne als álle klantgerichte velden exact gelijk zijn: provider, titel, voordeel (lead, bedrag, staart), samenvatting, voorwaarden, kortingstekst, geldig van/tot en de creative (sha256 van de opgeslagen beeldbytes, of beide zonder beeld). Een onbekende beeldhash maakt een aanbieding niet vergelijkbaar. Normalisatie is alleen Unicode-NFC en het samenvoegen van witruimte; hoofdletters, leestekens en bedragen tellen mee.
+- Koppeling is 1:1 tussen een BE- en een NL-aanbieding; aanbiedingen van dezelfde markt worden nooit samengevoegd.
+- Een samengevoegde aanbieding heeft markt BE+NL en houdt per markt haar eigen clickout. De BE-site toont BE-aanbiedingen met BE-clickouts, de NL-site NL-aanbiedingen met NL-clickouts; een samengevoegde aanbieding staat op elke site één keer met de clickout van die site. Een host die beide markten toont, krijgt een sectie “België en Nederland” met twee gelabelde knoppen.
+- Code: `lib/tradetracker/promotions/cross-market-offers.ts`, tests in `cross-market-offers.test.ts` (gelabeld [REAL] en [CONSTRUCTED]).
+
+Stand op 2026-10-06 (read-only run, echte data): BE heeft 11 geaccepteerde campagnes, waarvan Corendon.be (38103), Sunweb Zon (1393) en Eliza was here (1327) gekoppeld zijn; NL heeft 16, waarvan Corendon.com (37514) en Corendon NL (38108) gekoppeld zijn. Geen gedeeld campagne-ID. Geen van de 448 BE- en 107 NL-banners noemt een concreet voordeel, dus BE 0, NL 0, BE+NL 0 aanbiedingen; de pagina toont de lege staat.
+
+Feed-mapping zonder marktdimensie (`config/feed-manifest.json`, `connected-providers.ts`): in de creative-keten bepaalt alleen de per-markt accepted-lijst de toegang; de mapping levert daar geen campagne aan. In de secundaire bron (`select-displayable.ts`, news/incentives/vouchers, op geen enkele pagina gebruikt) gaf de mapping elke feed-campagne door zolang die op de site bestond, ook `notsignedup`; sinds SUB 33C passeren alleen campagnes die accepted zijn op de eigen site van de snapshot.
+
+Results/catalogus (SUB 33D, 06-10-2026; de SUB 33C-stand "niet gewijzigd, PD-020" is SUPERSEDED): owner-besluit PD-033 vervangt PD-020: "Results inventory is market-isolated. A BE-only offer is not eligible for NL Results, and an NL-only offer is not eligible for BE Results." De markt van een catalogusaanbod is de TT-site in zijn eigen feed-click-out (Corendon `a=`, Sunweb/Eliza derde deel van `tt=`), gekoppeld via `TRADETRACKER_AFFILIATE_SITE_MARKET`. Op de echte catalogus (01-10-2026) staan Sunweb 1393 (2935), Eliza 1327 (709) en Corendon-BE-only 38103 (2073) niet meer op .nl en Corendon NL 38108-only (2084) niet meer op .be; de 632 aanbiedingen met beide listings tonen per markt alleen de eigen listing en click-out. Code: `lib/search/market-inventory.ts`; evidence `PROJECT_LOG/05_EVIDENCE/SUB33D-RESULTS-MARKET-ISOLATION-20261006-2355/`.
 
 ## Wat niet is gebouwd
 

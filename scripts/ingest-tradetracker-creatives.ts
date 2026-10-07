@@ -19,7 +19,8 @@ import type { TradeTrackerCreativeSnapshot } from '../lib/tradetracker/promotion
  *   TRADETRACKER_BE_CUSTOMER_ID
  *   TRADETRACKER_BE_ACCESS_KEY       BE sites 511873 (canonical) and 511747
  *
- * Default targets: NL 512226 campaign 38108, BE 511873 campaign 38103.
+ * Default targets: NL 512226 and BE 511873. Campaigns come from getCampaigns(assignmentStatus=accepted)
+ * per market (SUB 33C); there is no fixed campaign list.
  * Optional: --include-secondary also fetches NL 512055 and BE 511747.
  *
  * Writes metadata and SOAP html `code` only. Does not request image bytes, /i, or /c.

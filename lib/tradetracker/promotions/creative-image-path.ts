@@ -20,6 +20,8 @@ export type CreativeImageLink = {
   publicPath: string;
   width: number;
   height: number;
+  /** SHA-256 of the stored bytes. Used to compare creatives across markets. */
+  contentHash?: string | null;
 };
 
 export function creativeImageMaterialKey(

@@ -9,7 +9,8 @@ import { HomePopularDestinations } from '@/components/home/home-popular-destinat
 import { HomeTrustStrip } from '@/components/home/home-trust-strip';
 import { HomeValueSection } from '@/components/home/home-value-section';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
-import { loadFilterOptions } from '@/lib/offers/load-filter-options';
+import { loadHostFilterOptions } from '@/lib/offers/present-active-filter-options';
+import { requestSiteMarket } from '@/lib/search/request-site-market';
 import { isHomeLivePricePrefetchEnabled } from '@/lib/search/home-live-price-prefetch-context';
 
 const playfair = Playfair_Display({
@@ -31,7 +32,8 @@ export const dynamic = 'force-dynamic';
  * Replaces HomeExactTop / HomeExactBody slabs. No Concept C sections.
  */
 export default async function HomePage() {
-  const filterOptions = loadFilterOptions();
+  // SUB 33D: counts, popup countries, airports and popular destinations follow the host market.
+  const filterOptions = await loadHostFilterOptions(requestSiteMarket());
   const countryCounts = filterOptions.countryCounts ?? {};
   const popularDestinations = filterOptions.popularDestinations ?? [];
   const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? 0);

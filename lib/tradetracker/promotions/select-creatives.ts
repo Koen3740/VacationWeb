@@ -1,5 +1,4 @@
 import {
-  TRADETRACKER_CREATIVE_CAMPAIGNS_V1,
   TRADETRACKER_CREATIVE_CANONICAL_SITE,
   TRADETRACKER_SOURCE,
   type TradeTrackerCredentialMarket,
@@ -139,12 +138,27 @@ function isKnownMarket(value: string): value is TradeTrackerCredentialMarket {
   return value === 'nl' || value === 'be';
 }
 
-function campaignOwner(campaignId: string): TradeTrackerCredentialMarket | null {
-  const markets: TradeTrackerCredentialMarket[] = ['nl', 'be'];
-  const owners = markets.filter((market) =>
-    TRADETRACKER_CREATIVE_CAMPAIGNS_V1[market].some((campaign) => campaign.campaignId === campaignId),
-  );
-  return owners.length === 1 ? owners[0]! : null;
+/**
+ * Campaign IDs this snapshot's market may publish.
+ * New snapshots carry getCampaigns(accepted) for their own market key and site.
+ * Older snapshots fall back to the campaigns they requested.
+ * Campaign IDs are market-specific: an ID from the other market is never accepted here.
+ */
+function accessibleCampaignIds(snapshot: TradeTrackerCreativeSnapshot): {
+  ids: ReadonlySet<string>;
+  fromAcceptedList: boolean;
+} {
+  if (Array.isArray(snapshot.acceptedCampaigns)) {
+    return {
+      ids: new Set(
+        snapshot.acceptedCampaigns
+          .filter((campaign) => campaign.assignmentStatus === 'accepted')
+          .map((campaign) => campaign.campaignId),
+      ),
+      fromAcceptedList: true,
+    };
+  }
+  return { ids: new Set(snapshot.campaignIds ?? []), fromAcceptedList: false };
 }
 
 function httpUrl(value: string | null): URL | null {
@@ -165,6 +179,7 @@ function httpUrl(value: string | null): URL | null {
 function exclusionReason(
   creative: TradeTrackerBannerCreativeRecord,
   snapshotMarket: TradeTrackerCredentialMarket,
+  access: { ids: ReadonlySet<string>; fromAcceptedList: boolean },
   asOfMs: number,
 ): CreativeExclusionReason | null {
   if (!creative.materialItemId.trim()) {
@@ -182,12 +197,8 @@ function exclusionReason(
   if (!creative.campaignId) {
     return 'unknown_campaign';
   }
-  const owner = campaignOwner(creative.campaignId);
-  if (!owner) {
-    return 'unknown_campaign';
-  }
-  if (owner !== creative.market) {
-    return 'market_campaign_mismatch';
+  if (!access.ids.has(creative.campaignId)) {
+    return access.fromAcceptedList ? 'campaign_not_accepted_in_market' : 'unknown_campaign';
   }
   if (mapCreativeProvider(creative) === 'unknown') {
     return 'unknown_provider';
@@ -375,6 +386,7 @@ export function selectTradeTrackerCreatives(
 
   const exclusions: CreativeExclusion[] = [];
   const selected: SelectedTradeTrackerCreative[] = [];
+  const access = accessibleCampaignIds(snapshot);
   let collapsed = 0;
 
   for (const [key, group] of groups) {
@@ -382,7 +394,7 @@ export function selectTradeTrackerCreatives(
     for (const candidate of group.slice(1)) {
       survivor = preferSurvivor(survivor, candidate);
     }
-    const reason = exclusionReason(survivor, snapshot.market, asOfMs);
+    const reason = exclusionReason(survivor, snapshot.market, access, asOfMs);
     if (reason) {
       for (const creative of group) {
         exclusions.push({

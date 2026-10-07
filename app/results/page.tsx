@@ -131,7 +131,7 @@ export default async function ResultsPage({
   }
   // GO9: shell skips the catalog offer load on the critical path (O(catalog)).
   // Filter options come from the cached runtime dataset; prepare loads offers inside Suspense.
-  const filterOptions = await loadPresentedFilterOptions();
+  const filterOptions = await loadPresentedFilterOptions(params.siteMarket);
   const citiesByCountry = filterOptions.citiesByCountry ?? {};
   const accommodationTypes = filterOptions.accommodationTypes ?? [];
   const visibleAccommodationTypes = ACCOMMODATION_TYPE_FILTER_VALUES.filter((type) =>

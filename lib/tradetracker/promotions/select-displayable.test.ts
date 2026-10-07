@@ -6,9 +6,36 @@ import {
   resolveConnectedProvider,
 } from './connected-providers';
 import { selectDisplayablePromotions } from './select-displayable';
-import type { TradeTrackerPromotionSnapshot } from './types';
+import type { TradeTrackerCampaignNewsRecord, TradeTrackerCampaignRecord, TradeTrackerPromotionSnapshot } from './types';
 
 const AS_OF = '2026-09-09T12:00:00.000Z';
+
+function campaign(
+  campaignId: string,
+  campaignName: string,
+  assignmentStatus: string,
+  affiliateSiteId = '512226',
+): TradeTrackerCampaignRecord {
+  return {
+    source: 'tradetracker-affiliate-webservice',
+    kind: 'campaign',
+    campaignId,
+    campaignName,
+    campaignUrl: null,
+    campaignInfo: null,
+    campaignCategoryId: null,
+    campaignCategoryName: null,
+    assignmentStatus,
+    logoUrl: null,
+    trackingUrl: null,
+    campaignStartDate: null,
+    campaignStopDate: null,
+    campaignTimeZone: null,
+    affiliateSiteId,
+    affiliateSiteName: null,
+    sourceMetadata: {},
+  };
+}
 
 function baseSnapshot(
   overrides: Partial<TradeTrackerPromotionSnapshot> = {},
@@ -19,7 +46,8 @@ function baseSnapshot(
     wsdlUrl: 'https://ws.tradetracker.com/soap-literal-wsi/affiliate?wsdl',
     scopedAffiliateSiteId: '512226',
     affiliateSites: [],
-    campaigns: [],
+    // NL site 512226: Corendon NL is accepted there (SUB 33B accepted baseline).
+    campaigns: [campaign('38108', 'Corendon NL', 'accepted')],
     newsItems: [],
     incentiveOffers: [],
     vouchers: [],
@@ -235,4 +263,60 @@ test('H10 Hotels voucher is excluded because provider is not connected', () => {
     'be',
   );
   assert.equal(selected.length, 0);
+});
+
+function consumerNews(id: string, campaignId: string, campaignName: string, title: string): TradeTrackerCampaignNewsRecord {
+  return {
+    source: 'tradetracker-affiliate-webservice',
+    kind: 'consumer_promotion',
+    newsItemId: id,
+    newsType: 'campaign_update_consumer',
+    title,
+    content: 'Tot €200 vroegboekkorting op geselecteerde vertrekdata.',
+    publishDate: '2026-09-01',
+    expirationDate: '2026-09-30',
+    campaignId,
+    campaignName,
+    campaignUrl: null,
+    validity: activeValidity('2026-09-01', '2026-09-30'),
+    sourceMetadata: {},
+  };
+}
+
+test('[CONSTRUCTED] SUB 33C: the market-less feed mapping never lets another market or a non-accepted campaign through', () => {
+  clearFeedRegistryCache();
+  // Sunweb 1393 is a connected feed campaign (BE). On the NL site it is not accepted.
+  const nl = selectDisplayablePromotions(
+    baseSnapshot({
+      campaigns: [campaign('38108', 'Corendon NL', 'accepted'), campaign('2830', 'Sunweb NL', 'notsignedup')],
+      newsItems: [
+        consumerNews('31', '38108', 'Corendon NL', 'Corendon NL - Vroegboek korting'),
+        consumerNews('32', '1393', 'Sunweb Zon', 'Sunweb Zon - Vroegboek korting'),
+        consumerNews('33', '2830', 'Sunweb NL', 'Sunweb NL - Vroegboek korting'),
+      ],
+    }),
+    'nl',
+  );
+  assert.deepEqual(nl.map((item) => item.id), ['news:31']);
+  assert.equal(nl[0]?.market, 'nl');
+
+  // The same Sunweb 1393 item on the BE site where it is accepted.
+  const be = selectDisplayablePromotions(
+    baseSnapshot({
+      scopedAffiliateSiteId: '511873',
+      campaigns: [campaign('1393', 'Sunweb Zon', 'accepted', '511873')],
+      newsItems: [consumerNews('32', '1393', 'Sunweb Zon', 'Sunweb Zon - Vroegboek korting')],
+    }),
+    'be',
+  );
+  assert.deepEqual(be.map((item) => [item.id, item.providerName, item.market]), [['news:32', 'Sunweb', 'be']]);
+
+  // No campaign list (or no accepted row) is fail-closed.
+  assert.equal(
+    selectDisplayablePromotions(
+      baseSnapshot({ campaigns: [], newsItems: [consumerNews('31', '38108', 'Corendon NL', 'Corendon NL - Vroegboek korting')] }),
+      'nl',
+    ).length,
+    0,
+  );
 });

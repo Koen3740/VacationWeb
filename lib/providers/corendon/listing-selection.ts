@@ -22,8 +22,9 @@ const BE_DEPARTURE_IATA = new Set(['BRU', 'CRL', 'LGG', 'OST', 'ANR']);
 const NL_DEPARTURE_IATA = new Set(['AMS', 'EIN', 'RTM', 'GRQ', 'MST']);
 
 /**
- * Tie-break inside the same country. Not an inventory lock.
- * BE-NL before BE-FR because language must not choose click-out host.
+ * Tie-break inside the same country. The market lock itself happens before ranking:
+ * on vacationweb.be / .nl `offerForSiteMarket` (lib/search/market-inventory.ts) keeps only
+ * that market's listings (SUB 33D). BE-NL before BE-FR because language must not choose click-out host.
  */
 const HOST_TIE_RANK: Record<string, number> = {
   [CORENDON_FE_HOST]: 0,
@@ -125,8 +126,12 @@ function selectedAirportMatchRank(selectedAirports: string[], listingIata: strin
  * 1. Listing whose fragment departure IATA matches the user airport filter (when set).
  * 2. Listing whose host country matches the trip's departure airport
  *    (BE airports → .be / fr.corendon.be; NL airports → .nl).
- *    Belgian user + AMS therefore prefers NL; Dutch user + BRU prefers BE.
- * 3. Site market (vacationmap.be vs .nl) only when the airport is not BE/NL.
+ * 3. Site market only when the airport is not BE/NL.
+ *
+ * SUB 33D: on a market host the offer reaching this function already carries only that
+ * market's listings, so steps 2–3 never cross markets there (PD-020 cross-market preference
+ * is revoked). Steps 2–3 only choose between markets when the request has no market
+ * (localhost / preview).
  * 4. Host tie-break: www.corendon.be before fr.corendon.be; then feedId.
  *
  * Never uses catalog/feed price. Language is not a click-out host.

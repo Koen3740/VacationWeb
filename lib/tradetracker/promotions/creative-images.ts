@@ -266,6 +266,7 @@ export function creativeImageIndexFromManifest(manifest: CreativeImageManifest |
       publicPath: entry.publicPath,
       width: entry.width,
       height: entry.height,
+      contentHash: typeof entry.contentHash === 'string' && /^[a-f0-9]{64}$/.test(entry.contentHash) ? entry.contentHash : null,
     });
   }
   return index;

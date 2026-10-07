@@ -83,6 +83,18 @@ De eerste versie werkt met één feed, maar de architectuur moet later eenvoudig
 - object storage provider zoals AWS S3, Cloudflare R2 of Vercel Blob
 - containerized workers via Vercel/Cloud Run/AWS ECS of similar
 
+### 3.8 TradeTracker-aanbiedingen per markt
+- VacationWeb publiceert campagnes waarvoor het daadwerkelijk toegang heeft per TradeTracker-markt. BE en NL worden afzonderlijk verzameld. Alleen wanneer dezelfde campagne in beide markten exact dezelfde klantgerichte inhoud heeft, wordt zij cross-market gededupliceerd. Verschillen in bedrag, promotietekst of relevante voorwaarden betekenen afzonderlijke aanbiedingen.
+- BE (sleutel `TRADETRACKER_BE_*`, site 511873) en NL (sleutel `TRADETRACKER_*`, site 512226) worden apart opgehaald via `getCampaigns(assignmentStatus=accepted)`; elke markt heeft een eigen snapshot en eigen clickouts.
+- Exacte BE/NL-gelijken worden na het laden samengevoegd (`lib/tradetracker/promotions/cross-market-offers.ts`); een samengevoegde aanbieding houdt per markt een eigen clickout. Details: `docs/research/tradetracker-promotions/2026-10-05-aanbiedingen-v2-sources.md`.
+
+### 3.9 Results-inventory per markt (SUB 33D, PD-033)
+- "Results inventory is market-isolated. A BE-only offer is not eligible for NL Results, and an NL-only offer is not eligible for BE Results." (owner-besluit PD-033, vervangt PD-020.)
+- Markt van de request: `resolveSiteMarketFromHost` (vacationweb.be / .nl, met of zonder www). Hosts zonder markt (localhost, previews) houden de volledige catalogus.
+- Markt van een aanbod: de TradeTracker-site in zijn eigen click-out (`a=` of het derde deel van `tt=`), via `TRADETRACKER_AFFILIATE_SITE_MARKET` (BE 511873/511747, NL 512226/512055). Per listing; zonder listings `deepLink`. Onbekend = niet eligible op een markthost.
+- `lib/search/market-inventory.ts` knipt het universum vóór de matchset (`prepared-results-request.ts`, `home-live-price-prefetch.ts`, filteropties); aanbod met BE- en NL-listings houdt per markt alleen de eigen listings; detail geeft 404 bij marktmismatch; live-overlay en `affiliateHref` laten geen click-out van de andere markt toe. De catalogus zelf blijft ongewijzigd.
+- Host-tellingen buiten Results (homepage, `/search`, bestemmingspopup, `/bestemmingen`) gebruiken op een markthost hetzelfde universum: `loadHostFilterOptions(requestSiteMarket())` / `loadActiveDestinationCountries(siteMarket)` (`lib/offers/present-active-filter-options.ts`, `lib/search/request-site-market.ts`). Zonder markt blijven de statische build-opties. Echte catalogus 01-10: .be 6349 (6.000+), .nl 2716 (2.000+).
+
 ---
 
 ## 4. Database keuze en motivatie

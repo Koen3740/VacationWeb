@@ -1,5 +1,7 @@
 # TradeTracker promotion webservice ingestion — phase 1
 
+> **Update SUB 33C (2026-10-06):** de creative-ingest voor `/aanbiedingen` haalt per markt `getCampaigns(assignmentStatus=accepted)` op met de eigen sleutel (BE site 511873, NL site 512226) in plaats van een vaste campagnelijst. De pagina-loader gebruikt voor BE nu ook de BE-sleutel en site 511873. Regel: “VacationWeb publiceert campagnes waarvoor het daadwerkelijk toegang heeft per TradeTracker-markt. BE en NL worden afzonderlijk verzameld. Alleen wanneer dezelfde campagne in beide markten exact dezelfde klantgerichte inhoud heeft, wordt zij cross-market gededupliceerd. Verschillen in bedrag, promotietekst of relevante voorwaarden betekenen afzonderlijke aanbiedingen.” Zie `2026-10-05-aanbiedingen-v2-sources.md`.
+
 ## Datum
 
 2026-09-07 (implementatie) · live SOAP-bewijs 2026-09-09 · VacationWeb-site scope 2026-09-09

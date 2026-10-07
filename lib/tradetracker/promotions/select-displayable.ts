@@ -188,30 +188,46 @@ function fromIncentive(
 }
 
 /**
+ * Campaigns accepted on this snapshot's own affiliate site (this market's key and site).
+ * The feed-manifest provider mapping has no market dimension, so access is decided here.
+ */
+function acceptedCampaignIds(snapshot: TradeTrackerPromotionSnapshot): Set<string> {
+  return new Set(
+    snapshot.campaigns
+      .filter((campaign) => campaign.assignmentStatus?.trim().toLowerCase() === 'accepted')
+      .map((campaign) => campaign.campaignId),
+  );
+}
+
+/**
  * Select active TradeTracker promotions that belong to connected VacationWeb travel providers.
  * Does not invent deals from catalog/prices. Unrelated TT advertisers are excluded.
+ * Only campaigns accepted on the snapshot's own site pass (SUB 33C); a campaign of the
+ * other market, or one that is not accepted here, never becomes a promotion for this market.
  */
 export function selectDisplayablePromotions(
   snapshot: TradeTrackerPromotionSnapshot,
   market: VacationWebPromotionMarket,
 ): DisplayablePromotion[] {
   const out: DisplayablePromotion[] = [];
+  const accepted = acceptedCampaignIds(snapshot);
+  const hasAccess = (campaignId: string | null | undefined) => Boolean(campaignId && accepted.has(campaignId));
 
   const ingestedAt = snapshot.ingestedAt;
   for (const item of snapshot.newsItems) {
-    const selected = fromNews(item, market);
+    const selected = hasAccess(item.campaignId) ? fromNews(item, market) : null;
     if (selected) {
       out.push({ ...selected, ingestedAt });
     }
   }
   for (const item of snapshot.incentiveOffers) {
-    const selected = fromIncentive(item, market);
+    const selected = hasAccess(item.campaignId) ? fromIncentive(item, market) : null;
     if (selected) {
       out.push({ ...selected, ingestedAt });
     }
   }
   for (const item of snapshot.vouchers) {
-    const selected = fromIncentive(item, market);
+    const selected = hasAccess(item.campaignId) ? fromIncentive(item, market) : null;
     if (selected) {
       out.push({ ...selected, ingestedAt });
     }

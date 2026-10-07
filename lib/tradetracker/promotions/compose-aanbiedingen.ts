@@ -58,6 +58,8 @@ export type AanbiedingenCard = {
   imageWidth: number | null;
   imageHeight: number | null;
   imagePolicy: 'own-storage' | null;
+  /** SHA-256 of the stored banner bytes, from the image manifest. */
+  imageContentHash?: string | null;
   /** Creative fetch time, or the promotion snapshot ingest time. */
   ingestedAt?: string | null;
 };
@@ -83,6 +85,7 @@ function scrubTrackingUrls(value: string | null | undefined): string | null {
     .replace(/https?:\/\/ti\.tradetracker\.net\S*/gi, '')
     .replace(/https?:\/\/\S*\/i\?\S*/gi, '')
     .replace(/https?:\/\/\S*\/c\?\S*/gi, '')
+    .replace(/https?:\/\/\S*[?&]tt=\d+_\S*/gi, '')
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
   return scrubbed || null;
@@ -140,15 +143,18 @@ function dimensionsLabel(creative: SelectedTradeTrackerCreative): string | null 
   return flags.join(' · ');
 }
 
-function ownImage(link: CreativeImageLink | undefined): Pick<AanbiedingenCard, 'imageUrl' | 'imageWidth' | 'imageHeight' | 'imagePolicy'> {
+function ownImage(
+  link: CreativeImageLink | undefined,
+): Pick<AanbiedingenCard, 'imageUrl' | 'imageWidth' | 'imageHeight' | 'imagePolicy' | 'imageContentHash'> {
   if (!link || !isOwnCreativeImageUrl(link.publicPath)) {
-    return { imageUrl: null, imageWidth: null, imageHeight: null, imagePolicy: null };
+    return { imageUrl: null, imageWidth: null, imageHeight: null, imagePolicy: null, imageContentHash: null };
   }
   return {
     imageUrl: link.publicPath,
     imageWidth: link.width,
     imageHeight: link.height,
     imagePolicy: 'own-storage',
+    imageContentHash: link.contentHash ?? null,
   };
 }
 

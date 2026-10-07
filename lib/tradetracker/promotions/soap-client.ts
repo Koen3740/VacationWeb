@@ -1,8 +1,8 @@
 import { TRADETRACKER_AFFILIATE_WSDL_URL, TRADETRACKER_MATERIAL_OUTPUT_TYPE } from './constants';
 import { TradeTrackerSoapError, redactSecrets } from './errors';
 import {
+  campaignFilter,
   emptyAffiliateSiteFilter,
-  emptyCampaignFilter,
   emptyCampaignNewsItemFilter,
   emptyMaterialItemFilter,
   materialItemFilter,
@@ -17,10 +17,15 @@ export type MaterialBannerImageItemsOptions = {
   offset?: number | null;
 };
 
+export type CampaignsOptions = {
+  /** Read-only filter. `accepted` returns the campaigns this site may promote. */
+  assignmentStatus?: string | null;
+};
+
 export type AffiliateSoapPort = {
   authenticate(credentials: TradeTrackerSoapCredentials): Promise<void>;
   getAffiliateSites(): Promise<unknown>;
-  getCampaigns(affiliateSiteID: number): Promise<unknown>;
+  getCampaigns(affiliateSiteID: number, options?: CampaignsOptions): Promise<unknown>;
   getCampaignNewsItems(): Promise<unknown>;
   getMaterialIncentiveOfferItems(affiliateSiteID: number): Promise<unknown>;
   getMaterialIncentiveVoucherItems(affiliateSiteID: number): Promise<unknown>;
@@ -133,11 +138,11 @@ export function createAffiliateSoapPort(client: SoapClientLike): AffiliateSoapPo
         client.getAffiliateSitesAsync({ options: emptyAffiliateSiteFilter() }),
       );
     },
-    getCampaigns(affiliateSiteID) {
+    getCampaigns(affiliateSiteID, options) {
       return callSoap('getCampaigns', () =>
         client.getCampaignsAsync({
           affiliateSiteID,
-          options: emptyCampaignFilter(),
+          options: campaignFilter({ assignmentStatus: options?.assignmentStatus ?? null }),
         }),
       );
     },

@@ -184,6 +184,7 @@ export type CreativeMaterialRelation =
 
 export type CreativeExclusionReason =
   | 'unknown_market'
+  | 'campaign_not_accepted_in_market'
   | 'market_mismatch'
   | 'non_canonical_site'
   | 'unknown_campaign'
@@ -271,6 +272,20 @@ export type SelectedTradeTrackerCreativeSnapshot = {
   creatives: SelectedTradeTrackerCreative[];
 };
 
+/**
+ * One campaign the market's access key may promote on the canonical site:
+ * getCampaigns(affiliateSiteID, assignmentStatus=accepted). Campaign IDs are
+ * market-specific. The NL list never feeds BE and the BE list never feeds NL.
+ */
+export type TradeTrackerAccessibleCampaign = {
+  campaignId: string;
+  campaignName: string;
+  campaignUrl: string | null;
+  assignmentStatus: 'accepted';
+  /** VacationWeb provider mapping from campaign name and URL. `unknown` is not fetched. */
+  provider: CreativeProviderMapping;
+};
+
 export type TradeTrackerCreativeSnapshot = {
   source: typeof import('./constants').TRADETRACKER_SOURCE;
   ingestedAt: string;
@@ -282,6 +297,12 @@ export type TradeTrackerCreativeSnapshot = {
   /** Slice 1 stores SOAP metadata and html `code` only. */
   imageDelivery: 'metadata-and-embed-code';
   campaignIds: string[];
+  /**
+   * Access truth for this market and site. Present on snapshots built from
+   * getCampaigns(accepted). Selection keeps only creatives of these campaigns.
+   * Older snapshots without it fall back to `campaignIds`.
+   */
+  acceptedCampaigns?: TradeTrackerAccessibleCampaign[];
   creatives: TradeTrackerBannerCreativeRecord[];
   methodErrors: MethodIngestError[];
   counts: TradeTrackerCreativeSnapshotCounts;

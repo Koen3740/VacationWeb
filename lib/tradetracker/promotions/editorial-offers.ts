@@ -21,6 +21,12 @@ export type EditorialOfferSource = {
   url: string;
 };
 
+/** One market's TradeTracker clickout: that market's own campaign, site and click template. */
+export type MarketClickout = {
+  market: VacationWebPromotionMarket;
+  url: string;
+};
+
 export type EditorialOffer = {
   id: string;
   market: VacationWebPromotionMarket;
@@ -43,6 +49,20 @@ export type EditorialOffer = {
   clickUrl: string;
   conditionsUrl: string;
   sources: readonly EditorialOfferSource[];
+  /** Validity end as TradeTracker supplied it. Part of the cross-market comparison. */
+  validTo?: string | null;
+  /** Raw TradeTracker discount/voucher text. Part of the cross-market comparison. */
+  discountText?: string | null;
+  /** SHA-256 of the stored creative bytes. Part of the cross-market comparison. */
+  imageContentHash?: string | null;
+  /** Market-specific TradeTracker campaign. Never compared across markets. */
+  campaignId?: string | null;
+  campaignName?: string | null;
+  affiliateSiteId?: string | null;
+  /** Markets that carry this exact offer. Absent means only `market`. */
+  markets?: readonly VacationWebPromotionMarket[];
+  /** One clickout per market. Absent means `clickUrl` for `market`. */
+  clickouts?: readonly MarketClickout[];
 };
 
 const BARE_PROMO = new Set([
@@ -111,6 +131,7 @@ function cardClick(card: AanbiedingenCard): string | null {
       affiliateSiteId: card.affiliateSiteId,
       materialItemId: card.materialItemId,
       trackingClickUrlTemplate: card.clickUrl,
+      campaignUrl: card.campaignUrl,
     });
   }
   if (!card.campaignUrl || card.campaignUrl.includes('/i?') || card.campaignUrl.includes('/c?')) {
@@ -166,6 +187,12 @@ export function editorialOffersFromCards(cards: readonly AanbiedingenCard[], asO
       clickUrl,
       conditionsUrl: card.campaignUrl && !card.campaignUrl.includes('/c?') && !card.campaignUrl.includes('/i?') ? card.campaignUrl : clickUrl,
       sources: [],
+      validTo: card.expirationDate,
+      discountText: card.discountText,
+      imageContentHash: usableStoredImage(card) ? card.imageContentHash ?? null : null,
+      campaignId: card.campaignId,
+      campaignName: card.campaignName,
+      affiliateSiteId: card.affiliateSiteId,
     });
   }
   return offers;

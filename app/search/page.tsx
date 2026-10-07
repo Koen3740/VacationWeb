@@ -1,5 +1,6 @@
 import { SearchForm } from '@/components/search/search-form';
-import { loadFilterOptions } from '@/lib/offers/load-filter-options';
+import { loadHostFilterOptions } from '@/lib/offers/present-active-filter-options';
+import { requestSiteMarket } from '@/lib/search/request-site-market';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +10,8 @@ export default async function SearchPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const filterOptions = loadFilterOptions();
+  // SUB 33D: counts and popup countries follow the host market.
+  const filterOptions = await loadHostFilterOptions(requestSiteMarket());
   const countryCounts = filterOptions.countryCounts ?? {};
   const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? 0);
 

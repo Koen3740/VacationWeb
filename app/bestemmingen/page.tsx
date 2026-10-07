@@ -1,6 +1,7 @@
 import { BestemmingenCountryList } from '@/components/bestemmingen/bestemmingen-country-list';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import { loadActiveDestinationCountries } from '@/lib/offers/list-active-destination-countries';
+import { requestSiteMarket } from '@/lib/search/request-site-market';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -14,7 +15,8 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export default async function BestemmingenPage() {
-  const countries = await loadActiveDestinationCountries();
+  // SUB 33D: only countries with offers in the host market.
+  const countries = await loadActiveDestinationCountries(requestSiteMarket());
 
   return (
     <div className="min-h-screen bg-[#F7F5F1]">

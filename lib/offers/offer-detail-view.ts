@@ -22,6 +22,7 @@ import { normalizeDepartureDateToIso } from '@/lib/search/departure-date';
 import { formatDateDdMmYyyy, formatDeparturePresentation } from '@/lib/search/departure-presentation';
 import { formatOfferDepartureAirportLabel } from '@/lib/search/departure-airports';
 import { formatOccupancyCompositionNl } from '@/lib/search/occupancy-category';
+import { isClickoutAllowedForSiteMarket, offerForSiteMarket } from '@/lib/search/market-inventory';
 import type { ProviderListing } from '@/lib/feeds/types/stored-offer';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
@@ -474,7 +475,23 @@ export function bookingVacationCtaLabel(offer: TravelOffer): string {
   return `Boek deze vakantie bij ${offer.provider}`;
 }
 
+/**
+ * SUB 33D: on vacationweb.be / .nl the click-out must leave through that market's own
+ * TradeTracker site. A foreign href (e.g. a stale overlay) falls back to the offer's own
+ * market listing, else no click-out.
+ */
 export function affiliateHref(offer: TravelOffer, params?: SearchParams): string | undefined {
+  const href = unscopedAffiliateHref(offer, params);
+  const market = params?.siteMarket;
+  if (!market || isClickoutAllowedForSiteMarket(href, market)) {
+    return href;
+  }
+  const own = offerForSiteMarket(offer, market);
+  const fallback = own?.deepLink?.trim();
+  return fallback && isClickoutAllowedForSiteMarket(fallback, market) ? fallback : undefined;
+}
+
+function unscopedAffiliateHref(offer: TravelOffer, params?: SearchParams): string | undefined {
   const selected = selectedProviderListing(offer);
   if (selected) {
     return selected.deepLink.trim();

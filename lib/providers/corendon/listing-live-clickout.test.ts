@@ -298,29 +298,31 @@ test('room assignments stay in the cache key', () => {
   );
 });
 
-test('departure airport prefers matching Corendon environment', () => {
+// SUB 33D: on vacationweb.be / .nl foreign listings are removed before ranking
+// (market-inventory.test.ts). These cases cover a request without market (localhost).
+test('no market host: departure airport prefers matching Corendon environment', () => {
   const amsOffer = makeOffer({
     deepLink: BE_AMS.deepLink,
     providerListings: [BE_AMS, NL_AMS],
   });
   const bruOffer = makeOffer({ providerListings: [BE_NL, NL] });
 
-  assert.equal(selectCorendonListing(amsOffer, { siteMarket: 'be' })?.host, CORENDON_FE_HOST_NL);
-  assert.equal(selectCorendonListing(bruOffer, { siteMarket: 'nl' })?.host, CORENDON_FE_HOST);
+  assert.equal(selectCorendonListing(amsOffer, {})?.host, CORENDON_FE_HOST_NL);
+  assert.equal(selectCorendonListing(bruOffer, {})?.host, CORENDON_FE_HOST);
 });
 
-test('Belgian user + Amsterdam uses NL listing', () => {
+test('no market host + Amsterdam uses NL listing', () => {
   const offer = makeOffer({
     deepLink: BE_AMS.deepLink,
     providerListings: [BE_AMS, NL_AMS],
   });
-  const selected = selectCorendonListing(offer, { siteMarket: 'be', departureAirport: 'AMS' });
+  const selected = selectCorendonListing(offer, { departureAirport: 'AMS' });
   assert.equal(selected?.host, CORENDON_FE_HOST_NL);
   assert.equal(selected?.feedId, CORENDON_FEED_NL);
 });
 
-test('Dutch user + Brussels uses BE listing', () => {
-  const selected = selectCorendonListing(makeOffer(), { siteMarket: 'nl', departureAirport: 'BRU' });
+test('no market host + Brussels uses BE listing', () => {
+  const selected = selectCorendonListing(makeOffer(), { departureAirport: 'BRU' });
   assert.equal(selected?.host, CORENDON_FE_HOST);
   assert.equal(selected?.feedId, CORENDON_FEED_BENL);
 });

@@ -14,6 +14,7 @@ import {
   writeLivePriceL2Record,
 } from './live-price-l2-store';
 import { noteLivePriceL2Event } from './live-price-l2-observability';
+import { isClickoutAllowedForSiteMarket } from './market-inventory';
 
 export type ResultsLivePriceOverlay = Pick<
   TravelOffer,
@@ -526,8 +527,37 @@ export function setResultsLivePriceOverlay(
   }
 }
 
-function applyOverlay(offer: TravelOffer, overlay: ResultsLivePriceOverlay): TravelOffer {
-  return { ...offer, ...overlay };
+/**
+ * SUB 33D: the L1/L2 key is not market-scoped (L2 records stay valid), so an overlay
+ * written for the other market must not bind its click-out to this market's request.
+ * Listing-scoped Corendon keys only see this market's listings; this guards bare keys.
+ * A foreign proven price is ignored; a foreign non-proven status keeps the offer's own binding.
+ */
+function overlayForSiteMarket(
+  overlay: ResultsLivePriceOverlay,
+  siteMarket: SearchParams['siteMarket'],
+): ResultsLivePriceOverlay | undefined {
+  if (!siteMarket || isClickoutAllowedForSiteMarket(overlay.deepLink, siteMarket)) {
+    return overlay;
+  }
+  if (overlay.livePriceStatus === 'proven') {
+    return undefined;
+  }
+  const status: ResultsLivePriceOverlay = { ...overlay };
+  delete status.deepLink;
+  delete status.listingHost;
+  delete status.feedSourceId;
+  delete status.affiliateCampaignId;
+  return status;
+}
+
+function applyOverlay(
+  offer: TravelOffer,
+  overlay: ResultsLivePriceOverlay,
+  siteMarket?: SearchParams['siteMarket'],
+): TravelOffer {
+  const scoped = overlayForSiteMarket(overlay, siteMarket);
+  return scoped ? { ...offer, ...scoped } : offer;
 }
 
 export function applyResultsLivePriceOverlay(
@@ -548,12 +578,12 @@ export function applyResultsLivePriceOverlay(
           listingHost: overlay.listingHost ?? listing.host,
           feedSourceId: overlay.feedSourceId ?? listing.feedId,
           affiliateCampaignId: overlay.affiliateCampaignId ?? listing.campaignId,
-        });
+        }, params.siteMarket);
       }
     }
     const baseOverlay = getResultsLivePriceOverlay(offer.id, params);
     if (baseOverlay?.livePriceStatus === 'unpriced') {
-      return applyOverlay(offer, baseOverlay);
+      return applyOverlay(offer, baseOverlay, params.siteMarket);
     }
     for (const listing of ranked) {
       const overlay = getResultsLivePriceOverlay(offer.id, {
@@ -561,11 +591,11 @@ export function applyResultsLivePriceOverlay(
         listingKey: corendonListingCacheKey(listing),
       });
       if (overlay) {
-        return applyOverlay(offer, overlay);
+        return applyOverlay(offer, overlay, params.siteMarket);
       }
     }
     if (baseOverlay) {
-      return applyOverlay(offer, baseOverlay);
+      return applyOverlay(offer, baseOverlay, params.siteMarket);
     }
     return offer;
   }
@@ -574,7 +604,7 @@ export function applyResultsLivePriceOverlay(
   if (!overlay) {
     return offer;
   }
-  return applyOverlay(offer, overlay);
+  return applyOverlay(offer, overlay, params.siteMarket);
 }
 
 export function applyResultsLivePriceOverlays(

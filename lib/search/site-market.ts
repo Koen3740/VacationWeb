@@ -3,8 +3,10 @@ import type { SearchParams } from '@/types/travel';
 export type SiteMarket = 'be' | 'nl';
 
 /**
- * vacationmap.be vs vacationmap.nl. Domain does not lock inventory.
- * Used only as a listing-preference signal after departure airport.
+ * vacationweb.be vs vacationweb.nl (www and apex). The domain selects the Results market:
+ * Results inventory is market-isolated (SUB 33D, replaces PD-020). A BE-only offer is not
+ * eligible for NL Results, and an NL-only offer is not eligible for BE Results.
+ * See `market-inventory.ts`. localhost and other hosts have no market and see the full catalog.
  */
 export function resolveSiteMarketFromHost(host: string | undefined | null): SiteMarket | undefined {
   const hostname = (host ?? '').split(',')[0]?.trim().split(':')[0]?.toLowerCase() ?? '';

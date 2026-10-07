@@ -61,6 +61,8 @@ function creative(market: 'nl' | 'be'): TradeTrackerBannerCreativeRecord {
 
 function snapshot(target: CreativeIngestTarget): TradeTrackerCreativeSnapshot {
   const item = creative(target.market);
+  // The real ingest reads these from getCampaigns(site, accepted) with the market's own key.
+  const campaignIds = target.campaignIds ? [...target.campaignIds] : [target.market === 'be' ? '38103' : '38108'];
   return {
     source: TRADETRACKER_SOURCE,
     ingestedAt: FETCHED_AT,
@@ -69,14 +71,21 @@ function snapshot(target: CreativeIngestTarget): TradeTrackerCreativeSnapshot {
     scopedAffiliateSiteId: target.affiliateSiteId,
     credentialScope: target.market,
     imageDelivery: 'metadata-and-embed-code',
-    campaignIds: [...target.campaignIds],
+    campaignIds,
+    acceptedCampaigns: campaignIds.map((campaignId) => ({
+      campaignId,
+      campaignName: target.market === 'be' ? 'Corendon.be' : 'Corendon NL',
+      campaignUrl: target.market === 'be' ? 'https://www.corendon.be/' : 'https://www.corendon.nl/',
+      assignmentStatus: 'accepted' as const,
+      provider: 'Corendon' as const,
+    })),
     creatives: target.affiliateSiteId === TRADETRACKER_CREATIVE_CANONICAL_SITE[target.market] ? [item] : [],
     methodErrors: [],
     counts: {
       creatives: 1,
-      campaignsRequested: target.campaignIds.length,
+      campaignsRequested: campaignIds.length,
       methodErrors: 0,
-      byCampaignId: { [target.campaignIds[0] ?? '0']: 1 },
+      byCampaignId: { [campaignIds[0] ?? '0']: 1 },
     },
   };
 }

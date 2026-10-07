@@ -308,10 +308,20 @@ function urlParts(raw: string): URL | null {
   }
 }
 
+/** TradeTracker direct link on the advertiser's own domain: `?tt=<campaign>_<material>_<site>_<reference>`. */
+export function isDirectLinkClickUrl(raw: string): boolean {
+  const url = urlParts(raw);
+  if (!url || (url.protocol !== 'https:' && url.protocol !== 'http:')) {
+    return false;
+  }
+  const tt = url.searchParams.getAll('tt');
+  return tt.length === 1 && /^\d+_\d+_\d+_/.test(tt[0] ?? '');
+}
+
 function isClickUrl(raw: string): boolean {
   const url = urlParts(raw);
   if (url) {
-    return url.pathname === '/c' || url.pathname.endsWith('/c');
+    return url.pathname === '/c' || url.pathname.endsWith('/c') || isDirectLinkClickUrl(raw);
   }
   return /\/c\?/i.test(raw);
 }

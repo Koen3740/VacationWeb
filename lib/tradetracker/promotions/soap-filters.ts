@@ -32,6 +32,21 @@ export function emptyCampaignFilter(): Record<string, null> {
   };
 }
 
+export type CampaignFilterOverrides = {
+  /** WSDL assignmentStatus enumeration, e.g. `accepted`. */
+  assignmentStatus?: string | null;
+};
+
+/** CampaignFilter with selected fields set. Unset fields stay xsi:nil. */
+export function campaignFilter(overrides: CampaignFilterOverrides = {}): Record<string, string | null> {
+  const filter = emptyCampaignFilter() as Record<string, string | null>;
+  const status = overrides.assignmentStatus?.trim();
+  if (status) {
+    filter.assignmentStatus = status;
+  }
+  return filter;
+}
+
 export function emptyCampaignNewsItemFilter(): Record<string, null> {
   return {
     ID: null,

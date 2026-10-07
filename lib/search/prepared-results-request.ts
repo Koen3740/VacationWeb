@@ -6,6 +6,7 @@ import { cache } from 'react';
 import { loadOffers } from '@/lib/offers/load-offers';
 import { withCatalogFilterIndexAsync } from '@/lib/offers/catalog-filter-index';
 import { excludeParkedResultsProviders } from '@/lib/search/presentable-price';
+import { siteMarketUniverse } from '@/lib/search/market-inventory';
 import {
   prepareResultsOffers,
   type PreparedResultsOffers,
@@ -58,7 +59,11 @@ function stableFilterKey(params: SearchParams): string {
 const prepareCached = cache(
   async (filterKey: string, params: SearchParams): Promise<PreparedResultsOffers> => {
     const t0 = Date.now();
-    const offers = excludeParkedResultsProviders(await loadOffers());
+    // SUB 33D: market universe first (vacationweb.be / .nl), before matchset, pool,
+    // Page 1, S6 and live pricing. Catalog itself is not changed.
+    const offers = excludeParkedResultsProviders(
+      siteMarketUniverse(await loadOffers(), params.siteMarket),
+    );
     const loadMs = Date.now() - t0;
     const t1 = Date.now();
     const prepared = await withCatalogFilterIndexAsync(offers, () =>
