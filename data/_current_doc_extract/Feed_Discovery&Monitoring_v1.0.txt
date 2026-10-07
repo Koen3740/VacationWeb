@@ -1,0 +1,17 @@
+<<< EXTRACT — NIET SSOT >>>
+Bronmap (leidend): C:\Users\koenm\Documents\VacationWeb\VacationWeb_Master_Handbook\Current\
+Extract van: Feed_Discovery&Monitoring_v1.0 (bestandsnaam kan licht afwijken van Current-versie)
+Dit is geen Current en geen SSOT. Zie _current_doc_extract/README.md en DOC-002.
+<<< EINDE HEADER >>>
+
+﻿Feed Discovery & Monitoring
+Dit document bestond nog niet als idee, maar is tijdens ons gesprek ontstaan.
+Hierin beschrijf je:
+hoe controleren of er nieuwe feeds zijn 
+hoe controleren of feeds verdwijnen 
+hoe controleren of URL's wijzigen 
+hoe controleren of productaantallen plots veranderen 
+hoe controleren of je nieuwe campagnes hebt gekregen 
+toekomstige automatisering (health checks, meldingen, enz.) 
+
+

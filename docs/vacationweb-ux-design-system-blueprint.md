@@ -1,3 +1,5 @@
+> **Niet Current / niet SSOT.** Officiële handleidingen staan uitsluitend in `C:\Users\koenm\Documents\VacationWeb\VacationWeb_Master_Handbook\Current\`. Dit bestand is repo-/projectcontext onder VacationWebNext. Zie PROJECT_LOG DOC-002.
+
 # VacationWeb UX & Design System Blueprint
 
 ## 1. Designfilosofie
@@ -939,6 +941,9 @@ Gedrag:
 
 ### 14.6 Geen exacte kleuren of CSS
 Deze blueprint geeft richtlijnen, geen implementatie-specifieke styling.
+
+
+
 
 ---
 

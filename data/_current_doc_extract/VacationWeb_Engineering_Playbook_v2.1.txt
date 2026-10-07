@@ -1,0 +1,50 @@
+<<< EXTRACT — NIET SSOT >>>
+Bronmap (leidend): C:\Users\koenm\Documents\VacationWeb\VacationWeb_Master_Handbook\Current\
+Extract van: VacationWeb_Engineering_Playbook_v2.1 (bestandsnaam kan licht afwijken van Current-versie)
+Dit is geen Current en geen SSOT. Zie _current_doc_extract/README.md en DOC-002.
+<<< EINDE HEADER >>>
+
+VacationWeb Engineering Playbook v1.9 
+Dit document bevat uitsluitend de wijzigingen zoals goedgekeurd tijdens de audit. 
+ 
+ 
+Versie 
+Versie gewijzigd van v1.8 naar v1.9. 
+Purpose 
+Verwijzing aangepast van v1.0–v1.7 naar v1.0–v1.8. 
+Engineering Principles 
+Voeg de volgende drie regels toe na: 
+'Do not connect the UI directly to supplier XML.' 
+ 
+• Access runtime offers exclusively through loadOffers(). 
+• Runtime TravelOffer objects are produced through normalizeOffer(). 
+Notes 
+Laatste zin aanpassen zodat verwezen wordt naar v1.8 in plaats van v1.7. 
+NEW (v2.0) – Engineering Rules 
+ 
+Architecture decisions are never implemented before explicit approval in the 
+Main Chat. 
+ 
+Cursor workflow is mandatory: Analyse → Proposal → Approval → Implement → 
+Typecheck → Build → Functional veriϐication → Report. 
+ 
+Generated runtime data must not be committed to Git unless explicitly approved. 
+ 
+Runtime data must not be a mandatory build-time dependency when excluded 
+from Git. 
+ 
+Use Scope Lock: never stage or modify files outside the approved scope. 
+ 
+Investigate the root cause before clearing caches or reinstalling dependencies. 
+ 
+After npm run build or major routing/import changes, restart the development 
+server. 
+NEW (v2.1) – Cursor Context Pack 
+At the start of every major implementation work package, Cursor receives a Context Pack 
+consisting of the VacationWeb AI Instructions, the current official Knowledge Base and the 
+latest MainChat_Delta when it contains relevant project or architecture decisions. The 
+Subchat remains responsible for document selection, context interpretation, 
+Use Cloudflare R2 Object Storage as the Single Source of Truth for runtime offer data.
+
+implementation strategy and quality review. This does not change governance or software 
+architecture. 

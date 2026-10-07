@@ -1,4 +1,11 @@
+> **Niet Current / niet SSOT.** Officiële handleidingen staan uitsluitend in `C:\Users\koenm\Documents\VacationWeb\VacationWeb_Master_Handbook\Current\`. Dit bestand is repo-/projectcontext onder VacationWebNext. Zie PROJECT_LOG DOC-002.
+
 # VacationWeb Technical Architecture v1
+
+> **Status (2026-08-30):** HISTORISCHE BLUEPRINT (vroege fase-1 / “Corendon-first”-visie).  
+> Dit document is **niet** de actuele Results-runtime (multi-provider live pricing, catalogus-shards, Prijsvrij PARKED).  
+> Actuele catalogus + live-pricing fasestatus: [`docs/research/search-capacity/catalog-live-pricing-phases-a-b-status.md`](./research/search-capacity/catalog-live-pricing-phases-a-b-status.md).  
+> Onderstaande tekst blijft intact als historische architectuurintentie.
 
 ## 1. Doel van deze architectuur
 

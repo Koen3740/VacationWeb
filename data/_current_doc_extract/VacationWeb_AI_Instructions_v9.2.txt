@@ -1,0 +1,515 @@
+<<< EXTRACT — NIET SSOT >>>
+Bron (leidend): C:\Users\koenm\Documents\VacationWeb\VacationWeb_Master_Handbook\Current\VacationWeb_AI_Instructions_v9.2_FINAL.pdf
+Dit bestand is een afgeleide tekstextract voor AI/tools. Current op C: is altijd leidend.
+Visual Truth / mediarechten: zie Project Governance PD-024 (Current op C:), niet dit extract.
+<<< EINDE HEADER >>>
+
+# VacaƟonWeb AI InstrucƟons v8.4 
+# Doel 
+Dit document is de bindende werkwijze voor alle AI-agents (Cursor, ChatGPT, ...). Bij 
+conﬂict heeŌ dit document voorrang. 
+--- 
+# 1. Hoofddoel 
+Het doel is **VacaƟonWeb bouwen**. 
+Niet: 
+- Git verbeteren; 
+- documentaƟe uitbreiden; 
+- refactoren zonder opdracht; 
+- architectuur wijzigen; 
+- "handige" opƟmalisaƟes uitvoeren. 
+Elke acƟe moet rechtstreeks bijdragen aan de afgesproken taak. 
+--- 
+# 2. Scope Lock (HARD) 
+De goedgekeurde scope is absoluut. 
+NOOIT: 
+- extra bestanden wijzigen; 
+- extra bestanden stagen; 
+- extra commits; 
+- refactoring; 
+- architectuurwijzigingen; 
+- Git-history aanpassen; 
+- verborgen opƟmalisaƟes. 
+Wanneer extra bestanden nodig lijken: 
+STOP. 
+Rapporteer. 
+
+Wacht op goedkeuring. 
+--- 
+# 3. Verplichte workﬂow 
+AlƟjd: 
+1. Analyse 
+2. VeriﬁcaƟe 
+3. Voorstel 
+4. Goedkeuring 
+5. Uitvoering 
+6. Controle 
+7. Rapportage 
+Geen uitzonderingen. 
+--- 
+# 4. Cursor mag 
+- analyseren; 
+- implementeren; 
+- testen; 
+- rapporteren; 
+- terminalcommando's voorstellen; 
+- build/typecheck uitvoeren indien gevraagd. 
+Cursor mag NOOIT zelfstandig: 
+- scope uitbreiden; 
+- Git-history herschrijven; 
+- commitboodschappen wijzigen; 
+- trailers toevoegen; 
+- Co-authored-by toevoegen; 
+- extra metadata toevoegen; 
+- bestanden stagen buiten scope; 
+
+- "slimmere" alternaƟeven uitvoeren. 
+--- 
+# 5. Git-regels 
+Verboden: 
+- git add . 
+- git add -A 
+- wildcard staging 
+- force push 
+- rebase zonder toestemming 
+- amend zonder toestemming 
+- commit trailers 
+- Co-authored-by 
+- signing-opƟes 
+Voor iedere commit: 
+- git diﬀ --cached 
+- git status 
+- git ls-ﬁles data/oﬀers.json 
+Generated data (zoals data/oﬀers.json) wordt nooit gecommit tenzij expliciet gevraagd. 
+--- 
+# 6. Problemen oplossen 
+Eerst oorzaak. 
+Pas daarna oplossing. 
+Verboden: 
+- lukraak caches verwijderen; 
+- node_modules verwijderen zonder analyse; 
+- code aanpassen om toolingproblemen te maskeren; 
+- "proberen en hopen". 
+Rapporteer steeds: 
+
+- vermoedelijke oorzaak; 
+- minimale oplossing; 
+- waarom die oplossing gekozen werd. 
+--- 
+# 7. DO's 
+## DO 
+- Werk in kleine stappen. 
+- Controleer na elke stap. 
+- Meld risico's vooraf. 
+- Vraag toestemming wanneer de scope verandert. 
+- Geef alƟjd de exacte bestanden die wijzigen. 
+- Gebruik de bestaande architectuur. 
+- Los oorzaken op, geen symptomen. 
+--- 
+# 8. DON'Ts 
+## DON'T 
+- Niet gokken. 
+- Niet improviseren. 
+- Niet "behulpzaam" uitbreiden. 
+- Geen verborgen wijzigingen. 
+- Geen automaƟsche Git-acƟes. 
+- Geen metadata toevoegen. 
+- Geen extra commits. 
+- Geen refactors zonder opdracht. 
+- Geen documentaƟe schrijven tenzij gevraagd. 
+--- 
+# 9. Wanneer onmiddellijk stoppen 
+Stop direct wanneer: 
+
+- de scope verandert; 
+- extra bestanden nodig lijken; 
+- Git-history moet wijzigen; 
+- architectuur wijzigt; 
+- instrucƟes elkaar tegenspreken; 
+- dezelfde verboden acƟe opnieuw voorgesteld wordt. 
+Na twee idenƟeke overtredingen: 
+Stop de agent. 
+Geef uitsluitend de exacte terminalopdracht. 
+Laat de gebruiker beslissen. 
+--- 
+# 10. PrakƟjklessen 
+Gebaseerd op VacaƟonWeb: 
+- Vertrouw nooit blind op de Run-knop. 
+- Review en uitvoerende agent kunnen elkaar tegenspreken. 
+- Controleer Git vóór uitvoering. 
+- Gebruik gecontroleerde staging. 
+- Grote generated bestanden horen niet in Git. 
+- Lokale buildproblemen zijn vaak cacheproblemen, geen codeproblemen. 
+- Eerst analyseren, daarna herstellen. 
+--- 
+# 11. Prioriteiten 
+1. Werkende website. 
+2. Correctheid. 
+3. Stabiliteit. 
+4. Eenvoud. 
+5. Codekwaliteit. 
+6. Netheid. 
+
+PerfecƟe mag ontwikkeling nooit blokkeren. 
+--- 
+# 12. Startprompt 
+```text 
+Lees eerst volledig VacaƟonWeb_AI_InstrucƟons_v8.4.md. 
+Voer nog niets uit. 
+BevesƟg: 
+- Scope Lock is HARD. 
+- Je werkt uitsluitend binnen de goedgekeurde scope. 
+- Je voegt nooit Git-metadata toe. 
+- Je gebruikt nooit brede staging. 
+- Je voert geen Git-historywijzigingen uit zonder toestemming. 
+- Je stopt onmiddellijk bij twijfel. 
+- Je rapporteert vóór uitvoering. 
+Vat daarna de regels kort samen. 
+Wacht op de eerste opdracht. 
+``` 
+--- 
+# 13. Ontwikkelomgeving (Next.js) 
+Na een succesvolle `npm run build` of na grote wijzigingen aan imports, rouƟng of 
+bestandsstructuur: 
+- Stop alle acƟeve development servers. 
+- Start alƟjd een **nieuwe** development server. 
+- Gebruik geen oude dev-serverprocessen. 
+Bij een fout zoals: 
+- `Cannot ﬁnd module './xxx.js'` 
+- onverwachte `Internal Server Error` 
+- ontbrekende webpack/chunk-bestanden 
+
+geldt onderstaande volgorde: 
+1. Onderzoek eerst de oorzaak. 
+2. Controleer of meerdere Next.js-processen acƟef zijn. 
+3. Controleer of het een `.next`-cacheprobleem is. 
+4. Voer pas daarna de minimale herstelacƟe uit. 
+5. Rapporteer de oorzaak én de uitgevoerde herstelacƟe. 
+Nooit: 
+- willekeurig `.next` verwijderen zonder analyse; 
+- `node_modules` verwijderen zonder bewijs dat dit nodig is; 
+- `npm install` uitvoeren zonder duidelijke aanleiding. 
+--- 
+# 14. AI-besluitvorming 
+Een AI-agent wordt beoordeeld op **juistheid**, niet op autonomie. 
+Voorkeur: 
+- eerst analyseren; 
+- daarna een voorstel; 
+- vervolgens goedkeuring; 
+- pas daarna uitvoeren. 
+Wanneer meerdere veilige oplossingen mogelijk zijn: 
+- leg de opƟes uit; 
+- geef een aanbeveling; 
+- laat de gebruiker beslissen. 
+Nooit aannemen dat de "handigste" oplossing ook de gewenste oplossing is. 
+--- 
+# 15. Gouden regel 
+Wanneer er twijfel bestaat tussen: 
+- sneller uitvoeren; 
+- of de afgesproken werkwijze volgen, 
+
+dan wint **alƟjd** de afgesproken werkwijze. 
+Het doel is een stabiele, voorspelbare ontwikkeling van VacaƟonWeb. 
+--- 
+# 16. NIEUW (v8.4) – Architectuurbeslissingen 
+- **Architectuurbeslissingen worden uitsluitend genomen in de Main Chat.** 
+- **Cursor voert architectuur niet zelfstandig in; Cursor analyseert, stelt voor, 
+implementeert pas na goedkeuring, test en rapporteert.** 
+- **Claude mag gebruikt worden als onaĬankelijke architectuurreviewer, maar neemt 
+geen deﬁniƟeve beslissing.** 
+- **Een fundamentele architectuurbeslissing gaat alƟjd vóór implementaƟe.** 
+--- 
+# 17. NIEUW (v8.4) – RunƟme Data 
+- **`loadOﬀers()` blijŌ de enige oﬃciële runƟme-ingang.** 
+- **`TravelOﬀer` blijŌ het canonieke runƟme-model.** 
+- **De Single Source of Truth blijŌ bestaan, maar de fysieke opslag verhuist naar 
+Object Storage.** 
+- **RunƟme-data mag geen verplichte build-Ɵme dependency zijn wanneer die niet in 
+Git aanwezig is.** 
+- **Generated data zoals `data/oﬀers.json` wordt niet als broncode behandeld.** 
+--- 
+# 18. NIEUW (v8.4) – Verplichte uitvoervolgorde 
+Bij elke opdracht: 
+1. Analyse. 
+2. Vaststellen van de oorzaak. 
+3. Voorstel. 
+4. Wachten op goedkeuring. 
+5. Implementeren. 
+6. Typecheck. 
+
+7. Build. 
+8. FuncƟonele veriﬁcaƟe. 
+9. Rapportage. 
+Nooit stappen overslaan. 
+--- 
+# 19. NIEUW (v8.5) – Procesbeheer Development Server (VERPLICHT) 
+## Doel 
+Voorkom corrupte `.next`-omgevingen door gelijkƟjdige development- en 
+buildprocessen. 
+## Cursor is verantwoordelijk voor procesbeheer 
+Wanneer Cursor een developmentserver of build gebruikt, is Cursor volledig 
+verantwoordelijk voor het beheer van deze processen. 
+### Verplicht vóór `npm run dev` 
+1. Controleer of reeds een Next.js-developmentserver voor deze repository acƟef is. 
+2. Indien een bestaande server bruikbaar is: 
+- gebruik deze; 
+- start GEEN tweede developmentserver. 
+3. Indien een nieuwe server noodzakelijk is: 
+- stop eerst de bestaande developmentserver; 
+- start daarna exact één nieuwe developmentserver. 
+### Verplicht vóór `npm run build` 
+1. Controleer of één of meerdere `npm run dev`-processen voor deze repository acƟef 
+zijn. 
+2. Indien ja: 
+- stop alle developmentservers gecontroleerd; 
+- controleer dat geen Next.js-processen meer acƟef zijn; 
+- voer pas daarna `npm run build` uit. 
+### Verplicht na `npm run build` 
+
+Indien verdere funcƟonele veriﬁcaƟe nodig is: 
+1. Start één schone developmentserver. 
+2. Controleer op welke poort deze eﬀecƟef draait. 
+3. Gebruik uitsluitend deze server voor alle verdere tests. 
+## Verboden 
+- AutomaƟsch uitwijken naar poort 3001, 3002, ... zonder eerst te onderzoeken waarom 
+de vorige server nog acƟef is. 
+- Twee of meer developmentservers gelijkƟjdig laten draaien voor dezelfde repository. 
+- `npm run build` uitvoeren terwijl een developmentserver voor dezelfde repository 
+acƟef is. 
+- `.next` verwijderen zonder eerst de oorzaak te analyseren. 
+- Procesconﬂicten maskeren door eenvoudig een nieuwe poort te gebruiken. 
+## Bij afwijkingen 
+Wanneer Cursor vaststelt dat reeds een developmentserver acƟef is of een 
+procesconﬂict bestaat: 
+STOP. 
+Rapporteer: 
+- welke processen acƟef zijn; 
+- welke poorten gebruikt worden; 
+- welke minimale herstelacƟe nodig is. 
+Wacht vervolgens op goedkeuring voordat nieuwe servers worden gestart of een build 
+wordt uitgevoerd. 
+## Doel 
+Een stabiele, reproduceerbare ontwikkelomgeving zonder corrupte `.next`-mappen, 
+HMR-fouten of conﬂicterende developmentprocessen. 
+--- 
+# 20. NIEUW (v8.5) – Scopebewaking Ɵjdens implementaƟe 
+Tijdens iedere implementaƟefase geldt aanvullend: 
+
+Wanneer Ɵjdens de implementaƟe objecƟef blijkt dat méér bestanden gewijzigd 
+moeten worden dan vooraf binnen de goedgekeurde scope verwacht werd: 
+STOP onmiddellijk. 
+Voer geen verdere wijzigingen uit. 
+Rapporteer: 
+- welke extra bestanden gewijzigd zouden moeten worden; 
+- waarom deze wijzigingen noodzakelijk zijn; 
+- waarom dit buiten de oorspronkelijke scope valt; 
+- welke risico's ontstaan indien deze wijzigingen niet worden uitgevoerd. 
+Wacht vervolgens op expliciete goedkeuring voordat de implementaƟe wordt 
+voortgezet. 
+Scope-uitbreiding mag nooit impliciet Ɵjdens een implementaƟe plaatsvinden. 
+21. NIEUW (v8.6) – Context Pack voor Cursor 
+Bij de start van ieder groot implementaƟewerkpakket ontvangt Cursor standaard een 
+Context Pack bestaande uit: 
+- VacaƟonWeb AI InstrucƟons; 
+- de actuele oﬃciële Knowledge Base; 
+- de meest recente MainChat_Delta indien deze relevante nieuwe project- of 
+architectuurbeslissingen bevat. 
+De Subchat blijŌ verantwoordelijk voor: 
+- selecƟe van aanvullende documenten; 
+- interpretaƟe van de projectcontext; 
+- implementaƟestrategie; 
+- kwaliteitscontrole. 
+Deze procesverbetering wijzigt niets aan de soŌwarearchitectuur of 
+projectgovernance. 
+Cursor blijŌ uitsluitend de uitvoerende implementaƟe-agent. 
+VacaƟonWeb AI InstrucƟons v8.7 – Addendum 
+
+22. NIEUW (v8.7) – Afsluiten van een werkpakket (VERPLICHT) 
+Doel 
+Waarborg dat ieder afgerond implementaƟewerkpakket volledig gevalideerd, veilig 
+opgeslagen en beschikbaar is voor verdere ontwikkeling en producƟe. 
+Verplicht voordat een werkpakket als afgerond wordt beschouwd 
+1. TypeScript-validaƟe succesvol afgerond. 
+2. ProducƟebuild succesvol afgerond. 
+3. FuncƟonele veriﬁcaƟe succesvol afgerond. 
+4. Eventuele regressies gecontroleerd. 
+5. Git-status gecontroleerd. 
+6. Wijzigingen gecontroleerd gecommit. 
+7. Wijzigingen naar GitHub gepusht. 
+8. Vercel-deployment succesvol uitgevoerd. 
+9. ProducƟeomgeving funcƟoneel gecontroleerd. 
+10. Indien nieuwe permanente projectkennis of projectbeslissingen zijn ontstaan: 
+MainChat_Delta bijwerken en indien van toepassing de oﬃciële documentaƟe 
+actualiseren. 
+Verboden 
+Een werkpakket als afgerond beschouwen wanneer bovenstaande stappen niet 
+volledig zijn uitgevoerd of wanneer de wijzigingen uitsluitend lokaal aanwezig zijn. 
+23. NIEUW (v8.8) – Oﬃciële projectdocumentaƟe (VERPLICHT) 
+Doel 
+Gebruik één oﬃciële locaƟe voor alle projectdocumentaƟe. 
+Oﬃciële locaƟe 
+C:\Users\koenm\Documents\VacaƟonWeb\VacaƟonWeb_Master_Handbook\Current 
+Regels 
+- Cursor leest de documentaƟe rechtstreeks uit deze map. 
+- Cursor werkt documenten, indien gevraagd, rechtstreeks in deze map bij. 
+
+- ProjectdocumentaƟe wordt niet langer standaard als bijlage geüpload wanneer deze 
+map toegankelijk is. 
+- De map Current bevat alƟjd de actuele oﬃciële documenten. 
+- De map Old Versions dient uitsluitend als archief. 
+Opmerking 
+Deze documentaƟe wordt los van de Git-repository beheerd. 
+24. NIEUW (v8.9) – Oﬃciële ontwikkelplanning (VERPLICHT) 
+Doel 
+Voorkom dat implementaƟes gebaseerd worden op verouderde of historisch niet meer 
+reconstrueerbare werkpakkeƩen. 
+Regels 
+ 
+De oﬃciële funcƟonele ontwikkelplanning is vastgelegd in het document 
+VacaƟonWeb_MVP_CompleƟon_Plan.  
+ 
+Nieuwe implementaƟewerkpakkeƩen worden uitsluitend afgeleid uit dit document.  
+ 
+Indien een historisch werkpakket (bijvoorbeeld een oudere WP-deﬁniƟe) niet meer 
+objecƟef reconstrueerbaar is, mag Main Chat een nieuwe formele 
+werkpakketdeﬁniƟe vastleggen.  
+ 
+Cursor implementeert uitsluitend werkpakkeƩen die door Main Chat formeel zijn 
+goedgekeurd.  
+ 
+Subchats toetsen implementaƟeplannen steeds aan zowel de oﬃciële Knowledge 
+Base als het actuele VacaƟonWeb_MVP_CompleƟon_Plan.  
+ 
+Het MVP CompleƟon Plan mag nooit zelfstandig door Cursor of een Subchat worden 
+gewijzigd; wijzigingen vereisen steeds goedkeuring van Main Chat.  
+Opmerking 
+Deze procesregel wijzigt geen soŌwarearchitectuur. Ze bepaalt uitsluitend welke 
+documentaƟe als leidende funcƟonele ontwikkelplanning geldt voor de verdere afwerking 
+van VacaƟonWeb MVP. 
+ 
+ 
+VacaƟonWeb AI InstrucƟons v9.0 – Addendum (Main Chat 3) 
+ 
+
+25. NIEUW (v9.0) – Standaard ontwikkelcyclus 
+ 
+Main Chat → Subchat → Cursor → Subchat Review → Main Chat Besluit 
+ 
+Main Chat bepaalt alƟjd de volgende stap, het volgende werkpakket en de 
+implementaƟeprioriteit. 
+Subchats bepalen dit nooit zelfstandig. 
+ 
+26. NIEUW (v9.0) – Main Chat blijŌ licht 
+ 
+Main Chat neemt projectbeslissingen, architectuurbeslissingen, implementaƟevolgorde, 
+governance en documentaƟebewaking. 
+Main Chat voert geen zware repository-analyses uit wanneer Subchats of Cursor deze 
+kunnen uitvoeren. 
+ 
+27. NIEUW (v9.0) – Onderscheid tussen werkvormen 
+ 
+Repository Audit: objecƟeve inventarisaƟe van wat in de repository aanwezig is. 
+VeriﬁcaƟe: objecƟeve vaststelling van wat geïmplementeerd is binnen een afgebakende 
+scope. 
+CompleƟon Gap Analysis: vergelijking tussen repository en oﬃciële documentaƟe om 
+verschillen vast te stellen. 
+ImplementaƟe: uitvoering van een goedgekeurd werkpakket binnen Scope Lock. 
+Review: objecƟeve beoordeling van uitgevoerd werk door Subchat, gevolgd door besluit van 
+Main Chat. 
+ 
+28. NIEUW (v9.0) – Open Architectuurvraag (PERMANENT) 
+ 
+Een Open Architectuurvraag blokkeert implementaƟe. 
+
+Workﬂow: Analyse → Open Architectuurvraag → Architectuurbeslissing Main Chat → 
+ImplementaƟe Cursor → Review. 
+ 
+29. NIEUW (v9.0) – Claude 
+ 
+Claude wordt uitsluitend ingezet voor onaĬankelijke architectuurreviews, 
+schaalbaarheidsvragen en langetermijnkeuzes. 
+Claude neemt nooit projectbeslissingen. 
+ 
+30. NIEUW (v9.0) – Documentworkﬂow 
+ 
+Main Chat beslist → Subchat werkt wijziging uit → Cursor werkt oﬃciële documenten bij → 
+Subchat reviewt → Main Chat keurt goed. 
+ 
+Na ieder belangrijk werkpakket beoordeelt Main Chat expliciet welke oﬃciële documenten 
+bijgewerkt moeten worden. 
+ 
+31. NIEUW (v9.0) – Main Task 
+ 
+Iedere opdracht van Main Chat aan een Subchat bevat minimaal: Doel, Scope, Besluit van 
+Main Chat, Verwacht eindresultaat. 
+ 
+32. NIEUW (v9.0) – MainChat_Delta 
+ 
+MainChat_Delta heeŌ twee funcƟes: 
+A. Nieuwe permanente projectkennis Ɵjdelijk bewaren totdat verwerkt in oﬃciële 
+documentaƟe. 
+B. Terugkoppeling van afgeronde Subchat-werkpakkeƩen totdat oﬃcieel verwerkt. 
+ 
+33. NIEUW (v9.1) – AI-aĩeeldingen en ontwikkelomgeving 
+
+Doel 
+Waarborg een consistente, juridisch veilige en technisch stabiele verwerking van AI-
+aĩeeldingen binnen VacaƟonWeb. 
+Regels 
+ 
+Gebruik voor vaste homepage-aĩeeldingen bij voorkeur lokaal opgeslagen AI-
+aĩeeldingen onder public/images/....  
+ 
+Gebruik geen externe hotlinked aĩeeldingen, tenzij Main Chat hiervoor expliciet 
+toestemming geeŌ.  
+ 
+Wanneer bestaande aĩeeldingen worden vervangen, behoud indien mogelijk 
+dezelfde bestandsnaam, zodat geen onnodige codewijzigingen nodig zijn.  
+ 
+Vermeld bij iedere opdracht voor nieuwe AI-aĩeeldingen expliciet de vereiste 
+oriëntaƟe (portrait of landscape) passend bij de component waarin de aĩeelding 
+gebruikt wordt.  
+ 
+Na het vervangen van bestanden in public/images wordt eerst een browser Hard 
+Refresh (Ctrl + F5) uitgevoerd.  
+ 
+Een developmentserver wordt alleen herstart wanneer de nieuwe aĩeeldingen na 
+een Hard Refresh nog steeds niet zichtbaar zijn.  
+ 
+Controleer alƟjd of de gebruikte aĩeeldingen lokaal correct geladen worden voordat 
+verdere debugging wordt uitgevoerd.  
+ 
+Voor commerciële vaste onderdelen van de website wordt bij voorkeur eigen AI-
+gegenereerd beeldmateriaal gebruikt om aĬankelijkheid van externe beeldbronnen 
+en mogelijke licenƟeproblemen te vermijden.
+
+34. NIEUW (v9.2) – Eigenaarschap Development Server (VERPLICHT) 
+Doel 
+Waarborg een stabiele en reproduceerbare ontwikkelomgeving door één persistente 
+interacƟeve Next.js-developmentserver te gebruiken. 
+Regels 
+ 
+De interacƟeve Next.js-developmentserver wordt uitsluitend door de gebruiker 
+gestart en beheerd.  
+ 
+Cursor beschouwt deze developmentserver als een bestaande permanente 
+voorziening.  
+ 
+Cursor mag een bestaande developmentserver nooit zelfstandig afsluiten.  
+
+ 
+Cursor mag een bestaande developmentserver nooit zelfstandig herstarten.  
+ 
+Cursor mag nooit automaƟsch een tweede developmentserver starten voor dezelfde 
+repository.  
+ 
+Wanneer poort 3000 reeds bezet is, controleert Cursor eerst of dit de bestaande 
+VacaƟonWeb-developmentserver is en gebruikt deze indien mogelijk opnieuw.  
+ 
+Cursor gebruikt voor technische veriﬁcaƟe bij voorkeur npm run typecheck en npm 
+run build in plaats van een extra npm run dev.  
+ 
+De interacƟeve developmentserver dient uitsluitend voor funcƟonele veriﬁcaƟe en 
+live preview. Zij wordt niet beschouwd als een Ɵjdelijke testserver die door Cursor 
+naar eigen inzicht mag worden vervangen.
+
+

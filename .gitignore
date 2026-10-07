@@ -45,3 +45,9 @@ docs/research/tradetracker-webservices/**/*credential*
 docs/research/tradetracker-webservices/raw/**
 **/Webservice_ID_Toegengssleutel.txt
 .env*
+
+# local generated artifacts (test runners, python cache, local live-pricing runtime store, temp validation output)
+.test-out/
+__pycache__/
+data/ops/live-pricing/store.json
+/tmp-*

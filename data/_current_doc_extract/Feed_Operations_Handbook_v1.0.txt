@@ -1,0 +1,176 @@
+<<< EXTRACT — NIET SSOT >>>
+Bronmap (leidend): C:\Users\koenm\Documents\VacationWeb\VacationWeb_Master_Handbook\Current\
+Extract van: Feed_Operations_Handbook_v1.0 (bestandsnaam kan licht afwijken van Current-versie)
+Dit is geen Current en geen SSOT. Zie _current_doc_extract/README.md en DOC-002.
+<<< EINDE HEADER >>>
+
+﻿Feed Operations Handbook
+Doel: beschrijven hoe VacationWeb zijn feeds beheert.
+Inhoud
+1. Overzicht van alle feedproviders
+Corendon 
+Prijsvrij 
+Sunweb 
+Eliza was Here 
+CheapTickets
+... 
+Per provider:
+TradeTracker-campagne 
+Feednaam
+Feedtype
+XML/JSON/CSV beschikbaar 
+Productaantal 
+Updatefrequentie 
+
+2. Feed-URL's
+Voor iedere feed:
+URL 
+waar opgeslagen 
+wanneer toegevoegd 
+laatste controle 
+
+3. Importproces
+Van TradeTracker
+â†“
+download XML
+â†“
+parser
+â†“
+normalisatie
+â†“
+offers.json
+â†“
+Next.js
+â†“
+VacationWeb
+
+4. Gezondheidscontroles
+Wat controleren?
+feed bereikbaar 
+XML geldig 
+aantal producten 
+verplichte velden 
+foto's 
+prijs 
+affiliate links 
+
+5. Incidentprocedure
+Wat doen als:
+feed verdwenen 
+URL gewijzigd 
+XML corrupt 
+0 producten 
+parser faalt 
+
+6. Monitoring
+Dagelijks
+Wekelijks
+Maandelijks
+Welke controles?
+
+7. Nieuwe provider toevoegen
+Stappenplan.
+8. Status
+Provider
+Feed
+URL
+Producten
+Update
+Status
+In gebruik
+Corendon
+Algemeen BENL
+...
+2.820
+dagelijks
+âœ…
+Ja
+Corendon
+GÃ©nÃ©ral BEFR
+...
+2.796
+dagelijks
+âŒ
+Nee
+Prijsvrij
+Algemeen
+...
+...
+dagelijks
+âœ…
+Ja
+Sunweb
+Spanje BENL
+...
+...
+dagelijks
+âŒ
+Nog niet
+Sunweb
+Griekenland BENL
+...
+...
+dagelijks
+âŒ
+Nog niet
+Sunweb
+Turkije BENL
+...
+...
+dagelijks
+âŒ
+Nog niet
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

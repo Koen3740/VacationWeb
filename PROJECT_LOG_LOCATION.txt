@@ -1,0 +1,7 @@
+﻿# PROJECT_LOG location
+
+The active VacationWeb PROJECT_LOG lives at:
+
+`D:\VacationWeb\PROJECT_LOG`
+
+This folder under VacationWebNext is intentionally empty of the project log after DOC-004 consolidation.

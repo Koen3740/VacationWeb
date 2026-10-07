@@ -1,0 +1,50 @@
+<<< EXTRACT — NIET SSOT >>>
+Bronmap (leidend): C:\Users\koenm\Documents\VacationWeb\VacationWeb_Master_Handbook\Current\
+Extract van: TradeTracker_Integration_ Guide_v1.0 (bestandsnaam kan licht afwijken van Current-versie)
+Dit is geen Current en geen SSOT. Zie _current_doc_extract/README.md en DOC-002.
+<<< EINDE HEADER >>>
+
+﻿TradeTracker Integration Guide 
+Dit document beschrijft alles wat specifiek met TradeTracker te maken heeft.
+Inhoud
+Account
+Publisher-ID
+Affiliate-ID
+Campagnes
+
+Productfeeds
+Hoe vind je ze?
+Welke menu's?
+Welke instellingen?
+
+Feed genereren
+XML
+JSON
+CSV
+NDJSON
+RSS
+Wanneer gebruik je welk formaat?
+
+Feed URL opbouwen
+Uitleg van parameters zoals:
+aid=
+campaignID=
+campaignCategoryID=
+encoding=
+type=
+fid=
+additionalType=
+enz.
+
+Verschillen tussen
+Product Browser
+Standaardfeed
+Productfeed Generator
+
+Screenshots
+Juist die screenshots die jij nu gemaakt hebt.
+
+Problemen
+Veel voorkomende fouten.
+
+
