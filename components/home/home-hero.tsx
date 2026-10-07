@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { HomeHeader } from '@/components/home/home-header';
 import { HomeSearch } from '@/components/home/home-search';
+import { CHROME_COPY, type ChromeCopy } from '@/lib/i18n/chrome-copy';
 
 const SCRIPT_STACK =
   "Segoe Script, 'Apple Chancery', 'Snell Roundhand', cursive";
@@ -10,6 +11,8 @@ type HomeHeroProps = {
   departureAirports: string[];
   totalOffersLabel: string;
   livePricePrefetchEnabled?: boolean;
+  /** t66u: translated hero copy (default Dutch). */
+  copy?: ChromeCopy['hero'];
 };
 
 /**
@@ -22,6 +25,7 @@ export function HomeHero({
   departureAirports,
   totalOffersLabel,
   livePricePrefetchEnabled = false,
+  copy = CHROME_COPY.nl.hero,
 }: HomeHeroProps) {
   return (
     <>
@@ -47,10 +51,10 @@ export function HomeHero({
                 className="text-[1.7rem] font-semibold leading-[1.15] tracking-[-0.015em] text-white drop-shadow-sm sm:text-[2.05rem] lg:text-[2.35rem]"
                 style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
               >
-                Meer vakantie voor jouw budget.
+                {copy.title}
               </h1>
               <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-white/95 sm:text-[16px] lg:text-[17px]">
-                Vergelijk vakanties van meerdere reisaanbieders in een zoekopdracht.
+                {copy.subtitle}
               </p>
             </div>
             <p

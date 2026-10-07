@@ -8,7 +8,7 @@ export function NoResults() {
         Er zijn geen aanbiedingen die passen bij je huidige filters. Pas je filters aan of start een nieuwe zoekopdracht.
       </p>
       <Link
-        href="/search"
+        href="/#hero"
         className="mt-6 inline-flex rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
       >
         Pas zoekopdracht aan

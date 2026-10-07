@@ -7,6 +7,7 @@ import {
   buildResultsBarHref,
   stateFromUrl,
 } from '@/components/results-v2/results-search-bar-utils';
+import { CHROME_COPY } from '@/lib/i18n/chrome-copy';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -22,8 +23,9 @@ test('Results bar auto-applies parameter commits without a Zoeken CTA', () => {
   assert.ok(resultsBar.includes('buildResultsBarHref'));
   assert.equal(resultsBar.includes('RESULTS_CTA'), false);
 
-  // Homepage keeps an explicit search CTA.
-  assert.ok(homeSearch.includes('Vakanties vergelijken'));
+  // Homepage keeps an explicit search CTA (t66u: label from the NL/FR chrome dictionary).
+  assert.ok(homeSearch.includes('{t.cta}'));
+  assert.equal(CHROME_COPY.nl.search.cta, 'Vakanties vergelijken');
   assert.ok(homeSearch.includes('router.push') || homeSearch.includes('startTransition'));
 });
 

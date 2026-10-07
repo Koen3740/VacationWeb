@@ -33,6 +33,14 @@ const inventory = [
     retention: 'Tot het browsertabblad/sessie eindigt',
     consent: 'Noodzakelijk voor zoekflow',
   },
+  {
+    name: 'vacationweb-lang',
+    type: 'HTTP-cookie (eigen domein)',
+    purpose: 'Onthoudt je taalkeuze (Nederlands of Français) op vacationweb.be. Bevat alleen de taalcode; geen tracking, niet gedeeld met derden. Niet gebruikt op vacationweb.nl.',
+    provider: 'VacationWeb',
+    retention: '12 maanden, of tot je browsergegevens wist',
+    consent: 'Noodzakelijk (door jou gekozen taalvoorkeur)',
+  },
 ] as const;
 
 export default function CookiesPage() {
@@ -74,7 +82,7 @@ export default function CookiesPage() {
           </table>
         </div>
         <p className="text-[12.5px] text-slate-500">
-          HTTP-cookies van VacationWeb zelf: geen vastgesteld. Na een klik op ‘Boeken’ ga je naar de
+          HTTP-cookies van VacationWeb zelf: alleen vacationweb-lang (taalvoorkeur, alleen op vacationweb.be; zie inventaris). Na een klik op ‘Boeken’ ga je naar de
           website van de reisaanbieder; die en eventueel TradeTracker kunnen daar eigen cookies
           plaatsen of lezen, buiten het bereik van VacationWeb (zie hun cookiebeleid). Externe
           cookies na clickout naar reisaanbieders/affiliate:{' '}

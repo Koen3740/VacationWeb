@@ -1,14 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
-
-const POINTS = [
-  { title: 'Eenvoudig vergelijken', body: 'Meerdere reisorganisaties' },
-  { title: 'Altijd actuele prijzen', body: 'Geen verouderde vanaf-prijzen' },
-  { title: 'Rechtstreeks boeken', body: 'Bij de aanbieder zelf' },
-] as const;
+import { CHROME_COPY, type ChromeCopy } from '@/lib/i18n/chrome-copy';
 
 /** WOW value — flat cream band, compact row (headline | icons | stamp). NOT elevated card. */
-export function HomeValueSection() {
+export function HomeValueSection({ copy = CHROME_COPY.nl.value }: { copy?: ChromeCopy['value'] } = {}) {
   return (
     <section id="value" className="bg-[#F6EFE8]">
       <div className="mx-auto box-border w-[86.8vw] px-4 py-7 sm:px-6 lg:flex lg:min-h-[400px] lg:items-center lg:px-0 lg:py-20">
@@ -18,20 +13,20 @@ export function HomeValueSection() {
               className="text-[1.75rem] font-semibold leading-snug text-[#0A2D62] sm:text-[2.1rem] lg:text-[2.4rem]"
               style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
             >
-              Jouw volgende vakantie begint hier
+              {copy.title}
             </h2>
             <p className="mt-4 max-w-md text-[16px] leading-relaxed text-[#475569]">
-              Of je nu al weet waar je naartoe wilt, of gewoon wilt ontdekken — wij helpen je verder.
+              {copy.body}
             </p>
             <Link
               href="/#hero"
               className="mt-5 inline-flex min-h-[40px] items-center justify-center rounded-full bg-[#0A2D62] px-4 text-[12.5px] font-semibold text-white transition hover:bg-[#082452]"
             >
-              Start met zoeken →
+              {copy.cta} →
             </Link>
           </div>
           <ul className="grid gap-6 sm:grid-cols-3 lg:col-span-6 lg:grid-cols-3 lg:gap-8">
-            {POINTS.map((p) => (
+            {copy.points.map((p) => (
               <li key={p.title} className="text-center sm:text-left">
                 <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-[#D6D0C4]/90 text-[#0A2D62] sm:mx-0">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>

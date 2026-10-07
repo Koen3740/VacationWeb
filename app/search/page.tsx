@@ -2,6 +2,16 @@ import { SearchForm } from '@/components/search/search-form';
 import { loadHostFilterOptions } from '@/lib/offers/present-active-filter-options';
 import { requestSiteMarket } from '@/lib/search/request-site-market';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
+import type { Metadata } from 'next';
+
+/**
+ * Legacy search page (old layout). t66u: no longer linked from header, Results empty state or
+ * anywhere in the site; the homepage search module is the primary search entry. Kept as a
+ * working direct URL (bookmarks), not indexed so it does not become a search-engine entry.
+ */
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+};
 
 export const dynamic = 'force-dynamic';
 

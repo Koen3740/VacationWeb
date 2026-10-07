@@ -38,6 +38,7 @@ import {
 import { stateFromUrl } from '@/components/results-v2/results-search-bar-utils';
 import { createDefaultTravelersState } from '@/components/search/travelers-popup/travelers-popup-utils';
 import { parseSearchParams } from '@/lib/search/parse-search-params';
+import { CHROME_COPY } from '@/lib/i18n/chrome-copy';
 
 const ROOT = process.cwd();
 const src = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
@@ -201,9 +202,12 @@ test('duration popup: two tabs Exact / Flexibel, optional empty state, no full-r
   assert.ok(popup.includes('normalizeFlexibleDurationRange'));
   assert.equal(DURATION_MIN, 2);
   assert.equal(DURATION_MAX, 32);
+  // t66u: homepage field labels live in the NL/FR chrome dictionary (NL = canonical copy).
   const home = src('components/home/home-search.tsx');
-  assert.ok(home.includes("'Aantal dagen'"));
-  assert.ok(home.includes('label="Reisduur"'));
+  assert.ok(home.includes('label={t.durationLabel}'));
+  assert.ok(home.includes('t.durationPlaceholder'));
+  assert.equal(CHROME_COPY.nl.search.durationLabel, 'Reisduur');
+  assert.equal(CHROME_COPY.nl.search.durationPlaceholder, 'Aantal dagen');
 });
 
 /* ---------------- Airports ---------------- */
@@ -261,12 +265,19 @@ test('airports popup: checkbox and expand are separate controls with correct ARI
 
 test('funnel: Bestemming > Wanneer > Reisduur > Vertrekluchthaven > Reizigers > CTA on the homepage form', () => {
   const home = src('components/home/home-search.tsx');
-  const order = ['label="Bestemming"', 'label="Wanneer"', 'label="Reisduur"', 'label="Vertrekluchthaven"', 'label="Reizigers"', 'Vakanties vergelijken'];
+  // t66u: labels come from the NL/FR chrome dictionary; order is asserted on the field keys.
+  const order = ['label={t.destinationLabel}', 'label={t.whenLabel}', 'label={t.durationLabel}', 'label={t.airportLabel}', 'label={t.travelersLabel}', '{t.cta}'];
+  const nl = CHROME_COPY.nl.search;
+  assert.deepEqual(
+    [nl.destinationLabel, nl.whenLabel, nl.durationLabel, nl.airportLabel, nl.travelersLabel, nl.cta],
+    ['Bestemming', 'Wanneer', 'Reisduur', 'Vertrekluchthaven', 'Reizigers', 'Vakanties vergelijken'],
+  );
   const positions = order.map((needle) => home.indexOf(needle));
   for (const position of positions) assert.ok(position > 0);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions);
-  assert.equal(home.includes('Elke duur'), false);
-  assert.equal(home.includes('Land of regio'), false);
+  const dictionary = src('lib/i18n/chrome-copy.ts');
+  assert.equal(home.includes('Elke duur') || dictionary.includes('Elke duur'), false);
+  assert.equal(home.includes('Land of regio') || dictionary.includes('Land of regio'), false);
   assert.ok(home.includes('router.push') || home.includes('startTransition'));
 });
 

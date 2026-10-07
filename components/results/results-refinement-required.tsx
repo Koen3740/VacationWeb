@@ -10,7 +10,7 @@ export function ResultsRefinementRequired() {
         de meest relevante vakanties tonen.
       </p>
       <Link
-        href="/search"
+        href="/#hero"
         className="mt-6 inline-flex rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700"
       >
         Pas zoekopdracht aan

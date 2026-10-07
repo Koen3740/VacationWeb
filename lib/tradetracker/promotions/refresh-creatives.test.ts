@@ -354,8 +354,14 @@ test('I/J/K/L/M page sources do not fall back to homepage offers, Kaching, /i or
   assert.equal(experience.includes('/aanbiedingen/creative-images/'), true);
   const header = await fs.readFile(path.join(process.cwd(), 'components/home/home-header.tsx'), 'utf8');
   const footer = await fs.readFile(path.join(process.cwd(), 'components/home/home-footer.tsx'), 'utf8');
-  assert.equal(header.includes("label: 'Aanbiedingen', href: '/aanbiedingen'"), true);
-  assert.equal(footer.includes("label: 'Aanbiedingen', href: '/aanbiedingen'"), true);
-  assert.equal(header.includes('Aanbod'), false);
-  assert.equal(footer.includes('Aanbod'), false);
+  // t66u: header + footer share SITE_NAV_ITEMS (lib/site/site-nav.ts); labels come from the NL/FR chrome dictionary.
+  const siteNav = await fs.readFile(path.join(process.cwd(), 'lib/site/site-nav.ts'), 'utf8');
+  const dictionary = await fs.readFile(path.join(process.cwd(), 'lib/i18n/chrome-copy.ts'), 'utf8');
+  assert.equal(siteNav.includes("{ key: 'offers', href: '/aanbiedingen' }"), true);
+  assert.equal(header.includes('SITE_NAV_ITEMS'), true);
+  assert.equal(footer.includes("'offers'"), true);
+  assert.equal(dictionary.includes("offers: 'Aanbiedingen'"), true);
+  for (const source of [header, footer, siteNav, dictionary]) {
+    assert.equal(source.includes('Aanbod'), false);
+  }
 });

@@ -2,9 +2,12 @@ import { PopularDestination } from '@/lib/offers/derive-destination-countries';
 import { buildPopularDestinationHref } from '@/components/home/home-popular-destination-href';
 import Image from 'next/image';
 import Link from 'next/link';
+import { CHROME_COPY, type ChromeCopy } from '@/lib/i18n/chrome-copy';
 
 type HomePopularDestinationsProps = {
   destinations: PopularDestination[];
+  /** t66u: section chrome + display names/blurbs (default Dutch). Links keep catalog keys. */
+  copy?: ChromeCopy['popular'];
 };
 
 /** WOW: ONE row of FIVE - Griekenland, Spanje, Turkije, Italië, Portugal. */
@@ -26,20 +29,15 @@ const DESTINATION_IMAGES: Record<string, string> = {
   Portugal: '/images/verified/popular/portugal.jpg',
 };
 
-const DESTINATION_BLURBS: Record<string, string> = {
-  Griekenland: 'Zon, zee en eindeloze charme',
-  Spanje: 'Van eilanden tot cultuursteden',
-  Turkije: 'Oosterse gastvrijheid',
-  'Italië': 'Dolce vita, altijd dichtbij',
-  Portugal: 'Trams, heuvels en azulejos',
-};
-
 function prepareDestinationsForDisplay(destinations: PopularDestination[]): PopularDestination[] {
   const available = new Map(destinations.map((destination) => [destination.name, destination]));
   return TOP_DESTINATIONS.map((name) => available.get(name) ?? { name, count: 0 });
 }
 
-export function HomePopularDestinations({ destinations }: HomePopularDestinationsProps) {
+export function HomePopularDestinations({
+  destinations,
+  copy = CHROME_COPY.nl.popular,
+}: HomePopularDestinationsProps) {
   const displayDestinations = prepareDestinationsForDisplay(destinations);
 
   return (
@@ -51,15 +49,15 @@ export function HomePopularDestinations({ destinations }: HomePopularDestination
               className="text-[1.4rem] font-semibold tracking-tight text-[#0A2D62] lg:text-[27px]"
               style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
             >
-              Populaire bestemmingen
+              {copy.title}
             </h2>
-            <p className="mt-0.5 text-[12px] text-[#64748B]">Tijdloze favorieten, altijd een goed idee.</p>
+            <p className="mt-0.5 text-[12px] text-[#64748B]">{copy.subtitle}</p>
           </div>
           <Link
             href="/bestemmingen"
             className="hidden text-[12.5px] font-semibold text-[#3B82C4] sm:inline-flex"
           >
-            Bekijk alle bestemmingen →
+            {copy.viewAll} →
           </Link>
         </div>
 
@@ -85,10 +83,10 @@ export function HomePopularDestinations({ destinations }: HomePopularDestination
                   <div className="flex h-[58px] shrink-0 items-center justify-between gap-2 px-3">
                     <div className="min-w-0">
                       <h3 className="truncate text-[14px] font-semibold leading-tight text-[#0A2D62]">
-                        {destination.name}
+                        {copy.countryNames[destination.name] ?? destination.name}
                       </h3>
                       <p className="mt-0.5 truncate text-[12px] leading-tight text-[#64748B]">
-                        {DESTINATION_BLURBS[destination.name] ?? 'Ontdek & vergelijk'}
+                        {copy.blurbs[destination.name] ?? copy.fallbackBlurb}
                       </p>
                     </div>
                     <span

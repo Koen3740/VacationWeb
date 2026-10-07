@@ -1,14 +1,10 @@
-import { HomeMobileNav } from '@/components/home/home-mobile-nav';
-import Link from 'next/link';
+'use client';
 
-const navLinks = [
-  { label: 'Discover', href: '/#ontdekt' },
-  { label: 'Zoeken', href: '/#hero' },
-  { label: 'Bestemmingen', href: '/bestemmingen' },
-  { label: 'Inspiratie', href: '/#inspiratie' },
-  { label: 'Aanbiedingen', href: '/aanbiedingen' },
-  { label: 'Over ons', href: '/#value' },
-] as const;
+import { HomeMobileNav } from '@/components/home/home-mobile-nav';
+import { LanguageSwitcher } from '@/components/i18n/language-switcher';
+import { useChromeCopy } from '@/components/i18n/ui-language-provider';
+import { SITE_NAV_ITEMS } from '@/lib/site/site-nav';
+import Link from 'next/link';
 
 function ProfileIcon() {
   return (
@@ -42,8 +38,13 @@ function HeartIcon() {
   );
 }
 
-/** WOW header — logo W + tagline, nav, Opgeslagen, profile, NL. */
+/**
+ * WOW header — logo W + tagline, shared main nav (no "Zoeken": the search module is the
+ * primary search entry), Opgeslagen, profile, language indicator (globe, never a flag; t66u).
+ */
 export function HomeHeader() {
+  const copy = useChromeCopy();
+  const navLinks = SITE_NAV_ITEMS.map((item) => ({ label: copy.nav[item.key], href: item.href }));
   return (
     <header className="relative z-50 bg-[#E8EDF4]">
       <div className="mx-auto flex h-[56px] w-[86.8vw] items-center justify-between gap-3 px-4 sm:h-[70px] sm:px-6 lg:px-0">
@@ -64,10 +65,10 @@ export function HomeHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-5 xl:flex" aria-label="Hoofdnavigatie">
+        <nav className="hidden items-center gap-5 xl:flex" aria-label={copy.nav.ariaLabel}>
           {navLinks.map((link) => (
             <Link
-              key={link.label}
+              key={link.href}
               href={link.href}
               className="text-[13.5px] font-medium text-[#1E293B] transition hover:text-[#0A2D62]"
             >
@@ -82,28 +83,16 @@ export function HomeHeader() {
             className="hidden items-center gap-1.5 text-[13px] font-medium text-[#1E293B] transition hover:text-[#0A2D62] sm:inline-flex"
           >
             <HeartIcon />
-            Opgeslagen
+            {copy.header.saved}
           </Link>
-          <span className="hidden lg:inline-flex" title="Account">
+          <span className="hidden lg:inline-flex" title={copy.header.account}>
             <ProfileIcon />
           </span>
-          <span className="hidden items-center gap-1.5 text-[12px] font-semibold text-[#0A2D62] lg:inline-flex">
-            <span className="inline-block h-3.5 w-5 overflow-hidden rounded-[2px] ring-1 ring-black/10" aria-hidden>
-              <span className="block h-[5px] w-full bg-[#AE1C28]" />
-              <span className="block h-[4px] w-full bg-white" />
-              <span className="block h-[5px] w-full bg-[#21468B]" />
-            </span>
-            NL
-            <span aria-hidden className="text-[10px] text-[#64748B]">
-              ▾
-            </span>
-          </span>
+          <LanguageSwitcher />
           <div className="xl:hidden">
             <HomeMobileNav
-              links={[
-                ...navLinks.map(({ label, href }) => ({ label, href })),
-                { label: 'Opgeslagen', href: '/favorieten' },
-              ]}
+              links={[...navLinks, { label: copy.header.saved, href: '/favorieten' }]}
+              labels={{ ...copy.mobileNav, navigation: copy.nav.ariaLabel }}
             />
           </div>
         </div>

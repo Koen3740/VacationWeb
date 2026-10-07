@@ -26,14 +26,17 @@ function HeartIcon({ filled = false }: { filled?: boolean }) {
 
 export function FavoritesNavLink({
   className = 'inline-flex items-center gap-1.5 text-[14px] font-medium text-[#334155] transition hover:text-[#0A2D62]',
+  label = 'Favorieten',
 }: {
   className?: string;
+  /** Translated label (t66u); defaults to the existing Dutch label. */
+  label?: string;
 }) {
   const { count } = useFavorites();
   return (
-    <Link href="/favorieten" className={className} aria-label={`Favorieten${count > 0 ? ` (${count})` : ''}`}>
+    <Link href="/favorieten" className={className} aria-label={`${label}${count > 0 ? ` (${count})` : ''}`}>
       <HeartIcon filled={count > 0} />
-      Favorieten
+      {label}
       {count > 0 ? <span className="tabular-nums text-[#64748B]">({count})</span> : null}
     </Link>
   );

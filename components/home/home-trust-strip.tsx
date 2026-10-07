@@ -1,7 +1,7 @@
-const TRUST_ITEMS = [
+import { CHROME_COPY, type ChromeCopy } from '@/lib/i18n/chrome-copy';
+
+const TRUST_ICONS = [
   {
-    label: 'Onafhankelijk',
-    detail: 'Eerlijke vergelijking',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3z" stroke="#0A2D62" strokeWidth="1.5" />
@@ -10,8 +10,6 @@ const TRUST_ITEMS = [
     ),
   },
   {
-    label: 'Actuele prijs',
-    detail: 'Direct van de aanbieder',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
         <rect x="4" y="6" width="16" height="13" rx="2" stroke="#0A2D62" strokeWidth="1.5" />
@@ -21,8 +19,6 @@ const TRUST_ITEMS = [
     ),
   },
   {
-    label: 'Boek rechtstreeks',
-    detail: 'Bij de reisorganisatie',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path
@@ -35,8 +31,6 @@ const TRUST_ITEMS = [
     ),
   },
   {
-    label: 'Betrouwbaar & transparant',
-    detail: 'Jij kiest, wij vergelijken',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3z" stroke="#0A2D62" strokeWidth="1.5" />
@@ -50,12 +44,14 @@ const TRUST_ITEMS = [
   },
 ] as const;
 
-export function HomeTrustStrip() {
+/** t66u: labels from the chrome dictionary (default Dutch); icons stay in this order. */
+export function HomeTrustStrip({ copy = CHROME_COPY.nl.trust }: { copy?: ChromeCopy['trust'] } = {}) {
+  const items = copy.items.map((item, index) => ({ ...item, icon: TRUST_ICONS[index]?.icon }));
   return (
-    <section aria-label="Vertrouwen" className="bg-[#FBF6F0]">
+    <section aria-label={copy.ariaLabel} className="bg-[#FBF6F0]">
       <div className="mx-auto flex min-h-0 w-[80vw] items-center px-4 py-3.5 sm:px-6 lg:min-h-[70px] lg:px-0 lg:py-0">
         <ul className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:items-center lg:justify-between lg:gap-4">
-          {TRUST_ITEMS.map((item) => (
+          {items.map((item) => (
             <li key={item.label} className="flex items-center gap-2.5 lg:shrink-0">
               <span className="shrink-0 text-[#0A2D62]">{item.icon}</span>
               <div>

@@ -39,6 +39,7 @@ import {
   type TravelersState,
 } from '@/components/search/travelers-popup/travelers-popup-utils';
 import { requestHomeLivePricePrefetch } from '@/components/home/home-live-price-prefetch-client';
+import { useChromeCopy } from '@/components/i18n/ui-language-provider';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 
@@ -110,6 +111,7 @@ export function HomeSearch({
   livePricePrefetchEnabled = false,
 }: HomeSearchProps) {
   const router = useRouter();
+  const t = useChromeCopy().search;
   const [isPending, startTransition] = useTransition();
   const initialState = getInitialHomeSearchState();
   const [selectedCountries, setSelectedCountries] = useState<string[]>(initialState.selectedCountries);
@@ -182,31 +184,31 @@ export function HomeSearch({
 
   const destinationValue =
     selectedCountries.length === 0
-      ? 'Waar wil je naartoe?'
+      ? t.destinationPlaceholder
       : selectedPlace
         ? formatPlaceSelectionLabel(selectedPlace)
         : formatSelectedCountriesLabel(selectedCountries);
   const destinationHint =
     selectedCountries.length === 0
-      ? 'Kies een of meer bestemmingen'
+      ? t.destinationHintEmpty
       : selectedPlace
-        ? '1 bestemming'
+        ? t.oneDestination
         : selectedCountries.length === 1
-          ? '1 land'
-          : `${selectedCountries.length} landen`;
+          ? t.oneCountry
+          : t.countries(selectedCountries.length);
 
   const departureDisplay = getDepartureDisplay({
     departureStart,
     departureEnd,
     flexibilityDays,
   });
-  const departureValue = departureDisplay.label ?? 'Data flexibel';
-  const departureHint = departureDisplay.hint ?? 'Datum of periode';
+  const departureValue = departureDisplay.label ?? t.whenDefault;
+  const departureHint = departureDisplay.hint ?? t.whenHint;
 
   // No selection = no `nights` filter (internal URL semantics); it is never presented as a choice,
   // so the field shows a neutral placeholder. `nights` is in trip days for all providers.
   const durationValue =
-    selectedDurations.length === 0 ? 'Aantal dagen' : formatSelectedDurationsLabel(selectedDurations);
+    selectedDurations.length === 0 ? t.durationPlaceholder : formatSelectedDurationsLabel(selectedDurations);
   const airportValue = formatSelectedDepartureAirportsLabel(selectedDepartureAirports);
   const travelersValue = formatTravelersLabel(travelers);
   const travelersHint = formatRoomsLabel(travelers);
@@ -290,7 +292,7 @@ export function HomeSearch({
               className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
-                label="Bestemming"
+                label={t.destinationLabel}
                 value={destinationValue}
                 hint={destinationHint}
                 icon={<LocationIcon />}
@@ -305,7 +307,7 @@ export function HomeSearch({
               className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
-                label="Wanneer"
+                label={t.whenLabel}
                 value={departureValue}
                 hint={departureHint}
                 icon={<CalendarIcon />}
@@ -322,9 +324,9 @@ export function HomeSearch({
               className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
-                label="Reisduur"
+                label={t.durationLabel}
                 value={durationValue}
-                hint="Exact of flexibel"
+                hint={t.durationHint}
                 icon={<DurationIcon />}
               />
             </button>
@@ -337,9 +339,9 @@ export function HomeSearch({
               className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
-                label="Vertrekluchthaven"
+                label={t.airportLabel}
                 value={airportValue}
-                hint="Flexibel"
+                hint={t.airportHint}
                 icon={<PlaneIcon />}
                 valueClassName="whitespace-normal sm:whitespace-nowrap"
               />
@@ -353,7 +355,7 @@ export function HomeSearch({
               className={`${fieldButtonClass} lg:flex-1`}
             >
               <SearchField
-                label="Reizigers"
+                label={t.travelersLabel}
                 value={travelersValue}
                 hint={travelersHint}
                 icon={<TravelersIcon />}
@@ -369,7 +371,7 @@ export function HomeSearch({
               aria-busy={searchBusy}
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[12px] bg-[#3779B3] px-5 text-[13.5px] font-semibold text-white transition hover:bg-[#2F6A9E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3779B3] disabled:cursor-wait disabled:opacity-80 lg:h-[56px] lg:w-[250px] lg:min-w-[250px] lg:px-4"
             >
-              {searchBusy ? 'Zoeken…' : (<>Vakanties vergelijken <span aria-hidden>→</span></>)}
+              {searchBusy ? t.busy : (<>{t.cta} <span aria-hidden>→</span></>)}
             </button>
           </div>
         </div>

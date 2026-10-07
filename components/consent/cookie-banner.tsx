@@ -8,6 +8,7 @@ import {
   setCookiePreferences,
   type CookiePreferences,
 } from '@/lib/cookie-consent';
+import { UI_LANGUAGE_CHOSEN_EVENT } from '@/lib/i18n/ui-language';
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState } from 'react';
 
@@ -20,7 +21,12 @@ const DEFAULT_PREFERENCES: CookiePreferences = {
  * Site-wide cookie consent banner (Sub 25).
  * Blocking on first visit; reopenable via preferences event / cookie-settings.
  */
-export function CookieBanner() {
+export function CookieBanner({
+  deferUntilLanguageChosen = false,
+}: {
+  /** t66u: on a first .be visit the language popup comes first; the banner follows the choice. */
+  deferUntilLanguageChosen?: boolean;
+} = {}) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -29,12 +35,30 @@ export function CookieBanner() {
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
   const [marketingEnabled, setMarketingEnabled] = useState(false);
 
+  const [languageChosen, setLanguageChosen] = useState(false);
+
   useEffect(() => {
+    if (!deferUntilLanguageChosen) {
+      return undefined;
+    }
+    const onLanguageChosen = () => setLanguageChosen(true);
+    window.addEventListener(UI_LANGUAGE_CHOSEN_EVENT, onLanguageChosen);
+    return () => window.removeEventListener(UI_LANGUAGE_CHOSEN_EVENT, onLanguageChosen);
+  }, [deferUntilLanguageChosen]);
+
+  const waitingForLanguage = deferUntilLanguageChosen && !languageChosen;
+
+  useEffect(() => {
+    if (waitingForLanguage) {
+      return;
+    }
     if (!hasCookieConsent()) {
       setVisible(true);
       setIsBlocking(true);
     }
+  }, [waitingForLanguage]);
 
+  useEffect(() => {
     const handleOpenPreferences = () => {
       const storedConsent = getCookieConsent();
       if (storedConsent) {

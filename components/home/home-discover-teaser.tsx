@@ -2,14 +2,17 @@ import Link from 'next/link';
 import { DiscoverCardImage } from '@/components/home/discover-card-image';
 import { getHomepageDiscoverDestinations } from '@/lib/discover/get-homepage-discover-destinations';
 import type { DiscoverDestination } from '@/lib/discover/types';
+import { CHROME_COPY, type ChromeCopy } from '@/lib/i18n/chrome-copy';
 
 type HomeDiscoverTeaserProps = {
   /** Prefer page.tsx loading via getter and passing in (testability). */
   destinations?: DiscoverDestination[];
+  /** t66u: section chrome (default Dutch). Card names/teasers are Discover data (Dutch). */
+  copy?: ChromeCopy['discover'];
 };
 
 /** WOW discovery — landscape cards with play + place labels (SSOT crops). Data-driven. */
-export function HomeDiscoverTeaser({ destinations }: HomeDiscoverTeaserProps) {
+export function HomeDiscoverTeaser({ destinations, copy = CHROME_COPY.nl.discover }: HomeDiscoverTeaserProps) {
   const cards =
     destinations ?? getHomepageDiscoverDestinations({ limit: 5 });
   const gridColsClass =
@@ -24,17 +27,17 @@ export function HomeDiscoverTeaser({ destinations }: HomeDiscoverTeaserProps) {
               className="text-[1.65rem] font-semibold tracking-tight text-[#0A2D62] sm:text-[1.95rem]"
               style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
             >
-              Vandaag ontdekt
+              {copy.title}
             </h2>
             <p className="mt-1.5 text-[13.5px] text-[#64748B]">
-              Nieuwe plekken. Echte verhalen. Laat je inspireren.
+              {copy.subtitle}
             </p>
           </div>
           <Link
             href="/bestemmingen"
             className="hidden shrink-0 text-[13px] font-semibold text-[#0A2D62] sm:inline-flex"
           >
-            Bekijk alle ontdekkingen →
+            {copy.viewAll} →
           </Link>
         </div>
 

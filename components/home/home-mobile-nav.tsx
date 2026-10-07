@@ -11,7 +11,11 @@ type NavLink = {
 
 type HomeMobileNavProps = {
   links: readonly NavLink[];
+  /** Translated drawer chrome (t66u); defaults to the existing Dutch labels. */
+  labels?: { title: string; open: string; close: string; navigation?: string };
 };
+
+const DEFAULT_LABELS = { title: 'Menu', open: 'Menu openen', close: 'Menu sluiten' } as const;
 
 function MenuIcon() {
   return (
@@ -30,7 +34,7 @@ function CloseIcon() {
 }
 
 /** Light drawer — matches Results header chrome (Results has no mobile menu). */
-export function HomeMobileNav({ links }: HomeMobileNavProps) {
+export function HomeMobileNav({ links, labels = DEFAULT_LABELS }: HomeMobileNavProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -71,7 +75,7 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
         onClick={() => setOpen(true)}
         aria-expanded={open}
         aria-controls="home-mobile-nav-panel"
-        aria-label="Menu openen"
+        aria-label={labels.open}
         className="flex h-10 w-10 items-center justify-center rounded-full text-[#334155] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]"
       >
         <MenuIcon />
@@ -84,7 +88,7 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
               <button
                 type="button"
                 className="absolute inset-0 bg-[rgba(10,45,98,0.28)]"
-                aria-label="Menu sluiten"
+                aria-label={labels.close}
                 onClick={closeMenu}
               />
 
@@ -92,17 +96,17 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
                 id="home-mobile-nav-panel"
                 role="dialog"
                 aria-modal="true"
-                aria-label="Hoofdnavigatie"
+                aria-label={labels.navigation ?? 'Hoofdnavigatie'}
                 className="absolute right-0 top-0 flex h-full w-[min(100%,20rem)] flex-col border-l border-[#E8ECF2] bg-white px-6 pb-8 pt-6 shadow-[0_10px_28px_rgba(10,45,98,0.12)]"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-semibold uppercase tracking-wide text-[#64748B]">
-                    Menu
+                    {labels.title}
                   </span>
                   <button
                     type="button"
                     onClick={closeMenu}
-                    aria-label="Menu sluiten"
+                    aria-label={labels.close}
                     className="flex h-10 w-10 items-center justify-center rounded-full text-[#334155] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]"
                   >
                     <CloseIcon />
@@ -111,7 +115,7 @@ export function HomeMobileNav({ links }: HomeMobileNavProps) {
 
                 <ul className="mt-8 flex flex-col gap-1">
                   {links.map((link) => (
-                    <li key={link.label}>
+                    <li key={link.href}>
                       <Link
                         href={link.href}
                         onClick={() => {

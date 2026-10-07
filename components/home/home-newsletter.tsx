@@ -3,12 +3,14 @@
 import Image from 'next/image';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
+import { useChromeCopy } from '@/components/i18n/ui-language-provider';
 
 const SCRIPT_STACK =
   "Segoe Script, 'Apple Chancery', 'Snell Roundhand', cursive";
 
 /** WOW newsletter photo band — Blijf ontdekken + Good places ahead. */
 export function HomeNewsletter() {
+  const copy = useChromeCopy().newsletter;
   const [status, setStatus] = useState<'idle' | 'unavailable'>('idle');
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -34,12 +36,11 @@ export function HomeNewsletter() {
               className="text-[24px] font-semibold leading-tight"
               style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
             >
-              Blijf ontdekken
+              {copy.title}
             </h2>
             <span className="mt-1 block h-[3px] w-10 rounded-full bg-[#E8C547]" aria-hidden />
             <p className="mt-2 max-w-xs text-[12.5px] leading-snug text-white/90">
-              Nieuwsbriefinschrijving is nog niet beschikbaar. Laat hier later je e-mail achter
-              wanneer we discovery-updates aanbieden.
+              {copy.body}
             </p>
           </div>
           {status === 'unavailable' ? (
@@ -47,7 +48,7 @@ export function HomeNewsletter() {
               className="rounded-full bg-white px-5 py-2.5 text-[13px] font-semibold text-[#0A2D62] shadow-sm ring-1 ring-black/5"
               role="status"
             >
-              Nog niet beschikbaar — er is niets opgeslagen of verzonden.
+              {copy.unavailable}
             </p>
           ) : (
             <form
@@ -57,7 +58,7 @@ export function HomeNewsletter() {
               onSubmit={onSubmit}
             >
               <label className="sr-only" htmlFor="vw-newsletter-email">
-                E-mailadres
+                {copy.emailLabel}
               </label>
               <input
                 id="vw-newsletter-email"
@@ -65,14 +66,14 @@ export function HomeNewsletter() {
                 name="email"
                 required
                 autoComplete="email"
-                placeholder="Jouw e-mailadres"
+                placeholder={copy.emailPlaceholder}
                 className="min-h-[40px] min-w-0 flex-1 border-0 bg-transparent px-4 text-[13px] text-[#0A2D62] outline-none"
               />
               <button
                 type="submit"
                 className="inline-flex min-h-[40px] shrink-0 items-center justify-center bg-[#3B82C4] px-4 text-[13px] font-semibold text-white transition hover:bg-[#2F6FA8]"
               >
-                Inschrijven →
+                {copy.submit} →
               </button>
             </form>
           )}

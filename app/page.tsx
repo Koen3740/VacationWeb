@@ -11,6 +11,8 @@ import { HomeValueSection } from '@/components/home/home-value-section';
 import { formatTotalOffersLabel } from '@/lib/offers/load-total-offers-label';
 import { loadHostFilterOptions } from '@/lib/offers/present-active-filter-options';
 import { requestSiteMarket } from '@/lib/search/request-site-market';
+import { chromeCopy } from '@/lib/i18n/chrome-copy';
+import { requestUiLanguage } from '@/lib/i18n/request-ui-language';
 import { isHomeLivePricePrefetchEnabled } from '@/lib/search/home-live-price-prefetch-context';
 
 const playfair = Playfair_Display({
@@ -39,6 +41,8 @@ export default async function HomePage() {
   const totalOffersLabel = formatTotalOffersLabel(filterOptions.totalOffers ?? 0);
   const discoverDestinations = getHomepageDiscoverDestinations({ limit: 5 });
   const livePricePrefetchEnabled = isHomeLivePricePrefetchEnabled();
+  // t66u: UI language (presentation only; .be NL/FR, .nl NL). Never filters inventory.
+  const copy = chromeCopy(requestUiLanguage().language);
 
   return (
     <main
@@ -50,12 +54,13 @@ export default async function HomePage() {
         departureAirports={filterOptions.departureAirports}
         totalOffersLabel={totalOffersLabel}
         livePricePrefetchEnabled={livePricePrefetchEnabled}
+        copy={copy.hero}
       />
-      <HomeTrustStrip />
-      <HomeDiscoverTeaser destinations={discoverDestinations} />
-      <HomeInspirationBand />
-      <HomePopularDestinations destinations={popularDestinations} />
-      <HomeValueSection />
+      <HomeTrustStrip copy={copy.trust} />
+      <HomeDiscoverTeaser destinations={discoverDestinations} copy={copy.discover} />
+      <HomeInspirationBand copy={copy.inspiration} />
+      <HomePopularDestinations destinations={popularDestinations} copy={copy.popular} />
+      <HomeValueSection copy={copy.value} />
       <HomeNewsletter />
       <HomeFooter />
     </main>
