@@ -1,6 +1,7 @@
 'use client';
 
-import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
+import { useReportResultsNavigationBusy } from '@/components/results/results-navigation-busy';
+import { applyFilterNavigationPaging, SORT_NAVIGATION } from '@/lib/search/filter-navigation';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
@@ -23,6 +24,7 @@ export function SortSelector({ currentSort }: { currentSort: string }) {
 
   // Owner 25-09 23:03: no fullscreen loading overlay in the Results flow; busy only drives this control.
   const sortBusy = isNavigating || isPending;
+  useReportResultsNavigationBusy(sortBusy);
 
   useEffect(() => {
     navigationLockRef.current = false;
@@ -42,7 +44,7 @@ export function SortSelector({ currentSort }: { currentSort: string }) {
       params.set('sort', nextSort);
     }
     applyFilterNavigationPaging(params, {
-      preservePage1Ids: true,
+      preservePage1Ids: SORT_NAVIGATION.preservePage1Ids,
       liveQuery: typeof window === 'undefined' ? undefined : window.location.search,
     });
     navigationLockRef.current = true;

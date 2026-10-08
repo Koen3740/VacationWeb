@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { sortOffers } from './filtering';
 import {
+  buildCompactPaginationItems,
   getResultsBrowsePageCount,
   getResultsTotalPages,
   limitLivePricingInitialWorkset,
@@ -14,6 +17,7 @@ import {
   RESULTS_USER_PAGINATION_CAP,
   buildOfferDetailHref,
   buildResultsPageHref,
+  resultsNextControlKind,
 } from './pagination';
 import type { TravelOffer } from '../feeds/canonical/travel-offer';
 
@@ -241,6 +245,31 @@ test('pagination keeps adults, child ages and room assignment (no date of birth)
   assert.equal(query.get('departureStart'), '2026-09-01');
   assert.equal(query.get('nights'), '7');
   assert.equal(query.get('departureAirport'), 'BRU');
+});
+
+test('compact pagination window always exposes the next numbered page', () => {
+  assert.deepEqual(buildCompactPaginationItems(1, 15), [1, 2, 3, 'ellipsis', 15]);
+  assert.deepEqual(buildCompactPaginationItems(2, 15), [1, 2, 3, 4, 'ellipsis', 15]);
+  assert.deepEqual(buildCompactPaginationItems(3, 15), [1, 2, 3, 4, 'ellipsis', 15]);
+  assert.deepEqual(buildCompactPaginationItems(4, 15), [1, 2, 3, 4, 5, 'ellipsis', 15]);
+  assert.deepEqual(buildCompactPaginationItems(5, 15), [1, 2, 3, 4, 5, 6, 'ellipsis', 15]);
+  assert.deepEqual(buildCompactPaginationItems(14, 15), [1, 'ellipsis', 13, 14, 15]);
+  assert.deepEqual(buildCompactPaginationItems(15, 15), [1, 'ellipsis', 14, 15]);
+  assert.ok(!buildCompactPaginationItems(15, 15).includes(16));
+});
+
+test('page 15 keeps Volgende as browse-cap, never as page 16', () => {
+  assert.equal(getResultsTotalPages(150, 10), RESULTS_MAX_BROWSE_PAGES);
+  assert.equal(getResultsTotalPages(2983, 10), RESULTS_MAX_BROWSE_PAGES);
+  assert.equal(resultsNextControlKind({ currentPage: 14, totalPages: 15 }), 'page');
+  assert.equal(resultsNextControlKind({ currentPage: 15, totalPages: 15 }), 'browse-cap');
+  assert.equal(resultsNextControlKind({ currentPage: 8, totalPages: 8 }), 'hidden');
+  assert.equal(paginateResults(ranked921().slice(0, 150), 16, 10).length, 0);
+  const ui = readFileSync(join(process.cwd(), 'components/results/results-pagination.tsx'), 'utf8');
+  assert.match(ui, /resultsNextControlKind/);
+  assert.match(ui, /results-browse-cap-dialog/);
+  assert.match(ui, /ResultsRefinementRequired/);
+  assert.doesNotMatch(ui, /goToPage\(currentPage \+ 1\).*16/);
 });
 
 test('retired sort=value is not written to Results URLs', () => {

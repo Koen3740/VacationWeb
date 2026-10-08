@@ -1,5 +1,10 @@
 import { loadPreparedResultsOffers } from '@/lib/search/prepared-results-request';
-import { countResultsPool } from '@/lib/search/results-pool-count';
+import {
+  countCatalogMatchset,
+  countResultsPool,
+  selectDisplayedResultsCount,
+  usesCatalogResultsDisplayCount,
+} from '@/lib/search/results-pool-count';
 import { startResultsPoolL2Hydrate } from '@/lib/search/results-pool-hydrate';
 import { ROADTRIP_VACATION_TYPE } from '@/lib/search/vacation-type';
 import type { SearchParams } from '@/types/travel';
@@ -26,21 +31,26 @@ function withRoadtripFacet(params: SearchParams): SearchParams {
 }
 
 /**
- * t63u OPTIE B: proven-B count for the facet-filtered, market-scoped pool (same
- * membership as the heading: countResultsPool applies the live overlays for these
- * params). L2 hydrate runs in the background (single-flight, never awaited), like
- * the heading, so facet badges never block on a full-pool L2 read.
+ * Same display rule as the heading: facet catalog > 150 → catalog length;
+ * else Proven-B via countResultsPool. Catalog path does not await exactOffers.
+ * L2 hydrate stays background-only on the Proven-B path.
  */
 async function facetBookableCount(facetFiltering: SearchParams): Promise<number> {
   const prepared = await loadPreparedResultsOffers(facetFiltering);
+  const catalogCount = countCatalogMatchset(prepared.offers);
+  if (usesCatalogResultsDisplayCount(catalogCount)) {
+    return selectDisplayedResultsCount(catalogCount, 0);
+  }
   const ranked = await prepared.exactOffers;
   startResultsPoolL2Hydrate(ranked, facetFiltering);
-  return countResultsPool(ranked, facetFiltering);
+  return selectDisplayedResultsCount(
+    catalogCount,
+    countResultsPool(ranked, facetFiltering),
+  );
 }
 
 /**
- * Sidebar facet badges = proven B counts after applying the facet filter —
- * same source family as heading (never catalog matchset). Supersedes GO11 matchset counts.
+ * Sidebar facet badges: catalog > 150 → catalog; else Proven-B (t63u membership).
  */
 export async function CarRentalFacetCount({
   filteringParams,

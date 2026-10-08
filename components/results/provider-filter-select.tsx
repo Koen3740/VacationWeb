@@ -5,8 +5,9 @@ import {
 } from '@/components/results-v2/results-design-tokens';
 import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
 import { PROVIDER_FILTER_PARAM } from '@/lib/search/provider-filter';
+import { useReportResultsNavigationBusy } from '@/components/results/results-navigation-busy';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useTransition, type ReactNode } from 'react';
+import { useEffect, useState, useTransition, type ReactNode } from 'react';
 
 /** `count` is optional: matchset-based options carry no (misleading, momentary) B count. */
 export type ProviderFilterOption = { provider: string; count?: number };
@@ -81,12 +82,19 @@ export function ProviderFilterSelect({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const [optimisticProvider, setOptimisticProvider] = useState<string | undefined>(undefined);
 
-  const selected = selectedProvider ?? '';
+  useReportResultsNavigationBusy(isPending);
+
+  const selected = optimisticProvider ?? selectedProvider ?? '';
   const optionProviders =
     selected && !providers.some((entry) => entry.provider === selected)
       ? [...providers, { provider: selected }]
       : providers;
+
+  useEffect(() => {
+    setOptimisticProvider(undefined);
+  }, [selectedProvider]);
 
   const onChange = (nextProvider: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -101,6 +109,7 @@ export function ProviderFilterSelect({
       params.delete(PROVIDER_FILTER_PARAM);
     }
     const query = params.toString();
+    setOptimisticProvider(nextProvider);
     startTransition(() => {
       router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     });
@@ -110,7 +119,6 @@ export function ProviderFilterSelect({
     <AccordionShell title="Vakantieaanbieder">
       <select
         value={selected}
-        disabled={isPending}
         aria-label="Vakantieaanbieder"
         onChange={(event) => onChange(event.target.value)}
         className={selectClassName}

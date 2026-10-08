@@ -328,3 +328,30 @@ test('region filter matches French alias onto canonical Dutch region', () => {
     ['andalusie'],
   );
 });
+
+test('rating sort is descending and repeats identically with identity tie-break', () => {
+  const offers = [
+    makeOffer({ id: 'low', provider: 'Corendon', rating: 8.1, canonicalOfferIdentity: 'z-low' }),
+    makeOffer({ id: 'high', provider: 'Corendon', rating: 9.1, canonicalOfferIdentity: 'a-high' }),
+    makeOffer({ id: 'tie-b', provider: 'Corendon', rating: 8.5, canonicalOfferIdentity: 'm-tie-b' }),
+    makeOffer({ id: 'tie-a', provider: 'Corendon', rating: 8.5, canonicalOfferIdentity: 'a-tie-a' }),
+  ];
+  const first = sortOffers(offers, 'rating').map((offer) => offer.id);
+  const second = sortOffers([...offers].reverse(), 'rating').map((offer) => offer.id);
+  const third = sortOffers(offers, 'rating').map((offer) => offer.id);
+  assert.deepEqual(first, ['high', 'tie-a', 'tie-b', 'low']);
+  assert.deepEqual(second, first);
+  assert.deepEqual(third, first);
+});
+
+test('stars sort is descending and uses a stable identity tie-break', () => {
+  const offers = [
+    makeOffer({ id: 'four-z', provider: 'Corendon', stars: 4, canonicalOfferIdentity: 'z-four' }),
+    makeOffer({ id: 'five', provider: 'Corendon', stars: 5, canonicalOfferIdentity: 'five' }),
+    makeOffer({ id: 'four-a', provider: 'Corendon', stars: 4, canonicalOfferIdentity: 'a-four' }),
+  ];
+  const first = sortOffers(offers, 'stars').map((offer) => offer.id);
+  const again = sortOffers([...offers].reverse(), 'stars').map((offer) => offer.id);
+  assert.deepEqual(first, ['five', 'four-a', 'four-z']);
+  assert.deepEqual(again, first);
+});

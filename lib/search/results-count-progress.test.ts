@@ -231,6 +231,8 @@ describe('t334u provider list comes from the matchset, not from live pricing', (
   it('source guards: provider list is built from the matchset, "Alle aanbieders" stays, no B/hydrate dependency', () => {
     const fromPool = readFileSync('components/results/provider-filter-from-pool.tsx', 'utf8');
     assert.match(fromPool, /listProvidersInMatchset/);
+    assert.match(fromPool, /const matchset = prepared\.offers/);
+    assert.doesNotMatch(fromPool, /await prepared\.exactOffers/);
     assert.doesNotMatch(fromPool, /bookableResultsMembership|countProvidersInEffectivePool/);
     assert.doesNotMatch(fromPool, /hydrateResultsLivePriceOverlaysFromL2/);
     const select = readFileSync('components/results/provider-filter-select.tsx', 'utf8');

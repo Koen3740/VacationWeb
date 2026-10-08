@@ -86,8 +86,14 @@ import {
   isNewBudgetGeneration,
   nextBudgetDraft,
 } from '@/lib/search/budget-generation';
-import { applyFilterNavigationPaging } from '@/lib/search/filter-navigation';
+import {
+  applyFilterNavigationPaging,
+  shouldDropFilterCommit,
+  SIDEBAR_FILTER_NAVIGATION,
+  toggleSelectedValue,
+} from '@/lib/search/filter-navigation';
 import { parseHasCarRentalParam, serializeHasCarRentalParam } from '@/lib/offers/has-car-rental';
+import { useReportResultsNavigationBusy } from '@/components/results/results-navigation-busy';
 import { FilterOptions } from '@/types/travel';
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -272,6 +278,7 @@ export function FilterSidebar({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [filters, setFilters] = useState(() => parseFilters(new URLSearchParams(searchParams.toString())));
+  const filtersRef = useRef(filters);
   const [destinationPopupOpen, setDestinationPopupOpen] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const navigationLockRef = useRef(false);
@@ -296,9 +303,12 @@ export function FilterSidebar({
 
   // Owner 25-09 23:03: no fullscreen loading overlay in the Results flow; busy only drives this control.
   const filterBusy = isNavigating || isPending;
+  useReportResultsNavigationBusy(filterBusy);
 
   useEffect(() => {
-    setFilters(parseFilters(new URLSearchParams(searchParams.toString())));
+    const synced = parseFilters(new URLSearchParams(searchParams.toString()));
+    filtersRef.current = synced;
+    setFilters(synced);
     navigationLockRef.current = false;
     setIsNavigating(false);
   }, [searchParams]);
@@ -354,10 +364,19 @@ export function FilterSidebar({
     next: typeof filters,
     options?: { allowWhileNavigating?: boolean; preservePage1Ids?: boolean },
   ) => {
-    if (navigationLockRef.current && !options?.allowWhileNavigating) {
+    // Latest click wins (budget-generation.ts / Next action-queue). Do not drop
+    // a second sidebar click while an older router.replace is still pending.
+    if (
+      shouldDropFilterCommit({
+        navigationLocked: navigationLockRef.current,
+        allowWhileNavigating:
+          options?.allowWhileNavigating ?? SIDEBAR_FILTER_NAVIGATION.allowWhileNavigating,
+      })
+    ) {
       return;
     }
 
+    filtersRef.current = next;
     setFilters(next);
 
     const params = new URLSearchParams(searchParams.toString());
@@ -481,77 +500,72 @@ export function FilterSidebar({
   };
 
   const toggleBoardType = (value: CanonicalBoardType) => {
+    const current = filtersRef.current;
     updateFilters({
-      ...filters,
-      boardTypes: filters.boardTypes.includes(value)
-        ? filters.boardTypes.filter((item) => item !== value)
-        : [...filters.boardTypes, value],
+      ...current,
+      boardTypes: toggleSelectedValue(current.boardTypes, value),
     });
   };
 
   const toggleAccommodationType = (value: AccommodationTypeFilter) => {
-    const nextSelected = filters.accommodationTypes.includes(value)
-      ? filters.accommodationTypes.filter((item) => item !== value)
-      : [...filters.accommodationTypes, value];
+    const current = filtersRef.current;
+    const nextSelected = toggleSelectedValue(current.accommodationTypes, value);
     updateFilters({
-      ...filters,
+      ...current,
       accommodationTypes: effectiveAccommodationTypesForFilter(nextSelected, visibleAccommodationTypes),
     });
   };
 
   const toggleStars = (value: number) => {
+    const current = filtersRef.current;
     updateFilters({
-      ...filters,
-      stars: filters.stars.includes(value)
-        ? filters.stars.filter((item) => item !== value)
-        : [...filters.stars, value],
+      ...current,
+      stars: toggleSelectedValue(current.stars, value),
     });
   };
 
   const toggleVacationType = (value: VacationType) => {
+    const current = filtersRef.current;
     updateFilters({
-      ...filters,
-      vacationTypes: filters.vacationTypes.includes(value)
-        ? filters.vacationTypes.filter((item) => item !== value)
-        : [...filters.vacationTypes, value],
+      ...current,
+      vacationTypes: toggleSelectedValue(current.vacationTypes, value),
     });
   };
 
   const toggleAmenity = (value: AmenityValue) => {
+    const current = filtersRef.current;
     updateFilters({
-      ...filters,
-      amenities: filters.amenities.includes(value)
-        ? filters.amenities.filter((item) => item !== value)
-        : [...filters.amenities, value],
+      ...current,
+      amenities: toggleSelectedValue(current.amenities, value),
     });
   };
 
   const toggleCarRental = () => {
+    const current = filtersRef.current;
     updateFilters({
-      ...filters,
-      hasCarRental: !filters.hasCarRental,
+      ...current,
+      hasCarRental: !current.hasCarRental,
     });
   };
 
   const toggleLiggingFlag = (key: 'coast' | 'urban' | 'rural') => {
-    updateFilters({ ...filters, [key]: !filters[key] });
+    const current = filtersRef.current;
+    updateFilters({ ...current, [key]: !current[key] });
   };
 
   const toggleBeachDistance = (value: BeachDistance) => {
+    const current = filtersRef.current;
     updateFilters({
-      ...filters,
-      beachDistances: filters.beachDistances.includes(value)
-        ? filters.beachDistances.filter((item) => item !== value)
-        : [...filters.beachDistances, value],
+      ...current,
+      beachDistances: toggleSelectedValue(current.beachDistances, value),
     });
   };
 
   const toggleCenterDistance = (value: CenterDistance) => {
+    const current = filtersRef.current;
     updateFilters({
-      ...filters,
-      centerDistances: filters.centerDistances.includes(value)
-        ? filters.centerDistances.filter((item) => item !== value)
-        : [...filters.centerDistances, value],
+      ...current,
+      centerDistances: toggleSelectedValue(current.centerDistances, value),
     });
   };
 
@@ -588,7 +602,7 @@ export function FilterSidebar({
     // not dropped while an older navigation is in flight (the router discards the older
     // one) and it builds its own Page 1 (no page1Ids carried over from an older query).
     updateFilters(
-      { ...filters, budgetMin: next.min, budgetMax: next.max },
+      { ...filtersRef.current, budgetMin: next.min, budgetMax: next.max },
       BUDGET_GENERATION_NAVIGATION,
     );
   };
@@ -641,7 +655,7 @@ export function FilterSidebar({
               <select
                 value={filters.region}
                 onChange={(event) =>
-                  updateFilters({ ...filters, region: event.target.value, city: '' })
+                  updateFilters({ ...filtersRef.current, region: event.target.value, city: '' })
                 }
                 className={selectClassName}
               >
@@ -657,7 +671,9 @@ export function FilterSidebar({
               <FieldLabel>Plaats</FieldLabel>
               <select
                 value={filters.city}
-                onChange={(event) => updateFilters({ ...filters, city: event.target.value })}
+                onChange={(event) =>
+                  updateFilters({ ...filtersRef.current, city: event.target.value })
+                }
                 className={selectClassName}
                 disabled={selectedCountries.length === 0}
               >
@@ -908,7 +924,7 @@ export function FilterSidebar({
                   <button
                     type="button"
                     className="pt-1 text-left text-[13px] font-medium text-[#0A2D62] underline-offset-2 hover:underline"
-                    onClick={() => updateFilters({ ...filters, centerDistances: [] })}
+                    onClick={() => updateFilters({ ...filtersRef.current, centerDistances: [] })}
                   >
                     Wis keuze
                   </button>
@@ -939,7 +955,7 @@ export function FilterSidebar({
                   <button
                     type="button"
                     className="pt-1 text-left text-[13px] font-medium text-[#0A2D62] underline-offset-2 hover:underline"
-                    onClick={() => updateFilters({ ...filters, beachDistances: [] })}
+                    onClick={() => updateFilters({ ...filtersRef.current, beachDistances: [] })}
                   >
                     Wis keuze
                   </button>
@@ -997,7 +1013,7 @@ export function FilterSidebar({
         onApply={(nextCountries, place) => {
           setDestinationPopupOpen(false);
           updateFilters({
-            ...filters,
+            ...filtersRef.current,
             country: nextCountries.join(','),
             region: place?.region ?? '',
             city: place?.city ?? '',

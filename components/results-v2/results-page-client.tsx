@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  ResultsDelayedNavigationNotice,
+  ResultsNavigationBusyProvider,
+} from '@/components/results/results-navigation-busy';
 import { ResultsAdjustSearchFab } from '@/components/results-v2/results-adjust-search-fab';
 import { ResultsHero } from '@/components/results-v2/results-hero';
 import { DEFAULT_RESULTS_HERO_SUBTITLE } from '@/components/results-v2/results-intro-copy';
@@ -72,41 +76,44 @@ export function ResultsPageClient({
         : 'Geen vakanties gevonden');
 
   return (
-    <div className="min-h-screen bg-[#F3F5F8] text-slate-900">
-      <ResultsSiteHeader />
-      <ResultsHero
-        intro={{
-          heroTitle: resolvedHeroTitle,
-          heroSubtitle: DEFAULT_RESULTS_HERO_SUBTITLE,
-        }}
-        searchBar={<ResultsSearchBar departureAirports={departureAirports} />}
-      />
+    <ResultsNavigationBusyProvider>
+      <div className="min-h-screen bg-[#F3F5F8] text-slate-900">
+        <ResultsSiteHeader />
+        <ResultsHero
+          intro={{
+            heroTitle: resolvedHeroTitle,
+            heroSubtitle: DEFAULT_RESULTS_HERO_SUBTITLE,
+          }}
+          searchBar={<ResultsSearchBar departureAirports={departureAirports} />}
+        />
 
-      <main className="mx-auto max-w-[1600px] px-6 pb-10 pt-10 lg:px-8 lg:pt-12">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[270px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
-          {filters}
+        <main className="mx-auto max-w-[1600px] px-6 pb-10 pt-10 lg:px-8 lg:pt-12">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[270px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
+            {filters}
 
-          <section className="mx-auto min-w-0 w-full max-w-[904px]">
-            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <h2 className="text-[22px] font-bold tracking-tight text-[#0A2D62]">
-                  {resolvedSectionHeading}
-                </h2>
-                {summaryLine ? (
-                  <p className="mt-1.5 text-[13px] text-[#64748B]">{summaryLine}</p>
-                ) : null}
+            <section className="mx-auto min-w-0 w-full max-w-[904px]">
+              <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-[22px] font-bold tracking-tight text-[#0A2D62]">
+                    {resolvedSectionHeading}
+                  </h2>
+                  {summaryLine ? (
+                    <p className="mt-1.5 text-[13px] text-[#64748B]">{summaryLine}</p>
+                  ) : null}
+                </div>
+                <div className="shrink-0">{sortControl}</div>
               </div>
-              <div className="shrink-0">{sortControl}</div>
-            </div>
 
-            {results}
-            {pagination}
-          </section>
-        </div>
-      </main>
+              <ResultsDelayedNavigationNotice />
+              {results}
+              {pagination}
+            </section>
+          </div>
+        </main>
 
-      <ResultsUspBar />
-      <ResultsAdjustSearchFab />
-    </div>
+        <ResultsUspBar />
+        <ResultsAdjustSearchFab />
+      </div>
+    </ResultsNavigationBusyProvider>
   );
 }

@@ -62,6 +62,31 @@ export function resultsHasMore(args: {
   return page < RESULTS_MAX_BROWSE_PAGES && count > windowEnd;
 }
 
+/**
+ * Next control on the last browsable page (15) is not page 16.
+ * It opens the existing max-150 / refine message while the 150-card cap stays.
+ */
+export function resultsNextControlKind(args: {
+  currentPage: number;
+  totalPages: number;
+}): 'page' | 'browse-cap' | 'hidden' {
+  const current =
+    Number.isFinite(args.currentPage) && args.currentPage >= 1
+      ? Math.floor(args.currentPage)
+      : 1;
+  const total =
+    Number.isFinite(args.totalPages) && args.totalPages >= 1
+      ? Math.floor(args.totalPages)
+      : 1;
+  if (current < total) {
+    return 'page';
+  }
+  if (current === RESULTS_MAX_BROWSE_PAGES && total === RESULTS_MAX_BROWSE_PAGES) {
+    return 'browse-cap';
+  }
+  return 'hidden';
+}
+
 
 /**
  * First `cap` offers of an already-ranked matchset for live-pricing work only.
@@ -167,9 +192,15 @@ export function getResultsBrowsePageCount(
 
 export type CompactPaginationItem = number | 'ellipsis';
 
+function paginationRange(from: number, to: number): number[] {
+  const start = Math.max(1, Math.floor(from));
+  const end = Math.max(start, Math.floor(to));
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+}
+
 /**
- * Compact page list with ellipses (max 15 pages still enforced by caller).
- * Examples: 1 2 3 … 10 | 1 … 4 5 6 … 10 | 1 … 8 9 10
+ * Compact page list that always exposes the next numbered page.
+ * Examples (15 pages): 1 2 3 … 15 | 1 2 3 4 … 15 | 1 … 14 15
  */
 export function buildCompactPaginationItems(
   currentPage: number,
@@ -183,21 +214,31 @@ export function buildCompactPaginationItems(
     return [1];
   }
   if (total <= 7) {
-    return Array.from({ length: total }, (_, index) => index + 1);
+    return paginationRange(1, total);
   }
 
   const current = Math.min(Math.max(1, Math.floor(currentPage) || 1), total);
 
-  // Near start: 1 2 3 … N
-  if (current <= 3) {
-    return [1, 2, 3, 'ellipsis', total];
-  }
-  // Near end: 1 … N-2 N-1 N
-  if (current >= total - 2) {
+  // Last two pages: keep 15 as the last real results page (never page 16).
+  if (current >= total - 1) {
+    if (current === total) {
+      return [1, 'ellipsis', total - 1, total];
+    }
     return [1, 'ellipsis', total - 2, total - 1, total];
   }
-  // Middle: 1 … c-1 c c+1 … N
-  return [1, 'ellipsis', current - 1, current, current + 1, 'ellipsis', total];
+
+  // After the expanding prefix, slide so current-1 / current / current+1 stay clickable.
+  if (current >= 6) {
+    return [1, 'ellipsis', current - 1, current, current + 1, 'ellipsis', total];
+  }
+
+  // Pages 1–5: grow the leading window so the next page is always visible.
+  // page 1 → 1 2 3; page 2/3 → through 4; page 4 → through 5; page 5 → through 6.
+  const high = Math.min(total - 1, current === 2 ? 4 : Math.max(3, current + 1));
+  if (high >= total - 1) {
+    return paginationRange(1, total);
+  }
+  return [...paginationRange(1, high), 'ellipsis', total];
 }
 
 /** Clamp a requested page into 1..totalPages (empty pool → page 1). */

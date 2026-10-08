@@ -33,7 +33,7 @@ export async function ProviderFilterFromPool({
 }: ProviderFilterFromPoolProps) {
   const baseParams = omitProviderFilter(filteringParams);
   const prepared = await loadPreparedResultsOffers(baseParams);
-  const matchset = await prepared.exactOffers;
+  const matchset = prepared.offers;
   const providers = listProvidersInMatchset(matchset).map((provider) => ({ provider }));
 
   return (

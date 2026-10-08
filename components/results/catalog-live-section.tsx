@@ -18,6 +18,7 @@ import { buildResultsPageHref, getResultsTotalPages, clampResultsPage } from '@/
 import { isSharedLivePricingPoolSort } from '@/lib/search/results-catalog-page';
 import { getSharedResultsPoolReader } from '@/lib/search/results-pool-reading';
 import { loadPreparedResultsOffers } from '@/lib/search/prepared-results-request';
+import { scopeOffersToProviderFilter } from '@/lib/search/provider-filter';
 import { scheduleCappedMatchsetLiveAfterPage } from '@/lib/search/schedule-capped-matchset-live-after-page';
 import { scheduleResultsMatchsetLivePricing } from '@/lib/search/schedule-results-matchset-live-pricing';
 import {
@@ -49,7 +50,7 @@ export async function CatalogLiveBody({
   isPage1,
 }: CatalogLiveBodyProps) {
   const prepared = await loadPreparedResultsOffers(filteringParams);
-  const filtered = prepared.offers;
+  const filtered = scopeOffersToProviderFilter(prepared.offers, filteringParams);
 
   if (filtered.length === 0) {
     return <NoResults />;

@@ -6,6 +6,7 @@ import {
   countCatalogMatchset,
   countResultsPool,
   capBrowsablePresentableCount,
+  selectDisplayedResultsCount,
 } from '@/lib/search/results-pool-count';
 import {
   RESULTS_MAX_BROWSE_PAGES,
@@ -57,6 +58,8 @@ describe('GO11 pool ≠ 150 / heading / facets / price-sort / browse cap', () =>
     }
     assert.equal(countCatalogMatchset(pool), 200);
     assert.equal(countResultsPool(pool, params), 80);
+    assert.equal(selectDisplayedResultsCount(200, 80), 200);
+    assert.equal(selectDisplayedResultsCount(150, 80), 80);
     assert.equal(capBrowsablePresentableCount(200, RESULTS_USER_PAGINATION_CAP), 150);
     assert.equal(capBrowsablePresentableCount(40, RESULTS_USER_PAGINATION_CAP), 40);
     assert.equal(RESULTS_MAX_BROWSE_PAGES, 15);
@@ -79,8 +82,9 @@ describe('GO11 pool ≠ 150 / heading / facets / price-sort / browse cap', () =>
     assert.doesNotMatch(heading, /slicePriceSortPoolPage/);
   });
 
-  it('facet badges count proven B (same family as heading)', () => {
+  it('facet badges use the same catalog>150 / Proven-B display rule as heading', () => {
     const facets = read('components/results/results-facet-counts.tsx');
+    assert.match(facets, /selectDisplayedResultsCount/);
     assert.match(facets, /countResultsPool/);
     // t63u OPTIE B: same background (never awaited) L2 hydrate as the heading.
     assert.match(facets, /startResultsPoolL2Hydrate\(ranked,\s*facetFiltering\)/);

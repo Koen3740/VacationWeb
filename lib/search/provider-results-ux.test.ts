@@ -43,15 +43,17 @@ describe('hero vs results heading labels', () => {
     );
   });
 
-  it('PresentableResultsCount hero omits provider; section keeps it', () => {
+  it('PresentableResultsCount uses the current search including provider for both headings', () => {
     const src = readFileSync('components/results/presentable-results-count.tsx', 'utf8');
-    assert.match(src, /omitProviderFilter\(filteringParams\)/);
+    assert.match(src, /countCatalogMatchsetForSearch\(prepared\.offers,\s*countParams\)/);
+    assert.match(src, /scopeOffersToProviderFilter\(await prepared\.exactOffers,\s*countParams\)/);
+    assert.doesNotMatch(src, /omitProviderFilter\(filteringParams\)/);
     assert.match(src, /provider=\{filteringParams\.provider\}/);
     assert.match(
       readFileSync('lib/search/results-count-labels.ts', 'utf8'),
       /formatSectionCountLabel\(step\.count,\s*options\.provider\)/,
     );
-    assert.match(src, /variant === 'hero'/);
+    assert.match(src, /variant: 'hero' \| 'section'/);
   });
 });
 
@@ -78,11 +80,16 @@ describe('effective-pool pagination pages', () => {
   it('compact pagination matches expected shapes', () => {
     assert.deepEqual(buildCompactPaginationItems(1, 4), [1, 2, 3, 4]);
     assert.deepEqual(buildCompactPaginationItems(1, 10), [1, 2, 3, 'ellipsis', 10]);
-    assert.deepEqual(buildCompactPaginationItems(5, 10), [1, 'ellipsis', 4, 5, 6, 'ellipsis', 10]);
-    assert.deepEqual(buildCompactPaginationItems(10, 10), [1, 'ellipsis', 8, 9, 10]);
+    assert.deepEqual(buildCompactPaginationItems(5, 10), [1, 2, 3, 4, 5, 6, 'ellipsis', 10]);
+    assert.deepEqual(buildCompactPaginationItems(10, 10), [1, 'ellipsis', 9, 10]);
     assert.deepEqual(buildCompactPaginationItems(1, 15), [1, 2, 3, 'ellipsis', 15]);
+    assert.deepEqual(buildCompactPaginationItems(2, 15), [1, 2, 3, 4, 'ellipsis', 15]);
+    assert.deepEqual(buildCompactPaginationItems(3, 15), [1, 2, 3, 4, 'ellipsis', 15]);
+    assert.deepEqual(buildCompactPaginationItems(4, 15), [1, 2, 3, 4, 5, 'ellipsis', 15]);
+    assert.deepEqual(buildCompactPaginationItems(5, 15), [1, 2, 3, 4, 5, 6, 'ellipsis', 15]);
     assert.deepEqual(buildCompactPaginationItems(7, 15), [1, 'ellipsis', 6, 7, 8, 'ellipsis', 15]);
-    assert.deepEqual(buildCompactPaginationItems(15, 15), [1, 'ellipsis', 13, 14, 15]);
+    assert.deepEqual(buildCompactPaginationItems(14, 15), [1, 'ellipsis', 13, 14, 15]);
+    assert.deepEqual(buildCompactPaginationItems(15, 15), [1, 'ellipsis', 14, 15]);
   });
 
   it('ResultsPagination drives pages from effective totalResults', () => {

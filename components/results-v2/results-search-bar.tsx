@@ -24,6 +24,7 @@ import {
   stateFromUrl,
   type ResultsBarSearchState,
 } from '@/components/results-v2/results-search-bar-utils';
+import { useReportResultsNavigationBusy } from '@/components/results/results-navigation-busy';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 
@@ -106,6 +107,7 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
 
   // Owner 25-09 23:03: no fullscreen loading overlay in the Results flow; busy only drives this control.
   const searchBusy = isSearching || isPending;
+  useReportResultsNavigationBusy(searchBusy);
 
   useEffect(() => {
     const synced = stateFromUrl(new URLSearchParams(searchParams.toString()));

@@ -206,7 +206,7 @@ describe('heading result count = proven B only', () => {
     assert.equal(countResultsPool(catalog, params), 3);
   });
 
-  it('count never falls back to catalog matchset length', () => {
+  it('Proven-B membership never falls back to catalog matchset length', () => {
     const catalog = Array.from({ length: 312 }, (_, i) => makeOffer(`o-${i}`, 400 + i));
     for (let i = 0; i < 50; i++) seedB(`o-${i}`, 400 + i, 'Eliza was here');
     const heading = countResultsPool(catalog, params);
@@ -228,9 +228,7 @@ describe('heading result count = proven B only', () => {
     assert.match(facets, /countResultsPool\(ranked,\s*facetFiltering\)/);
     assert.match(pool, /bookableResultsMembership\(offers, params\)\.length/);
     assert.match(pool, /countCatalogMatchset/);
-    assert.match(
-      pool,
-      /User-facing Results count: proven B\/listable/,
-    );
+    assert.match(pool, /countResultsPool/);
+    assert.match(pool, /selectDisplayedResultsCount/);
   });
 });

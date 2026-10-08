@@ -14,6 +14,7 @@ import {
   type Page1SettleController,
 } from '@/lib/search/page-settle';
 import { RESULTS_USER_PAGINATION_CAP } from '@/lib/search/pagination';
+import { isSharedLivePricingPoolSort } from '@/lib/search/results-catalog-page';
 import { createPoolProgressTracker } from '@/lib/search/results-pool-progress';
 import { memoizeByCacheVersion } from '@/lib/search/results-pool-reading';
 import type { SearchParams, TravelOffer } from '@/types/travel';
@@ -101,8 +102,9 @@ export function Page1ResultsStream({
   const overlayById = new Map(overlays.map((overlay) => [overlay.catalog.id, overlay]));
   let renderOffers: TravelOffer[];
   let useCap: boolean;
-  if (page1Settle) {
+  if (page1Settle && isSharedLivePricingPoolSort(searchParams?.sort)) {
     // Default display = B arrival order first, then remaining discovery slots for Cap backfill.
+    // User sorts (rating, stars, …) keep ranked catalogOffers order — not arrival.
     const byId = new Map(page1Settle.slotOffers.map((offer) => [offer.id, offer]));
     const arrived: TravelOffer[] = [];
     const seen = new Set<string>();
@@ -115,6 +117,9 @@ export function Page1ResultsStream({
     const rest = page1Settle.slotOffers.filter((offer) => !seen.has(offer.id));
     renderOffers = [...arrived, ...rest];
     useCap = renderOffers.length > displayLimit;
+  } else if (page1Settle) {
+    renderOffers = catalogOffers;
+    useCap = false;
   } else {
     // Paint primary page members first, then reserve for A-settlement backfill.
     const primaryIds = new Set(catalogOffers.map((offer) => offer.id));

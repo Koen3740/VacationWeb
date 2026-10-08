@@ -185,7 +185,8 @@ test('hasMore source: wired through page state, section, stream and pagination U
   // Page count follows effective browse total (capped at 15); hasMore is data attribute.
   assert.match(ui, /getResultsTotalPages/);
   assert.match(ui, /data-has-more=\{hasMore \? 'true' : 'false'\}/);
-  assert.match(ui, /const hasNext = currentPage < totalPages;/);
+  assert.match(ui, /resultsNextControlKind/);
+  assert.match(ui, /data-testid="results-browse-cap-dialog"/);
   const stream = read('components/results/page1-receipt-stream.tsx');
   assert.match(stream, /hasMore=\{page1HasMore\(output, page1Settle\.pageSize\)\}/);
   const section = read('components/results/catalog-live-section.tsx');

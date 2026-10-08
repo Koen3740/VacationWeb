@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { writeBudgetParams } from './budget-params';
-import { applyFilterNavigationPaging } from './filter-navigation';
+import {
+  applyFilterNavigationPaging,
+  shouldDropFilterCommit,
+  SIDEBAR_FILTER_NAVIGATION,
+  SORT_NAVIGATION,
+  toggleSelectedValue,
+} from './filter-navigation';
+import { BUDGET_GENERATION_NAVIGATION } from './budget-generation';
+import { readFileSync } from 'node:fs';
 
 test('budget refine writes only the real max constraint', () => {
   const params = new URLSearchParams('country=Spanje&page1Ids=a,b,c');
@@ -51,6 +59,73 @@ test('stars / board / vacation / amenity refine keep page1Ids', () => {
     applyFilterNavigationPaging(params, { preservePage1Ids: true });
     assert.equal(params.get('page1Ids'), 'keep-me', extra);
   }
+});
+
+test('sidebar catalog filters use the same latest-wins flag as budget generations', () => {
+  assert.equal(SIDEBAR_FILTER_NAVIGATION.allowWhileNavigating, true);
+  assert.equal(BUDGET_GENERATION_NAVIGATION.allowWhileNavigating, true);
+  assert.equal(
+    shouldDropFilterCommit({
+      navigationLocked: true,
+      allowWhileNavigating: SIDEBAR_FILTER_NAVIGATION.allowWhileNavigating,
+    }),
+    false,
+  );
+  assert.equal(shouldDropFilterCommit({ navigationLocked: true }), true);
+});
+
+test('rapid All Inclusive then beach lt100 composes on the latest selection', () => {
+  const afterBoard = {
+    boardTypes: toggleSelectedValue([], 'All Inclusive'),
+    beachDistances: [] as string[],
+  };
+  const afterBeach = {
+    boardTypes: afterBoard.boardTypes,
+    beachDistances: toggleSelectedValue(afterBoard.beachDistances, 'lt100'),
+  };
+  assert.deepEqual(afterBeach.boardTypes, ['All Inclusive']);
+  assert.deepEqual(afterBeach.beachDistances, ['lt100']);
+});
+
+test('rapid board ticks and unticks compose in order on the latest list', () => {
+  let board: string[] = [];
+  for (const value of ['Logies', 'Logies & ontbijt', 'Halfpension', 'Volpension', 'All Inclusive']) {
+    board = toggleSelectedValue(board, value);
+  }
+  assert.deepEqual(board, [
+    'Logies',
+    'Logies & ontbijt',
+    'Halfpension',
+    'Volpension',
+    'All Inclusive',
+  ]);
+  for (const value of ['Logies', 'Logies & ontbijt', 'Halfpension', 'Volpension', 'All Inclusive']) {
+    board = toggleSelectedValue(board, value);
+  }
+  assert.deepEqual(board, []);
+});
+
+test('filter-sidebar issues overlapping replaces instead of dropping the second click', () => {
+  const src = readFileSync('components/results/filter-sidebar.tsx', 'utf8');
+  assert.match(src, /SIDEBAR_FILTER_NAVIGATION/);
+  assert.match(src, /filtersRef/);
+  assert.match(src, /toggleSelectedValue/);
+  assert.match(src, /\{ \.\.\.filtersRef\.current, budgetMin:/);
+  assert.doesNotMatch(
+    src,
+    /if \(navigationLockRef\.current && !options\?\.allowWhileNavigating\) \{\s*return;/,
+  );
+});
+
+test('sort navigation drops page1Ids so a new ranking is not frozen to the previous page 1', () => {
+  assert.equal(SORT_NAVIGATION.preservePage1Ids, false);
+  const params = new URLSearchParams('country=Spanje&page1Ids=a,b,c&page=3&sort=price');
+  applyFilterNavigationPaging(params, { preservePage1Ids: SORT_NAVIGATION.preservePage1Ids });
+  assert.equal(params.get('page1Ids'), null);
+  assert.equal(params.get('page'), null);
+  const src = readFileSync('components/results/sort-selector.tsx', 'utf8');
+  assert.match(src, /SORT_NAVIGATION/);
+  assert.match(src, /preservePage1Ids: SORT_NAVIGATION\.preservePage1Ids/);
 });
 
 test('unchanged budget should not require a second navigation helper', () => {

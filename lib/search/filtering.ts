@@ -356,6 +356,29 @@ export function countAmenityFacet(
   );
 }
 
+/** Stable Results tie-break: canonical identity, else offer id. */
+export function offerSortIdentity(offer: TravelOffer): string {
+  const canonical = offer.canonicalOfferIdentity?.trim();
+  return canonical && canonical.length > 0 ? canonical : offer.id;
+}
+
+export function compareOfferSortIdentity(a: TravelOffer, b: TravelOffer): number {
+  return offerSortIdentity(a).localeCompare(offerSortIdentity(b));
+}
+
+function compareNumericThenIdentity(
+  left: number,
+  right: number,
+  a: TravelOffer,
+  b: TravelOffer,
+): number {
+  const delta = left - right;
+  if (delta !== 0 && Number.isFinite(delta)) {
+    return delta;
+  }
+  return compareOfferSortIdentity(a, b);
+}
+
 export function sortOffers(
   offers: TravelOffer[],
   sort: string = 'value'
@@ -375,28 +398,28 @@ export function sortOffers(
 
   switch (sort) {
     case 'price':
-      return [...ranked].sort(
-        (a, b) => a.price - b.price
+      return [...ranked].sort((a, b) =>
+        compareNumericThenIdentity(a.price, b.price, a, b),
       );
 
     case 'price-desc':
-      return [...ranked].sort(
-        (a, b) => b.price - a.price
+      return [...ranked].sort((a, b) =>
+        compareNumericThenIdentity(b.price, a.price, a, b),
       );
 
     case 'price-per-day':
-      return [...ranked].sort(
-        (a, b) => a.pricePerDay - b.pricePerDay
+      return [...ranked].sort((a, b) =>
+        compareNumericThenIdentity(a.pricePerDay, b.pricePerDay, a, b),
       );
 
     case 'rating':
-      return [...ranked].sort(
-        (a, b) => (b.rating ?? 0) - (a.rating ?? 0)
+      return [...ranked].sort((a, b) =>
+        compareNumericThenIdentity(b.rating ?? 0, a.rating ?? 0, a, b),
       );
 
     case 'stars':
-      return [...ranked].sort(
-        (a, b) => (b.stars ?? 0) - (a.stars ?? 0)
+      return [...ranked].sort((a, b) =>
+        compareNumericThenIdentity(b.stars ?? 0, a.stars ?? 0, a, b),
       );
 
     case 'departure': {
@@ -405,7 +428,7 @@ export function sortOffers(
       return [...ranked].sort((a, b) => {
         const dateA = normalizeDepartureDateToIso(a.departureDate) ?? '';
         const dateB = normalizeDepartureDateToIso(b.departureDate) ?? '';
-        if (!dateA && !dateB) return 0;
+        if (!dateA && !dateB) return compareOfferSortIdentity(a, b);
         if (!dateA) return 1;
         if (!dateB) return -1;
         const aPast = dateA < today;
@@ -413,13 +436,14 @@ export function sortOffers(
         if (aPast !== bPast) {
           return aPast ? 1 : -1;
         }
-        return dateA.localeCompare(dateB);
+        const byDate = dateA.localeCompare(dateB);
+        return byDate !== 0 ? byDate : compareOfferSortIdentity(a, b);
       });
     }
 
     case 'duration':
-      return [...ranked].sort(
-        (a, b) => a.nights - b.nights
+      return [...ranked].sort((a, b) =>
+        compareNumericThenIdentity(a.nights, b.nights, a, b),
       );
 
     case 'value':

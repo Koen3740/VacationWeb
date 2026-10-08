@@ -421,6 +421,8 @@ test('S4-18 source: Results page 1 is wired through the settle controller', () =
   assert.match(stream, /await page1Settle\.selection/);
   assert.match(stream, /resolvePage1SettleOutput\(/);
   assert.match(stream, /page1Settle\.slotOutcome\(offer\.id\)/);
+  assert.match(stream, /isSharedLivePricingPoolSort\(searchParams\?\.sort\)/);
+  assert.match(stream, /isSharedLivePricingPoolSort\(searchParams\?\.sort\)/);
   assert.match(stream, /PAGE1_DEADLINE_EMPTY_STATUS_TEXT/);
   assert.ok(stream.includes('replaceExisting={true}'));
   assert.doesNotMatch(stream, /Geen vakanties gevonden/);

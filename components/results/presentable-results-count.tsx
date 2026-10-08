@@ -5,8 +5,12 @@ import {
   formatSectionCountLabel,
 } from '@/lib/search/results-count-labels';
 import { loadPreparedResultsOffers } from '@/lib/search/prepared-results-request';
-import { omitProviderFilter } from '@/lib/search/provider-filter';
+import { scopeOffersToProviderFilter } from '@/lib/search/provider-filter';
 import { startResultsPoolL2Hydrate } from '@/lib/search/results-pool-hydrate';
+import {
+  countCatalogMatchsetForSearch,
+  usesCatalogResultsDisplayCount,
+} from '@/lib/search/results-pool-count';
 import { createPoolProgressTracker } from '@/lib/search/results-pool-progress';
 import { getSharedResultsPoolReader } from '@/lib/search/results-pool-reading';
 import type { SearchParams } from '@/types/travel';
@@ -27,10 +31,9 @@ export type PresentableResultsCountProps = {
 };
 
 /**
- * Progressive proven-B count (t334u). The prepare is shared (React cache), the full
- * matchset L2 hydrate runs in the BACKGROUND (never awaited: it used to hold the
- * heading at "." for ~12 s at 788 offers and ~98 s at 6,825), and the label follows the
- * same L1 overlay state as the cards through streamed steps.
+ * Results heading display (Main Chat 5): catalog matchset when > 150, else
+ * progressive Proven-B (t334u). Catalog path does not await exactOffers / live
+ * pricing. L2 hydrate stays fire-and-forget on the Proven-B path only.
  */
 async function ProgressivePresentableCount({
   countParams,
@@ -44,7 +47,23 @@ async function ProgressivePresentableCount({
   variant: 'hero' | 'section';
 }) {
   const prepared = await loadPreparedResultsOffers(countParams);
-  const ranked = await prepared.exactOffers;
+  const catalogCount = countCatalogMatchsetForSearch(prepared.offers, countParams);
+  if (usesCatalogResultsDisplayCount(catalogCount)) {
+    return (
+      <>
+        {formatPoolCountStep(
+          { count: catalogCount, checking: false },
+          {
+            variant,
+            summaryLine,
+            provider,
+            matchsetEmpty: false,
+          },
+        )}
+      </>
+    );
+  }
+  const ranked = scopeOffersToProviderFilter(await prepared.exactOffers, countParams);
   startResultsPoolL2Hydrate(ranked, countParams);
   const tracker = createPoolProgressTracker({
     read: getSharedResultsPoolReader(ranked, countParams),
@@ -65,9 +84,8 @@ async function ProgressivePresentableCount({
 }
 
 /**
- * Heading counts proven listable B (uncapped), never catalog matchset size.
- * - hero: original search (provider omitted)
- * - section: effective pool including active provider filter + optional "bij <provider>"
+ * Heading display: catalog > 150 → catalog count; else Proven-B stream.
+ * catalogCount is the CURRENT search matchset, including `?provider=`.
  */
 export async function PresentableResultsCount({
   filteringParams,
@@ -79,11 +97,9 @@ export async function PresentableResultsCount({
     return <>{REFINEMENT_HEADING}</>;
   }
 
-  const countParams =
-    variant === 'hero' ? omitProviderFilter(filteringParams) : filteringParams;
   return (
     <ProgressivePresentableCount
-      countParams={countParams}
+      countParams={filteringParams}
       provider={filteringParams.provider}
       summaryLine={summaryLine}
       variant={variant}
@@ -101,18 +117,16 @@ export type PriceSortPresentableCountProps = {
 };
 
 /**
- * Price-sort heading: same proven-B membership rules as default (hero vs section).
+ * Price-sort heading: same display rule as default (current search, including provider).
  */
 export async function PriceSortPresentableCount({
   filteringParams,
   summaryLine,
   variant,
 }: PriceSortPresentableCountProps) {
-  const countParams =
-    variant === 'hero' ? omitProviderFilter(filteringParams) : filteringParams;
   return (
     <ProgressivePresentableCount
-      countParams={countParams}
+      countParams={filteringParams}
       provider={filteringParams.provider}
       summaryLine={summaryLine}
       variant={variant}
