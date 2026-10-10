@@ -74,15 +74,15 @@ function SearchField({
 }) {
   return (
     <div
-      className={`flex min-h-[52px] min-w-0 flex-1 items-center gap-2.5 px-3 py-2 lg:h-full lg:min-h-0 lg:px-3.5 ${className}`}
+      className={`flex min-h-[52px] min-w-0 flex-1 items-center gap-2.5 px-3.5 py-2.5 lg:h-full lg:min-h-[68px] lg:px-4 ${className}`}
     >
       {icon}
       <span className="min-w-0 flex-1">
-        <span className="block text-[12px] font-bold leading-none tracking-tight text-[#0A2D62]">
+        <span className="block text-[11px] font-semibold uppercase leading-none tracking-[0.12em] text-white/80">
           {label}
         </span>
         <span
-          className={`mt-1 block text-[13.5px] font-medium leading-snug text-[#64748B] ${valueClassName}`}
+          className={`mt-1 block overflow-hidden text-ellipsis text-[15px] font-medium leading-snug text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.25)] ${valueClassName}`}
         >
           {value}
         </span>
@@ -93,7 +93,7 @@ function SearchField({
 }
 
 function Divider() {
-  return <div className="hidden w-px shrink-0 self-stretch bg-[#E0E2E7] lg:block" aria-hidden="true" />;
+  return <div className="hidden w-px shrink-0 self-stretch bg-white/30 lg:block" aria-hidden="true" />;
 }
 
 type HomeSearchProps = {
@@ -279,17 +279,17 @@ export function HomeSearch({
   };
 
   const fieldButtonClass =
-    'w-full text-left transition hover:bg-[#F8FAFC] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E66F5] lg:min-w-0';
+    'w-full rounded-[14px] text-left transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:min-w-0 lg:rounded-none lg:hover:bg-white/10';
 
   return (
     <>
-      <div className="mx-auto box-border w-[80vw] rounded-[16px] bg-[#FEFAF6] p-1 shadow-[0_12px_32px_rgba(10,45,98,0.12)] ring-1 ring-black/[0.06] lg:h-[98px] lg:min-h-[98px] lg:p-1">
-        <div className="flex flex-col gap-0 lg:h-full lg:flex-row lg:items-stretch">
-          <div className="flex min-w-0 flex-1 flex-col divide-y divide-[#E0E2E7] lg:h-full lg:flex-row lg:divide-x lg:divide-y-0 lg:divide-[#E0E2E7]">
+      <div className="vw-glass-search box-border w-full p-1.5 sm:p-2">
+        <div className="grid grid-cols-2 gap-1.5 lg:flex lg:items-stretch lg:gap-0">
+          <div className="contents">
             <button
               type="button"
               onClick={() => setDestinationPopupOpen(true)}
-              className={`${fieldButtonClass} lg:flex-1`}
+              className={`${fieldButtonClass} col-span-2 lg:flex-[1.6]`}
             >
               <SearchField
                 label={t.destinationLabel}
@@ -363,13 +363,13 @@ export function HomeSearch({
             </button>
           </div>
 
-          <div className="flex shrink-0 items-center p-1 lg:h-full lg:pl-2">
+          <div className="col-span-2 flex shrink-0 items-center lg:h-auto lg:pl-2">
             <button
               type="button"
               onClick={handleSearch}
               disabled={searchBusy}
               aria-busy={searchBusy}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[12px] bg-[#3779B3] px-5 text-[13.5px] font-semibold text-white transition hover:bg-[#2F6A9E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3779B3] disabled:cursor-wait disabled:opacity-80 lg:h-[56px] lg:w-[250px] lg:min-w-[250px] lg:px-4"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-white px-6 text-[15.5px] font-semibold text-vw-navy transition hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-80 motion-reduce:transform-none lg:h-full lg:w-auto lg:px-7"
             >
               {searchBusy ? t.busy : (<>{t.cta} <span aria-hidden>→</span></>)}
             </button>

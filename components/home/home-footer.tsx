@@ -63,20 +63,14 @@ export function HomeFooter() {
   const copy = useChromeCopy();
   const { ontdek: ontdekLinks, over: overLinks, service: serviceLinks, legal: legalLinks } = footerLinks(copy);
   return (
-    <footer className="bg-[#01213A] text-white">
-      <div className="mx-auto w-[86.8vw] px-4 py-6 sm:px-6 lg:px-0 lg:py-7">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-12 lg:gap-6">
+    <footer className="relative bg-[#0d1622] text-[#e9edf2]">
+      <div className="mx-auto w-full max-w-[1180px] px-[18px] py-16 sm:px-[clamp(20px,4vw,56px)] sm:py-[72px]">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-3">
-            <p className="inline-flex items-baseline gap-2">
-              <span
-                className="text-[28px] font-semibold leading-none"
-                style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
-              >
-                W
-              </span>
-              <span className="text-[17px] font-bold tracking-tight">VacationWeb</span>
+            <p className="font-vw-serif text-[24px] font-medium leading-none">
+              Vacation<span className="opacity-75">Web</span>
             </p>
-            <p className="mt-2 text-[12px] text-white/70">Discover more. Travel smarter.</p>
+            <p className="mt-3 max-w-[34ch] text-[14.5px] leading-relaxed text-white/70">{copy.footer.about}</p>
           </div>
           <div className="lg:col-span-2">
             <p className="text-[13px] font-semibold">{copy.footer.discoverHeading}</p>

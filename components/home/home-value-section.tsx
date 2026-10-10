@@ -1,52 +1,38 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { CHROME_COPY, type ChromeCopy } from '@/lib/i18n/chrome-copy';
 
-/** WOW value — flat cream band, compact row (headline | icons | stamp). NOT elevated card. */
+/** "Over ons" anchor. Glass steps: search, compare, book with the provider. */
 export function HomeValueSection({ copy = CHROME_COPY.nl.value }: { copy?: ChromeCopy['value'] } = {}) {
   return (
-    <section id="value" className="bg-[#F6EFE8]">
-      <div className="mx-auto box-border w-[86.8vw] px-4 py-7 sm:px-6 lg:flex lg:min-h-[400px] lg:items-center lg:px-0 lg:py-20">
-        <div className="grid w-full items-center gap-8 lg:grid-cols-12 lg:gap-10">
-          <div className="lg:col-span-3">
-            <h2
-              className="text-[1.75rem] font-semibold leading-snug text-[#0A2D62] sm:text-[2.1rem] lg:text-[2.4rem]"
-              style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
-            >
-              {copy.title}
-            </h2>
-            <p className="mt-4 max-w-md text-[16px] leading-relaxed text-[#475569]">
-              {copy.body}
-            </p>
-            <Link
-              href="/#hero"
-              className="mt-5 inline-flex min-h-[40px] items-center justify-center rounded-full bg-[#0A2D62] px-4 text-[12.5px] font-semibold text-white transition hover:bg-[#082452]"
-            >
-              {copy.cta} →
-            </Link>
+    <section id="value" className="px-[18px] pb-[clamp(70px,9vw,130px)] sm:px-[clamp(20px,4vw,56px)]">
+      <div className="mx-auto max-w-[1180px]">
+        <div className="vw-glass p-2.5 sm:p-2.5">
+          <div className="px-5 pb-2 pt-7 sm:px-8 sm:pt-9">
+            <p className="vw-home-kicker">{copy.kicker}</p>
+            <h2 className="vw-home-h2 max-w-[16ch]">{copy.title}</h2>
+            <p className="mt-4 max-w-[40ch] text-[15px] leading-relaxed text-white/80">{copy.body}</p>
           </div>
-          <ul className="grid gap-6 sm:grid-cols-3 lg:col-span-6 lg:grid-cols-3 lg:gap-8">
-            {copy.points.map((p) => (
-              <li key={p.title} className="text-center sm:text-left">
-                <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-[#D6D0C4]/90 text-[#0A2D62] sm:mx-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
+          <ol className="grid grid-cols-1 sm:grid-cols-3">
+            {copy.points.map((point, index) => (
+              <li
+                key={point.title}
+                className="border-t border-white/15 px-5 py-6 sm:border-t-0 sm:px-8 sm:py-9 sm:[&:not(:first-child)]:border-l"
+              >
+                <span className="grid h-[38px] w-[38px] place-items-center rounded-full border border-white/80 font-vw-serif text-[16px] text-white/80">
+                  {index + 1}
                 </span>
-                <p className="text-[15px] font-semibold text-[#0A2D62]">{p.title}</p>
-                <p className="mt-1.5 text-[14px] leading-snug text-[#475569]">{p.body}</p>
+                <h3 className="mt-5 font-vw-serif text-[22px] font-medium leading-tight sm:text-[24px]">{point.title}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-white/80">{point.body}</p>
               </li>
             ))}
-          </ul>
-          <div className="hidden items-center justify-center lg:col-span-3 lg:flex">
-            <Image
-              src="/images/wow-ssot/travel-good-stamp.png"
-              alt="Travel good — feel better"
-              width={220}
-              height={165}
-              className="h-auto w-[180px] opacity-95"
-            />
+          </ol>
+          <div className="px-5 pb-6 sm:px-8 sm:pb-8">
+            <Link
+              href="/#hero"
+              className="inline-flex min-h-10 items-center text-[14.5px] font-medium text-white underline decoration-white/60 underline-offset-4"
+            >
+              {copy.cta}
+            </Link>
           </div>
         </div>
       </div>

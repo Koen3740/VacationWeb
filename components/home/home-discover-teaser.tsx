@@ -1,85 +1,72 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import { DiscoverCardImage } from '@/components/home/discover-card-image';
-import { getHomepageDiscoverDestinations } from '@/lib/discover/get-homepage-discover-destinations';
-import type { DiscoverDestination } from '@/lib/discover/types';
 import { CHROME_COPY, type ChromeCopy } from '@/lib/i18n/chrome-copy';
+import {
+  HOMEPAGE_DISCOVERY_HREF,
+  HOMEPAGE_OFFERS_HREF,
+  homepageDestinationTiles,
+} from '@/lib/home/homepage-sections';
 
 type HomeDiscoverTeaserProps = {
-  /** Prefer page.tsx loading via getter and passing in (testability). */
-  destinations?: DiscoverDestination[];
-  /** t66u: section chrome (default Dutch). Card names/teasers are Discover data (Dutch). */
+  /** t66u: section chrome (default Dutch). Tile names come from Discovery data. */
   copy?: ChromeCopy['discover'];
 };
 
-/** WOW discovery — landscape cards with play + place labels (SSOT crops). Data-driven. */
-export function HomeDiscoverTeaser({ destinations, copy = CHROME_COPY.nl.discover }: HomeDiscoverTeaserProps) {
-  const cards =
-    destinations ?? getHomepageDiscoverDestinations({ limit: 5 });
-  const gridColsClass =
-    cards.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4';
+/** Portrait tiles over the hero photo. Albanië opens the longread; the rest open results. */
+export function HomeDiscoverTeaser({ copy = CHROME_COPY.nl.discover }: HomeDiscoverTeaserProps) {
+  const tiles = homepageDestinationTiles();
 
   return (
-    <section id="ontdekt" className="bg-[#FBF6F0]">
-      <div className="mx-auto w-[86.8vw] px-4 py-4 sm:px-6 lg:px-0 lg:py-6 lg:pb-14">
-        <div className="flex items-end justify-between gap-4">
-          <div className="max-w-xl">
-            <h2
-              className="text-[1.65rem] font-semibold tracking-tight text-[#0A2D62] sm:text-[1.95rem]"
-              style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
-            >
-              {copy.title}
-            </h2>
-            <p className="mt-1.5 text-[13.5px] text-[#64748B]">
-              {copy.subtitle}
-            </p>
+    <section id="ontdekt" className="px-[18px] py-[clamp(56px,8vw,110px)] sm:px-[clamp(20px,4vw,56px)]">
+      <div className="mx-auto max-w-[1180px]">
+        <div className="mb-7 flex flex-col items-start gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="vw-home-kicker">{copy.kicker}</p>
+            <h2 className="vw-home-h2">{copy.title}</h2>
           </div>
-          <Link
-            href="/bestemmingen"
-            className="hidden shrink-0 text-[13px] font-semibold text-[#0A2D62] sm:inline-flex"
-          >
-            {copy.viewAll} →
-          </Link>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-[14.5px] font-medium">
+            <Link href={HOMEPAGE_DISCOVERY_HREF} className="border-b border-current pb-0.5 text-white">
+              {copy.viewAll}
+            </Link>
+            <Link href={HOMEPAGE_OFFERS_HREF} className="border-b border-current pb-0.5 text-white">
+              {copy.offers}
+            </Link>
+          </div>
         </div>
-
-        <div className="relative mt-3">
-          <ul
-            className={`flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible ${gridColsClass} [&::-webkit-scrollbar]:hidden`}
-          >
-            {cards.map((card) => (
-              <li key={card.destinationId} className="w-[78%] shrink-0 sm:w-auto">
-                <Link
-                  href={card.href ?? ("/ontdekt/" + card.destinationId)}
-                  className="group relative block overflow-hidden rounded-[12px] shadow-[0_8px_24px_rgba(10,45,98,0.07)] ring-1 ring-[#E8E4DC]/80"
-                >
-                  <div className="relative h-[220px] overflow-hidden sm:h-[240px] lg:h-[266px]">
-                    <DiscoverCardImage src={card.imageSrc} alt="" />
-                    <div
-                      className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent"
-                      aria-hidden
-                    />
-                    <span
-                      className="absolute left-1/2 top-[38%] flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[12px] text-[#0A2D62] shadow-sm"
-                      aria-hidden
-                    >
-                      ▶
+        <ul className="grid grid-cols-2 gap-2.5 sm:gap-[18px] lg:grid-cols-3">
+          {tiles.map((tile) => (
+            <li key={tile.id}>
+              <Link
+                href={tile.href}
+                className="vw-home-tile group relative block aspect-[3/4] overflow-hidden rounded-[16px] shadow-[0_24px_50px_-28px_rgba(0,0,0,0.6)] sm:aspect-[4/5] sm:rounded-[22px]"
+              >
+                <Image
+                  src={tile.imageSrc}
+                  alt={tile.imageAlt}
+                  fill
+                  sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 360px"
+                  className="vw-home-tile-img object-cover group-hover:scale-105 motion-reduce:transform-none"
+                  style={{ objectPosition: tile.objectPosition }}
+                />
+                <span className="absolute inset-x-2 bottom-2 flex items-center justify-between gap-2 rounded-[12px] border border-white/35 bg-white/15 px-3 py-2 backdrop-blur-[14px] sm:inset-x-3.5 sm:bottom-3.5 sm:rounded-[16px] sm:px-[18px] sm:py-3.5">
+                  <span className="min-w-0">
+                    <span className="block truncate font-vw-serif text-[17px] font-medium leading-tight sm:text-[22px]">
+                      {tile.title}
                     </span>
-                    <div className="absolute inset-x-0 bottom-0 p-3 sm:p-3.5">
-                      <p
-                        className="text-[15px] font-semibold leading-tight text-white drop-shadow sm:text-[16px]"
-                        style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
-                      >
-                        {card.name}
-                      </p>
-                      <p className="mt-0.5 text-[12px] leading-snug text-white/90 sm:text-[12.5px]">
-                        {card.teaser}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+                    <span className="mt-0.5 hidden truncate text-[12.5px] text-white/80 sm:block">{tile.place}</span>
+                    <span className="sr-only">{tile.credit}</span>
+                  </span>
+                  <span
+                    className="hidden h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-white/20 text-[18px] sm:grid"
+                    aria-hidden
+                  >
+                    →
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
