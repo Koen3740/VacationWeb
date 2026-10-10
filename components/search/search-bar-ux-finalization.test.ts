@@ -212,6 +212,9 @@ test('duration popup: common-duration chips, custom stepper 2-32, no Exact/Flexi
   assert.ok(home.includes('t.durationPlaceholder'));
   assert.equal(CHROME_COPY.nl.search.durationLabel, 'Reisduur');
   assert.equal(CHROME_COPY.nl.search.durationPlaceholder, 'Aantal dagen');
+  assert.equal(CHROME_COPY.nl.search.durationHint, 'Flexibel');
+  assert.equal(CHROME_COPY.fr.search.durationHint, 'Flexible');
+  assert.equal(CHROME_COPY.nl.search.durationHint.includes('Exact'), false);
 });
 
 /* ---------------- Airports ---------------- */
