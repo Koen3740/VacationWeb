@@ -78,7 +78,7 @@ function SearchField({
     >
       {icon}
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] font-semibold uppercase leading-none tracking-[0.12em] text-white/80">
+        <span className="block truncate text-[11px] font-semibold uppercase leading-none tracking-wide text-white/80">
           {label}
         </span>
         <span

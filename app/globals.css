@@ -243,23 +243,10 @@ body {
   backdrop-filter: blur(10px);
 }
 
+/* Field icons stay in the DOM for the shared icon set, but the glass module
+   is the lab's text-only fields. "Vertrekluchthaven" needs the full width. */
 .vw-glass-search svg {
-  width: 18px;
-  height: 18px;
-}
-
-.vw-glass-search svg [stroke='#64748B'] {
-  stroke: rgba(255, 255, 255, 0.88);
-}
-
-.vw-glass-search svg [fill='#64748B'] {
-  fill: rgba(255, 255, 255, 0.88);
-}
-
-@media (max-width: 1023px) {
-  .vw-glass-search svg {
-    display: none;
-  }
+  display: none;
 }
 
 .vw-scrollhint-line {
