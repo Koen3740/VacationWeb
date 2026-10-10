@@ -346,6 +346,58 @@ test('room choice prices only the included room and keeps the existing clickout'
   assert.doesNotMatch(alternateOutbound.join(' '), /room=|RoomType|unit=/i);
 });
 
+test('Sunweb room quotes show each party total and the trip panel', () => {
+  const html = renderToStaticMarkup(
+    createElement(OfferDetailContent, {
+      offer: makeOffer(),
+      params: TWO_ADULTS,
+      resultsHref: '/results',
+      galleryImages: IMAGES,
+      rooms: [],
+      selectedRoom: null,
+      sections: [],
+      presentable: true,
+      themes: [],
+      isLastMinute: false,
+      roomQuotes: [
+        { id: '2KA123', name: '2-kamerappartement type I', capacityText: 'geschikt voor 2 tot 3 personen', totalPrice: 1254.88 },
+        { id: '3KA125', name: '3-kamerappartement type I', totalPrice: 1336.98 },
+        { id: '3KVA25', name: '3-kamer villa type A' },
+      ],
+    }),
+  );
+  assert.match(html, /Pas je reis aan/);
+  assert.match(html, /data-testid="detail-room-priced"[\s\S]*2-kamerappartement type I/);
+  assert.match(html, /geschikt voor 2 tot 3 personen/);
+  assert.match(html, /Totaal [^<]*1\.254,88/);
+  assert.match(html, /Totaal [^<]*1\.336,98/);
+  assert.doesNotMatch(html, /data-testid="detail-pp"/);
+  assert.doesNotMatch(html, /data-testid="detail-list-price"/);
+  assert.match(html, /Prijs voor deze kamer zie je bij Sunweb/);
+  assert.match(html, /RoomType(?:%5B0%5D|\[0\])=3KVA25|RoomType/);
+  const outbound = [...html.matchAll(/<a href="([^"]+)" target="_blank"/g)].map((match) => match[1]);
+  assert.ok(outbound.every((href) => decodeURIComponent(href).includes('RoomType')));
+  assert.ok(outbound.every((href) => !href.includes('1986-01-01')));
+
+  const failed = renderToStaticMarkup(
+    createElement(OfferDetailContent, {
+      offer: makeOffer({ liveTotalPrice: undefined, livePriceStatus: 'unavailable' }),
+      params: { ...TWO_ADULTS, childAges: [8], children: 1 },
+      resultsHref: '/results',
+      galleryImages: IMAGES,
+      rooms: [],
+      selectedRoom: null,
+      sections: [],
+      presentable: false,
+      themes: [],
+      isLastMinute: false,
+      compositionFailed: true,
+    }),
+  );
+  assert.match(failed, /Prijs niet beschikbaar voor deze samenstelling/);
+  assert.doesNotMatch(failed, /data-testid="detail-total"/);
+});
+
 test('detail components do not hardcode unverified price claims', () => {
   const files = [
     'components/offers/offer-detail-content.tsx',

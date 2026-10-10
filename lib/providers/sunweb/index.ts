@@ -24,6 +24,8 @@ export {
   applySunwebOccupancyToLandingUrl,
   buildSunwebLiveContext,
   buildSunwebOccupancyClickOutHref,
+  withSunwebDepartureDate,
+  withSunwebRoomType,
   extractSunwebAccommodationId,
   isSunweb,
   isSunwebFourTravellerTwoRoomSearch,

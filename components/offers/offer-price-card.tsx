@@ -74,6 +74,8 @@ export function OfferPriceCard({
   bookHref,
   roomPriceNote,
   pricedRoomCaption,
+  busy,
+  compositionFailed,
 }: {
   provider: string;
   presentable: boolean;
@@ -82,8 +84,12 @@ export function OfferPriceCard({
   bookHref?: string;
   /** Shown when the selected room has no party total of its own. */
   roomPriceNote?: string;
-  /** The shown total belongs to the catalog room, not a visitor-chosen unit. */
+  /** The shown total belongs to the room on the card. */
   pricedRoomCaption?: boolean;
+  /** A new provider total is on the way. The previous total stays hidden. */
+  busy?: boolean;
+  /** The provider returned no total for this party. */
+  compositionFailed?: boolean;
 }) {
   const showAmount = presentable && priceKind === 'amount' && Boolean(extras.liveTotalPrice);
   const total = showAmount ? extras.liveTotalPrice : undefined;
@@ -92,7 +98,10 @@ export function OfferPriceCard({
   const discount = showAmount ? provenDiscountPercentage(extras) : undefined;
   const rows = showAmount ? priceInclusionRows(extras) : [];
   const bookLabel = detailBookCtaLabel(provider);
-  const canBook = Boolean(bookHref && (showAmount || roomPriceNote));
+  const canBook = Boolean(!busy && bookHref && (showAmount || roomPriceNote));
+  const unavailableLabel = compositionFailed
+    ? 'Prijs niet beschikbaar voor deze samenstelling'
+    : undefined;
   const outbound = legFor(extras, 'outbound');
   const inbound = legFor(extras, 'inbound');
   const outboundTitle = extras.departureDateLabel
@@ -108,11 +117,15 @@ export function OfferPriceCard({
       className="rounded-[22px] border border-vw-line bg-vw-card p-6 shadow-[0_14px_40px_rgba(10,45,98,0.10)]"
       data-testid="detail-price-card"
     >
-      {total ? (
+      {busy ? (
+        <p className="text-base font-medium text-[#334155]" data-testid="detail-price-pending">
+          Prijs wordt opgehaald…
+        </p>
+      ) : total ? (
         <p className="text-xs font-semibold text-vw-muted">{partyTotalHeading(extras.partyLabel)}</p>
       ) : null}
 
-      {total ? (
+      {busy ? null : total ? (
         <>
           {listPrice ? (
             <p className="mt-2 text-[13px] text-vw-muted" data-testid="detail-list-price">
@@ -138,6 +151,10 @@ export function OfferPriceCard({
       ) : roomPriceNote ? (
         <p className="mt-4 text-base font-medium text-[#334155]" data-testid="detail-room-price-note">
           {roomPriceNote}
+        </p>
+      ) : unavailableLabel ? (
+        <p className="mt-4 text-base font-medium text-[#334155]" data-testid="detail-price-unavailable">
+          {unavailableLabel}
         </p>
       ) : (
         <p className="mt-4 text-base font-medium text-[#334155]" data-testid="detail-price-fallback">
@@ -244,6 +261,7 @@ export function OfferDetailMobileBar({
   extras,
   bookHref,
   roomPriceNote,
+  compositionFailed,
 }: {
   provider: string;
   presentable: boolean;
@@ -252,10 +270,24 @@ export function OfferDetailMobileBar({
   bookHref?: string;
   /** Shown instead of the party total when the selected room has no price of its own. */
   roomPriceNote?: string;
+  compositionFailed?: boolean;
 }) {
   const showAmount = presentable && priceKind === 'amount' && Boolean(extras.liveTotalPrice);
   const canBook = Boolean(bookHref && ((showAmount && extras.liveTotalPrice) || roomPriceNote));
-  if (!canBook || !bookHref) {
+  if (!canBook && !(compositionFailed && !showAmount && !roomPriceNote)) {
+    return null;
+  }
+  if (!canBook) {
+    return (
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-vw-line bg-[rgba(255,253,249,0.96)] px-4 py-3 text-sm font-semibold text-[#334155] min-[901px]:hidden"
+        data-testid="detail-book-bar"
+      >
+        Prijs niet beschikbaar voor deze samenstelling
+      </div>
+    );
+  }
+  if (!bookHref) {
     return null;
   }
   const perPerson = showAmount ? pricePerPersonLine(extras) : undefined;

@@ -7,6 +7,8 @@ export type SunwebFeHost = (typeof SUNWEB_ALLOWED_FE_HOSTS)[number];
 export const SUNWEB_PROMOTED_PRICE_PATH = '/api/sitecore/PromotedPrice/GetPromotedPriceApi';
 export const SUNWEB_GROUPED_PRICES_PATH =
   '/api/sitecore/BookingGate/GetPricesGroupedByDurationApi';
+/** One call returns every room package for this hotel, date and party. */
+export const SUNWEB_ROOM_SELECTOR_PATH = '/api/sitecore/BookingGate/GetRoomSelectorApi';
 export const SUNWEB_LIVE_TIMEOUT_MS = 15_000;
 
 /**

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { OfferDetailContent } from '@/components/offers/offer-detail-content';
 import { collectThemeLabels } from '@/lib/offers/offer-detail-view';
+import { parseSearchParams } from '@/lib/search/parse-search-params';
 import {
   hotelLabImages,
   hotelLabOffer,
@@ -36,7 +37,12 @@ function labRoomHref(roomId: string, variant: string | undefined): string {
 export default function DetailLabPage({
   searchParams,
 }: {
-  searchParams: { variant?: string; room?: string };
+  searchParams: Record<string, string | string[] | undefined> & {
+    variant?: string;
+    room?: string;
+    composition?: string;
+    tripDate?: string;
+  };
 }) {
   if (process.env.NODE_ENV === 'production') {
     notFound();
@@ -57,15 +63,34 @@ export default function DetailLabPage({
   const offer = rondreis ? rondreisLabOffer : sunwebCopy ? sunwebOffer : hotelLabOffer;
   const images = rondreis ? rondreisLabImages : hotelLabImages;
   const rooms = rondreis ? [] : hotelLabRooms;
-  const selectedRoom = rooms.find((room) => room.id === searchParams.room)
+  const parsed = parseSearchParams(searchParams);
+  const params = {
+    ...LAB_PARAMS,
+    adults: parsed.adults ?? LAB_PARAMS.adults,
+    children: parsed.children,
+    babies: parsed.babies,
+    rooms: parsed.rooms ?? LAB_PARAMS.rooms,
+    childAges: parsed.childAges,
+    party: parsed.party ?? LAB_PARAMS.party,
+    selectedRoom: parsed.selectedRoom,
+  };
+  const tripDate = typeof searchParams.tripDate === 'string' ? searchParams.tripDate : undefined;
+  const selectedRoom = rooms.find((room) => room.id === (params.selectedRoom ?? searchParams.room))
     ?? rooms.find((room) => room.included)
     ?? rooms[0]
     ?? null;
+  // Fixture totals are for 2 adults, 1 room, the offer date. Another composition has no fixture total.
+  const fixtureParty =
+    (params.adults ?? 2) === 2
+    && !(params.childAges && params.childAges.length > 0)
+    && (params.rooms ?? 1) <= 1
+    && !(tripDate && tripDate !== offer.departureDate);
+  const unavailable = searchParams.composition === 'unavailable' || !fixtureParty;
 
   return (
     <OfferDetailContent
-      offer={offer}
-      params={LAB_PARAMS}
+      offer={unavailable ? { ...offer, liveTotalPrice: undefined, livePriceStatus: 'unavailable' } : offer}
+      params={params}
       resultsHref="/results"
       galleryImages={images}
       rooms={rooms}
@@ -77,7 +102,6 @@ export default function DetailLabPage({
           : []
       }
       intro={sunwebCopy ? 'Eerste indruk van het hotel.&lt;br /&gt;Tweede indruk.' : undefined}
-      presentable={!selectedRoom || selectedRoom.included}
       themes={
         sunwebCopy
           ? collectThemeLabels(offer)
@@ -87,6 +111,32 @@ export default function DetailLabPage({
       }
       isLastMinute={!rondreis}
       galleryNote={LAB_GALLERY_NOTE}
+      adjustPath="/detail-lab"
+      tripDate={tripDate}
+      roomQuotes={
+        rondreis || unavailable
+          ? null
+          : [
+              {
+                id: 'DZZ',
+                name: 'Tweepersoonskamer Zeezicht',
+                capacityText: 'geschikt voor 2 personen',
+                totalPrice: 2215.5,
+              },
+              {
+                id: 'JS2',
+                name: 'Junior Suite',
+                capacityText: 'geschikt voor 2 tot 3 personen max. 2 volwassenen en 1 kind t/m 12 jaar',
+                totalPrice: 2480,
+              },
+              {
+                id: 'FK4',
+                name: 'Familiekamer',
+              },
+            ]
+      }
+      compositionFailed={unavailable}
+      presentable={unavailable ? false : !selectedRoom || selectedRoom.included}
     />
   );
 }

@@ -20,6 +20,8 @@ import { attachSiteMarket } from '@/lib/search/site-market';
 import { offerForSiteMarket } from '@/lib/search/market-inventory';
 import { hasValidPresentablePrice } from '@/lib/search/presentable-price';
 import { priceOfferForDetail } from '@/lib/search/price-offer-for-detail';
+import { fetchSunwebDetailRoomQuotes } from '@/lib/providers/sunweb/room-selector';
+import { SUNWEB_PROVIDER_NAME } from '@/lib/providers/sunweb/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,10 +54,18 @@ export default async function OfferDetailPage({
     notFound();
   }
   const offer = await priceOfferForDetail(marketOffer, resultsParams);
-  const rooms = resolveOfferRoomTypes(offer);
+  const tripDate = typeof searchParams.tripDate === 'string' ? searchParams.tripDate : undefined;
+  const roomQuotes = offer.provider === SUNWEB_PROVIDER_NAME
+    ? await fetchSunwebDetailRoomQuotes(offer, resultsParams, { tripDate })
+    : null;
+  const rooms = roomQuotes?.ok ? [] : resolveOfferRoomTypes(offer);
   const selectedRoom = selectCatalogRoom(rooms, resultsParams.selectedRoom);
+  const dateMoved = Boolean(tripDate && tripDate !== offer.departureDate);
   const presentable =
-    hasValidPresentablePrice(offer) && selectedRoomAllowsProvenLivePrice(selectedRoom);
+    !dateMoved
+    && hasValidPresentablePrice(offer)
+    && selectedRoomAllowsProvenLivePrice(selectedRoom);
+  const compositionFailed = !presentable;
   const resultsHref = buildResultsPageHref(resultsParams, resultsParams.page ?? 1);
   const copy = catalogSectionsForDisplay(offer.descriptionLong || offer.feedDescription);
 
@@ -72,6 +82,9 @@ export default async function OfferDetailPage({
       presentable={presentable}
       themes={collectThemeLabels(offer)}
       isLastMinute={isLastMinuteOffer(offer)}
+      roomQuotes={roomQuotes?.ok ? roomQuotes.rooms : null}
+      compositionFailed={compositionFailed}
+      tripDate={tripDate}
     />
   );
 }

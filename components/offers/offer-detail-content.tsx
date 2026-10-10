@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { OfferImageGallery } from '@/components/offers/offer-image-gallery';
 import { OfferDetailMobileBar, OfferPriceCard } from '@/components/offers/offer-price-card';
+import {
+  DetailAdjustMobile,
+  DetailAdjustPanel,
+  DetailAdjustPrice,
+  DetailAdjustProvider,
+  DetailAdjustRooms,
+} from '@/components/offers/offer-trip-adjust';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import type { CatalogRoomType, CatalogSection } from '@/lib/offers/catalog-content';
 import {
@@ -25,6 +32,15 @@ import {
 } from '@/lib/offers/offer-detail-view';
 import { formatDeparturePresentation } from '@/lib/search/departure-presentation';
 import { buildOfferDetailHref } from '@/lib/search/pagination';
+import { modelFromParty, type TravelerModel } from '@/lib/search/traveler-contract';
+import type { DetailRoomQuote } from '@/lib/providers/sunweb/room-selector';
+import { selectDetailRoomQuote } from '@/lib/providers/sunweb/room-selector';
+import {
+  buildSunwebOccupancyClickOutHref,
+  withSunwebDepartureDate,
+  withSunwebRoomType,
+} from '@/lib/providers/sunweb/offer-context';
+import { sunwebTodayIsoEuropeBrussels } from '@/lib/providers/sunweb/grouped-availability';
 import { resultsPricePresentation } from '@/lib/search/presentable-price';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
@@ -122,6 +138,10 @@ export function OfferDetailContent({
   extras: extrasOverride,
   galleryNote,
   roomHref,
+  roomQuotes,
+  compositionFailed,
+  tripDate,
+  adjustPath,
 }: {
   offer: TravelOffer;
   params: SearchParams;
@@ -140,13 +160,39 @@ export function OfferDetailContent({
   galleryNote?: string;
   /** Lab-only room links. The live page keeps the offer detail URL. */
   roomHref?: (roomId: string) => string;
+  /** Sunweb GetRoomSelectorApi rooms for this party. Null when that call was not made. */
+  roomQuotes?: DetailRoomQuote[] | null;
+  /** The provider returned no total for the party on this page. */
+  compositionFailed?: boolean;
+  /** Visitor departure date. Sunweb reprices this; other providers ignore it. */
+  tripDate?: string;
+  /** Lab pages pass their own path. The live page uses the offer URL. */
+  adjustPath?: string;
 }) {
-  const extras = extrasOverride ?? buildDetailOfferExtras(offer, params, {
+  const visitorDate = tripDate && /^\d{4}-\d{2}-\d{2}$/.test(tripDate) ? tripDate : undefined;
+  const datedOffer = visitorDate && visitorDate !== offer.departureDate
+    ? { ...offer, departureDate: visitorDate }
+    : offer;
+  const extras = extrasOverride ?? buildDetailOfferExtras(datedOffer, params, {
     roomTypeLabel: selectedRoom?.name,
   });
   const occupancySummary = formatOccupancySummary(params);
   const travelerLines = formatTravelerLines(params);
-  const bookHref = affiliateHref(offer, params);
+  const quotes = roomQuotes ?? [];
+  const selectedQuote = quotes.length > 0
+    ? selectDetailRoomQuote(quotes, params.selectedRoom ?? selectedRoom?.id)
+    : null;
+  const quoteTotal = selectedQuote?.totalPrice;
+  let bookHref = affiliateHref(offer, params);
+  if (offer.provider === 'Sunweb' && bookHref) {
+    bookHref = buildSunwebOccupancyClickOutHref(offer, params) ?? bookHref;
+    if (tripDate && tripDate !== offer.departureDate) {
+      bookHref = withSunwebDepartureDate(bookHref, tripDate) ?? bookHref;
+    }
+    if (selectedQuote) {
+      bookHref = withSunwebRoomType(bookHref, selectedQuote.id) ?? bookHref;
+    }
+  }
   const priceKind = resultsPricePresentation(offer);
   const destination = formatDestination(offer);
   const hasStars = typeof offer.stars === 'number' && offer.stars > 0;
@@ -158,14 +204,39 @@ export function OfferDetailContent({
   );
   const departureAirportLabel = formatDepartureAirport(offer);
   const additionalAirport = formatAdditionalAirport(offer);
-  const departurePhrase = formatDeparturePresentation(params, offer.departureDate).phrase;
+  const departurePhrase = formatDeparturePresentation(params, datedOffer.departureDate).phrase;
   const flightIncludedLabel = formatFlightIncluded(offer.flightIncluded);
-  const showAmount = presentable && priceKind === 'amount' && Boolean(extras.liveTotalPrice);
-  const partyTotal = priceKind === 'amount' ? extras.liveTotalPrice : undefined;
-  const roomPriceNote =
-    selectedRoom && !selectedRoom.included
-      ? `Prijs voor deze kamer zie je bij ${offer.provider}`
+  const quoteReplacesCatalogTotal =
+    typeof quoteTotal === 'number' && quoteTotal !== extras.liveTotalPrice?.amount;
+  const pricedExtras = {
+    ...extras,
+    ...(selectedQuote ? { roomTypeLabel: selectedQuote.name } : {}),
+    ...(typeof quoteTotal === 'number'
+      ? {
+          liveTotalPrice: { amount: quoteTotal, currency: extras.liveTotalPrice?.currency ?? 'EUR' },
+          liveTotalPriceField: 'GetRoomSelectorApi.totalPrice',
+          // The feed p.p. line and strike-through belong to the original total.
+          ...(quoteReplacesCatalogTotal
+            ? { livePricePerPerson: undefined, listPrice: undefined, discountPercentage: undefined }
+            : {}),
+        }
+      : {}),
+  };
+  const blockCatalogPrice = Boolean(compositionFailed) || (Boolean(tripDate) && tripDate !== offer.departureDate && typeof quoteTotal !== 'number');
+  const displayPresentable = typeof quoteTotal === 'number' ? true : presentable && !blockCatalogPrice;
+  const displayPriceKind = typeof quoteTotal === 'number' ? 'amount' as const : priceKind;
+  const showAmount = displayPresentable && displayPriceKind === 'amount' && Boolean(pricedExtras.liveTotalPrice);
+  const partyTotal = typeof quoteTotal === 'number'
+    ? { amount: quoteTotal, currency: 'EUR' as const }
+    : priceKind === 'amount' && !blockCatalogPrice
+      ? extras.liveTotalPrice
       : undefined;
+  const roomPriceNote =
+    selectedQuote && typeof selectedQuote.totalPrice !== 'number'
+      ? `Prijs voor deze kamer zie je bij ${offer.provider}`
+      : selectedRoom && !selectedRoom.included && quotes.length === 0
+        ? `Prijs voor deze kamer zie je bij ${offer.provider}`
+        : undefined;
   const accommodationLine = formatDetailAccommodation(offer.accommodationType, offer.accommodation);
   const canBook = Boolean(bookHref && (showAmount || roomPriceNote));
 
@@ -183,8 +254,38 @@ export function OfferDetailContent({
     flightIncludedLabel ? { label: 'Vlucht', value: flightIncludedLabel } : undefined,
   ].filter((fact): fact is { label: string; value: string; testId?: string } => Boolean(fact));
 
+  const traveler: TravelerModel = params.party && params.party.length > 0
+    ? modelFromParty(params.party, params.rooms)
+    : {
+        adults: params.adults && params.adults > 0 ? params.adults : 2,
+        childAges: params.childAges ?? [],
+        roomCount: (params.rooms ?? 1) > 1 ? 2 : 1,
+        roomAssignments: Array.from(
+          { length: (params.adults && params.adults > 0 ? params.adults : 2) + (params.childAges?.length ?? 0) },
+          () => 0,
+        ),
+      };
+  const preservedQuery = (() => {
+    const href = buildOfferDetailHref(offer.id, params);
+    const url = new URL(href, 'https://vacationweb.local');
+    for (const key of ['adults', 'childAges', 'children', 'babies', 'rooms', 'partyRooms', 'dob', 'room', 'tripDate']) {
+      url.searchParams.delete(key);
+    }
+    return url.searchParams.toString();
+  })();
+  const shownDate = tripDate && /^\d{4}-\d{2}-\d{2}$/.test(tripDate) ? tripDate : offer.departureDate ?? '';
+
   return (
     <main className="min-h-screen bg-vw-bg font-vw-sans text-vw-ink">
+      <DetailAdjustProvider
+        pagePath={adjustPath ?? `/offers/${encodeURIComponent(offer.id)}`}
+        preservedQuery={preservedQuery}
+        offerDate={offer.departureDate ?? ''}
+        initialDate={shownDate}
+        showDate={offer.provider === 'Sunweb'}
+        initial={traveler}
+        selectedRoomId={selectedQuote?.id ?? (quotes.length === 0 ? selectedRoom?.id : params.selectedRoom)}
+      >
       <ResultsSiteHeader appearance="results" />
 
       <div
@@ -262,15 +363,18 @@ export function OfferDetailContent({
 
           {/* mt-28 keeps the in-flow card below the mobile sticky bar on the first screen. Desktop margin is reset. */}
           <aside className="mt-28 min-w-0 min-[901px]:sticky min-[901px]:top-5 min-[901px]:col-start-2 min-[901px]:row-span-2 min-[901px]:row-start-1 min-[901px]:mt-0 min-[901px]:max-h-[calc(100vh-2.5rem)] min-[901px]:self-start min-[901px]:overflow-auto">
-            <OfferPriceCard
-              provider={offer.provider}
-              presentable={presentable}
-              priceKind={priceKind}
-              extras={extras}
-              bookHref={bookHref}
-              roomPriceNote={roomPriceNote}
-              pricedRoomCaption={Boolean(partyTotal && selectedRoom?.included)}
-            />
+            <DetailAdjustPrice>
+              <OfferPriceCard
+                provider={offer.provider}
+                presentable={displayPresentable}
+                priceKind={displayPriceKind}
+                extras={pricedExtras}
+                bookHref={bookHref}
+                roomPriceNote={roomPriceNote}
+                pricedRoomCaption={Boolean(partyTotal && (selectedQuote || selectedRoom?.included))}
+                compositionFailed={compositionFailed && typeof quoteTotal !== 'number' && !roomPriceNote}
+              />
+            </DetailAdjustPrice>
           </aside>
 
           <div className="min-w-0 min-[901px]:col-start-1 min-[901px]:row-start-2">
@@ -340,7 +444,18 @@ export function OfferDetailContent({
               </section>
             ) : null}
 
-            {rooms.length > 0 ? (
+            <DetailAdjustPanel
+              showDate={offer.provider === 'Sunweb'}
+              minDate={sunwebTodayIsoEuropeBrussels()}
+            />
+
+            {quotes.length > 0 ? (
+              <DetailAdjustRooms
+                rooms={quotes}
+                selectedId={selectedQuote?.id}
+                provider={offer.provider}
+              />
+            ) : rooms.length > 0 ? (
               <section className={sectionClassName()} data-testid="detail-room-choice">
                 <h2 className="font-vw-serif text-2xl font-medium text-vw-navy">Kies je kamer</h2>
                 <div className="mt-4 grid gap-2.5">
@@ -463,14 +578,18 @@ export function OfferDetailContent({
         </div>
       </div>
 
-      <OfferDetailMobileBar
-        provider={offer.provider}
-        presentable={presentable}
-        priceKind={priceKind}
-        extras={extras}
-        bookHref={bookHref}
-        roomPriceNote={roomPriceNote}
-      />
+      <DetailAdjustMobile>
+        <OfferDetailMobileBar
+          provider={offer.provider}
+          presentable={displayPresentable}
+          priceKind={displayPriceKind}
+          extras={pricedExtras}
+          bookHref={bookHref}
+          roomPriceNote={roomPriceNote}
+          compositionFailed={compositionFailed && typeof quoteTotal !== 'number' && !roomPriceNote}
+        />
+      </DetailAdjustMobile>
+      </DetailAdjustProvider>
     </main>
   );
 }
