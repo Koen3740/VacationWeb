@@ -142,8 +142,197 @@ export function durationSelectionFromRange(range: DurationRange): number[] {
  */
 export type DurationMode = 'exact' | 'flexibel';
 
-/** Most common catalog duration (5.855 of 8.433 offers); only a pre-filled starting point, never applied unasked. */
+/** Most common catalog duration (5.855 of 8.433 offers). Shown selected when the popup opens with no `nights` filter; OPSLAAN commits it. */
 export const DEFAULT_EXACT_DURATION = 8;
+
+/**
+ * Common trip lengths (days) offered as chips. A range chip is the contiguous `nights` list
+ * (the same representation the old Flexibel range wrote). Single days stay a one-element list.
+ * Multi-select is the union of those lists: `filterOffers` already matches `nights` by membership.
+ */
+export type DurationChip = {
+  id: string;
+  label: string;
+  days: readonly number[];
+};
+
+export const DURATION_CHIPS: readonly DurationChip[] = [
+  { id: '3-4', label: '3–4', days: [3, 4] },
+  { id: '5-6', label: '5–6', days: [5, 6] },
+  { id: '8', label: '8', days: [8] },
+  { id: '10-11', label: '10–11', days: [10, 11] },
+  { id: '15', label: '15', days: [15] },
+  { id: '22', label: '22 dagen', days: [22] },
+];
+
+export function durationChipById(id: string): DurationChip | undefined {
+  return DURATION_CHIPS.find((chip) => chip.id === id);
+}
+
+function uniqueSortedDays(days: readonly number[]): number[] {
+  return [...new Set(days.filter((day) => Number.isFinite(day)))].sort((a, b) => a - b);
+}
+
+export function durationChipAriaLabel(chip: DurationChip): string {
+  if (chip.days.length === 1) {
+    return `${chip.days[0]} dagen`;
+  }
+  return `${chip.days[0]} tot ${chip.days[chip.days.length - 1]} dagen`;
+}
+
+/** Days contributed by the chips the user turned on. */
+export function daysFromDurationChips(chipIds: readonly string[]): number[] {
+  const days: number[] = [];
+  for (const id of chipIds) {
+    const chip = durationChipById(id);
+    if (chip) {
+      days.push(...chip.days);
+    }
+  }
+  return uniqueSortedDays(days);
+}
+
+/**
+ * Split a `nights` list into chips plus at most one custom day.
+ * Anything else (for example a legacy `nights=7,14` or `7,8,9,10`) is `legacy`: the popup
+ * keeps that list until the user picks a chip or a custom day, and does not widen it.
+ */
+export function explainDurationSelection(selected: readonly number[]): {
+  chipIds: string[];
+  customDay: number | null;
+  legacy: boolean;
+} {
+  const days = uniqueSortedDays(selected);
+  if (days.length === 0) {
+    return { chipIds: [], customDay: null, legacy: false };
+  }
+
+  const chipIds = DURATION_CHIPS.filter((chip) => chip.days.every((day) => days.includes(day))).map((chip) => chip.id);
+  const covered = new Set(daysFromDurationChips(chipIds));
+  const leftover = days.filter((day) => !covered.has(day));
+  if (leftover.length <= 1) {
+    return { chipIds, customDay: leftover[0] ?? null, legacy: false };
+  }
+  return { chipIds: [], customDay: null, legacy: true };
+}
+
+export type DurationChoiceDraft = {
+  chipIds: string[];
+  customOpen: boolean;
+  customDay: number | null;
+  /** Applied list that is not a chip/custom combination. Null once the user edits. */
+  legacyDays: number[] | null;
+};
+
+/** Popup draft. An empty URL shows 8 selected (the catalog mode); that choice is committed only on OPSLAAN. */
+export function durationDraftFromApplied(selected: readonly number[]): DurationChoiceDraft {
+  if (selected.length === 0) {
+    return {
+      chipIds: [String(DEFAULT_EXACT_DURATION)],
+      customOpen: false,
+      customDay: null,
+      legacyDays: null,
+    };
+  }
+
+  const explained = explainDurationSelection(selected);
+  if (explained.legacy) {
+    return {
+      chipIds: [],
+      customOpen: false,
+      customDay: null,
+      legacyDays: uniqueSortedDays(selected),
+    };
+  }
+
+  return {
+    chipIds: explained.chipIds,
+    customOpen: explained.customDay !== null,
+    customDay: explained.customDay,
+    legacyDays: null,
+  };
+}
+
+/** `nights` list the draft would write. Legacy lists pass through unchanged. */
+export function durationDaysFromDraft(draft: DurationChoiceDraft): number[] {
+  if (draft.legacyDays) {
+    return uniqueSortedDays(draft.legacyDays);
+  }
+  const custom = draft.customOpen && draft.customDay !== null ? [clampDurationDay(draft.customDay)] : [];
+  return uniqueSortedDays([...daysFromDurationChips(draft.chipIds), ...custom]);
+}
+
+export function sameDurationSelection(left: readonly number[], right: readonly number[]): boolean {
+  const a = uniqueSortedDays(left);
+  const b = uniqueSortedDays(right);
+  return a.length === b.length && a.every((day, index) => day === b[index]);
+}
+
+/** First day not already covered by the selected chips. Prefers 8, then the next higher day. */
+export function suggestCustomDuration(chipIds: readonly string[]): number {
+  const taken = new Set(daysFromDurationChips(chipIds));
+  if (!taken.has(DEFAULT_EXACT_DURATION)) {
+    return DEFAULT_EXACT_DURATION;
+  }
+  for (let day = DEFAULT_EXACT_DURATION + 1; day <= DURATION_MAX; day += 1) {
+    if (!taken.has(day)) {
+      return day;
+    }
+  }
+  for (let day = DURATION_MIN; day < DEFAULT_EXACT_DURATION; day += 1) {
+    if (!taken.has(day)) {
+      return day;
+    }
+  }
+  return DEFAULT_EXACT_DURATION;
+}
+
+export function toggleDurationChipDraft(draft: DurationChoiceDraft, chip: DurationChip): DurationChoiceDraft {
+  if (draft.legacyDays) {
+    return { chipIds: [chip.id], customOpen: false, customDay: null, legacyDays: null };
+  }
+  const chipIds = draft.chipIds.includes(chip.id)
+    ? draft.chipIds.filter((id) => id !== chip.id)
+    : [...draft.chipIds, chip.id];
+  return { ...draft, chipIds };
+}
+
+/** Opens the custom stepper on one day, or closes it and drops that day. */
+export function toggleCustomDurationDraft(draft: DurationChoiceDraft): DurationChoiceDraft {
+  if (draft.customOpen && !draft.legacyDays) {
+    return { ...draft, customOpen: false, customDay: null };
+  }
+  if (draft.legacyDays) {
+    return {
+      chipIds: [],
+      customOpen: true,
+      customDay: clampDurationDay(Math.min(...draft.legacyDays)),
+      legacyDays: null,
+    };
+  }
+  return {
+    ...draft,
+    customOpen: true,
+    customDay: suggestCustomDuration(draft.chipIds),
+  };
+}
+
+export function stepCustomDurationDraft(draft: DurationChoiceDraft, delta: number): DurationChoiceDraft {
+  const base = draft.legacyDays
+    ? { chipIds: [], customOpen: true, customDay: Math.min(...draft.legacyDays), legacyDays: null }
+    : draft;
+  const current = base.customDay ?? suggestCustomDuration(base.chipIds);
+  return {
+    ...base,
+    customOpen: true,
+    customDay: clampDurationDay(current + delta),
+    legacyDays: null,
+  };
+}
+
+export function clearDurationDraft(): DurationChoiceDraft {
+  return { chipIds: [], customOpen: false, customDay: null, legacyDays: null };
+}
 
 /** Flexible range seeded from an exact value (e.g. 7 -> 7-10). */
 export const FLEXIBLE_SEED_SPAN = 3;

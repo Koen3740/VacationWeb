@@ -193,13 +193,17 @@ test('duration: empty = no nights param (internal), legacy URLs (nights list, ni
   assert.equal(durationModeFromSelection([7, 14]), 'flexibel');
 });
 
-test('duration popup: two tabs Exact / Flexibel, optional empty state, no full-range option, range 2-32', () => {
+test('duration popup: common-duration chips, custom stepper 2-32, no Exact/Flexibel tabs', () => {
   const popup = src('components/search/duration-popup/duration-popup.tsx');
-  assert.ok(popup.includes("['exact', 'Exact'"));
-  assert.ok(popup.includes("['flexibel', 'Flexibel'"));
-  assert.ok(popup.includes('role="tablist"'));
+  assert.equal(popup.includes("['exact', 'Exact'"), false);
+  assert.equal(popup.includes("['flexibel', 'Flexibel'"), false);
+  assert.equal(popup.includes('role="tablist"'), false);
+  assert.equal(popup.includes('duration-slider'), false);
+  assert.ok(popup.includes('Ander aantal'));
   assert.ok(popup.includes('Optioneel'));
-  assert.ok(popup.includes('normalizeFlexibleDurationRange'));
+  assert.ok(popup.includes('bg-vw-navy'));
+  assert.ok(popup.includes('min-h-12'));
+  assert.ok(popup.includes('h-11 w-11'));
   assert.equal(DURATION_MIN, 2);
   assert.equal(DURATION_MAX, 32);
   // t66u: homepage field labels live in the NL/FR chrome dictionary (NL = canonical copy).
