@@ -33,6 +33,10 @@
 }
 
 body {
+  /* next/font sets --font-fraunces and --font-inter on body. A var() inside
+     --vw-font-* on :root is invalid there, so the stacks are set here. */
+  --vw-font-serif: var(--font-fraunces), Georgia, 'Times New Roman', serif;
+  --vw-font-sans: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   @apply bg-slate-950 text-slate-900 antialiased;
 }
 

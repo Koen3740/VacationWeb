@@ -14,7 +14,7 @@ export type SiteNavItem = {
 };
 
 export const SITE_NAV_ITEMS: readonly SiteNavItem[] = [
-  { key: 'discover', href: '/#ontdekt' },
+  { key: 'discover', href: '/ontdek' },
   { key: 'destinations', href: '/bestemmingen' },
   { key: 'inspiration', href: '/#inspiratie' },
   { key: 'offers', href: '/aanbiedingen' },

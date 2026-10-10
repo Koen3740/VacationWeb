@@ -3,7 +3,7 @@
 import { FavoritesNavLink } from '@/components/favorites/favorites-nav-link';
 import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { useChromeCopy } from '@/components/i18n/ui-language-provider';
-import { SITE_NAV_ITEMS } from '@/lib/site/site-nav';
+import { SITE_NAV_ITEMS, type SiteNavKey } from '@/lib/site/site-nav';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -22,40 +22,60 @@ function NavChevron() {
  */
 export function ResultsSiteHeader({
   appearance = 'site',
+  activeKey,
 }: {
-  /** `results` is the Layout A bar. `site` stays the header other pages already use. */
-  appearance?: 'site' | 'results';
+  /** `results` is the Layout A bar. `overlay` sits on a photo. `site` stays the header other pages already use. */
+  appearance?: 'site' | 'results' | 'overlay';
+  /** Highlights one main-nav item (Discovery and Destination). */
+  activeKey?: SiteNavKey;
 }) {
   const copy = useChromeCopy();
-  if (appearance === 'results') {
+  if (appearance === 'results' || appearance === 'overlay') {
+    const onPhoto = appearance === 'overlay';
     return (
-      <header className="border-b border-vw-line bg-vw-bg font-vw-sans">
+      <header className={onPhoto ? 'bg-transparent font-vw-sans text-white' : 'border-b border-vw-line bg-vw-bg font-vw-sans'}>
         <div className="mx-auto flex h-[58px] max-w-vw-page items-center justify-between gap-5 px-4 min-[901px]:h-16 min-[901px]:px-7">
           <Link
             href="/"
-            className="font-vw-serif text-[24px] font-semibold leading-none tracking-[-0.01em] text-vw-navy"
+            className={`font-vw-serif text-[24px] font-semibold leading-none tracking-[-0.01em] ${onPhoto ? 'text-white' : 'text-vw-navy'}`}
           >
             Vacation<span className="font-normal italic">Web</span>
           </Link>
           <div className="flex items-center gap-3 min-[901px]:gap-[26px]">
             <nav className="hidden items-center gap-[26px] min-[901px]:flex" aria-label={copy.nav.ariaLabel}>
-              {SITE_NAV_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="inline-flex items-center text-[14px] text-[#3b4456] transition hover:text-vw-navy"
-                >
-                  {copy.nav[item.key]}
-                  {item.key === 'destinations' ? <NavChevron /> : null}
-                </Link>
-              ))}
+              {SITE_NAV_ITEMS.map((item) => {
+                const active = item.key === activeKey;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={`inline-flex items-center text-[14px] transition ${
+                      onPhoto ? 'text-white hover:text-white/80' : 'text-[#3b4456] hover:text-vw-navy'
+                    } ${active ? 'font-semibold shadow-[inset_0_-2px_0_var(--vw-gold)]' : ''}`}
+                  >
+                    {copy.nav[item.key]}
+                    {item.key === 'destinations' ? <NavChevron /> : null}
+                  </Link>
+                );
+              })}
             </nav>
             <FavoritesNavLink
               label={copy.header.favorites}
               labelClassName="max-[900px]:sr-only"
-              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-vw-line bg-white px-3 text-[13px] font-semibold text-vw-navy"
+              className={
+                onPhoto
+                  ? 'inline-flex h-9 items-center gap-1.5 rounded-full border border-white/40 bg-white/15 px-3 text-[13px] font-semibold text-white'
+                  : 'inline-flex h-9 items-center gap-1.5 rounded-full border border-vw-line bg-white px-3 text-[13px] font-semibold text-vw-navy'
+              }
             />
-            <LanguageSwitcher className="inline-flex h-9 items-center justify-center rounded-full border border-vw-line bg-white px-3" />
+            <LanguageSwitcher
+              className={
+                onPhoto
+                  ? 'inline-flex h-9 items-center justify-center rounded-full border border-white/40 bg-white/15 px-3 !text-white'
+                  : 'inline-flex h-9 items-center justify-center rounded-full border border-vw-line bg-white px-3'
+              }
+            />
           </div>
         </div>
       </header>
