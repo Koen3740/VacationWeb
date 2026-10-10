@@ -285,9 +285,9 @@ function catalogRoom(
   };
 }
 
-test('room choice prices only the included room and keeps the existing clickout', () => {
+test('detail shows the priced room and a travellers summary, without a room or date picker', () => {
   const rooms = [
-    catalogRoom({ id: 'type-i', name: '2-kamerappartement type I', code: 'I', included: true }),
+    catalogRoom({ id: 'type-i', name: '2-kamerappartement type I', code: 'I', included: true, area: '28 m²' }),
     catalogRoom({ id: 'villa-a', name: '3-kamer villa type A', code: 'A', included: false }),
     catalogRoom({ id: 'apt-3', name: '3-kamerappartement type I', included: false, bedrooms: '3 slaapkamers' }),
   ];
@@ -298,7 +298,7 @@ test('room choice prices only the included room and keeps the existing clickout'
       resultsHref: '/results',
       galleryImages: IMAGES,
       rooms,
-      selectedRoom: rooms[0],
+      selectedRoom: rooms[1],
       sections: [],
       presentable: true,
       themes: [],
@@ -306,47 +306,48 @@ test('room choice prices only the included room and keeps the existing clickout'
     }),
   );
 
-  assert.match(priced, /Kies je kamer/);
-  assert.match(priced, /2-kamerappartement type I/);
-  assert.match(priced, /3-kamer villa type A/);
-  assert.match(priced, /3-kamerappartement type I/);
-  assert.match(priced, /3 slaapkamers/);
-  assert.match(priced, /Prijs gebaseerd op deze kamer/);
-  assert.match(priced, /data-testid="detail-room-priced"[\s\S]*Totaal [^<]*2\.215,50/);
-  assert.equal((priced.match(/Prijs voor deze kamer zie je bij Sunweb/g) ?? []).length, 2);
-  assert.match(priced, /data-testid="detail-total"/);
+  assert.match(priced, /data-testid="detail-party-summary"[^>]*>2 volwassenen · Wijzigen/);
+  assert.match(priced, /data-testid="detail-priced-room"[\s\S]*2-kamerappartement type I/);
+  assert.match(priced, /28 m²/);
+  assert.doesNotMatch(priced, /Kies je kamer/);
+  assert.doesNotMatch(priced, /Pas je reis aan/);
+  assert.doesNotMatch(priced, /3-kamer villa type A/);
+  assert.doesNotMatch(priced, /3 slaapkamers/);
+  assert.doesNotMatch(priced, /type="date"/);
+  assert.match(priced, /data-testid="detail-total"[^>]*>[^<]*2\.215,50/);
   assert.doesNotMatch(priced, /data-testid="detail-room-price-note"/);
-  assert.doesNotMatch(priced, /max(?:imaal)?[^<]{0,20}persoon/i);
-  const pricedOutbound = [...priced.matchAll(/<a href="([^"]+)" target="_blank"/g)].map((match) => match[1]);
-  assert.deepEqual(pricedOutbound, ['https://www.sunweb.be/hotel', 'https://www.sunweb.be/hotel']);
+  const outbound = [...priced.matchAll(/<a href="([^"]+)" target="_blank"/g)].map((match) => match[1]);
+  assert.deepEqual(outbound, ['https://www.sunweb.be/hotel', 'https://www.sunweb.be/hotel']);
+  assert.doesNotMatch(outbound.join(' '), /room=|RoomType|unit=|1986-01-01/i);
 
-  const alternate = renderToStaticMarkup(
+  const withChild = renderToStaticMarkup(
     createElement(OfferDetailContent, {
       offer: makeOffer(),
-      params: TWO_ADULTS,
+      params: {
+        adults: 2,
+        children: 1,
+        rooms: 1,
+        childAges: [8],
+        party: [
+          { age: null, roomIndex: 0 },
+          { age: null, roomIndex: 0 },
+          { age: 8, roomIndex: 0 },
+        ],
+      },
       resultsHref: '/results',
       galleryImages: IMAGES,
       rooms,
-      selectedRoom: rooms[1],
+      selectedRoom: rooms[0],
       sections: [],
-      presentable: false,
+      presentable: true,
       themes: [],
       isLastMinute: false,
     }),
   );
-
-  assert.match(alternate, /data-testid="detail-room-price-note"[^>]*>Prijs voor deze kamer zie je bij Sunweb/);
-  assert.match(alternate, /data-testid="detail-book-bar-note"[^>]*>Prijs voor deze kamer zie je bij Sunweb/);
-  assert.doesNotMatch(alternate, /data-testid="detail-total"/);
-  assert.doesNotMatch(alternate, /data-testid="detail-book-bar"[\s\S]*2\.215,50/);
-  assert.match(alternate, /data-testid="detail-room-priced"[\s\S]*Totaal [^<]*2\.215,50/);
-  assert.match(alternate, /Bekijk en boek bij Sunweb/);
-  const alternateOutbound = [...alternate.matchAll(/<a href="([^"]+)" target="_blank"/g)].map((match) => match[1]);
-  assert.deepEqual(alternateOutbound, ['https://www.sunweb.be/hotel', 'https://www.sunweb.be/hotel']);
-  assert.doesNotMatch(alternateOutbound.join(' '), /room=|RoomType|unit=/i);
+  assert.match(withChild, /data-testid="detail-party-summary"[^>]*>2 volwassenen, 1 kind · Wijzigen/);
 });
 
-test('Sunweb room quotes show each party total and the trip panel', () => {
+test('parked room quotes do not replace the party total, and a missing total stays unlabeled', () => {
   const html = renderToStaticMarkup(
     createElement(OfferDetailContent, {
       offer: makeOffer(),
@@ -366,18 +367,11 @@ test('Sunweb room quotes show each party total and the trip panel', () => {
       ],
     }),
   );
-  assert.match(html, /Pas je reis aan/);
-  assert.match(html, /data-testid="detail-room-priced"[\s\S]*2-kamerappartement type I/);
-  assert.match(html, /geschikt voor 2 tot 3 personen/);
-  assert.match(html, /Totaal [^<]*1\.254,88/);
-  assert.match(html, /Totaal [^<]*1\.336,98/);
-  assert.doesNotMatch(html, /data-testid="detail-pp"/);
-  assert.doesNotMatch(html, /data-testid="detail-list-price"/);
-  assert.match(html, /Prijs voor deze kamer zie je bij Sunweb/);
-  assert.match(html, /RoomType(?:%5B0%5D|\[0\])=3KVA25|RoomType/);
-  const outbound = [...html.matchAll(/<a href="([^"]+)" target="_blank"/g)].map((match) => match[1]);
-  assert.ok(outbound.every((href) => decodeURIComponent(href).includes('RoomType')));
-  assert.ok(outbound.every((href) => !href.includes('1986-01-01')));
+  assert.match(html, /2 volwassenen · Wijzigen/);
+  assert.doesNotMatch(html, /Kies je kamer/);
+  assert.doesNotMatch(html, /1\.254,88/);
+  assert.doesNotMatch(html, /RoomType/);
+  assert.match(html, /data-testid="detail-total"[^>]*>[^<]*2\.215,50/);
 
   const failed = renderToStaticMarkup(
     createElement(OfferDetailContent, {
@@ -396,6 +390,10 @@ test('Sunweb room quotes show each party total and the trip panel', () => {
   );
   assert.match(failed, /Prijs niet beschikbaar voor deze samenstelling/);
   assert.doesNotMatch(failed, /data-testid="detail-total"/);
+  assert.match(
+    readFileSync(join(ROOT, 'components/offers/offer-trip-adjust.tsx'), 'utf8'),
+    /Prijs wordt opgehaald…/,
+  );
 });
 
 test('detail components do not hardcode unverified price claims', () => {

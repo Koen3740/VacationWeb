@@ -25,15 +25,6 @@ export const metadata: Metadata = {
  * Local visual harness for the detail redesign.
  * Returns 404 in production so fixture offers are not a public route.
  */
-function labRoomHref(roomId: string, variant: string | undefined): string {
-  const query = new URLSearchParams();
-  if (variant) {
-    query.set('variant', variant);
-  }
-  query.set('room', roomId);
-  return `/detail-lab?${query.toString()}`;
-}
-
 export default function DetailLabPage({
   searchParams,
 }: {
@@ -74,17 +65,12 @@ export default function DetailLabPage({
     party: parsed.party ?? LAB_PARAMS.party,
     selectedRoom: parsed.selectedRoom,
   };
-  const tripDate = typeof searchParams.tripDate === 'string' ? searchParams.tripDate : undefined;
-  const selectedRoom = rooms.find((room) => room.id === (params.selectedRoom ?? searchParams.room))
-    ?? rooms.find((room) => room.included)
-    ?? rooms[0]
-    ?? null;
-  // Fixture totals are for 2 adults, 1 room, the offer date. Another composition has no fixture total.
+  const selectedRoom = rooms.find((room) => room.included) ?? rooms[0] ?? null;
+  // Fixture total is the 2-adult price. Another composition has no fixture total.
   const fixtureParty =
     (params.adults ?? 2) === 2
     && !(params.childAges && params.childAges.length > 0)
-    && (params.rooms ?? 1) <= 1
-    && !(tripDate && tripDate !== offer.departureDate);
+    && (params.rooms ?? 1) <= 1;
   const unavailable = searchParams.composition === 'unavailable' || !fixtureParty;
 
   return (
@@ -95,7 +81,6 @@ export default function DetailLabPage({
       galleryImages={images}
       rooms={rooms}
       selectedRoom={selectedRoom}
-      roomHref={rondreis ? undefined : (roomId) => labRoomHref(roomId, searchParams.variant)}
       sections={
         sunwebCopy
           ? [{ title: 'Ligging', items: ['Aan de jachthaven<br />Rustige omgeving'] }]
@@ -112,29 +97,6 @@ export default function DetailLabPage({
       isLastMinute={!rondreis}
       galleryNote={LAB_GALLERY_NOTE}
       adjustPath="/detail-lab"
-      tripDate={tripDate}
-      roomQuotes={
-        rondreis || unavailable
-          ? null
-          : [
-              {
-                id: 'DZZ',
-                name: 'Tweepersoonskamer Zeezicht',
-                capacityText: 'geschikt voor 2 personen',
-                totalPrice: 2215.5,
-              },
-              {
-                id: 'JS2',
-                name: 'Junior Suite',
-                capacityText: 'geschikt voor 2 tot 3 personen max. 2 volwassenen en 1 kind t/m 12 jaar',
-                totalPrice: 2480,
-              },
-              {
-                id: 'FK4',
-                name: 'Familiekamer',
-              },
-            ]
-      }
       compositionFailed={unavailable}
       presentable={unavailable ? false : !selectedRoom || selectedRoom.included}
     />

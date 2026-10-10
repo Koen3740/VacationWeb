@@ -38,6 +38,12 @@ export type SunwebRoomQuoteResult =
   | { ok: true; rooms: DetailRoomQuote[] }
   | { ok: false; reason: 'invalid_context' | 'unavailable_trip' | 'http_error' | 'empty' | 'timeout' | 'network_error'; httpStatus?: number };
 
+/**
+ * Room choice is parked. The selector client and its tests stay; the detail
+ * page does not call it and does not render a room picker while this is false.
+ */
+export const DETAIL_SUNWEB_ROOM_QUOTES_ENABLED: boolean = false;
+
 const SUCCESS_TTL_MS = 60_000;
 const FAILURE_TTL_MS = 15_000;
 const ROOM_ID = /^[A-Za-z0-9]{2,16}$/;

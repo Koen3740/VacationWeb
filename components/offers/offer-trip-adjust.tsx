@@ -1,12 +1,16 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  isTravelersStateComplete,
+  writeTravelersToQuery,
+  type TravelersState,
+} from '@/components/search/travelers-popup/travelers-popup-utils';
 import type { DetailRoomQuote } from '@/lib/providers/sunweb/room-selector';
-import { writeTravelerQuery, type TravelerModel } from '@/lib/search/traveler-contract';
+import type { TravelerModel } from '@/lib/search/traveler-contract';
 
 const PENDING_COPY = 'Prijs wordt opgehaald…';
-const DEBOUNCE_MS = 400;
 
 function formatPartyEuro(amount: number): string {
   const formatted = new Intl.NumberFormat('nl-NL', {
@@ -28,17 +32,11 @@ function useDetailRouter(): { replace: (href: string, options?: { scroll?: boole
 
 type AdjustContextValue = {
   pending: boolean;
-  adults: number;
-  childAges: number[];
-  roomCount: number;
-  assignments: number[];
-  tripDate: string;
-  setAdults: (value: number) => void;
-  setChildAge: (index: number, age: number) => void;
-  addChild: () => void;
-  removeChild: (index: number) => void;
-  setRoomCount: (value: number) => void;
-  setTripDate: (value: string) => void;
+  open: boolean;
+  draft: TravelersState;
+  openPopup: () => void;
+  closePopup: () => void;
+  setDraft: (next: TravelersState) => void;
   selectRoom: (roomId: string) => void;
 };
 
@@ -52,249 +50,114 @@ function useAdjust(): AdjustContextValue {
   return value;
 }
 
-function assignmentsFor(adults: number, childAges: number[], roomCount: number): number[] {
-  const persons = adults + childAges.length;
-  const rooms = persons < 2 ? 1 : roomCount;
-  if (rooms <= 1) {
-    return Array.from({ length: persons }, () => 0);
+function partyHref(pagePath: string, preservedQuery: string, travelers: TravelersState, roomId?: string): string {
+  const query = new URLSearchParams(preservedQuery);
+  writeTravelersToQuery(query, travelers);
+  query.delete('tripDate');
+  query.delete('dob');
+  if (roomId) {
+    query.set('room', roomId);
+  } else {
+    query.delete('room');
   }
-  const assigned = Array.from({ length: persons }, () => 0);
-  if (adults >= 2) {
-    assigned[1] = 1;
-  } else if (childAges.length > 0) {
-    assigned[adults] = 1;
-  }
-  return assigned;
+  const search = query.toString();
+  return search ? `${pagePath}?${search}` : pagePath;
 }
 
 export function DetailAdjustProvider({
   pagePath,
   preservedQuery,
-  offerDate,
-  initialDate,
-  showDate,
   initial,
-  selectedRoomId,
   children,
 }: {
   pagePath: string;
   /** Current detail query without traveller, room and tripDate keys. */
   preservedQuery: string;
-  /** Offer departure date. A different visitor date is written as tripDate. */
-  offerDate: string;
-  initialDate: string;
-  showDate: boolean;
   initial: TravelerModel;
-  selectedRoomId?: string;
   children: ReactNode;
 }) {
   const router = useDetailRouter();
   const [pending, startTransition] = useTransition();
-  const [adults, setAdultsState] = useState(initial.adults);
-  const [childAges, setChildAges] = useState(initial.childAges);
-  const [roomCount, setRoomCountState] = useState(initial.roomCount);
-  const [assignments, setAssignments] = useState(initial.roomAssignments);
-  const [tripDate, setTripDate] = useState(initialDate);
-  const [roomId, setRoomId] = useState(selectedRoomId);
-  const [ready, setReady] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<TravelersState>(initial);
 
-  const signature = `${initial.adults}:${initial.childAges.join(',')}:${initial.roomCount}:${initial.roomAssignments.join(',')}:${initialDate}:${selectedRoomId ?? ''}`;
-
-  useEffect(() => {
-    setAdultsState(initial.adults);
-    setChildAges(initial.childAges);
-    setRoomCountState(initial.roomCount);
-    setAssignments(initial.roomAssignments);
-    setTripDate(initialDate);
-    setRoomId(selectedRoomId);
-    setReady(true);
-  }, [signature]);
-
-  const requested = useMemo(() => {
-    const model: TravelerModel = {
-      adults,
-      childAges,
-      roomCount: adults + childAges.length < 2 ? 1 : roomCount,
-      roomAssignments: assignments,
-    };
-    const query = new URLSearchParams(preservedQuery);
-    writeTravelerQuery(query, model);
-    if (showDate && tripDate && tripDate !== offerDate) {
-      query.set('tripDate', tripDate);
-    } else {
-      query.delete('tripDate');
-    }
-    if (roomId) {
-      query.set('room', roomId);
-    } else {
-      query.delete('room');
-    }
-    return `${pagePath}?${query.toString()}`;
-  }, [adults, assignments, childAges, offerDate, pagePath, preservedQuery, roomCount, roomId, showDate, tripDate]);
-
-  useEffect(() => {
-    if (!ready) {
+  function navigate(href: string) {
+    const current = partyHref(pagePath, preservedQuery, initial);
+    if (href === current) {
       return;
     }
-    const baseline = new URLSearchParams(preservedQuery);
-    writeTravelerQuery(baseline, initial);
-    if (showDate && initialDate && initialDate !== offerDate) {
-      baseline.set('tripDate', initialDate);
-    }
-    if (selectedRoomId) {
-      baseline.set('room', selectedRoomId);
-    }
-    const currentHref = `${pagePath}?${baseline.toString()}`;
-    if (requested === currentHref) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      startTransition(() => {
-        router.replace(requested, { scroll: false });
-      });
-    }, DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [initial, initialDate, offerDate, pagePath, preservedQuery, requested, ready, router, selectedRoomId, showDate]);
+    startTransition(() => {
+      router.replace(href, { scroll: false });
+    });
+  }
 
   const value: AdjustContextValue = {
     pending,
-    adults,
-    childAges,
-    roomCount: adults + childAges.length < 2 ? 1 : roomCount,
-    assignments,
-    tripDate,
-    setAdults: (next) => {
-      const count = Math.min(6, Math.max(1, next));
-      setAdultsState(count);
-      setAssignments(assignmentsFor(count, childAges, roomCount));
+    open,
+    draft,
+    openPopup: () => {
+      setDraft(initial);
+      setOpen(true);
     },
-    setChildAge: (index, age) => {
-      setChildAges((current) => current.map((item, itemIndex) => (itemIndex === index ? age : item)));
-    },
-    addChild: () => {
-      if (childAges.length >= 4) {
+    closePopup: () => {
+      setOpen(false);
+      if (!isTravelersStateComplete(draft)) {
+        setDraft(initial);
         return;
       }
-      const next = [...childAges, 8];
-      setChildAges(next);
-      setAssignments(assignmentsFor(adults, next, roomCount));
+      navigate(partyHref(pagePath, preservedQuery, draft));
     },
-    removeChild: (index) => {
-      const next = childAges.filter((_, itemIndex) => itemIndex !== index);
-      setChildAges(next);
-      setAssignments(assignmentsFor(adults, next, roomCount));
+    setDraft,
+    selectRoom: (roomId) => {
+      navigate(partyHref(pagePath, preservedQuery, initial, roomId));
     },
-    setRoomCount: (next) => {
-      const count = next === 2 && adults + childAges.length >= 2 ? 2 : 1;
-      setRoomCountState(count);
-      setAssignments(assignmentsFor(adults, childAges, count));
-    },
-    setTripDate: (next) => setTripDate(next),
-    selectRoom: (next) => setRoomId(next),
   };
 
   return <AdjustContext.Provider value={value}>{children}</AdjustContext.Provider>;
 }
 
-export function DetailAdjustPanel({
-  showDate,
-  minDate,
-}: {
-  showDate: boolean;
-  minDate: string;
-}) {
+type TravelersPopupComponent = typeof import('@/components/search/travelers-popup/travelers-popup').TravelersPopup;
+
+export function DetailPartySummary({ label }: { label: string }) {
   const adjust = useAdjust();
+  const [Popup, setPopup] = useState<TravelersPopupComponent | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    // Client-only: the popup stylesheet is not valid in the node test runner.
+    void import('@/components/search/travelers-popup/travelers-popup').then((mod) => {
+      if (!cancelled) {
+        setPopup(() => mod.TravelersPopup);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
-    <section className="mt-6 rounded-[20px] border border-vw-line bg-vw-card p-5 shadow-vw-panel min-[901px]:p-7" data-testid="detail-trip-adjust">
-      <h2 className="font-vw-serif text-2xl font-medium text-vw-navy">Pas je reis aan</h2>
-      <p className="mt-1 text-[13px] text-vw-muted">
-        Leeftijd van een kind is de leeftijd op de terugreis. Jonger dan 2 jaar telt als baby.
-      </p>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <label className="text-sm font-semibold text-vw-navy">
-          Volwassenen
-          <input
-            type="number"
-            min={1}
-            max={6}
-            value={adjust.adults}
-            onChange={(event) => adjust.setAdults(Number(event.target.value))}
-            className="mt-1 block h-11 w-full rounded-xl border border-[#e3dccf] bg-white px-3 text-base"
-          />
-        </label>
-        <label className="text-sm font-semibold text-vw-navy">
-          Kamers
-          <select
-            value={adjust.roomCount}
-            onChange={(event) => adjust.setRoomCount(Number(event.target.value))}
-            className="mt-1 block h-11 w-full rounded-xl border border-[#e3dccf] bg-white px-3 text-base"
-          >
-            <option value={1}>1 kamer</option>
-            <option value={2}>2 kamers</option>
-          </select>
-        </label>
-        {showDate ? (
-          <label className="text-sm font-semibold text-vw-navy">
-            Vertrekdatum
-            <input
-              type="date"
-              min={minDate}
-              value={adjust.tripDate}
-              onChange={(event) => adjust.setTripDate(event.target.value)}
-              className="mt-1 block h-11 w-full rounded-xl border border-[#e3dccf] bg-white px-3 text-base"
-            />
-          </label>
-        ) : null}
-      </div>
-      <div className="mt-4">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-vw-navy">Kinderen</p>
-          <button
-            type="button"
-            onClick={adjust.addChild}
-            className="text-sm font-semibold text-vw-navy"
-          >
-            Kind toevoegen
-          </button>
-        </div>
-        {adjust.childAges.length === 0 ? (
-          <p className="mt-2 text-[13px] text-vw-muted">Geen kinderen</p>
-        ) : (
-          <ul className="mt-2 space-y-2">
-            {adjust.childAges.map((age, index) => (
-              <li key={`child-${index}`} className="flex items-center gap-2">
-                <label className="min-w-0 flex-1 text-[13px] text-vw-muted">
-                  Leeftijd kind {index + 1}
-                  <select
-                    value={age}
-                    aria-label={`Leeftijd kind ${index + 1}`}
-                    onChange={(event) => adjust.setChildAge(index, Number(event.target.value))}
-                    className="mt-1 block h-11 w-full rounded-xl border border-[#e3dccf] bg-white px-3 text-base text-vw-navy"
-                  >
-                    {Array.from({ length: 18 }, (_, value) => (
-                      <option key={value} value={value}>
-                        {value} jaar
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button type="button" onClick={() => adjust.removeChild(index)} className="mt-5 text-sm font-semibold text-vw-navy">
-                  Verwijder
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      {adjust.pending ? (
-        <p className="mt-4 text-sm font-semibold text-vw-navy" data-testid="detail-price-pending">
-          {PENDING_COPY}
-        </p>
+    <>
+      <button
+        type="button"
+        onClick={adjust.openPopup}
+        data-testid="detail-party-summary"
+        className="mt-6 text-left text-sm font-semibold text-vw-navy"
+      >
+        {label} · Wijzigen
+      </button>
+      {Popup ? (
+        <Popup
+          open={adjust.open}
+          travelers={adjust.draft}
+          onClose={adjust.closePopup}
+          onChange={adjust.setDraft}
+        />
       ) : null}
-    </section>
+    </>
   );
 }
 
+/** Parked with the room-selector flag. The detail page does not mount this while the flag is off. */
 export function DetailAdjustRooms({
   rooms,
   selectedId,

@@ -3,10 +3,10 @@ import { OfferImageGallery } from '@/components/offers/offer-image-gallery';
 import { OfferDetailMobileBar, OfferPriceCard } from '@/components/offers/offer-price-card';
 import {
   DetailAdjustMobile,
-  DetailAdjustPanel,
   DetailAdjustPrice,
   DetailAdjustProvider,
   DetailAdjustRooms,
+  DetailPartySummary,
 } from '@/components/offers/offer-trip-adjust';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import type { CatalogRoomType, CatalogSection } from '@/lib/offers/catalog-content';
@@ -31,6 +31,7 @@ import {
   providerTextBlocks,
 } from '@/lib/offers/offer-detail-view';
 import { formatDeparturePresentation } from '@/lib/search/departure-presentation';
+import { formatOccupancyCompositionNl } from '@/lib/search/occupancy-category';
 import { buildOfferDetailHref } from '@/lib/search/pagination';
 import { modelFromParty, type TravelerModel } from '@/lib/search/traveler-contract';
 import type { DetailRoomQuote } from '@/lib/providers/sunweb/room-selector';
@@ -40,7 +41,7 @@ import {
   withSunwebDepartureDate,
   withSunwebRoomType,
 } from '@/lib/providers/sunweb/offer-context';
-import { sunwebTodayIsoEuropeBrussels } from '@/lib/providers/sunweb/grouped-availability';
+import { DETAIL_SUNWEB_ROOM_QUOTES_ENABLED } from '@/lib/providers/sunweb/room-selector';
 import { resultsPricePresentation } from '@/lib/search/presentable-price';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
@@ -169,16 +170,18 @@ export function OfferDetailContent({
   /** Lab pages pass their own path. The live page uses the offer URL. */
   adjustPath?: string;
 }) {
-  const visitorDate = tripDate && /^\d{4}-\d{2}-\d{2}$/.test(tripDate) ? tripDate : undefined;
+  const roomChoiceEnabled = DETAIL_SUNWEB_ROOM_QUOTES_ENABLED;
+  const visitorDate = roomChoiceEnabled && tripDate && /^\d{4}-\d{2}-\d{2}$/.test(tripDate) ? tripDate : undefined;
   const datedOffer = visitorDate && visitorDate !== offer.departureDate
     ? { ...offer, departureDate: visitorDate }
     : offer;
+  const pricedRoom = rooms.find((room) => room.included) ?? (selectedRoom?.included ? selectedRoom : null);
   const extras = extrasOverride ?? buildDetailOfferExtras(datedOffer, params, {
-    roomTypeLabel: selectedRoom?.name,
+    roomTypeLabel: roomChoiceEnabled ? selectedRoom?.name : pricedRoom?.name,
   });
   const occupancySummary = formatOccupancySummary(params);
   const travelerLines = formatTravelerLines(params);
-  const quotes = roomQuotes ?? [];
+  const quotes = roomChoiceEnabled ? (roomQuotes ?? []) : [];
   const selectedQuote = quotes.length > 0
     ? selectDetailRoomQuote(quotes, params.selectedRoom ?? selectedRoom?.id)
     : null;
@@ -231,12 +234,13 @@ export function OfferDetailContent({
     : priceKind === 'amount' && !blockCatalogPrice
       ? extras.liveTotalPrice
       : undefined;
-  const roomPriceNote =
-    selectedQuote && typeof selectedQuote.totalPrice !== 'number'
+  const roomPriceNote = roomChoiceEnabled
+    ? selectedQuote && typeof selectedQuote.totalPrice !== 'number'
       ? `Prijs voor deze kamer zie je bij ${offer.provider}`
       : selectedRoom && !selectedRoom.included && quotes.length === 0
         ? `Prijs voor deze kamer zie je bij ${offer.provider}`
-        : undefined;
+        : undefined
+    : undefined;
   const accommodationLine = formatDetailAccommodation(offer.accommodationType, offer.accommodation);
   const canBook = Boolean(bookHref && (showAmount || roomPriceNote));
 
@@ -273,18 +277,17 @@ export function OfferDetailContent({
     }
     return url.searchParams.toString();
   })();
-  const shownDate = tripDate && /^\d{4}-\d{2}-\d{2}$/.test(tripDate) ? tripDate : offer.departureDate ?? '';
+  const partyLine = formatOccupancyCompositionNl(params, {
+    includeRooms: traveler.roomCount > 1,
+    joiner: ', ',
+  });
 
   return (
     <main className="min-h-screen bg-vw-bg font-vw-sans text-vw-ink">
       <DetailAdjustProvider
         pagePath={adjustPath ?? `/offers/${encodeURIComponent(offer.id)}`}
         preservedQuery={preservedQuery}
-        offerDate={offer.departureDate ?? ''}
-        initialDate={shownDate}
-        showDate={offer.provider === 'Sunweb'}
         initial={traveler}
-        selectedRoomId={selectedQuote?.id ?? (quotes.length === 0 ? selectedRoom?.id : params.selectedRoom)}
       >
       <ResultsSiteHeader appearance="results" />
 
@@ -444,18 +447,15 @@ export function OfferDetailContent({
               </section>
             ) : null}
 
-            <DetailAdjustPanel
-              showDate={offer.provider === 'Sunweb'}
-              minDate={sunwebTodayIsoEuropeBrussels()}
-            />
+            <DetailPartySummary label={partyLine || '2 volwassenen'} />
 
-            {quotes.length > 0 ? (
+            {roomChoiceEnabled && quotes.length > 0 ? (
               <DetailAdjustRooms
                 rooms={quotes}
                 selectedId={selectedQuote?.id}
                 provider={offer.provider}
               />
-            ) : rooms.length > 0 ? (
+            ) : roomChoiceEnabled && rooms.length > 0 ? (
               <section className={sectionClassName()} data-testid="detail-room-choice">
                 <h2 className="font-vw-serif text-2xl font-medium text-vw-navy">Kies je kamer</h2>
                 <div className="mt-4 grid gap-2.5">
@@ -550,6 +550,39 @@ export function OfferDetailContent({
                       </ul>
                     ) : null}
                   </div>
+                ) : null}
+              </section>
+            ) : pricedRoom ? (
+              <section className={sectionClassName()} data-testid="detail-priced-room">
+                <h2 className="font-vw-serif text-2xl font-medium text-vw-navy">{pricedRoom.name}</h2>
+                {pricedRoom.images.length > 0 ? (
+                  <OfferImageGallery images={pricedRoom.images} alt={pricedRoom.name} />
+                ) : null}
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 min-[1100px]:grid-cols-3">
+                  <RoomFact label="Kamercode" value={pricedRoom.code} />
+                  <RoomFact label="Oppervlakte" value={pricedRoom.area} />
+                  <RoomFact label="Slaapkamers" value={pricedRoom.bedrooms} />
+                  <RoomFact label="Bedden" value={pricedRoom.bedConfig} />
+                  <RoomFact label="Airconditioning" value={pricedRoom.airConditioning} />
+                  <RoomFact label="Balkon / terras" value={pricedRoom.balcony} />
+                  <RoomFact label="Zeezicht" value={pricedRoom.seaView} />
+                  <RoomFact label="Zwembad" value={pricedRoom.pool} />
+                  <RoomFact label="Badkamer" value={pricedRoom.bathroom} />
+                  <RoomFact label="Minibar" value={pricedRoom.minibar} />
+                  <RoomFact label="Kluis" value={pricedRoom.safe} />
+                  <RoomFact label="Wifi" value={pricedRoom.wifi} />
+                </div>
+                {pricedRoom.facilities.length > 0 ? (
+                  <ul className="mt-4 columns-1 gap-6 text-[13.5px] text-[#475569] sm:columns-2">
+                    {pricedRoom.facilities.flatMap((item) => providerTextBlocks(item)).map((item, index) => (
+                      <li key={`${index}-${item}`} className="break-inside-avoid py-0.5">
+                        <span className="mr-2 font-bold text-vw-green" aria-hidden>
+                          ✓
+                        </span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
                 ) : null}
               </section>
             ) : null}
