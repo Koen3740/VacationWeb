@@ -65,12 +65,13 @@ test('10 no dead links: nav, footer and legal sub-nav targets exist', () => {
   for (const href of ['/favorieten', '/privacy', '/cookies', '/cookie-settings', '/#value', '/#inspiratie']) {
     assertLinkTargetExists(href);
   }
-  // Results empty states no longer send users to the legacy /search page.
+  // Empty states no longer send users to the legacy /search page.
+  // No-results links back to the homepage search. The 150-result cap keeps the
+  // exact two-sentence copy and has no extra link.
   for (const file of ['components/results/no-results.tsx', 'components/results/results-refinement-required.tsx']) {
-    const source = readFileSync(file, 'utf8');
-    assert.equal(source.includes('href="/search"'), false, file);
-    assert.match(source, /href="\/#hero"/);
+    assert.equal(readFileSync(file, 'utf8').includes('href="/search"'), false, file);
   }
+  assert.match(readFileSync('components/results/no-results.tsx', 'utf8'), /href="\/#hero"/);
   // No component in the site chrome links to /search anymore.
   for (const file of [
     'components/home/home-header.tsx',
