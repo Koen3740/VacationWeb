@@ -17,7 +17,10 @@ import {
   formatOccupancySummary,
   formatOfferReturnDateLabel,
   formatReturnDateLabel,
+  collectThemeLabels,
+  formatDetailAccommodation,
   parseVariationRoomNames,
+  providerTextBlocks,
   selectedProviderListing,
   stripSimpleHtml,
 } from './offer-detail-view';
@@ -339,6 +342,51 @@ test('Results and Detail prefer offer departure date over search window', () => 
   const facts = buildBasisFacts(makeOffer({ departureDate: '2026-08-28' }));
   const dateFact = facts.find((fact) => fact.label === 'Vertrekdatum');
   assert.equal(dateFact?.value, 'Vertrek op 28/08/2026');
+});
+
+test('provider line breaks become paragraphs and other HTML stays text', () => {
+  assert.deepEqual(
+    providerTextBlocks('Eerste zin.<br />Tweede zin.<br/><br>Derde zin.'),
+    ['Eerste zin.', 'Tweede zin.', 'Derde zin.'],
+  );
+  assert.deepEqual(
+    providerTextBlocks('Voor de break.&lt;br /&gt;Na de break.'),
+    ['Voor de break.', 'Na de break.'],
+  );
+  assert.deepEqual(
+    providerTextBlocks('<p>Een alinea.</p><p>Twee.</p><script>alert(1)</script><img src=x onerror=alert(1)>'),
+    ['Een alinea.', 'Twee.'],
+  );
+  const joined = stripSimpleHtml('<p>Een alinea.</p><br />Twee.');
+  assert.equal(joined, 'Een alinea. Twee.');
+  assert.doesNotMatch(joined ?? '', /<|script|onerror/i);
+});
+
+test('highlight chips use an object label and drop [object Object]', () => {
+  const labels = collectThemeLabels(
+    makeOffer({
+      subcategories: 'Familie, [object Object], Zwembad',
+      categories: [
+        'Strand',
+        { label: 'Adults only' },
+        { id: 9 },
+        { value: '40348' },
+        '[object Object]',
+      ] as unknown as string[],
+    }),
+  );
+  assert.deepEqual(labels, ['Familie', 'Zwembad', 'Strand', 'Adults only']);
+  assert.equal(labels.includes('[object Object]'), false);
+});
+
+test('Reis accommodation fact hides an internal id and keeps a human value', () => {
+  assert.equal(formatDetailAccommodation('Hotel', '40348'), 'Hotel');
+  assert.equal(formatDetailAccommodation(undefined, '40348'), undefined);
+  assert.equal(formatDetailAccommodation('40348', '40348'), undefined);
+  assert.equal(
+    formatDetailAccommodation('Appartement', 'Puerto Marina; 40348'),
+    'Appartement • Puerto Marina',
+  );
 });
 
 test('stripSimpleHtml drops Corendon style blocks so Overview never shows CSS', () => {

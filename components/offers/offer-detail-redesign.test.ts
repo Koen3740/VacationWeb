@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { OfferDetailContent } from '@/components/offers/offer-detail-content';
 import { OfferPriceCard } from '@/components/offers/offer-price-card';
 import { buildDetailOfferExtras } from '@/lib/offers/detail-extras';
+import { collectThemeLabels } from '@/lib/offers/offer-detail-view';
 import type { TravelOffer } from '@/types/travel';
 
 (globalThis as { React?: unknown }).React = React;
@@ -205,6 +206,48 @@ test('offer facts render a higher original total and hide one that is not higher
   }));
   assert.doesNotMatch(equal, /line-through/);
   assert.doesNotMatch(equal, /−16%/);
+});
+
+test('Sunweb detail copy turns br into paragraphs, drops object chips, and hides an accommodation id', () => {
+  const offer = makeOffer({
+    hotelName: 'SOL Puerto Marina',
+    accommodationType: 'Hotel',
+    accommodation: '40348',
+    descriptionShort: 'Direct aan de haven.<br />Zwembad in de tuin.<script>alert(1)</script>',
+    subcategories: 'Familie, [object Object]',
+    categories: [{ label: 'Adults only' }, { id: 40348 }] as unknown as string[],
+  });
+  const html = renderToStaticMarkup(
+    createElement(OfferDetailContent, {
+      offer,
+      params: TWO_ADULTS,
+      resultsHref: '/results',
+      galleryImages: IMAGES,
+      rooms: [],
+      selectedRoom: null,
+      sections: [{ title: 'Ligging', items: ['Aan de jachthaven<br />Rustige omgeving', '<b>ontbijt</b>'] }],
+      intro: 'Eerste indruk.&lt;br /&gt;Tweede indruk.<img src=x onerror=alert(1)>',
+      presentable: true,
+      themes: collectThemeLabels(offer),
+      isLastMinute: false,
+    }),
+  );
+
+  assert.match(html, /Direct aan de haven\./);
+  assert.match(html, /Zwembad in de tuin\./);
+  assert.match(html, /Eerste indruk\./);
+  assert.match(html, /Tweede indruk\./);
+  assert.match(html, /Aan de jachthaven/);
+  assert.match(html, /Rustige omgeving/);
+  assert.match(html, /ontbijt/);
+  assert.doesNotMatch(html, /&lt;br/);
+  assert.doesNotMatch(html, /<br/i);
+  assert.doesNotMatch(html, /<script|onerror|<b>/i);
+  assert.match(html, /Familie/);
+  assert.match(html, /Adults only/);
+  assert.doesNotMatch(html, /\[object Object\]/);
+  assert.match(html, /Accommodatie<\/dt><dd[^>]*>Hotel</);
+  assert.doesNotMatch(html, /40348/);
 });
 
 test('detail components do not hardcode unverified price claims', () => {

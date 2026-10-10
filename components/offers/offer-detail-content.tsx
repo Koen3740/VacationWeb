@@ -18,9 +18,10 @@ import {
   formatDepartureAirport,
   formatDestination,
   formatFlightIncluded,
+  formatDetailAccommodation,
   formatOccupancySummary,
   formatTravelerLines,
-  stripSimpleHtml,
+  providerTextBlocks,
 } from '@/lib/offers/offer-detail-view';
 import { formatDeparturePresentation } from '@/lib/search/departure-presentation';
 import { buildOfferDetailHref } from '@/lib/search/pagination';
@@ -63,14 +64,35 @@ function Fact({
   );
 }
 
+function ProviderParagraphs({
+  blocks,
+  className,
+}: {
+  blocks: string[];
+  className: string;
+}) {
+  if (blocks.length === 0) {
+    return null;
+  }
+  return blocks.map((block, index) => (
+    <p key={`${index}-${block.slice(0, 24)}`} className={className}>
+      {block}
+    </p>
+  ));
+}
+
 function CatalogSectionBlock({ section }: { section: CatalogSection }) {
+  const items = section.items.flatMap((item) => providerTextBlocks(item));
+  if (items.length === 0) {
+    return null;
+  }
   return (
     <section className="mt-6">
       <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-vw-navy">{section.title}</h3>
       <ul className="mt-1.5">
-        {section.items.map((item) => (
+        {items.map((item, index) => (
           <li
-            key={`${section.title}-${item}`}
+            key={`${section.title}-${index}-${item}`}
             className="relative py-0.5 pl-4 text-[13.5px] text-[#475569] before:absolute before:left-0.5 before:top-[0.7em] before:h-1.5 before:w-1.5 before:rounded-full before:bg-vw-gold"
           >
             {item}
@@ -126,13 +148,17 @@ export function OfferDetailContent({
   const destination = formatDestination(offer);
   const hasStars = typeof offer.stars === 'number' && offer.stars > 0;
   const hasRating = typeof offer.rating === 'number' && Number.isFinite(offer.rating);
-  const shortDescription = stripSimpleHtml(offer.descriptionShort);
+  const shortBlocks = providerTextBlocks(offer.descriptionShort);
+  const introBlocks = providerTextBlocks(intro);
+  const visibleSections = sections.filter((section) =>
+    section.items.some((item) => providerTextBlocks(item).length > 0),
+  );
   const departureAirportLabel = formatDepartureAirport(offer);
   const additionalAirport = formatAdditionalAirport(offer);
   const departurePhrase = formatDeparturePresentation(params, offer.departureDate).phrase;
   const flightIncludedLabel = formatFlightIncluded(offer.flightIncluded);
   const showAmount = presentable && priceKind === 'amount' && Boolean(extras.liveTotalPrice);
-  const accommodationLine = [offer.accommodationType, offer.accommodation].filter(Boolean).join(' • ');
+  const accommodationLine = formatDetailAccommodation(offer.accommodationType, offer.accommodation);
   const canBook = Boolean(showAmount && bookHref);
 
   const facts = [
@@ -387,8 +413,8 @@ export function OfferDetailContent({
                     </div>
                     {selectedRoom.facilities.length > 0 ? (
                       <ul className="mt-4 columns-1 gap-6 text-[13.5px] text-[#475569] sm:columns-2">
-                        {selectedRoom.facilities.map((item) => (
-                          <li key={item} className="break-inside-avoid py-0.5">
+                        {selectedRoom.facilities.flatMap((item) => providerTextBlocks(item)).map((item, index) => (
+                          <li key={`${index}-${item}`} className="break-inside-avoid py-0.5">
                             <span className="mr-2 font-bold text-vw-green" aria-hidden>
                               ✓
                             </span>
@@ -402,18 +428,20 @@ export function OfferDetailContent({
               </section>
             ) : null}
 
-            {(shortDescription || intro || sections.length > 0) && (
-              <section className={sectionClassName()}>
+            {(shortBlocks.length > 0 || introBlocks.length > 0 || visibleSections.length > 0) && (
+              <section className={sectionClassName()} data-testid="detail-accommodation-copy">
                 <h2 className="font-vw-serif text-2xl font-medium text-vw-navy">Accommodatie</h2>
-                {shortDescription ? (
-                  <p className="mt-3 break-words text-[15.5px] leading-7 text-[#334155]">{shortDescription}</p>
-                ) : null}
-                {intro ? (
-                  <p className="mt-2.5 break-words text-[15px] leading-7 text-vw-muted">{intro}</p>
-                ) : null}
-                {sections.length > 0 ? (
+                <ProviderParagraphs
+                  blocks={shortBlocks}
+                  className="mt-3 break-words text-[15.5px] leading-7 text-[#334155]"
+                />
+                <ProviderParagraphs
+                  blocks={introBlocks}
+                  className="mt-2.5 break-words text-[15px] leading-7 text-vw-muted"
+                />
+                {visibleSections.length > 0 ? (
                   <div className="mt-5 grid gap-x-7 sm:grid-cols-2">
-                    {sections.map((section) => (
+                    {visibleSections.map((section) => (
                       <CatalogSectionBlock key={section.title} section={section} />
                     ))}
                   </div>
