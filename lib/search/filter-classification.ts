@@ -17,6 +17,7 @@ export const FAST_FILTER_PARAMS = [
   'budgetMin',
   'budgetMax',
   'stars',
+  'ratingMin',
   'boardTypes',
   'amenities',
   'vacationTypes',

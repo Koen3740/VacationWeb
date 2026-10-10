@@ -78,3 +78,11 @@ export async function RoadtripFacetCount({
 }: PresentableFacetCountProps) {
   return <FacetBookableCount facetFiltering={withRoadtripFacet(filteringParams)} />;
 }
+
+/** Guest-score minimum, same catalog / Proven-B count as the other sidebar badges. */
+export async function RatingFacetCount({
+  filteringParams,
+  minimum,
+}: PresentableFacetCountProps & { minimum: 6 | 7 | 8 | 9 }) {
+  return <FacetBookableCount facetFiltering={{ ...filteringParams, ratingMin: minimum }} />;
+}

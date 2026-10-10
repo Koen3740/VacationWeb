@@ -51,6 +51,25 @@ test('Wis filters clears sidebar filters and keeps dates, party, airport and sor
   assert.equal(cleared.get('sort'), 'price');
 });
 
+test('guest rating chip is Beoordeling 8+ and clears ratingMin', () => {
+  const params = new URLSearchParams('adults=2&nights=8&ratingMin=8&stars=4');
+  const chips = listActiveResultFilterChips(params);
+  const rating = chips.find((chip) => chip.label === 'Beoordeling 8+');
+  assert.ok(rating);
+  const next = searchParamsWithoutFilterChip(params, rating.id);
+  assert.equal(next.get('ratingMin'), null);
+  assert.equal(next.get('stars'), '4');
+  assert.equal(next.get('nights'), '8');
+  assert.equal(next.get('adults'), '2');
+});
+
+test('Wis filters clears ratingMin', () => {
+  const cleared = searchParamsWithoutSidebarFilters(new URLSearchParams('ratingMin=9&sort=price&adults=2'));
+  assert.equal(cleared.get('ratingMin'), null);
+  assert.equal(cleared.get('sort'), 'price');
+  assert.equal(cleared.get('adults'), '2');
+});
+
 test('Roadtrip chip uses the sidebar label', () => {
   const chips = listActiveResultFilterChips(new URLSearchParams('vacationTypes=Fly+%26+Drive'));
   assert.equal(chips.length, 1);

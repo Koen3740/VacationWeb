@@ -51,6 +51,11 @@ import {
   type CenterLocation,
 } from '@/lib/search/location-filters';
 import { parseProviderParam, PROVIDER_FILTER_PARAM } from '@/lib/search/provider-filter';
+import {
+  RATING_FILTER_PARAM,
+  parseRatingMinParam,
+  ratingFilterChipLabel,
+} from '@/lib/search/rating-filter';
 import { parseStarsParam, serializeStarsParam } from '@/lib/search/stars-param';
 import {
   VACATION_TYPE_LABELS,
@@ -178,6 +183,15 @@ export function listActiveResultFilterChips(params: URLSearchParams): ResultFilt
     });
   }
 
+  const ratingMin = parseRatingMinParam(params.get(RATING_FILTER_PARAM));
+  if (ratingMin) {
+    chips.push({
+      id: 'rating',
+      label: ratingFilterChipLabel(ratingMin),
+      preservePage1Ids: true,
+    });
+  }
+
   for (const board of canonicalizeBoardTypes(params.get('boardTypes')?.split(',').filter(Boolean) || [])) {
     chips.push({ id: chipId('board', board), label: board, preservePage1Ids: true });
   }
@@ -254,6 +268,7 @@ const SIDEBAR_FILTER_KEYS = [
   'budgetMax',
   'accommodationTypes',
   'stars',
+  RATING_FILTER_PARAM,
   'boardTypes',
   'vacationTypes',
   HAS_CAR_RENTAL_PARAM,
@@ -313,6 +328,9 @@ export function searchParamsWithoutFilterChip(source: URLSearchParams, id: strin
       setSerialized(params, 'stars', serializeStarsParam(remaining));
       break;
     }
+    case 'rating':
+      params.delete(RATING_FILTER_PARAM);
+      break;
     case 'board': {
       const remaining = drop(
         canonicalizeBoardTypes(params.get('boardTypes')?.split(',').filter(Boolean) || []),

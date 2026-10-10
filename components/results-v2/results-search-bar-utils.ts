@@ -62,6 +62,7 @@ const PRESERVE_FILTER_KEYS = [
   'boardTypes',
   'accommodationTypes',
   'stars',
+  'ratingMin',
   'vacationTypes',
   'beachLocation',
   'centerLocation',

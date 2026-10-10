@@ -26,6 +26,7 @@ import {
 } from '@/components/results/presentable-results-count';
 import {
   CarRentalFacetCount,
+  RatingFacetCount,
   RoadtripFacetCount,
 } from '@/components/results/results-facet-counts';
 import {
@@ -230,6 +231,28 @@ export default async function ResultsPage({
             />
           </Suspense>
         }
+        ratingCounts={{
+          9: (
+            <Suspense fallback="…">
+              <RatingFacetCount filteringParams={filteringParams} params={params} page={page} pageSize={pageSize} isPage1={isPage1} minimum={9} />
+            </Suspense>
+          ),
+          8: (
+            <Suspense fallback="…">
+              <RatingFacetCount filteringParams={filteringParams} params={params} page={page} pageSize={pageSize} isPage1={isPage1} minimum={8} />
+            </Suspense>
+          ),
+          7: (
+            <Suspense fallback="…">
+              <RatingFacetCount filteringParams={filteringParams} params={params} page={page} pageSize={pageSize} isPage1={isPage1} minimum={7} />
+            </Suspense>
+          ),
+          6: (
+            <Suspense fallback="…">
+              <RatingFacetCount filteringParams={filteringParams} params={params} page={page} pageSize={pageSize} isPage1={isPage1} minimum={6} />
+            </Suspense>
+          ),
+        }}
         providerFilter={
           <Suspense
             fallback={

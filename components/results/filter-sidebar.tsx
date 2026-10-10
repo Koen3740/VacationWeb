@@ -5,7 +5,6 @@ import {
   RESULTS_NAVY,
   RESULTS_STAR_GOLD,
 } from '@/components/results-v2/results-design-tokens';
-import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
 import {
@@ -64,6 +63,12 @@ import {
   type CenterDistance,
 } from '@/lib/search/ligging-filters';
 import {
+  RATING_MIN_OPTIONS,
+  parseRatingMinParam,
+  ratingFilterOptionLabel,
+  type RatingMinOption,
+} from '@/lib/search/rating-filter';
+import {
   STAR_FILTER_VALUES,
   parseStarsParam,
   serializeStarsParam,
@@ -113,6 +118,7 @@ function parseFilters(searchParams: URLSearchParams) {
     budgetMax: Number(searchParams.get('budgetMax') || BUDGET_FILTER_MAX),
     departureAirport: searchParams.get('departureAirport') || '',
     stars: parseStarsParam(searchParams.get('stars')),
+    ratingMin: parseRatingMinParam(searchParams.get('ratingMin')),
     boardTypes: canonicalizeBoardTypes(
       searchParams.get('boardTypes')?.split(',').filter(Boolean) || [],
     ),
@@ -135,6 +141,8 @@ type FilterSidebarProps = FilterOptions & {
   totalOffersLabel: string;
   carRentalCount: number | ReactNode;
   roadtripCount: number | ReactNode;
+  /** Counts for 9 / 8 / 7 / 6 of hoger. Same facet stream as Roadtrip. */
+  ratingCounts?: Partial<Record<RatingMinOption, ReactNode>>;
   /** Optional "Vakantieaanbieder" block (effective B-pool counts). */
   providerFilter?: ReactNode;
 };
@@ -270,6 +278,7 @@ export function FilterSidebar({
   totalOffersLabel,
   carRentalCount,
   roadtripCount,
+  ratingCounts,
   providerFilter,
 }: FilterSidebarProps) {
   const router = useRouter();
@@ -285,6 +294,7 @@ export function FilterSidebar({
     destination: true,
     budget: true,
     stay: true,
+    rating: true,
     vacation: true,
     location: true,
     extras: true,
@@ -419,6 +429,12 @@ export function FilterSidebar({
       params.delete('stars');
     }
 
+    if (next.ratingMin) {
+      params.set('ratingMin', String(next.ratingMin));
+    } else {
+      params.delete('ratingMin');
+    }
+
     if (next.departureAirport) {
       params.set('departureAirport', next.departureAirport);
     } else {
@@ -520,6 +536,14 @@ export function FilterSidebar({
     updateFilters({
       ...current,
       stars: toggleSelectedValue(current.stars, value),
+    });
+  };
+
+  const setRatingMin = (value: RatingMinOption | undefined) => {
+    const current = filtersRef.current;
+    updateFilters({
+      ...current,
+      ratingMin: value,
     });
   };
 
@@ -827,6 +851,39 @@ export function FilterSidebar({
           </div>
         </Accordion>
 
+        <Accordion title="Beoordeling" open={!!openSections.rating} onToggle={() => toggleSection('rating')}>
+          <div role="radiogroup" aria-label="Beoordeling" data-testid="rating-filter" className="space-y-1">
+            {RATING_MIN_OPTIONS.map((value) => (
+              <label
+                key={value}
+                className="flex min-h-11 cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]"
+              >
+                <input
+                  type="radio"
+                  name="ratingMin"
+                  checked={filters.ratingMin === value}
+                  onChange={() => setRatingMin(value)}
+                  className="h-[17px] w-[17px] shrink-0 accent-vw-navy"
+                  data-testid={`rating-min-${value}`}
+                />
+                <span>{ratingFilterOptionLabel(value)}</span>
+                <span className="text-[#8A93A3]">({ratingCounts?.[value] ?? '…'})</span>
+              </label>
+            ))}
+            <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
+              <input
+                type="radio"
+                name="ratingMin"
+                checked={filters.ratingMin == null}
+                onChange={() => setRatingMin(undefined)}
+                className="h-[17px] w-[17px] shrink-0 accent-vw-navy"
+                data-testid="rating-min-all"
+              />
+              Toon alle
+            </label>
+          </div>
+        </Accordion>
+
         <Accordion title="Wat zoek ik?" open={!!openSections.vacation} onToggle={() => toggleSection('vacation')}>
           <div className="space-y-2">
             <label className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
@@ -992,8 +1049,6 @@ export function FilterSidebar({
         </Accordion>
 
       </div>
-
-      <ResultsWhyCard tone="results" />
 
       <DestinationPopup
         open={destinationPopupOpen}
