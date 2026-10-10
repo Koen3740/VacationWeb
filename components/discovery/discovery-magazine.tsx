@@ -16,12 +16,11 @@ const SIZE_CLASS: Record<MagazineCard['size'], string> = {
 function cardMatches(card: MagazineCard, filter: string): boolean {
   if (filter === 'Alles') return true;
   if (filter === 'Nieuw') return card.badges.includes('new');
-  if (filter === 'Video') return card.badges.includes('video');
   return card.themes.includes(filter);
 }
 
 export function DiscoveryMagazine({ magazine }: { magazine: MagazineModel }) {
-  const filters = useMemo(() => ['Alles', 'Nieuw', ...magazine.themes, 'Video'], [magazine.themes]);
+  const filters = useMemo(() => ['Alles', 'Nieuw', ...magazine.themes], [magazine.themes]);
   const [filter, setFilter] = useState('Alles');
   const cards = magazine.cards.filter((card) => cardMatches(card, filter));
 

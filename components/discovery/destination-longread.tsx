@@ -111,10 +111,10 @@ export function DestinationLongread({ view }: { view: DestinationView }) {
           {view.intro.paragraphs.map((paragraph, index) => (
             <p
               key={paragraph.slice(0, 24)}
-              className={`font-vw-serif text-[20px] font-normal leading-[1.55] text-[#1d2a40] min-[901px]:text-[clamp(21px,2vw,26px)] ${
+              className={`font-vw-serif text-[19px] font-normal leading-[1.6] text-[#1d2a40] min-[901px]:text-[20px] ${
                 index === 0
-                  ? 'first-letter:float-left first-letter:mr-[0.1em] first-letter:font-vw-serif first-letter:text-[4.1em] first-letter:font-medium first-letter:leading-[0.82] first-letter:text-vw-navy'
-                  : 'mt-[18px]'
+                  ? 'first-letter:float-left first-letter:mr-[0.08em] first-letter:font-vw-serif first-letter:text-[2.75em] first-letter:font-medium first-letter:leading-[0.85] first-letter:text-vw-navy'
+                  : 'mt-4'
               }`}
             >
               {paragraph}
@@ -132,7 +132,7 @@ export function DestinationLongread({ view }: { view: DestinationView }) {
               <h2 className="mb-3.5 font-vw-serif text-[34px] font-medium leading-tight text-white min-[901px]:text-[44px]">
                 {view.video.title}
               </h2>
-              <p className="mb-0 max-w-[34ch] text-[16px] text-[#c3cde0]">{view.video.description}</p>
+              <p className="mb-0 max-w-[34ch] text-[16px] leading-[1.6] text-[#c3cde0] min-[901px]:text-[17px]">{view.video.description}</p>
             </div>
             <YouTubeConsentEmbed video={view.video} />
             <div>
@@ -180,14 +180,14 @@ export function DestinationLongread({ view }: { view: DestinationView }) {
               <h2 id={`h-${chapter.id}`} className="mb-4 font-vw-serif text-[clamp(34px,4vw,52px)] font-medium leading-none tracking-[-0.01em] text-vw-navy">
                 {chapter.title}
               </h2>
-              <div className="font-vw-serif text-[17.5px] leading-[1.65] text-[#26324a] min-[901px]:text-[19px]">
+              <div className="font-vw-serif text-[16px] leading-[1.6] text-[#26324a] min-[901px]:text-[17px]">
                 {chapter.paragraphs.map((paragraph) => (
                   <p key={paragraph.slice(0, 32)} className="mb-3.5">
                     {paragraph}
                   </p>
                 ))}
               </div>
-              <aside className="my-[22px] border-l-[3px] border-vw-gold py-3.5 pl-[18px] text-[15px] leading-normal text-[#3b4456]">
+              <aside className="my-[22px] border-l-[3px] border-vw-gold py-3.5 pl-[18px] text-[15px] leading-[1.6] text-[#3b4456] min-[901px]:text-[16px]">
                 <b className="mb-0.5 block text-[11.5px] font-bold uppercase tracking-[0.14em] text-[#a17d2e]">Wist je dat?</b>
                 {chapter.fact.text}
                 <span className="sr-only"> Bron: {chapter.fact.source}.</span>
@@ -201,7 +201,7 @@ export function DestinationLongread({ view }: { view: DestinationView }) {
       <div className="mx-auto max-w-vw-page px-4 min-[901px]:px-7">
         <section id="plekken" className="scroll-mt-16 pt-[52px] min-[901px]:pt-[70px]">
           <h2 className="m-0 font-vw-serif text-[28px] font-medium leading-tight text-vw-navy min-[901px]:text-[36px]">Mooiste plekken</h2>
-          <p className="mb-5 mt-1.5 text-vw-muted">Swipe door de plekken uit dit verhaal. Elke plek linkt naar het aanbod.</p>
+          <p className="mb-5 mt-1.5 text-[16px] leading-[1.6] text-vw-muted">Swipe door de plekken uit dit verhaal. Elke plek linkt naar het aanbod.</p>
           <div className="-mx-4 flex gap-3.5 overflow-x-auto px-4 pb-2.5 [scrollbar-width:thin] min-[901px]:mx-[-28px] min-[901px]:px-7">
             {view.places.map((place) => (
               <article key={place.name} className="w-[62%] shrink-0 snap-start min-[901px]:w-[220px]">
@@ -223,7 +223,7 @@ export function DestinationLongread({ view }: { view: DestinationView }) {
 
         <section id="regios" className="scroll-mt-16 pt-[52px] min-[901px]:pt-[70px]">
           <h2 className="m-0 font-vw-serif text-[28px] font-medium leading-tight text-vw-navy min-[901px]:text-[36px]">Regio&apos;s en plaatsen</h2>
-          <p className="mb-5 mt-1.5 text-vw-muted">Klap een regio open en kies je plaats.</p>
+          <p className="mb-5 mt-1.5 text-[16px] leading-[1.6] text-vw-muted">Klap een regio open en kies je plaats.</p>
           <div className="grid gap-3">
             {view.regions.map((region, index) => {
               return (
@@ -244,7 +244,7 @@ export function DestinationLongread({ view }: { view: DestinationView }) {
                     </span>
                   </summary>
                   <div className="px-4 pb-4 min-[901px]:pl-[146px] min-[901px]:pr-[18px]">
-                    <p className="mb-2.5 mt-0 text-[#475569]">{region.summary}</p>
+                    <p className="mb-2.5 mt-0 text-[16px] leading-[1.6] text-[#475569] min-[901px]:text-[17px]">{region.summary}</p>
                     <ul className="m-0 mb-3.5 list-none p-0">
                       {region.places.map((place) => (
                         <li key={place.name} className="flex flex-col items-start gap-0.5 border-t border-[#eee7da] py-[9px] min-[901px]:flex-row min-[901px]:items-center min-[901px]:justify-between min-[901px]:gap-3">
@@ -277,14 +277,14 @@ export function DestinationLongread({ view }: { view: DestinationView }) {
         {view.practical ? (
           <section id="praktisch" className="scroll-mt-16 pt-[52px] min-[901px]:pt-[70px]">
             <h2 className="m-0 font-vw-serif text-[28px] font-medium leading-tight text-vw-navy min-[901px]:text-[36px]">Goed om te weten</h2>
-            <p className="mb-5 mt-1.5 text-vw-muted">{view.practical.lead}</p>
+            <p className="mb-5 mt-1.5 text-[16px] leading-[1.6] text-vw-muted">{view.practical.lead}</p>
             <div className="grid gap-8 border-y border-vw-line py-8 min-[901px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] min-[901px]:gap-14">
               <div>
                 <h3 className="m-0 font-vw-serif text-[22px] font-medium text-vw-navy">
                   {view.practical.bestPeriod.title}
                   {view.practical.bestPeriod.placeholder ? <PlaceholderMark /> : null}
                 </h3>
-                <p className="mb-1 mt-1 text-vw-muted">{view.practical.bestPeriod.note}</p>
+                <p className="mb-1 mt-1 text-[16px] leading-[1.6] text-vw-muted">{view.practical.bestPeriod.note}</p>
                 {view.practical.bestPeriod.rows.map((row) => (
                   <div key={row.label} className="mt-2 grid grid-cols-[62px_repeat(12,minmax(0,1fr))] items-center gap-[3px] min-[901px]:grid-cols-[96px_repeat(12,minmax(0,1fr))] min-[901px]:gap-1">
                     <span className="text-[11.5px] font-semibold text-vw-navy min-[901px]:text-[13px]">{row.label}</span>
@@ -334,7 +334,7 @@ export function DestinationLongread({ view }: { view: DestinationView }) {
         <div className="absolute inset-x-0 bottom-0 z-[2] px-4 pb-24 min-[901px]:px-7 min-[901px]:pb-16">
           <div className="mx-auto max-w-vw-page">
             <h2 className="m-0 max-w-[16ch] font-vw-serif text-[clamp(36px,5vw,64px)] font-medium leading-none">{view.finalCta.title}</h2>
-            <p className="mb-[22px] mt-3 max-w-[52ch] text-[16px] opacity-95">{view.finalCta.text}</p>
+            <p className="mb-[22px] mt-3 max-w-[52ch] text-[16px] leading-[1.6] opacity-95 min-[901px]:text-[17px]">{view.finalCta.text}</p>
             <Link
               href={view.finalCta.results.href}
               className="hidden h-[54px] items-center gap-2 rounded-vw-control bg-white px-[22px] text-[16px] font-semibold text-vw-navy min-[901px]:inline-flex"
