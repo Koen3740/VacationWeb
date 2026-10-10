@@ -30,7 +30,7 @@ test('9 header links go to their intended Vacation Next routes', () => {
   assert.deepEqual(
     SITE_NAV_ITEMS.map((item) => [item.key, item.href]),
     [
-      ['discover', '/#ontdekt'],
+      ['discover', '/ontdek'],
       ['destinations', '/bestemmingen'],
       ['inspiration', '/#inspiratie'],
       ['offers', '/aanbiedingen'],
