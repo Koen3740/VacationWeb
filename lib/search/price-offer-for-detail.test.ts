@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 import type { TravelOffer } from '../feeds/canonical/travel-offer';
+import { resetContextItemIdCacheForTests } from '../providers/context-item-id-cache';
 import { clearLivePriceInflightForTests } from '../providers/prijsvrij/page1-receipt-pricing';
 import { clearPrijsvrijReceiptTokenCache } from '../providers/prijsvrij/receipt-auth';
 import { hasValidPresentablePrice, resultsPricePresentation } from './presentable-price';
@@ -68,6 +69,7 @@ beforeEach(() => {
   clearPrijsvrijReceiptTokenCache();
   clearResultsLivePriceCache();
   clearLivePriceInflightForTests();
+  resetContextItemIdCacheForTests();
 });
 
 test('Sunweb catalog price is not a bookable Detail candidate without proven live €', async () => {
@@ -299,7 +301,7 @@ test('Eliza Detail 4p/2r uses party Participants, not feed 2A', async () => {
       id: 'eliza-6270665',
       provider: 'Eliza was here',
       price: 599,
-      nights: 7,
+      nights: 8,
       departureDate: '2026-11-19',
       deepLink: ELIZA_PRODUCT_URL,
     }),
@@ -348,10 +350,11 @@ test('Eliza Detail 4p/2r uses party Participants, not feed 2A', async () => {
   assert.equal(priced.livePriceSource, 'getPromotedPrice');
   assert.equal(priced.price, 890);
   const landing = new URL(landingUrl);
-  assert.equal(landing.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(landing.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-11-26');
+  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-11-26');
   const promoted = new URL(promotedUrl);
-  assert.equal(promoted.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(promoted.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(promoted.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(promoted.searchParams.get('Participants[1][1]'), '2018-11-26');
   assert.ok(!landingUrl.includes('1996-07-30'));
 });
