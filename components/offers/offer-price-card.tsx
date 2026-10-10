@@ -72,12 +72,24 @@ export function OfferPriceCard({
   priceKind,
   extras,
   bookHref,
+  roomPriceNote,
+  pricedRoomCaption,
+  busy,
+  compositionFailed,
 }: {
   provider: string;
   presentable: boolean;
   priceKind: ResultsPricePresentationKind;
   extras: DetailOfferExtras;
   bookHref?: string;
+  /** Shown when the selected room has no party total of its own. */
+  roomPriceNote?: string;
+  /** The shown total belongs to the room on the card. */
+  pricedRoomCaption?: boolean;
+  /** A new provider total is on the way. The previous total stays hidden. */
+  busy?: boolean;
+  /** The provider returned no total for this party. */
+  compositionFailed?: boolean;
 }) {
   const showAmount = presentable && priceKind === 'amount' && Boolean(extras.liveTotalPrice);
   const total = showAmount ? extras.liveTotalPrice : undefined;
@@ -86,7 +98,10 @@ export function OfferPriceCard({
   const discount = showAmount ? provenDiscountPercentage(extras) : undefined;
   const rows = showAmount ? priceInclusionRows(extras) : [];
   const bookLabel = detailBookCtaLabel(provider);
-  const canBook = Boolean(showAmount && bookHref);
+  const canBook = Boolean(!busy && bookHref && (showAmount || roomPriceNote));
+  const unavailableLabel = compositionFailed
+    ? 'Prijs niet beschikbaar voor deze samenstelling'
+    : undefined;
   const outbound = legFor(extras, 'outbound');
   const inbound = legFor(extras, 'inbound');
   const outboundTitle = extras.departureDateLabel
@@ -102,11 +117,15 @@ export function OfferPriceCard({
       className="rounded-[22px] border border-vw-line bg-vw-card p-6 shadow-[0_14px_40px_rgba(10,45,98,0.10)]"
       data-testid="detail-price-card"
     >
-      {total ? (
+      {busy ? (
+        <p className="text-base font-medium text-[#334155]" data-testid="detail-price-pending">
+          Prijs wordt opgehaald…
+        </p>
+      ) : total ? (
         <p className="text-xs font-semibold text-vw-muted">{partyTotalHeading(extras.partyLabel)}</p>
       ) : null}
 
-      {total ? (
+      {busy ? null : total ? (
         <>
           {listPrice ? (
             <p className="mt-2 text-[13px] text-vw-muted" data-testid="detail-list-price">
@@ -129,6 +148,14 @@ export function OfferPriceCard({
           ) : null}
           <p className="mt-2 text-xs font-semibold text-vw-green">✓ {DETAIL_LIVE_PRICE_CAPTION}</p>
         </>
+      ) : roomPriceNote ? (
+        <p className="mt-4 text-base font-medium text-[#334155]" data-testid="detail-room-price-note">
+          {roomPriceNote}
+        </p>
+      ) : unavailableLabel ? (
+        <p className="mt-4 text-base font-medium text-[#334155]" data-testid="detail-price-unavailable">
+          {unavailableLabel}
+        </p>
       ) : (
         <p className="mt-4 text-base font-medium text-[#334155]" data-testid="detail-price-fallback">
           {priceKind === 'unpriced' ? RESULTS_PRICE_COPY.unpriced : RESULTS_PRICE_COPY.unavailable}
@@ -198,7 +225,14 @@ export function OfferPriceCard({
             {extras.roomTypeLabel ? (
               <li className="flex justify-between gap-3 border-t border-[#ece5d8] bg-white px-3.5 py-2.5 text-[13.5px] first:border-t-0">
                 <span className="text-vw-muted">Kamer</span>
-                <b className="text-right font-semibold text-vw-navy">{extras.roomTypeLabel}</b>
+                <b className="text-right font-semibold text-vw-navy">
+                  {extras.roomTypeLabel}
+                  {pricedRoomCaption ? (
+                    <span className="mt-0.5 block text-[11px] font-semibold text-vw-green">
+                      Prijs gebaseerd op deze kamer
+                    </span>
+                  ) : null}
+                </b>
               </li>
             ) : null}
             {extras.boardType ? (
@@ -226,18 +260,37 @@ export function OfferDetailMobileBar({
   priceKind,
   extras,
   bookHref,
+  roomPriceNote,
+  compositionFailed,
 }: {
   provider: string;
   presentable: boolean;
   priceKind: ResultsPricePresentationKind;
   extras: DetailOfferExtras;
   bookHref?: string;
+  /** Shown instead of the party total when the selected room has no price of its own. */
+  roomPriceNote?: string;
+  compositionFailed?: boolean;
 }) {
   const showAmount = presentable && priceKind === 'amount' && Boolean(extras.liveTotalPrice);
-  if (!showAmount || !bookHref || !extras.liveTotalPrice) {
+  const canBook = Boolean(bookHref && ((showAmount && extras.liveTotalPrice) || roomPriceNote));
+  if (!canBook && !(compositionFailed && !showAmount && !roomPriceNote)) {
     return null;
   }
-  const perPerson = pricePerPersonLine(extras);
+  if (!canBook) {
+    return (
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-vw-line bg-[rgba(255,253,249,0.96)] px-4 py-3 text-sm font-semibold text-[#334155] min-[901px]:hidden"
+        data-testid="detail-book-bar"
+      >
+        Prijs niet beschikbaar voor deze samenstelling
+      </div>
+    );
+  }
+  if (!bookHref) {
+    return null;
+  }
+  const perPerson = showAmount ? pricePerPersonLine(extras) : undefined;
 
   return (
     <div
@@ -246,11 +299,19 @@ export function OfferDetailMobileBar({
       data-testid="detail-book-bar"
     >
       <div className="min-w-0 flex-1">
-        <span className="block text-[11px] text-vw-muted">{partyTotalHeading(extras.partyLabel)}</span>
-        <b className="block whitespace-nowrap font-vw-serif text-[22px] font-semibold leading-none text-vw-navy">
-          {formatDetailEuro(extras.liveTotalPrice.amount)}
-        </b>
-        {perPerson ? <span className="mt-0.5 block truncate text-[11.5px] text-vw-muted">{perPerson}</span> : null}
+        {showAmount && extras.liveTotalPrice ? (
+          <>
+            <span className="block text-[11px] text-vw-muted">{partyTotalHeading(extras.partyLabel)}</span>
+            <b className="block whitespace-nowrap font-vw-serif text-[22px] font-semibold leading-none text-vw-navy">
+              {formatDetailEuro(extras.liveTotalPrice.amount)}
+            </b>
+            {perPerson ? <span className="mt-0.5 block truncate text-[11.5px] text-vw-muted">{perPerson}</span> : null}
+          </>
+        ) : (
+          <span className="block text-[13px] font-medium leading-snug text-[#334155]" data-testid="detail-book-bar-note">
+            {roomPriceNote}
+          </span>
+        )}
       </div>
       <a
         href={bookHref}
