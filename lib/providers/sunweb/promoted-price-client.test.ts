@@ -92,6 +92,8 @@ export function okGroupedPricesBody(
 export function okPromotedBody(overrides: {
   averagePrice?: number;
   totalPrice?: number;
+  originalTotalPrice?: number;
+  discountPercentage?: number;
   accommodationId?: number | string;
   duration?: number;
   departureDate?: string;
@@ -105,6 +107,8 @@ export function okPromotedBody(overrides: {
       averagePrice: overrides.averagePrice ?? 558,
       value: overrides.averagePrice ?? 558,
       legend: 'Vanafprijs p.p.',
+      ...(overrides.originalTotalPrice != null ? { originalTotalPrice: overrides.originalTotalPrice } : {}),
+      ...(overrides.discountPercentage != null ? { discountPercentage: overrides.discountPercentage } : {}),
     },
     departureDate: { raw: overrides.departureDate ?? '2026-09-26' },
     featuredFilters: ['8 dagen', '4 personen', 'Logies'],
@@ -632,6 +636,39 @@ test('fetch: missing landing GUIDs does not call grouped or GPP', async () => {
   assert.equal(result.ok, false);
   if (!result.ok) {
     assert.equal(result.reason, 'missing_page_context');
+  }
+});
+
+test('fetch: original total and discount are kept, zero originals are not', async () => {
+  const departureDate = '2026-10-22';
+  const discounted = await fetchSunwebPromotedPrice(ctx({ departureDate }), {
+    fetchImpl: makeFetch({
+      priceBody: okPromotedBody({
+        departureDate,
+        totalPrice: 3928,
+        averagePrice: 1964,
+        originalTotalPrice: 4678,
+        discountPercentage: 16,
+      }),
+    }),
+  });
+  assert.equal(discounted.ok, true);
+  if (discounted.ok) {
+    assert.equal(discounted.totalPrice, 3928);
+    assert.equal(discounted.originalTotalPrice, 4678);
+    assert.equal(discounted.discountPercentage, 16);
+    assert.notEqual(discounted.originalTotalPrice, discounted.totalPrice);
+  }
+
+  const zeroOriginal = await fetchSunwebPromotedPrice(ctx({ departureDate }), {
+    fetchImpl: makeFetch({
+      priceBody: okPromotedBody({ departureDate, originalTotalPrice: 0, discountPercentage: 0 }),
+    }),
+  });
+  assert.equal(zeroOriginal.ok, true);
+  if (zeroOriginal.ok) {
+    assert.equal(zeroOriginal.originalTotalPrice, undefined);
+    assert.equal(zeroOriginal.discountPercentage, undefined);
   }
 });
 

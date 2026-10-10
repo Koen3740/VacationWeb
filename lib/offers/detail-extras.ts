@@ -4,17 +4,13 @@
  * The detail page renders a row only when the matching field is present.
  * Absent fields stay out of the HTML (no "onbekend", no empty slot).
  *
- * Kern fields are filled from the offer we already have. Optional blocks
- * (flights, baggage, transfer, list price, fees, guarantee fund, rental-car
- * details, day programme) stay empty until a parser retains them.
- * This module does not call providers.
+ * Kern fields come from the offer we already have. Optional rows come from
+ * `offer.liveDetailFacts`, which the live parsers fill only when the response
+ * already contained that value. This module does not call providers and does
+ * not invent a discount, a fee, or a flight time.
  *
- * Not wired in this build (already in some live JSON, not retained):
- * - Sunweb/Eliza GetPromotedPrice `price.originalTotalPrice` and
- *   `price.discountPercentage` — `readPromotedPrice` keeps only average/total.
- *   No new request parameters are required; retaining them is a live-price change.
- * - Corendon upsales flight times, airline, flight number, baggage weight,
- *   transfer and discount lines — the upsales client keeps only total and p.p.
+ * Still unwired, because this build does not parse them: Corendon discount
+ * lines, room feature lists, rental-car details, and a day programme.
  */
 
 import { isProvenFlyAndDriveRondreis } from '@/lib/offers/fly-drive-rondreis';
@@ -32,6 +28,7 @@ import {
 import { boardTypeLabelForDutchUi } from '@/lib/offers/ui-locale';
 import { normalizeDepartureDateToIso } from '@/lib/search/departure-date';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
+import type { LiveDetailFacts, LiveFlightLeg } from '@/lib/offers/live-detail-facts';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
 export type DetailMoney = {
@@ -265,7 +262,7 @@ export function flightLegSummary(leg: FlightLeg): string | undefined {
   }
   const weight = leg.baggage?.checkedWeightKg;
   if (typeof weight === 'number' && Number.isFinite(weight) && weight > 0) {
-    bits.push(`${weight} kg ruimbagage`);
+    bits.push(`${weight} kg bagage`);
   }
   if (leg.baggage?.policyNote?.trim()) {
     bits.push(leg.baggage.policyNote.trim());
@@ -278,14 +275,24 @@ export function transferLabel(extras: DetailOfferExtras): string | undefined {
   if (!transfer || transfer.status === 'unknown') {
     return undefined;
   }
+  const remark = transfer.remark?.trim();
+  const withRemark = (base: string) => {
+    if (!remark || base.toLowerCase().includes(remark.toLowerCase())) {
+      return base;
+    }
+    return `${base} · ${remark}`;
+  };
   if (transfer.status === 'included') {
-    return 'Transfer inbegrepen';
+    return withRemark('inbegrepen');
   }
   if (transfer.status === 'bookable') {
-    return transfer.price ? `Transfer bij te boeken (${formatDetailEuro(transfer.price.amount)})` : 'Transfer bij te boeken';
+    const base = transfer.price
+      ? `bij te boeken (${formatDetailEuro(transfer.price.amount)})`
+      : 'bij te boeken';
+    return withRemark(base);
   }
   if (transfer.status === 'not_included') {
-    return 'Transfer niet inbegrepen';
+    return 'niet inbegrepen';
   }
   return undefined;
 }
@@ -385,6 +392,41 @@ export function journeyRouteLabel(
   return from || to;
 }
 
+function flightFromLive(leg: LiveFlightLeg): FlightLeg | undefined {
+  const mapped: FlightLeg = { direction: leg.direction };
+  if (leg.departureAirportCode) mapped.departureAirportCode = leg.departureAirportCode;
+  if (leg.arrivalAirportCode) mapped.arrivalAirportCode = leg.arrivalAirportCode;
+  if (leg.departureAt) mapped.departureAt = leg.departureAt;
+  if (leg.arrivalAt) mapped.arrivalAt = leg.arrivalAt;
+  if (leg.airlineName) mapped.airlineName = leg.airlineName;
+  if (leg.airlineCode) mapped.airlineCode = leg.airlineCode;
+  if (leg.flightNumber) mapped.flightNumber = leg.flightNumber;
+  if (typeof leg.baggageKg === 'number' && leg.baggageKg > 0) {
+    mapped.baggage = { checkedWeightKg: leg.baggageKg };
+  }
+  return legHasSchedule(mapped) ? mapped : undefined;
+}
+
+function flightsFromFacts(facts: LiveDetailFacts | undefined): FlightLeg[] | undefined {
+  const legs = (facts?.flights ?? [])
+    .map(flightFromLive)
+    .filter((leg): leg is FlightLeg => Boolean(leg));
+  return legs.length > 0 ? legs : undefined;
+}
+
+function transferFromFacts(facts: LiveDetailFacts | undefined): DetailOfferExtras['transfer'] {
+  const transfer = facts?.transfer;
+  if (!transfer || (transfer.status !== 'included' && transfer.status !== 'bookable')) {
+    return undefined;
+  }
+  const price = money(transfer.price ?? Number.NaN);
+  return {
+    status: transfer.status,
+    ...(transfer.remark?.trim() ? { remark: transfer.remark.trim() } : {}),
+    ...(price ? { price } : {}),
+  };
+}
+
 function roomTypeFromOffer(offer: TravelOffer, explicit: string | undefined): string | undefined {
   const chosen = explicit?.trim();
   if (chosen && !looksLikeTechnicalDisplayText(chosen)) {
@@ -413,7 +455,8 @@ export function buildDetailOfferExtras(
   const returnIso = departureIso ? catalogReturnDateIso(offer, departureIso) ?? undefined : undefined;
   const departureAirportLabel = formatDepartureAirport(offer);
   const departureAirportCode = iataCode(offer.departureAirportCode) ?? iataCode(offer.departureAirport);
-  const arrivalRaw = offer.arrivalAirport?.trim();
+  const facts = offer.liveDetailFacts;
+  const arrivalRaw = (facts?.arrivalAirport ?? offer.arrivalAirport)?.trim();
   const arrivalIsDeparture = Boolean(
     arrivalRaw
     && (
@@ -422,6 +465,10 @@ export function buildDetailOfferExtras(
       || arrivalRaw.toLowerCase() === offer.departureAirport?.trim().toLowerCase()
     ),
   );
+  const flights = flightsFromFacts(facts);
+  const transfer = transferFromFacts(facts);
+  const listPrice = money(facts?.listPrice ?? Number.NaN);
+  const discountPercentage = facts?.discountPercentage;
   const board = boardTypeLabelForDutchUi(offer.boardType);
   const flightIncluded = flightIncludedFlag(offer.flightIncluded);
   const total = money(offer.liveTotalPrice ?? Number.NaN);
@@ -449,6 +496,12 @@ export function buildDetailOfferExtras(
     ...(partyParts.length > 0 ? { partyLabel: partyParts.join(', ') } : {}),
     ...(partyWithRooms.length > 0 ? { partyWithRoomsLabel: partyWithRooms.join(' • ') } : {}),
     ...(arrivalRaw && !arrivalIsDeparture ? { arrivalAirport: arrivalRaw } : {}),
+    ...(flights ? { flights } : {}),
+    ...(transfer ? { transfer } : {}),
+    ...(listPrice ? { listPrice } : {}),
+    ...(typeof discountPercentage === 'number' && Number.isFinite(discountPercentage)
+      ? { discountPercentage }
+      : {}),
     ...(offerHasCarRental(offer) ? { carRentalIncluded: true } : {}),
     ...(isProvenFlyAndDriveRondreis(offer) ? { tripBadge: 'Fly & Drive' } : {}),
   };

@@ -12,8 +12,10 @@ import type { SearchParams, TravelOffer } from '@/types/travel';
 import { resolveSunwebLiveOccupancy } from '@/lib/providers/sunweb';
 
 function withCatalogPriceHidden(offer: TravelOffer): TravelOffer {
+  const next = { ...offer };
+  delete next.liveDetailFacts;
   return {
-    ...offer,
+    ...next,
     livePriceStatus: 'unavailable',
     livePriceSource: undefined,
     liveTotalPrice: undefined,

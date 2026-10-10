@@ -117,6 +117,60 @@ test('strike-through requires a higher provider list price', () => {
   assert.match(pricePerPersonLine(discounted) ?? '', /incl\. vlucht en halfpension/);
 });
 
+test('live facts render flight, baggage, transfer and a higher original total', () => {
+  const extras = buildDetailOfferExtras(
+    makeOffer({
+      provider: 'Corendon',
+      livePriceSource: 'upsales',
+      liveTotalPriceField: 'upsales.totalPrice',
+      liveDetailFacts: {
+        arrivalAirport: 'TFS',
+        listPrice: 2500,
+        discountPercentage: 11,
+        flights: [
+          {
+            direction: 'outbound',
+            departureAt: '06:05',
+            arrivalAt: '10:15',
+            airlineName: 'Corendon Airlines',
+            flightNumber: 'XC100',
+            baggageKg: 20,
+          },
+        ],
+        transfer: { status: 'bookable', remark: 'Je kunt de transfer als extra bijboeken.' },
+      },
+    }),
+    TWO_ADULTS,
+  );
+  assert.equal(extras.arrivalAirport, 'TFS');
+  assert.equal(extras.flights?.[0]?.departureAt, '06:05');
+  assert.equal(extras.flights?.[0]?.baggage?.checkedWeightKg, 20);
+  assert.equal(extras.transfer?.status, 'bookable');
+  assert.equal(provenListPrice(extras)?.amount, 2500);
+  assert.equal(provenDiscountPercentage(extras), 11);
+  const rows = priceInclusionRows(extras);
+  assert.equal(
+    rows.some((row) => row.label === 'Transfer' && row.value.includes('bij te boeken') && row.value.includes('bijboeken')),
+    true,
+  );
+
+  const notHigher = buildDetailOfferExtras(
+    makeOffer({
+      liveDetailFacts: { listPrice: 2215.5, discountPercentage: 10 },
+    }),
+    TWO_ADULTS,
+  );
+  assert.equal(provenListPrice(notHigher), undefined);
+  assert.equal(provenDiscountPercentage(notHigher), undefined);
+
+  const noPercentage = buildDetailOfferExtras(
+    makeOffer({ liveDetailFacts: { listPrice: 3000 } }),
+    TWO_ADULTS,
+  );
+  assert.equal(provenListPrice(noPercentage)?.amount, 3000);
+  assert.equal(provenDiscountPercentage(noPercentage), undefined);
+});
+
 test('inclusion rows omit fees, guarantee fund and transfer when unset', () => {
   const rows = priceInclusionRows(buildDetailOfferExtras(makeOffer(), TWO_ADULTS));
   const labels = rows.map((row) => row.label).join(' | ');

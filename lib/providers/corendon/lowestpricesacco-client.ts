@@ -9,6 +9,7 @@ import {
   CORENDON_FE_VERSION,
   CORENDON_LIVE_TIMEOUT_MS,
 } from './constants';
+import type { LiveDetailFacts } from '@/lib/offers/live-detail-facts';
 import type { CorendonLiveContext, CorendonUrlFragment } from './offer-context';
 
 /**
@@ -54,6 +55,8 @@ export type CorendonLivePriceResult =
       /** Provider upsales total only. Never lowest × pax. */
       totalPrice?: number;
       totalPriceField?: 'upsales.totalPrice' | 'upsales.realTimeBlankPrice';
+      /** Optional rows parsed from the same upsales body. Absent when the body has none. */
+      detailFacts?: LiveDetailFacts;
     }
   | {
       ok: false;

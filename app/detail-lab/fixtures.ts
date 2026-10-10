@@ -87,6 +87,10 @@ export const hotelLabOffer: TravelOffer = {
   livePriceSource: 'getPromotedPrice',
   liveTotalPrice: 2215.5,
   liveTotalPriceField: 'getPromotedPrice.totalPrice',
+  liveDetailFacts: {
+    listPrice: 2637.5,
+    discountPercentage: 16,
+  },
   imageUrl: HOTEL_IMAGES[0],
   images: HOTEL_IMAGES,
   descriptionShort:
@@ -147,6 +151,37 @@ export const rondreisLabOffer: TravelOffer = {
   livePriceSource: 'upsales',
   liveTotalPrice: 1538,
   liveTotalPriceField: 'upsales.totalPrice',
+  liveDetailFacts: {
+    arrivalAirport: 'AGP',
+    flights: [
+      {
+        direction: 'outbound',
+        departureAirportCode: 'BRU',
+        arrivalAirportCode: 'AGP',
+        departureAt: '06:40',
+        arrivalAt: '09:25',
+        airlineName: 'Corendon Airlines',
+        airlineCode: 'XC',
+        flightNumber: 'XC1234',
+        baggageKg: 20,
+      },
+      {
+        direction: 'inbound',
+        departureAirportCode: 'AGP',
+        arrivalAirportCode: 'BRU',
+        departureAt: '18:10',
+        arrivalAt: '21:55',
+        airlineName: 'Corendon Airlines',
+        airlineCode: 'XC',
+        flightNumber: 'XC1235',
+        baggageKg: 20,
+      },
+    ],
+    transfer: {
+      status: 'bookable',
+      remark: 'Je kunt de transfer als extra bijboeken.',
+    },
+  },
   imageUrl: ROUTE_IMAGES[0],
   images: ROUTE_IMAGES,
   descriptionShort:

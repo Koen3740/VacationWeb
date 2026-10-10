@@ -15,6 +15,7 @@ import {
   getObjectStorageConfig,
   type ObjectStorageConfig,
 } from '../storage/object-storage-config';
+import type { LiveDetailFacts } from '@/lib/offers/live-detail-facts';
 import {
   noteLivePriceL2Event,
   type LivePriceL2Event,
@@ -33,6 +34,7 @@ export type LivePriceL2OverlayPayload = {
   listingHost?: string;
   feedSourceId?: string;
   affiliateCampaignId?: string;
+  liveDetailFacts?: LiveDetailFacts;
 };
 
 export const LIVE_PRICE_L2_SCHEMA_VERSION = 2 as const;

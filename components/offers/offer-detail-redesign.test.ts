@@ -178,7 +178,7 @@ test('a supplied list price and flight leg render, and a programme renders only 
   assert.match(html, /−16%/);
   assert.match(html, /TUI fly TB123/);
   assert.match(html, /06:40/);
-  assert.match(html, /20 kg ruimbagage/);
+  assert.match(html, /20 kg bagage/);
 
   const programme = detailHtml(makeOffer(), {
     ...extras,
@@ -189,6 +189,22 @@ test('a supplied list price and flight leg render, and a programme renders only 
   assert.match(programme, /Dag 1/);
   assert.match(programme, /data-testid="detail-rental-car"/);
   assert.match(programme, /Málaga luchthaven/);
+});
+
+test('offer facts render a higher original total and hide one that is not higher', () => {
+  const higher = detailHtml(makeOffer({
+    liveDetailFacts: { listPrice: 2637.5, discountPercentage: 16 },
+  }));
+  assert.match(higher, /data-testid="detail-list-price"/);
+  assert.match(higher, /2\.637,50/);
+  assert.match(higher, /−16%/);
+  assert.match(higher, /data-testid="detail-total"[^>]*>[^<]*2\.215,50/);
+
+  const equal = detailHtml(makeOffer({
+    liveDetailFacts: { listPrice: 2215.5, discountPercentage: 16 },
+  }));
+  assert.doesNotMatch(equal, /line-through/);
+  assert.doesNotMatch(equal, /−16%/);
 });
 
 test('detail components do not hardcode unverified price claims', () => {

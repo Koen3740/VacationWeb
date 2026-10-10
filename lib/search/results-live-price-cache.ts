@@ -30,6 +30,7 @@ export type ResultsLivePriceOverlay = Pick<
       | 'liveTotalPrice'
       | 'liveTotalPriceField'
       | 'livePriceFailureReason'
+      | 'liveDetailFacts'
     >
   >;
 
@@ -155,6 +156,7 @@ function toOverlay(entry: CacheEntry): ResultsLivePriceOverlay {
     liveTotalPrice: entry.liveTotalPrice,
     liveTotalPriceField: entry.liveTotalPriceField,
     livePriceFailureReason: entry.livePriceFailureReason,
+    ...(entry.liveDetailFacts ? { liveDetailFacts: entry.liveDetailFacts } : {}),
     deepLink: entry.deepLink,
     listingHost: entry.listingHost,
     feedSourceId: entry.feedSourceId,

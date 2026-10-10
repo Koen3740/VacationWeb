@@ -114,7 +114,65 @@ test('Corendon Detail uses live upsales for default 2A, not feed €', async () 
   assert.equal(priced.livePriceSource, 'upsales');
   assert.equal(priced.price, 876);
   assert.equal(priced.liveTotalPrice, 1752);
+  assert.equal(priced.liveDetailFacts, undefined);
   assert.equal(hasValidPresentablePrice(priced), true);
+});
+
+test('Corendon Detail keeps flight, baggage and transfer from the same upsales response', async () => {
+  const priced = await priceOfferForDetail(
+    makeOffer({ id: 'corendon-9514', provider: 'Corendon', price: 458 }),
+    { adults: 2 },
+    {
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('lowestpricesacco')) {
+          return new Response(okLowestBody(), { status: 200 });
+        }
+        if (url.includes('/upsales')) {
+          const parsed = JSON.parse(okUpsalesBody(876, 1752)) as {
+            result: Record<string, unknown>;
+          };
+          parsed.result.trip = {
+            departureFlight: {
+              depHour: 6,
+              depMin: 40,
+              arrHour: 9,
+              arrMin: 25,
+              airlineName: 'Corendon Airlines',
+              flightNumber: 'XC1234',
+              freeLuggageWeight: 20,
+              arrivalAirportCode: 'AGP',
+            },
+            returnFlight: {
+              depHour: 18,
+              depMin: 10,
+              arrHour: 21,
+              arrMin: 55,
+              airlineName: 'Corendon Airlines',
+              flightNumber: 'XC1235',
+              freeLuggageWeight: 20,
+            },
+          };
+          parsed.result.hasStandardTransfer = false;
+          const prices = parsed.result.prices as Record<string, unknown>;
+          prices.additionalServicePrices = [
+            { id: 'transfer', remark: 'Je kunt de transfer als extra bijboeken.', price: 0 },
+          ];
+          return new Response(JSON.stringify(parsed), { status: 200 });
+        }
+        throw new Error(`unexpected fetch ${url}`);
+      },
+    },
+  );
+
+  assert.equal(priced.liveTotalPrice, 1752);
+  assert.equal(priced.liveDetailFacts?.arrivalAirport, 'AGP');
+  assert.equal(priced.liveDetailFacts?.flights?.[0]?.departureAt, '06:40');
+  assert.equal(priced.liveDetailFacts?.flights?.[0]?.flightNumber, 'XC1234');
+  assert.equal(priced.liveDetailFacts?.flights?.[0]?.baggageKg, 20);
+  assert.equal(priced.liveDetailFacts?.flights?.[1]?.direction, 'inbound');
+  assert.equal(priced.liveDetailFacts?.transfer?.status, 'bookable');
+  assert.match(priced.liveDetailFacts?.transfer?.remark ?? '', /bijboeken/);
 });
 
 test('Prijsvrij Detail does not call Receipt and does not show feed as live', async () => {
@@ -206,6 +264,8 @@ test('Eliza Detail uses live getPromotedPrice, not feed €', async () => {
                 totalPrice: 1304,
                 averagePrice: 652,
                 value: 652,
+                originalTotalPrice: 1783,
+                discountPercentage: 7,
                 legend: 'Vanafprijs p.p.',
               },
               departureDate: { raw: '2026-11-19' },
@@ -226,6 +286,8 @@ test('Eliza Detail uses live getPromotedPrice, not feed €', async () => {
   assert.equal(priced.livePriceStatus, 'proven');
   assert.equal(priced.livePriceSource, 'getPromotedPrice');
   assert.equal(priced.price, 652);
+  assert.equal(priced.liveDetailFacts?.listPrice, 1783);
+  assert.equal(priced.liveDetailFacts?.discountPercentage, 7);
   assert.ok(hasValidPresentablePrice(priced));
 });
 
