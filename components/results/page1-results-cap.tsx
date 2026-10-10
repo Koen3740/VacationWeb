@@ -73,7 +73,7 @@ export function Page1ResultsCap({
   }, [limit]);
 
   return (
-    <div ref={rootRef} className="space-y-3.5">
+    <div ref={rootRef} className="grid gap-[18px] max-[900px]:gap-3.5">
       {children}
     </div>
   );

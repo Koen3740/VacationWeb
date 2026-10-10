@@ -145,7 +145,7 @@ export function Page1ResultsStream({
     return <Page1ResultsCap limit={displayLimit}>{slots}</Page1ResultsCap>;
   }
 
-  return <div className="space-y-3.5">{slots}</div>;
+  return <div className="grid gap-[18px] max-[900px]:gap-3.5">{slots}</div>;
 }
 
 export async function Page1PaginationStream({

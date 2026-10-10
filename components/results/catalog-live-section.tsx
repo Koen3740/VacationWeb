@@ -214,14 +214,14 @@ export function CatalogLiveSection(props: CatalogLiveBodyProps) {
     <Suspense
       fallback={
         <div
-          className="space-y-3.5"
+          className="grid gap-[18px] max-[900px]:gap-3.5"
           aria-busy="true"
           aria-label="Live prijzen laden"
         >
           {Array.from({ length: RESULTS_PRODUCT_PAGE_SIZE }, (_, index) => (
             <div
               key={index}
-              className="h-36 animate-pulse rounded-[16px] border border-[#E8E4DC] bg-white/70"
+              className="h-[220px] animate-pulse rounded-vw-card border border-vw-line bg-white/70 min-[901px]:h-[290px]"
             />
           ))}
         </div>

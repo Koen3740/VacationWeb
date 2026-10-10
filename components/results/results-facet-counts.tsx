@@ -1,4 +1,7 @@
+import { PoolProgressStream } from '@/components/results/pool-progress-steps';
 import { loadPreparedResultsOffers } from '@/lib/search/prepared-results-request';
+import { createPoolProgressTracker } from '@/lib/search/results-pool-progress';
+import { getSharedResultsPoolReader } from '@/lib/search/results-pool-reading';
 import {
   countCatalogMatchset,
   countResultsPool,
@@ -34,18 +37,30 @@ function withRoadtripFacet(params: SearchParams): SearchParams {
  * Same display rule as the heading: facet catalog > 150 → catalog length;
  * else Proven-B via countResultsPool. Catalog path does not await exactOffers.
  * L2 hydrate stays background-only on the Proven-B path.
+ *
+ * The badge used to render one snapshot taken before page-1 live prices landed,
+ * so Roadtrip could stay on (0) while those offers were already listed as cards.
+ * The stream follows the same L1 reader as the heading.
  */
-async function facetBookableCount(facetFiltering: SearchParams): Promise<number> {
+async function FacetBookableCount({ facetFiltering }: { facetFiltering: SearchParams }) {
   const prepared = await loadPreparedResultsOffers(facetFiltering);
   const catalogCount = countCatalogMatchset(prepared.offers);
   if (usesCatalogResultsDisplayCount(catalogCount)) {
-    return selectDisplayedResultsCount(catalogCount, 0);
+    return <>{selectDisplayedResultsCount(catalogCount, 0)}</>;
   }
   const ranked = await prepared.exactOffers;
   startResultsPoolL2Hydrate(ranked, facetFiltering);
-  return selectDisplayedResultsCount(
-    catalogCount,
-    countResultsPool(ranked, facetFiltering),
+  if (ranked.length === 0) {
+    return <>{countResultsPool(ranked, facetFiltering)}</>;
+  }
+  const tracker = createPoolProgressTracker({
+    read: getSharedResultsPoolReader(ranked, facetFiltering),
+  });
+  return (
+    <PoolProgressStream
+      tracker={tracker}
+      render={(step) => <>{selectDisplayedResultsCount(catalogCount, step.count)}</>}
+    />
   );
 }
 
@@ -55,13 +70,11 @@ async function facetBookableCount(facetFiltering: SearchParams): Promise<number>
 export async function CarRentalFacetCount({
   filteringParams,
 }: PresentableFacetCountProps) {
-  const count = await facetBookableCount(withCarRentalFacet(filteringParams));
-  return <>{count}</>;
+  return <FacetBookableCount facetFiltering={withCarRentalFacet(filteringParams)} />;
 }
 
 export async function RoadtripFacetCount({
   filteringParams,
 }: PresentableFacetCountProps) {
-  const count = await facetBookableCount(withRoadtripFacet(filteringParams));
-  return <>{count}</>;
+  return <FacetBookableCount facetFiltering={withRoadtripFacet(filteringParams)} />;
 }

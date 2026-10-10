@@ -13,21 +13,40 @@ const POINTS = [
   'Onafhankelijke vergelijking',
 ] as const;
 
-export function ResultsWhyCard() {
+export function ResultsWhyCard({
+  tone = 'default',
+}: {
+  /** `results` follows Layout A and is hidden inside the mobile filter sheet. */
+  tone?: 'default' | 'results';
+}) {
   return (
     <div
-      className="mt-4 rounded-[16px] border p-5"
+      className={`mt-4 rounded-vw-panel border p-4 min-[901px]:px-[18px] min-[901px]:py-4 ${
+        tone === 'results' ? 'max-[900px]:hidden' : ''
+      }`}
       style={{
-        backgroundColor: RESULTS_PANEL_BG,
-        borderColor: RESULTS_BORDER,
-        boxShadow: RESULTS_PANEL_SHADOW,
+        backgroundColor: tone === 'results' ? 'var(--vw-panel)' : RESULTS_PANEL_BG,
+        borderColor: tone === 'results' ? 'var(--vw-line)' : RESULTS_BORDER,
+        boxShadow: tone === 'results' ? 'var(--vw-shadow-panel)' : RESULTS_PANEL_SHADOW,
       }}
     >
-      <h2 className="text-[17px] font-bold text-[#0A2D62]">Waarom VacationWeb?</h2>
-      <ul className="mt-3 space-y-2.5">
+      <h2
+        className={`text-[#0A2D62] ${
+          tone === 'results'
+            ? 'font-vw-serif text-[16px] font-semibold'
+            : 'text-[17px] font-bold'
+        }`}
+      >
+        Waarom VacationWeb?
+      </h2>
+      <ul className="mt-2 space-y-1">
         {POINTS.map((point) => (
-          <li key={point} className="flex items-start gap-2.5 text-[13.5px] leading-snug text-[#334155]">
-            <span className="mt-0.5 text-[14px] font-bold" style={{ color: RESULTS_CTA }} aria-hidden>
+          <li key={point} className="flex items-start gap-2 text-[13.5px] leading-snug text-[#334155]">
+            <span
+              className="mt-0.5 text-[14px] font-bold"
+              style={{ color: tone === 'results' ? 'var(--vw-green)' : RESULTS_CTA }}
+              aria-hidden
+            >
               ✓
             </span>
             <span>{point}</span>

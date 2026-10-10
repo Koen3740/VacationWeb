@@ -20,8 +20,47 @@ function NavChevron() {
  * legal pages). Same main nav as the homepage header (`SITE_NAV_ITEMS`; t66u: no "Zoeken", no
  * legacy `/search` links) plus the language indicator (globe, never a flag).
  */
-export function ResultsSiteHeader() {
+export function ResultsSiteHeader({
+  appearance = 'site',
+}: {
+  /** `results` is the Layout A bar. `site` stays the header other pages already use. */
+  appearance?: 'site' | 'results';
+}) {
   const copy = useChromeCopy();
+  if (appearance === 'results') {
+    return (
+      <header className="border-b border-vw-line bg-vw-bg font-vw-sans">
+        <div className="mx-auto flex h-[58px] max-w-vw-page items-center justify-between gap-5 px-4 min-[901px]:h-16 min-[901px]:px-7">
+          <Link
+            href="/"
+            className="font-vw-serif text-[24px] font-semibold leading-none tracking-[-0.01em] text-vw-navy"
+          >
+            Vacation<span className="font-normal italic">Web</span>
+          </Link>
+          <div className="flex items-center gap-3 min-[901px]:gap-[26px]">
+            <nav className="hidden items-center gap-[26px] min-[901px]:flex" aria-label={copy.nav.ariaLabel}>
+              {SITE_NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="inline-flex items-center text-[14px] text-[#3b4456] transition hover:text-vw-navy"
+                >
+                  {copy.nav[item.key]}
+                  {item.key === 'destinations' ? <NavChevron /> : null}
+                </Link>
+              ))}
+            </nav>
+            <FavoritesNavLink
+              label={copy.header.favorites}
+              labelClassName="max-[900px]:sr-only"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-vw-line bg-white px-3 text-[13px] font-semibold text-vw-navy"
+            />
+            <LanguageSwitcher className="inline-flex h-9 items-center justify-center rounded-full border border-vw-line bg-white px-3" />
+          </div>
+        </div>
+      </header>
+    );
+  }
   return (
     <header className="border-b border-[#E8ECF2] bg-white">
       <div className="mx-auto flex h-[64px] max-w-[1600px] items-center justify-between gap-6 px-6 lg:px-8">

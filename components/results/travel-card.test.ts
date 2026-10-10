@@ -106,7 +106,7 @@ test('Variant B rating renders badge + label on one compact line', () => {
   assert.match(html, /Fantastisch/);
   assert.match(html, /rounded-md/);
   assert.match(html, /text-\[14px\]/);
-  assert.doesNotMatch(html, /text-\[22px\]/);
+  assert.match(html, /data-testid="travel-card-rating"[\s\S]*text-\[14px\]/);
 });
 
 test('Variant B card without matched highlights still reserves empty 3×2 grid', () => {
@@ -119,8 +119,8 @@ test('Variant B card without matched highlights still reserves empty 3×2 grid',
   const html = cardHtml(offer, { adults: 2 });
   assert.match(html, /data-testid="travel-card"/);
   assert.match(html, /data-testid="travel-card-highlights"/);
-  assert.match(html, /grid-rows-2/);
-  assert.match(html, /max-content/);
+  assert.match(html, /min-\[901px\]:grid-cols-2/);
+  assert.match(html, /gap-x-6/);
   assert.doesNotMatch(html, />✓</);
 });
 
@@ -134,11 +134,12 @@ test('Variant B middle column uses fixed 3×2 highlight grid without stretch; ri
   });
   const html = cardHtml(offer, { adults: 2 });
   assert.doesNotMatch(html, /md:min-h-\[255px\]/);
-  assert.match(html, /md:min-h-\[268px\]/);
-  assert.match(html, /md:justify-between md:border-l/);
+  assert.match(html, /min-\[901px\]:min-h-\[290px\]/);
+  assert.match(html, /min-\[901px\]:justify-between/);
+  assert.match(html, /min-\[901px\]:border-l/);
+  assert.match(html, /min-\[901px\]:grid-cols-\[40%_minmax\(0,1fr\)\]/);
   assert.match(html, /data-testid="travel-card-highlights"/);
-  assert.match(html, /grid-rows-2/);
-  assert.match(html, /max-content/);
+  assert.match(html, /min-\[901px\]:grid-cols-2/);
   assert.match(html, /gap-x-6/);
 });
 
@@ -158,7 +159,7 @@ test('rating zone is always reserved; price block spacing identical with/without
   assert.match(withRating, /Uitstekend/);
   assert.match(withRating, /data-testid="travel-card-price-block"/);
   assert.match(withRating, /mt-2\.5/);
-  assert.doesNotMatch(withRating, /text-\[22px\]/);
+  assert.match(withRating, /data-testid="travel-card-rating"[\s\S]*text-\[14px\]/);
 
   const withoutRating = cardHtml(makeOffer({ rating: null }), { adults: 2 });
   assert.match(withoutRating, /data-testid="travel-card-rating-zone"/);
@@ -256,10 +257,8 @@ test('highlight grid reserves 3×2 slots for 1 and 6 highlights', () => {
   );
   assert.match(one, /data-testid="travel-card-highlights"/);
   assert.match(six, /data-testid="travel-card-highlights"/);
-  assert.match(one, /grid-rows-2/);
-  assert.match(six, /grid-rows-2/);
-  assert.match(one, /max-content/);
-  assert.match(six, /max-content/);
+  assert.match(one, /min-\[901px\]:grid-cols-2/);
+  assert.match(six, /min-\[901px\]:grid-cols-2/);
   assert.match(one, /gap-x-6/);
   assert.match(six, /gap-x-6/);
   assert.match(one, /whitespace-nowrap/);

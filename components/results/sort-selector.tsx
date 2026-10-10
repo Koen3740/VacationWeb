@@ -61,14 +61,15 @@ export function SortSelector({ currentSort }: { currentSort: string }) {
 
   return (
     <>
-      <label className="inline-flex items-center gap-2 text-[13px] text-[#64748B]">
-        <span>Sorteren op:</span>
+      <label className="inline-flex w-full items-center gap-2 text-[13px] text-vw-muted min-[901px]:w-auto">
+        <span className="max-[900px]:hidden">Sorteren op:</span>
         <select
           value={selectValue}
           onChange={handleChange}
           disabled={sortBusy}
           aria-busy={sortBusy}
-          className="h-10 max-w-full rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-[13px] font-semibold text-[#0A2D62] outline-none disabled:cursor-wait disabled:opacity-80"
+          aria-label="Sorteren op"
+          className="h-[42px] w-full rounded-[10px] border border-[#dcd5c8] bg-white px-3 text-[13px] font-semibold text-vw-navy outline-none disabled:cursor-wait disabled:opacity-80 min-[901px]:h-10 min-[901px]:w-auto min-[901px]:min-w-[210px]"
         >
           <option value="">Standaard volgorde</option>
           {SORT_OPTIONS.map((option) => (

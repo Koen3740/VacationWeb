@@ -40,6 +40,7 @@ import {
 import { buildResultsPageHref } from '@/lib/search/pagination';
 import { loadRuntimeDataset } from '@/lib/offers/load-runtime-dataset';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
+import { buildResultsTripSummary } from '@/lib/search/results-trip-summary';
 import { decodeDestinationLabel, destinationDisplayLabel } from '@/components/search/destination-popup/destination-search';
 import { attachSiteMarket } from '@/lib/search/site-market';
 import { SearchParams } from '@/types/travel';
@@ -174,6 +175,7 @@ export default async function ResultsPage({
   const pageShell = {
     departureAirports: filterOptions.departureAirports,
     summaryLine: buildSummaryLine(params),
+    tripSummary: buildResultsTripSummary(params),
     sortControl: <SortSelector currentSort={params.sort && params.sort !== 'value' ? params.sort : ''} />,
     filters: (
       <FilterSidebar
@@ -227,18 +229,6 @@ export default async function ResultsPage({
       <ResultsPageClient
         {...pageShell}
         resultCount={0}
-        heroTitle={
-          <Suspense fallback="…">
-            <PriceSortPresentableCount
-              filteringParams={filteringParams}
-              params={params}
-              page={page}
-              pageSize={pageSize}
-              summaryLine={pageShell.summaryLine}
-              variant="hero"
-            />
-          </Suspense>
-        }
         sectionHeading={
           <Suspense fallback="…">
             <PriceSortPresentableCount
@@ -271,20 +261,6 @@ export default async function ResultsPage({
     <ResultsPageClient
       {...pageShell}
       resultCount={0}
-      heroTitle={
-        <Suspense fallback="…">
-          <PresentableResultsCount
-            filteringParams={filteringParams}
-            params={params}
-            page={page}
-            pageSize={pageSize}
-            isPage1={isPage1}
-            summaryLine={pageShell.summaryLine}
-            refinementRequired={false}
-            variant="hero"
-          />
-        </Suspense>
-      }
       sectionHeading={
         <Suspense fallback="…">
           <PresentableResultsCount

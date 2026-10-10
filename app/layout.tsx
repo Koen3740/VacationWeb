@@ -1,4 +1,5 @@
 import './globals.css';
+import { Fraunces, Inter } from 'next/font/google';
 import { ConsentProvider } from '@/components/consent/consent-provider';
 import { CookieBanner } from '@/components/consent/cookie-banner';
 import { FavoritesProvider } from '@/components/favorites/favorites-provider';
@@ -7,6 +8,21 @@ import { UiLanguageProvider } from '@/components/i18n/ui-language-provider';
 import { chromeCopy } from '@/lib/i18n/chrome-copy';
 import { requestUiLanguage } from '@/lib/i18n/request-ui-language';
 import type { Metadata } from 'next';
+
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-fraunces',
+  display: 'swap',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export function generateMetadata(): Metadata {
   const copy = chromeCopy(requestUiLanguage().language);
@@ -31,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const uiLanguage = requestUiLanguage();
   return (
     <html lang={uiLanguage.htmlLang}>
-      <body>
+      <body className={`${fraunces.variable} ${inter.variable}`}>
         <UiLanguageProvider value={uiLanguage}>
           <ConsentProvider>
             <FavoritesProvider>

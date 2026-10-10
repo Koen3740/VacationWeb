@@ -94,7 +94,7 @@ export function ResultsPagination({ params, totalResults, hasMore }: ResultsPagi
         aria-label="Paginatie"
         data-browse-pages={String(totalPages)}
         data-has-more={hasMore ? 'true' : 'false'}
-        className="mt-8 flex flex-wrap items-center justify-center gap-1.5"
+        className="mt-[34px] flex flex-wrap items-center justify-center gap-1.5"
       >
         {items.map((item, index) =>
           item === 'ellipsis' ? (
@@ -113,10 +113,10 @@ export function ResultsPagination({ params, totalResults, hasMore }: ResultsPagi
               disabled={pageBusy || item === currentPage}
               aria-current={item === currentPage ? 'page' : undefined}
               aria-busy={pageBusy}
-              className={`inline-flex h-9 min-w-9 items-center justify-center rounded-[8px] px-2.5 text-sm font-semibold disabled:cursor-wait ${
+              className={`inline-flex h-[38px] min-w-[38px] items-center justify-center rounded-[9px] px-2.5 text-sm font-semibold disabled:cursor-wait ${
                 item === currentPage
-                  ? 'bg-[#0A2D62] text-white'
-                  : 'border border-[#D9E0EA] bg-white text-[#334155] hover:border-[#89ACD3] disabled:opacity-80'
+                  ? 'border border-vw-navy bg-vw-navy text-white'
+                  : 'border border-[#ddd5c6] bg-white text-[#334155] hover:border-vw-navy disabled:opacity-80'
               }`}
             >
               {item}

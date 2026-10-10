@@ -66,22 +66,18 @@ function FieldButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex min-h-[60px] min-w-0 flex-1 items-center gap-2.5 px-3.5 py-2 text-left transition hover:bg-[#F8FAFC] disabled:cursor-wait disabled:opacity-80"
+      className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 border-[#efe9de] px-3 py-2 text-left transition hover:bg-[#fbf8f2] disabled:cursor-wait disabled:opacity-80 max-[900px]:border-b max-[900px]:border-r max-[900px]:[&:nth-child(2n)]:border-r-0 max-[900px]:[&:nth-child(n+3)]:border-b-0 min-[901px]:min-h-0 min-[901px]:border-r min-[901px]:px-[18px] min-[901px]:py-[11px] min-[901px]:last:border-r-0"
     >
-      {icon}
+      <span className="shrink-0 text-[#8a93a3] max-[900px]:hidden">{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-semibold uppercase tracking-[0.05em] text-[#94A3B8]">
+        <span className="block text-[10px] font-semibold uppercase tracking-[0.07em] text-[#98a1b2]">
           {label}
         </span>
-        <span className="mt-0.5 block truncate text-[13px] font-semibold text-[#0A2D62]">{value}</span>
-        <span className="mt-0.5 block truncate text-[11px] text-[#94A3B8]">{hint}</span>
+        <span className="block truncate text-[14px] font-semibold text-vw-navy">{value}</span>
+        <span className="block truncate text-[11.5px] text-[#a0a8b6] max-[900px]:hidden">{hint}</span>
       </span>
     </button>
   );
-}
-
-function Divider() {
-  return <div className="hidden w-px self-stretch bg-[#E8ECF2] lg:block" aria-hidden />;
 }
 
 type ResultsSearchBarProps = {
@@ -192,9 +188,9 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
 
   return (
     <>
-      <div className="rounded-[16px] bg-white p-1 shadow-[0_10px_28px_rgba(10,45,98,0.12)] ring-1 ring-black/[0.04]">
-        <div className="flex flex-col lg:flex-row lg:items-stretch">
-          <div className="flex min-w-0 flex-1 flex-col divide-y divide-[#EEF2F6] lg:flex-row lg:divide-x lg:divide-y-0">
+      <div className="overflow-hidden rounded-vw-panel border border-vw-line bg-white shadow-vw-search">
+        <div className="flex items-stretch">
+          <div className="grid min-w-0 flex-1 grid-cols-2 min-[901px]:flex min-[901px]:flex-row">
             <FieldButton
               label="Wanneer"
               value={wanneerValue}
@@ -205,7 +201,6 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
                 if (!suppressDepartureOpenRef.current) setDepartureOpen(true);
               }}
             />
-            <Divider />
             <FieldButton
               label="Hoe lang"
               value={durationValue}
@@ -214,7 +209,6 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
               disabled={searchBusy}
               onClick={() => setDurationOpen(true)}
             />
-            <Divider />
             <FieldButton
               label="Reizigers"
               value={formatTravelersLabel(state.travelers)}
@@ -223,7 +217,6 @@ export function ResultsSearchBar({ departureAirports }: ResultsSearchBarProps) {
               disabled={searchBusy}
               onClick={() => setTravelersOpen(true)}
             />
-            <Divider />
             <FieldButton
               label="Luchthaven"
               value={formatSelectedDepartureAirportsLabel(state.selectedDepartureAirports)}

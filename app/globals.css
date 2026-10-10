@@ -4,6 +4,32 @@
 
 :root {
   color-scheme: light;
+  /* VacationWeb base style (Phase 1). Later pages reuse these tokens.
+     Defining them does not restyle pages that do not reference them. */
+  --vw-navy: #0a2d62;
+  --vw-navy-hover: #123b7a;
+  --vw-bg: #f6f2ea;
+  --vw-card: #fffdf9;
+  --vw-panel: #fcfaf6;
+  --vw-line: #e8e2d6;
+  --vw-muted: #6b7385;
+  --vw-gold: #c9a35a;
+  --vw-green: #2f8f78;
+  --vw-cta: #0a2d62;
+  --vw-cta-soft: #89acd3;
+  --vw-last-minute: #e11d48;
+  --vw-ink: #1f2937;
+  --vw-usp: #efe9de;
+  --vw-shadow-card: 0 8px 28px rgba(10, 45, 98, 0.07);
+  --vw-shadow-panel: 0 6px 22px rgba(10, 45, 98, 0.05);
+  --vw-shadow-search: 0 8px 26px rgba(10, 45, 98, 0.07);
+  --vw-shadow-fab: 0 10px 28px rgba(10, 45, 98, 0.18);
+  --vw-radius-card: 18px;
+  --vw-radius-panel: 16px;
+  --vw-radius-control: 12px;
+  --vw-font-serif: var(--font-fraunces), Georgia, 'Times New Roman', serif;
+  --vw-font-sans: var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --vw-content-max: 1320px;
 }
 
 body {

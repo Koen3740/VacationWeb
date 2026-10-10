@@ -87,7 +87,7 @@ function PriceSortPageBody({
           catalogGen={definitiveGen}
         />
       )}
-      {useCap ? <Page1ResultsCap limit={pageSize}>{slots}</Page1ResultsCap> : <div className="space-y-3.5">{slots}</div>}
+      {useCap ? <Page1ResultsCap limit={pageSize}>{slots}</Page1ResultsCap> : <div className="grid gap-[18px] max-[900px]:gap-3.5">{slots}</div>}
       <ResultsPagination
         params={{
           ...params,
