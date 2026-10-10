@@ -42,9 +42,19 @@ test('toggleDuration can deselect without clearing others', () => {
 test('duration chips match the common trip lengths and write nights lists', () => {
   assert.deepEqual(
     DURATION_CHIPS.map((item) => item.label),
-    ['3–4', '5–6', '8', '10–11', '15', '22 dagen'],
+    ['3–4', '5–6', '7', '8', '10–11', '15', '22 dagen'],
   );
-  assert.deepEqual(DURATION_CHIPS.map((item) => [...item.days]), [[3, 4], [5, 6], [8], [10, 11], [15], [22]]);
+  assert.deepEqual(
+    DURATION_CHIPS.map((item) => [...item.days]),
+    [[3, 4], [5, 6], [7], [8], [10, 11], [15], [22]],
+  );
+});
+
+test('7 days is its own chip', () => {
+  const draft = durationDraftFromApplied([7]);
+  assert.deepEqual(draft.chipIds, ['7']);
+  assert.equal(draft.customOpen, false);
+  assert.deepEqual(durationDaysFromDraft(draft), [7]);
 });
 
 test('empty duration opens on 8, and OPSLAAN would commit it', () => {
@@ -97,11 +107,18 @@ test('a lone custom day such as 9 opens the stepper and is not widened', () => {
   assert.deepEqual(durationDaysFromDraft(draft), [9]);
 });
 
-test('legacy non-chip lists stay intact until the user picks a chip', () => {
+test('7 plus one other day stays the 7 chip and that custom day', () => {
   const draft = durationDraftFromApplied([7, 14]);
-  assert.equal(draft.legacyDays !== null, true);
+  assert.deepEqual(draft.chipIds, ['7']);
+  assert.equal(draft.customDay, 14);
   assert.deepEqual(durationDaysFromDraft(draft), [7, 14]);
-  assert.equal(sameDurationSelection(durationDaysFromDraft(draft), [7, 14]), true);
+});
+
+test('legacy non-chip lists stay intact until the user picks a chip', () => {
+  const draft = durationDraftFromApplied([6, 12]);
+  assert.equal(draft.legacyDays !== null, true);
+  assert.deepEqual(durationDaysFromDraft(draft), [6, 12]);
+  assert.equal(sameDurationSelection(durationDaysFromDraft(draft), [6, 12]), true);
   const replaced = toggleDurationChipDraft(draft, chip('15'));
   assert.equal(replaced.legacyDays, null);
   assert.deepEqual(durationDaysFromDraft(replaced), [15]);

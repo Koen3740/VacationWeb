@@ -86,7 +86,7 @@ export function DurationPopupPanel({
 
       <p className="mt-1 text-sm text-vw-muted">Aantal dagen</p>
 
-      <div role="group" aria-label="Aantal dagen" className="mt-3 grid grid-cols-3 gap-2">
+      <div role="group" aria-label="Aantal dagen" className="mt-3 grid grid-cols-2 gap-2">
         {DURATION_CHIPS.map((chip) => {
           const selected = draft.chipIds.includes(chip.id);
           return (
@@ -103,18 +103,17 @@ export function DurationPopupPanel({
             </button>
           );
         })}
+        <button
+          type="button"
+          aria-pressed={draft.customOpen}
+          aria-expanded={draft.customOpen}
+          data-testid="duration-custom"
+          onClick={onToggleCustom}
+          className={chipClass(draft.customOpen)}
+        >
+          Ander aantal
+        </button>
       </div>
-
-      <button
-        type="button"
-        aria-pressed={draft.customOpen}
-        aria-expanded={draft.customOpen}
-        data-testid="duration-custom"
-        onClick={onToggleCustom}
-        className={`mt-2 ${chipClass(draft.customOpen)}`}
-      >
-        Ander aantal
-      </button>
 
       {draft.customOpen ? (
         <div className="mt-3 flex items-center justify-between gap-3 rounded-vw-control border border-vw-line bg-white px-3 py-2" data-testid="duration-custom-stepper">

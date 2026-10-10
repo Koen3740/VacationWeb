@@ -61,6 +61,11 @@ export interface SearchParams {
   departureAirport?: string;
   /** Exact star ratings to include (e.g. [3, 5]). Empty/undefined = no stars filter. */
   stars?: number[];
+  /**
+   * Minimum guest score on `TravelOffer.rating` (0–10). URL `ratingMin=8`.
+   * Absent = no rating filter. Offers without a numeric rating are excluded.
+   */
+  ratingMin?: number;
   /** Vacation themes (Adults Only, Familie, …). OR-matched when multiple. */
   vacationTypes?: string[];
   /** Beach location buckets (direct, lt100, …). OR-matched when multiple. */

@@ -159,6 +159,7 @@ export type DurationChip = {
 export const DURATION_CHIPS: readonly DurationChip[] = [
   { id: '3-4', label: '3–4', days: [3, 4] },
   { id: '5-6', label: '5–6', days: [5, 6] },
+  { id: '7', label: '7', days: [7] },
   { id: '8', label: '8', days: [8] },
   { id: '10-11', label: '10–11', days: [10, 11] },
   { id: '15', label: '15', days: [15] },

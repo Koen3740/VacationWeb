@@ -73,6 +73,7 @@ test('fast filters preserve page1Ids; occupancy change wipes them', () => {
 
   for (const [key, value] of [
     ['stars', '4'],
+    ['ratingMin', '8'],
     ['boardTypes', 'All Inclusive'],
     ['vacationTypes', 'Adults Only'],
     ['amenities', 'pool_outdoor'],

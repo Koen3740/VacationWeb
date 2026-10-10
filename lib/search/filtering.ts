@@ -28,6 +28,7 @@ import {
   parseCenterLocationsParam,
 } from '@/lib/search/location-filters';
 import { offerMatchesLiggingFilters } from '@/lib/search/ligging-filters';
+import { offerMeetsRatingMin } from '@/lib/search/rating-filter';
 import {
   offerMatchesAnyVacationType,
   offerMatchesVacationType,
@@ -233,6 +234,10 @@ export function filterOffers(
       if (!params.stars.includes(offerStars)) {
         continue;
       }
+    }
+
+    if (params.ratingMin != null && !offerMeetsRatingMin(offer, params.ratingMin)) {
+      continue;
     }
 
     if (params.accommodationTypes?.length) {
