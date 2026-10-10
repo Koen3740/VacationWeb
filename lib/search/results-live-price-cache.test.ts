@@ -144,3 +144,35 @@ test('Corendon occupancy-unpriced overlay applies from the base cache key', () =
   assert.equal(overlaid.livePriceStatus, 'unpriced');
   assert.equal(overlaid.livePriceSource, undefined);
 });
+
+test('overlay keeps optional live detail facts with the proven price', () => {
+  const facts = {
+    listPrice: 4678,
+    discountPercentage: 16,
+    arrivalAirport: 'TFS',
+    flights: [{ direction: 'outbound' as const, departureAt: '06:40', flightNumber: 'XC1', baggageKg: 20 }],
+    transfer: { status: 'included' as const },
+  };
+  setResultsLivePriceOverlay('sunweb-1', occupancy, {
+    ...proven,
+    livePriceSource: 'getPromotedPrice',
+    liveDetailFacts: facts,
+  });
+  const overlay = getResultsLivePriceOverlay('sunweb-1', occupancy);
+  assert.deepEqual(overlay?.liveDetailFacts, facts);
+  const [applied] = applyResultsLivePriceOverlays(
+    [{
+      id: 'sunweb-1',
+      provider: 'Sunweb',
+      hotelName: 'H',
+      destinationCountry: 'Spanje',
+      nights: 8,
+      price: 900,
+      pricePerDay: 112,
+      imageUrl: 'https://example.com/a.jpg',
+      deepLink: 'https://www.sunweb.be/hotel',
+    } as TravelOffer],
+    occupancy,
+  );
+  assert.deepEqual(applied.liveDetailFacts, facts);
+});

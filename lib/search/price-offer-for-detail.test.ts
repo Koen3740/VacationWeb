@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 import type { TravelOffer } from '../feeds/canonical/travel-offer';
+import { resetContextItemIdCacheForTests } from '../providers/context-item-id-cache';
 import { clearLivePriceInflightForTests } from '../providers/prijsvrij/page1-receipt-pricing';
 import { clearPrijsvrijReceiptTokenCache } from '../providers/prijsvrij/receipt-auth';
 import { hasValidPresentablePrice, resultsPricePresentation } from './presentable-price';
@@ -68,6 +69,7 @@ beforeEach(() => {
   clearPrijsvrijReceiptTokenCache();
   clearResultsLivePriceCache();
   clearLivePriceInflightForTests();
+  resetContextItemIdCacheForTests();
 });
 
 test('Sunweb catalog price is not a bookable Detail candidate without proven live €', async () => {
@@ -114,7 +116,65 @@ test('Corendon Detail uses live upsales for default 2A, not feed €', async () 
   assert.equal(priced.livePriceSource, 'upsales');
   assert.equal(priced.price, 876);
   assert.equal(priced.liveTotalPrice, 1752);
+  assert.equal(priced.liveDetailFacts, undefined);
   assert.equal(hasValidPresentablePrice(priced), true);
+});
+
+test('Corendon Detail keeps flight, baggage and transfer from the same upsales response', async () => {
+  const priced = await priceOfferForDetail(
+    makeOffer({ id: 'corendon-9514', provider: 'Corendon', price: 458 }),
+    { adults: 2 },
+    {
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('lowestpricesacco')) {
+          return new Response(okLowestBody(), { status: 200 });
+        }
+        if (url.includes('/upsales')) {
+          const parsed = JSON.parse(okUpsalesBody(876, 1752)) as {
+            result: Record<string, unknown>;
+          };
+          parsed.result.trip = {
+            departureFlight: {
+              depHour: 6,
+              depMin: 40,
+              arrHour: 9,
+              arrMin: 25,
+              airlineName: 'Corendon Airlines',
+              flightNumber: 'XC1234',
+              freeLuggageWeight: 20,
+              arrivalAirportCode: 'AGP',
+            },
+            returnFlight: {
+              depHour: 18,
+              depMin: 10,
+              arrHour: 21,
+              arrMin: 55,
+              airlineName: 'Corendon Airlines',
+              flightNumber: 'XC1235',
+              freeLuggageWeight: 20,
+            },
+          };
+          parsed.result.hasStandardTransfer = false;
+          const prices = parsed.result.prices as Record<string, unknown>;
+          prices.additionalServicePrices = [
+            { id: 'transfer', remark: 'Je kunt de transfer als extra bijboeken.', price: 0 },
+          ];
+          return new Response(JSON.stringify(parsed), { status: 200 });
+        }
+        throw new Error(`unexpected fetch ${url}`);
+      },
+    },
+  );
+
+  assert.equal(priced.liveTotalPrice, 1752);
+  assert.equal(priced.liveDetailFacts?.arrivalAirport, 'AGP');
+  assert.equal(priced.liveDetailFacts?.flights?.[0]?.departureAt, '06:40');
+  assert.equal(priced.liveDetailFacts?.flights?.[0]?.flightNumber, 'XC1234');
+  assert.equal(priced.liveDetailFacts?.flights?.[0]?.baggageKg, 20);
+  assert.equal(priced.liveDetailFacts?.flights?.[1]?.direction, 'inbound');
+  assert.equal(priced.liveDetailFacts?.transfer?.status, 'bookable');
+  assert.match(priced.liveDetailFacts?.transfer?.remark ?? '', /bijboeken/);
 });
 
 test('Prijsvrij Detail does not call Receipt and does not show feed as live', async () => {
@@ -206,6 +266,8 @@ test('Eliza Detail uses live getPromotedPrice, not feed €', async () => {
                 totalPrice: 1304,
                 averagePrice: 652,
                 value: 652,
+                originalTotalPrice: 1783,
+                discountPercentage: 7,
                 legend: 'Vanafprijs p.p.',
               },
               departureDate: { raw: '2026-11-19' },
@@ -226,6 +288,8 @@ test('Eliza Detail uses live getPromotedPrice, not feed €', async () => {
   assert.equal(priced.livePriceStatus, 'proven');
   assert.equal(priced.livePriceSource, 'getPromotedPrice');
   assert.equal(priced.price, 652);
+  assert.equal(priced.liveDetailFacts?.listPrice, 1783);
+  assert.equal(priced.liveDetailFacts?.discountPercentage, 7);
   assert.ok(hasValidPresentablePrice(priced));
 });
 
@@ -237,7 +301,7 @@ test('Eliza Detail 4p/2r uses party Participants, not feed 2A', async () => {
       id: 'eliza-6270665',
       provider: 'Eliza was here',
       price: 599,
-      nights: 7,
+      nights: 8,
       departureDate: '2026-11-19',
       deepLink: ELIZA_PRODUCT_URL,
     }),
@@ -286,10 +350,11 @@ test('Eliza Detail 4p/2r uses party Participants, not feed 2A', async () => {
   assert.equal(priced.livePriceSource, 'getPromotedPrice');
   assert.equal(priced.price, 890);
   const landing = new URL(landingUrl);
-  assert.equal(landing.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(landing.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(landing.searchParams.get('Participants[1][0]'), '2014-11-26');
+  assert.equal(landing.searchParams.get('Participants[1][1]'), '2018-11-26');
   const promoted = new URL(promotedUrl);
-  assert.equal(promoted.searchParams.get('Participants[0][0]'), '1990-01-15');
-  assert.equal(promoted.searchParams.get('Participants[1][1]'), '2018-01-22');
+  assert.equal(promoted.searchParams.get('Participants[0][0]'), '1986-01-01');
+  assert.equal(promoted.searchParams.get('Participants[1][1]'), '2018-11-26');
   assert.ok(!landingUrl.includes('1996-07-30'));
 });

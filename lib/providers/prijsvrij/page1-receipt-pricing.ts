@@ -1,4 +1,5 @@
 import type { TravelOffer } from '../../feeds/canonical/travel-offer';
+import { promotedListFacts, type LiveDetailFacts } from '@/lib/offers/live-detail-facts';
 import type { SearchParams } from '../../../types/travel';
 import {
   limitRankedResultsForPagination,
@@ -218,13 +219,22 @@ function withLiveTotal(
   return { liveTotalPrice: undefined, liveTotalPriceField: undefined };
 }
 
+function withoutLiveDetailFacts(offer: TravelOffer): TravelOffer {
+  if (offer.liveDetailFacts == null) {
+    return offer;
+  }
+  const next = { ...offer };
+  delete next.liveDetailFacts;
+  return next;
+}
+
 function withCatalogPriceHidden(
   offer: TravelOffer,
   failure?: LivePriceFailureInput,
 ): TravelOffer {
   const classified = failure ? classifyLivePriceFailure(failure) : undefined;
   return {
-    ...offer,
+    ...withoutLiveDetailFacts(offer),
     livePriceStatus: 'unavailable',
     livePriceSource: undefined,
     liveTotalPrice: undefined,
@@ -235,7 +245,7 @@ function withCatalogPriceHidden(
 
 function withUnpricedOffer(offer: TravelOffer): TravelOffer {
   return {
-    ...offer,
+    ...withoutLiveDetailFacts(offer),
     livePriceStatus: 'unpriced',
     livePriceSource: undefined,
     liveTotalPrice: undefined,
@@ -267,10 +277,11 @@ function withCorendonLivePrice(
   listing: { deepLink: string; host: string; feedId: string; campaignId?: string } | undefined,
   source: 'lowestpricesacco' | 'upsales',
   total?: { amount: number; field: Extract<LiveTotalPriceField, 'upsales.totalPrice' | 'upsales.realTimeBlankPrice'> },
+  detailFacts?: LiveDetailFacts,
 ): TravelOffer {
   const nights = offer.nights > 0 ? offer.nights : 0;
   const priced: TravelOffer = {
-    ...offer,
+    ...withoutLiveDetailFacts(offer),
     price: pricePerPerson,
     pricePerDay: nights > 0 ? Math.round(pricePerPerson / nights) : pricePerPerson,
     livePriceStatus: 'proven',
@@ -280,42 +291,47 @@ function withCorendonLivePrice(
       source === 'upsales' ? total?.amount : undefined,
       source === 'upsales' ? total?.field : undefined,
     ),
+    ...(source === 'upsales' && detailFacts ? { liveDetailFacts: detailFacts } : {}),
   };
   return listing ? bindCorendonListing(priced, listing) : priced;
+}
+
+function withPromotedLivePrice(
+  offer: TravelOffer,
+  pricePerPerson: number,
+  totalPrice?: number,
+  list?: { originalTotalPrice?: number; discountPercentage?: number },
+): TravelOffer {
+  const nights = offer.nights > 0 ? offer.nights : 0;
+  const facts = promotedListFacts(list?.originalTotalPrice, list?.discountPercentage);
+  return {
+    ...withoutLiveDetailFacts(offer),
+    price: pricePerPerson,
+    pricePerDay: nights > 0 ? Math.round(pricePerPerson / nights) : pricePerPerson,
+    livePriceStatus: 'proven',
+    livePriceSource: 'getPromotedPrice',
+    livePriceFailureReason: undefined,
+    ...withLiveTotal(totalPrice, 'getPromotedPrice.totalPrice'),
+    ...(facts ? { liveDetailFacts: facts } : {}),
+  };
 }
 
 function withElizaLivePrice(
   offer: TravelOffer,
   pricePerPerson: number,
   totalPrice?: number,
+  list?: { originalTotalPrice?: number; discountPercentage?: number },
 ): TravelOffer {
-  const nights = offer.nights > 0 ? offer.nights : 0;
-  return {
-    ...offer,
-    price: pricePerPerson,
-    pricePerDay: nights > 0 ? Math.round(pricePerPerson / nights) : pricePerPerson,
-    livePriceStatus: 'proven',
-    livePriceSource: 'getPromotedPrice',
-    livePriceFailureReason: undefined,
-    ...withLiveTotal(totalPrice, 'getPromotedPrice.totalPrice'),
-  };
+  return withPromotedLivePrice(offer, pricePerPerson, totalPrice, list);
 }
 
 function withSunwebLivePrice(
   offer: TravelOffer,
   pricePerPerson: number,
   totalPrice?: number,
+  list?: { originalTotalPrice?: number; discountPercentage?: number },
 ): TravelOffer {
-  const nights = offer.nights > 0 ? offer.nights : 0;
-  return {
-    ...offer,
-    price: pricePerPerson,
-    pricePerDay: nights > 0 ? Math.round(pricePerPerson / nights) : pricePerPerson,
-    livePriceStatus: 'proven',
-    livePriceSource: 'getPromotedPrice',
-    livePriceFailureReason: undefined,
-    ...withLiveTotal(totalPrice, 'getPromotedPrice.totalPrice'),
-  };
+  return withPromotedLivePrice(offer, pricePerPerson, totalPrice, list);
 }
 
 function requiresPage1LivePrice(offer: TravelOffer, params?: SearchParams): boolean {
@@ -622,6 +638,7 @@ async function runCorendonLiveIntoCache(
                   result.totalPrice != null && result.totalPriceField
                     ? { amount: result.totalPrice, field: result.totalPriceField }
                     : undefined,
+                  result.detailFacts,
                 ),
                 listingParams,
               );
@@ -687,7 +704,10 @@ async function runElizaLiveIntoCache(
         noteLivePriceCircuitOutcome('eliza', result);
         if (result.ok) {
           cacheLiveOverlay(
-            withElizaLivePrice(offer, result.pricePerPerson, result.totalPrice),
+            withElizaLivePrice(offer, result.pricePerPerson, result.totalPrice, {
+              originalTotalPrice: result.originalTotalPrice,
+              discountPercentage: result.discountPercentage,
+            }),
             params,
           );
         } else {
@@ -763,7 +783,10 @@ async function runSunwebLiveIntoCache(
         noteLivePriceCircuitOutcome('sunweb', result);
         if (result.ok) {
           cacheLiveOverlay(
-            withSunwebLivePrice(offer, result.pricePerPerson, result.totalPrice),
+            withSunwebLivePrice(offer, result.pricePerPerson, result.totalPrice, {
+              originalTotalPrice: result.originalTotalPrice,
+              discountPercentage: result.discountPercentage,
+            }),
             params,
           );
         } else {
@@ -792,6 +815,7 @@ function cacheLiveOverlay(
       liveTotalPrice: offer.liveTotalPrice,
       liveTotalPriceField: offer.liveTotalPriceField,
       livePriceFailureReason: offer.livePriceFailureReason,
+      ...(offer.liveDetailFacts ? { liveDetailFacts: offer.liveDetailFacts } : {}),
       deepLink: offer.deepLink,
       listingHost: offer.listingHost,
       feedSourceId: offer.feedSourceId,

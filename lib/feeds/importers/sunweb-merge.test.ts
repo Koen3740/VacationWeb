@@ -553,3 +553,32 @@ test('Sunweb HasCarRental + Flight maps true; SelfDrive does not', () => {
   assert.equal(selfDrive[0]?.hasCarRental, undefined);
   assert.equal(filterOffers(selfDrive.map(normalizeOffer), { nights: [8] }).length, 0);
 });
+
+test('Sunweb categories and usps use a label and drop objects without one', () => {
+  const [offer] = importSunwebXml(
+    feedXml(`<product ID="40348">
+<campaignID>1393</campaignID>
+<name>SOL Puerto Marina</name>
+<price currency="EUR">800.00</price>
+<URL>https://www.sunweb.be/nl/vakantie/x</URL>
+<description>Havenhotel.&lt;br /&gt;Met zwembad.</description>
+<categories>
+<category><label>Adults only</label><id>9</id></category>
+<category><id>40348</id></category>
+<category>Familie</category>
+</categories>
+<properties>
+<property name="country"><value>Spanje</value></property>
+<property name="transportType"><value>Flight</value></property>
+<property name="accommodation"><value>40348</value></property>
+<property name="usp"><value><label>Zwembad</label></value><value>Direct aan zee</value></property>
+</properties>
+</product>`),
+  );
+  assert.ok(offer);
+  assert.deepEqual(offer.categories, ['Adults only', 'Familie']);
+  assert.equal(offer.categories?.includes('[object Object]'), false);
+  assert.deepEqual(offer.subcategories, ['Zwembad', 'Direct aan zee']);
+  assert.equal(offer.accommodation, '40348');
+  assert.equal(offer.feedDescription, 'Havenhotel.<br />Met zwembad.');
+});

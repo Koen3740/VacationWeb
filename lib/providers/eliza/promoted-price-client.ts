@@ -24,6 +24,7 @@ import {
   ELIZA_LIVE_TIMEOUT_MS,
   ELIZA_PROMOTED_PRICE_PATH,
 } from './constants';
+import { readPromotedListPrice } from '../promoted-list-price';
 import type { ElizaLiveContext } from './offer-context';
 
 export { resolveElizaFetchImpl } from '../../http/eliza-keepalive-agent';
@@ -43,6 +44,10 @@ export type ElizaLivePriceResult =
       ok: true;
       pricePerPerson: number;
       totalPrice?: number;
+      /** Provider original occupancy total. Omitted when missing or not a positive amount. */
+      originalTotalPrice?: number;
+      /** Provider percentage. Omitted when missing, zero, or 100+. Never computed. */
+      discountPercentage?: number;
       accoId: string;
     }
   | {
@@ -116,6 +121,8 @@ function readPromotedPrice(json: unknown): {
   mealplan: string;
   averagePrice: number;
   totalPrice: number;
+  originalTotalPrice?: number;
+  discountPercentage?: number;
 } | null {
   if (!json || typeof json !== 'object') {
     return null;
@@ -128,6 +135,8 @@ function readPromotedPrice(json: unknown): {
       averagePrice?: unknown;
       value?: unknown;
       totalPrice?: unknown;
+      originalTotalPrice?: unknown;
+      discountPercentage?: unknown;
     };
     acmInformation?: { mealplanCode?: unknown };
   };
@@ -149,7 +158,8 @@ function readPromotedPrice(json: unknown): {
     return null;
   }
 
-  return { accommodationId, duration, departureDate, mealplan, averagePrice, totalPrice };
+  const list = readPromotedListPrice(record.price);
+  return { accommodationId, duration, departureDate, mealplan, averagePrice, totalPrice, ...list };
 }
 
 function contextMatches(
@@ -345,6 +355,8 @@ async function fetchElizaPriceWithGuids(
       ...(Number.isFinite(live.totalPrice) && live.totalPrice > 0
         ? { totalPrice: live.totalPrice }
         : {}),
+      ...(live.originalTotalPrice != null ? { originalTotalPrice: live.originalTotalPrice } : {}),
+      ...(live.discountPercentage != null ? { discountPercentage: live.discountPercentage } : {}),
       accoId: live.accommodationId,
     },
     gppMs,

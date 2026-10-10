@@ -1,3 +1,4 @@
+import type { LiveDetailFacts } from '@/lib/offers/live-detail-facts';
 import type { ProviderListing } from '../types/stored-offer';
 
 export interface TravelOffer {
@@ -91,6 +92,11 @@ export interface TravelOffer {
     | 'upsales.realTimeBlankPrice'
     | 'receipt.TotalInclLocal'
     | 'getPromotedPrice.totalPrice';
+  /**
+   * Optional detail rows from the same live response that supplied the price.
+   * Not a catalog field. Rendered only when a child value is present.
+   */
+  liveDetailFacts?: LiveDetailFacts;
 
   // Hotelkwaliteit
   stars?: number | null;

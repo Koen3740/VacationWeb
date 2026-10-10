@@ -12,6 +12,7 @@ import {
   type CorendonLowestHop,
 } from './lowestpricesacco-client';
 import type { CorendonLiveContext } from './offer-context';
+import { readCorendonUpsalesDetailFacts } from './upsales-detail-facts';
 
 function isTimeoutError(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -252,6 +253,7 @@ export async function fetchCorendonUpsalesPrice(
     }
 
     const total = readUpsalesTotal(json);
+    const detailFacts = readCorendonUpsalesDetailFacts(json);
     return {
       ok: true,
       pricePerPerson: displayPp.amount,
@@ -262,6 +264,7 @@ export async function fetchCorendonUpsalesPrice(
       ...(total
         ? { totalPrice: total.amount, totalPriceField: total.field }
         : {}),
+      ...(detailFacts ? { detailFacts } : {}),
     };
   } catch (error) {
     if (isTimeoutError(error)) {

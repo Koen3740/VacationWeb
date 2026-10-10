@@ -21,17 +21,38 @@ function getProperties(product: SunwebXmlProduct): SunwebXmlProperty[] {
   return Array.isArray(properties) ? properties : [properties];
 }
 
+/** Plain feed text. Objects contribute their label (or name/title), never `[object Object]`. */
+function feedText(value: unknown): string | undefined {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    const text = String(value).trim();
+    if (!text || text === '[object Object]') {
+      return undefined;
+    }
+    return text;
+  }
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const key of ['label', 'name', 'title', '#text', 'value']) {
+    const nested = feedText(record[key]);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  return undefined;
+}
+
 function propertyValues(value: SunwebXmlProperty['value'] | undefined): string[] {
   if (value === undefined || value === null) {
     return [];
   }
 
-  if (Array.isArray(value)) {
-    return value.map(String).map((item) => item.trim()).filter(Boolean);
-  }
-
-  const text = String(value).trim();
-  return text ? [text] : [];
+  const list = Array.isArray(value) ? value : [value];
+  return list.map((item) => feedText(item)).filter((item): item is string => Boolean(item));
 }
 
 function getProperty(product: SunwebXmlProduct, name: string): string {
@@ -126,7 +147,9 @@ function parseCategories(product: SunwebXmlProduct): string[] | undefined {
   }
 
   const list = Array.isArray(category) ? category : [category];
-  const values = list.map(String).filter((value) => value.trim().length > 0);
+  const values = list
+    .map((item) => feedText(item))
+    .filter((value): value is string => Boolean(value));
 
   return values.length > 0 ? values : undefined;
 }

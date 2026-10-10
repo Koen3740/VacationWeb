@@ -49,6 +49,8 @@ function ctx(): ElizaLiveContext {
 export function okPromotedBody(overrides: {
   averagePrice?: number;
   totalPrice?: number;
+  originalTotalPrice?: number;
+  discountPercentage?: number;
   accommodationId?: number | string;
   duration?: number;
   departureDate?: string;
@@ -62,6 +64,8 @@ export function okPromotedBody(overrides: {
       averagePrice: overrides.averagePrice ?? 652,
       value: overrides.averagePrice ?? 652,
       legend: 'Vanafprijs p.p.',
+      ...(overrides.originalTotalPrice != null ? { originalTotalPrice: overrides.originalTotalPrice } : {}),
+      ...(overrides.discountPercentage != null ? { discountPercentage: overrides.discountPercentage } : {}),
     },
     departureDate: { raw: overrides.departureDate ?? '2026-11-19' },
     featuredFilters: ['8 dagen', '2 personen', 'Logies'],
@@ -195,6 +199,28 @@ test('fetch: missing landing GUIDs does not call a fake price', async () => {
   assert.equal(result.ok, false);
   if (!result.ok) {
     assert.equal(result.reason, 'missing_page_context');
+  }
+});
+
+test('fetch: original total and discount are kept, and are not invented from the total', async () => {
+  const discounted = await fetchElizaPromotedPrice(ctx(), {
+    fetchImpl: makeFetch({
+      priceBody: okPromotedBody({ totalPrice: 1648, averagePrice: 824, originalTotalPrice: 1783, discountPercentage: 7 }),
+    }),
+  });
+  assert.equal(discounted.ok, true);
+  if (discounted.ok) {
+    assert.equal(discounted.originalTotalPrice, 1783);
+    assert.equal(discounted.discountPercentage, 7);
+  }
+
+  const plain = await fetchElizaPromotedPrice(ctx(), {
+    fetchImpl: makeFetch({ priceBody: okPromotedBody({ totalPrice: 1648, averagePrice: 824 }) }),
+  });
+  assert.equal(plain.ok, true);
+  if (plain.ok) {
+    assert.equal(plain.originalTotalPrice, undefined);
+    assert.equal(plain.discountPercentage, undefined);
   }
 });
 

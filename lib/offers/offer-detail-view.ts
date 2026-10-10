@@ -23,6 +23,7 @@ import { formatDateDdMmYyyy, formatDeparturePresentation } from '@/lib/search/de
 import { formatOfferDepartureAirportLabel } from '@/lib/search/departure-airports';
 import { formatOccupancyCompositionNl } from '@/lib/search/occupancy-category';
 import { isClickoutAllowedForSiteMarket, offerForSiteMarket } from '@/lib/search/market-inventory';
+import { decodeHtmlEntities } from '@/lib/feeds/canonical/decode-html-entities';
 import type { ProviderListing } from '@/lib/feeds/types/stored-offer';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
@@ -142,6 +143,28 @@ export function formatOfferReturnDateLabel(offer: TravelOffer): string | undefin
   return formatReturnDateLabel(offer.departureDate, catalogReturnDateOffsetDays(offer));
 }
 
+/** Weekday + short date for the detail journey lines. Same ISO calendar as the return-date SSOT. */
+export function formatTripDateNl(raw: string | undefined): string | undefined {
+  const iso = normalizeDepartureDateToIso(raw);
+  if (!iso) {
+    return undefined;
+  }
+  const [year, month, day] = iso.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.toLocaleDateString('nl-NL', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/** Detail click-out label. Results cards keep their own label. */
+export function detailBookCtaLabel(provider: string): string {
+  return `Bekijk en boek bij ${provider.trim()}`;
+}
+
 export function formatDepartureAirport(offer: TravelOffer): string | undefined {
   return formatOfferDepartureAirportLabel(offer);
 }
@@ -238,32 +261,94 @@ export function looksLikeTechnicalDisplayText(value: string): boolean {
   if (/[{}].*:.*;/.test(trimmed) && /(?:list-style|font-family|border-radius|margin-left)\s*:/i.test(trimmed)) {
     return true;
   }
-  if (/\b(?:undefined|null|\[object Object\])\b/.test(trimmed)) {
+  if (trimmed.includes('[object Object]') || /\b(?:undefined|null)\b/.test(trimmed)) {
     return true;
   }
   return false;
 }
 
-/** Strip feed HTML/CSS so Overview never shows selectors or declarations. */
-export function stripSimpleHtml(value: string | undefined): string | undefined {
+const BREAK_TAG = /<\s*br\b[^>]*>/gi;
+const BLOCK_BOUNDARY = /<\s*\/?\s*(?:p|div|li|h[1-6]|tr|ul|ol)\b[^>]*>/gi;
+
+function decodeProviderEntities(value: string): string {
+  let next = value;
+  for (let pass = 0; pass < 2 && next.includes('&'); pass += 1) {
+    const decoded = decodeHtmlEntities(next);
+    if (decoded === next) {
+      break;
+    }
+    next = decoded;
+  }
+  return next;
+}
+
+/**
+ * Provider copy as plain paragraphs.
+ * `<br>` and block tags become separate blocks. Every other tag is removed.
+ * The result is text only — callers must not inject it as HTML.
+ */
+export function providerTextBlocks(value: string | undefined): string[] {
   const trimmed = value?.trim();
   if (!trimmed) {
+    return [];
+  }
+
+  let next = decodeProviderEntities(trimmed)
+    .replace(STYLE_OR_SCRIPT_BLOCK, '\n')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ');
+  next = next.replace(BREAK_TAG, '\n').replace(BLOCK_BOUNDARY, '\n');
+  next = next.replace(CSS_SELECTOR_BLOCK, ' ');
+  next = next.replace(/<[^>]*>/g, ' ');
+  next = next.replace(CSS_DECLARATION, ' ');
+  next = next.replace(/[{}]/g, ' ');
+
+  return next
+    .split(/\n+/)
+    .map((block) => block.replace(/[ \t\u00A0]+/g, ' ').trim())
+    .filter((block) => block.length > 0 && !looksLikeTechnicalDisplayText(block));
+}
+
+/** Strip feed HTML/CSS so Overview never shows selectors or declarations. */
+export function stripSimpleHtml(value: string | undefined): string | undefined {
+  const blocks = providerTextBlocks(value);
+  if (blocks.length === 0) {
     return undefined;
   }
 
-  let next = trimmed
-    .replace(STYLE_OR_SCRIPT_BLOCK, ' ')
-    .replace(/\/\*[\s\S]*?\*\//g, ' ');
-  next = next.replace(CSS_SELECTOR_BLOCK, ' ');
-  next = next.replace(/<[^>]+>/g, ' ');
-  next = next.replace(CSS_DECLARATION, ' ');
-  next = next.replace(/[{}]/g, ' ').replace(/\s+/g, ' ').trim();
-
-  if (!next || looksLikeTechnicalDisplayText(next)) {
+  const next = blocks.join(' ');
+  if (looksLikeTechnicalDisplayText(next)) {
     return undefined;
   }
 
   return next;
+}
+
+function humanDisplayPart(value: string | undefined): string | undefined {
+  const parts = (value ?? '')
+    .split(/\s*(?:;|•)\s*/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0 && !/^\d+$/.test(part) && !looksLikeTechnicalDisplayText(part));
+  return parts.length > 0 ? parts.join(' • ') : undefined;
+}
+
+/**
+ * Reis-grid accommodation label. A bare provider id such as `40348` is omitted.
+ * A human type or name is kept. Nothing human means the fact stays hidden.
+ */
+export function formatDetailAccommodation(
+  accommodationType: string | undefined,
+  accommodation: string | undefined,
+): string | undefined {
+  const type = humanDisplayPart(accommodationType);
+  const name = humanDisplayPart(accommodation);
+  if (!type) {
+    return name;
+  }
+  if (!name || type.toLowerCase() === name.toLowerCase()) {
+    return type;
+  }
+  return `${type} • ${name}`;
 }
 
 /** Formats departure + `offsetDays` (from `catalogReturnDateOffsetDays`); no own offset logic. */
@@ -374,18 +459,46 @@ export function parseVariationRoomNames(raw: string | undefined): string[] {
   }
 }
 
+/** String label, or an object's `label` / `name` / `title`. Drops `[object Object]` and other non-labels. */
+function readThemeLabel(value: unknown, depth = 0): string | undefined {
+  if (depth > 2) {
+    return undefined;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed || /^\d+$/.test(trimmed) || looksLikeTechnicalDisplayText(trimmed)) {
+      return undefined;
+    }
+    return trimmed;
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  const record = value as Record<string, unknown>;
+  for (const key of ['label', 'name', 'title', 'value', '#text']) {
+    const nested = readThemeLabel(record[key], depth + 1);
+    if (nested) {
+      return nested;
+    }
+  }
+  return undefined;
+}
+
 export function collectThemeLabels(offer: TravelOffer): string[] {
-  const themes = (offer.subcategories ?? '')
-    .split(',')
-    .map((theme) => theme.trim())
-    .filter((theme) => theme.length > 0);
-  const categories = (offer.categories ?? [])
-    .map((category) => category.trim())
-    .filter((category) => category.length > 0);
+  const rawSubcategories = offer.subcategories as unknown;
+  const subcategoryValues = Array.isArray(rawSubcategories)
+    ? rawSubcategories
+    : typeof rawSubcategories === 'string'
+      ? rawSubcategories.split(',')
+      : [];
+  const categoryValues = (offer.categories ?? []) as unknown[];
+  const labels = [...subcategoryValues, ...categoryValues]
+    .map((value) => readThemeLabel(value))
+    .filter((label): label is string => Boolean(label));
 
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const label of [...themes, ...categories]) {
+  for (const label of labels) {
     const key = label.toLowerCase();
     if (seen.has(key)) {
       continue;
