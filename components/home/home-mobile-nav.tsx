@@ -13,6 +13,8 @@ type HomeMobileNavProps = {
   links: readonly NavLink[];
   /** Translated drawer chrome (t66u); defaults to the existing Dutch labels. */
   labels?: { title: string; open: string; close: string; navigation?: string };
+  /** Homepage photo uses a glass chip; the drawer itself stays a solid panel. */
+  buttonClassName?: string;
 };
 
 const DEFAULT_LABELS = { title: 'Menu', open: 'Menu openen', close: 'Menu sluiten' } as const;
@@ -34,7 +36,7 @@ function CloseIcon() {
 }
 
 /** Light drawer — matches Results header chrome (Results has no mobile menu). */
-export function HomeMobileNav({ links, labels = DEFAULT_LABELS }: HomeMobileNavProps) {
+export function HomeMobileNav({ links, labels = DEFAULT_LABELS, buttonClassName }: HomeMobileNavProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -76,7 +78,10 @@ export function HomeMobileNav({ links, labels = DEFAULT_LABELS }: HomeMobileNavP
         aria-expanded={open}
         aria-controls="home-mobile-nav-panel"
         aria-label={labels.open}
-        className="flex h-10 w-10 items-center justify-center rounded-full text-[#334155] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]"
+        className={
+          buttonClassName ??
+          'flex h-10 w-10 items-center justify-center rounded-full text-[#334155] transition hover:bg-[#F3F5F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]'
+        }
       >
         <MenuIcon />
       </button>

@@ -1,55 +1,25 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { CHROME_COPY, type ChromeCopy } from '@/lib/i18n/chrome-copy';
+import { HOMEPAGE_DISCOVERY_HREF } from '@/lib/home/homepage-sections';
 
-const SCRIPT_STACK =
-  "Segoe Script, 'Apple Chancery', 'Snell Roundhand', cursive";
-
-/** WOW inspiration — NEVER Concept C “Europa wacht met open kusten.” */
+/** Inspiration anchor. Glass copy over the photo, linking into Discovery. */
 export function HomeInspirationBand({
   copy = CHROME_COPY.nl.inspiration,
 }: { copy?: ChromeCopy['inspiration'] } = {}) {
   return (
-    <section id="inspiratie" className="relative">
-      <div className="relative mx-auto h-[220px] w-[86.8vw] overflow-hidden sm:h-[260px] lg:h-[297px]">
-        <Image
-          src="/images/verified/mood/homepage-inspiration.jpg"
-          alt=""
-          fill
-          sizes="86.8vw"
-          className="object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/25 to-black/10" aria-hidden />
-        <div className="relative z-10 mx-auto flex h-full w-full flex-col justify-center gap-3 px-6 py-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:px-16">
-          <div className="max-w-md text-white">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E8C547]">
-              {copy.eyebrow}
-            </p>
-            <h2
-              className="mt-1 text-[1.6rem] font-semibold leading-tight sm:text-[1.95rem] lg:text-[39px]"
-              style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
-            >
-              {copy.title}
-            </h2>
-            <p className="mt-1.5 max-w-sm text-[12.5px] leading-snug text-white/92">
-              {copy.body}
-            </p>
-            <Link
-              href="/ontdekt/sicily"
-              className="mt-2.5 inline-flex min-h-[34px] items-center justify-center rounded-full bg-white px-4 text-[12.5px] font-semibold text-[#0A2D62] transition hover:bg-white/95"
-            >
-              {copy.cta} →
-            </Link>
-          </div>
-          <div className="max-w-[15rem] lg:text-right">
-            <p
-              className="rotate-[-5deg] text-[1.15rem] leading-snug text-white/95 lg:text-[1.3rem]"
-              style={{ fontFamily: SCRIPT_STACK }}
-            >
-              {copy.quote}
-            </p>
-            <span className="mt-1.5 inline-block h-[3px] w-20 rounded-full bg-[#E8C547] lg:ml-auto" aria-hidden />
-          </div>
+    <section id="inspiratie" className="px-[18px] pb-[clamp(48px,7vw,90px)] sm:px-[clamp(20px,4vw,56px)]">
+      <div className="mx-auto max-w-[1180px]">
+        <div className="vw-glass max-w-3xl px-6 py-8 sm:px-9 sm:py-10">
+          <p className="vw-home-kicker">{copy.eyebrow}</p>
+          <h2 className="vw-home-h2">{copy.title}</h2>
+          <p className="mt-4 max-w-[46ch] text-[15px] leading-relaxed text-white/80">{copy.body}</p>
+          <p className="mt-5 max-w-[28ch] font-vw-serif text-[22px] leading-snug text-white/95">{copy.quote}</p>
+          <Link
+            href={HOMEPAGE_DISCOVERY_HREF}
+            className="mt-6 inline-flex border-b border-current pb-0.5 text-[14.5px] font-medium text-white"
+          >
+            {copy.cta}
+          </Link>
         </div>
       </div>
     </section>

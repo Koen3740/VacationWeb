@@ -130,3 +130,173 @@ body {
 .vw-detail-snap::-webkit-scrollbar {
   display: none;
 }
+
+/* Homepage V1 — fixed photo layer. A fixed background attachment breaks on iOS. */
+.vw-home-photo {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 0;
+  height: 100vh;
+  height: 100lvh;
+  overflow: hidden;
+  background: #1b2633;
+  pointer-events: none;
+}
+
+.vw-home-photo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--vw-home-photo-pos, 55% 50%);
+}
+
+.vw-home-photo-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 18, 32, 0.5) 0%, rgba(8, 18, 32, 0.22) 38%, rgba(8, 18, 32, 0) 62%),
+    linear-gradient(180deg, rgba(8, 18, 32, 0.3) 0%, rgba(8, 18, 32, 0) 18%, rgba(8, 18, 32, 0) 62%, rgba(8, 18, 32, 0.35) 100%);
+}
+
+.vw-home-photo-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 18, 32, 1);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .vw-home-photo-img {
+    object-position: var(--vw-home-photo-pos-mobile, 50% 50%);
+  }
+
+  .vw-home-photo-shade {
+    background: linear-gradient(
+      180deg,
+      rgba(8, 18, 32, 0.48) 0%,
+      rgba(8, 18, 32, 0.32) 40%,
+      rgba(8, 18, 32, 0.08) 72%,
+      rgba(8, 18, 32, 0.3) 100%
+    );
+  }
+}
+
+.vw-home-kicker {
+  margin-bottom: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.vw-home-h1 {
+  max-width: 11ch;
+  font-family: var(--vw-font-serif);
+  font-size: clamp(40px, 6.2vw, 86px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.25);
+}
+
+.vw-home-h2 {
+  font-family: var(--vw-font-serif);
+  font-size: clamp(30px, 3.6vw, 50px);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.25);
+}
+
+.vw-glass {
+  background: rgba(14, 26, 44, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 22px;
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.vw-glass-search {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 20px;
+  box-shadow:
+    0 20px 60px -20px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+}
+
+.vw-glass-chip {
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  min-width: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* Field icons stay in the DOM for the shared icon set, but the glass module
+   is the lab's text-only fields. "Vertrekluchthaven" needs the full width. */
+.vw-glass-search svg {
+  display: none;
+}
+
+.vw-scrollhint-line {
+  width: 1px;
+  height: 42px;
+  transform-origin: top;
+  background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+  animation: vw-drip 2.2s ease-in-out infinite;
+}
+
+@keyframes vw-drip {
+  0% {
+    transform: scaleY(0);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+
+.vw-home-tile img {
+  transition: transform 1.2s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vw-scrollhint-line {
+    transform: none;
+    animation: none;
+    opacity: 0.85;
+  }
+
+  .vw-home-tile img,
+  .vw-home-tile .vw-home-tile-img {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .vw-scrollhint-line {
+    width: 22px;
+    height: 1px;
+    transform: none;
+    animation: none;
+    background: rgba(255, 255, 255, 0.7);
+  }
+}

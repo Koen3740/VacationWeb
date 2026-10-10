@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { OfferImageGallery } from '@/components/offers/offer-image-gallery';
 import { OfferDetailMobileBar, OfferPriceCard } from '@/components/offers/offer-price-card';
+import {
+  DetailAdjustMobile,
+  DetailAdjustPrice,
+  DetailAdjustProvider,
+  DetailAdjustRooms,
+  DetailPartySummary,
+} from '@/components/offers/offer-trip-adjust';
 import { ResultsSiteHeader } from '@/components/results-v2/results-site-header';
 import type { CatalogRoomType, CatalogSection } from '@/lib/offers/catalog-content';
 import {
@@ -24,7 +31,17 @@ import {
   providerTextBlocks,
 } from '@/lib/offers/offer-detail-view';
 import { formatDeparturePresentation } from '@/lib/search/departure-presentation';
+import { formatOccupancyCompositionNl } from '@/lib/search/occupancy-category';
 import { buildOfferDetailHref } from '@/lib/search/pagination';
+import { modelFromParty, type TravelerModel } from '@/lib/search/traveler-contract';
+import type { DetailRoomQuote } from '@/lib/providers/sunweb/room-selector';
+import { selectDetailRoomQuote } from '@/lib/providers/sunweb/room-selector';
+import {
+  buildSunwebOccupancyClickOutHref,
+  withSunwebDepartureDate,
+  withSunwebRoomType,
+} from '@/lib/providers/sunweb/offer-context';
+import { DETAIL_SUNWEB_ROOM_QUOTES_ENABLED } from '@/lib/providers/sunweb/room-selector';
 import { resultsPricePresentation } from '@/lib/search/presentable-price';
 import type { SearchParams, TravelOffer } from '@/types/travel';
 
@@ -121,6 +138,11 @@ export function OfferDetailContent({
   isLastMinute,
   extras: extrasOverride,
   galleryNote,
+  roomHref,
+  roomQuotes,
+  compositionFailed,
+  tripDate,
+  adjustPath,
 }: {
   offer: TravelOffer;
   params: SearchParams;
@@ -137,13 +159,43 @@ export function OfferDetailContent({
   extras?: DetailOfferExtras;
   /** Lab-only caption under the gallery. Omitted on the live detail page. */
   galleryNote?: string;
+  /** Lab-only room links. The live page keeps the offer detail URL. */
+  roomHref?: (roomId: string) => string;
+  /** Sunweb GetRoomSelectorApi rooms for this party. Null when that call was not made. */
+  roomQuotes?: DetailRoomQuote[] | null;
+  /** The provider returned no total for the party on this page. */
+  compositionFailed?: boolean;
+  /** Visitor departure date. Sunweb reprices this; other providers ignore it. */
+  tripDate?: string;
+  /** Lab pages pass their own path. The live page uses the offer URL. */
+  adjustPath?: string;
 }) {
-  const extras = extrasOverride ?? buildDetailOfferExtras(offer, params, {
-    roomTypeLabel: selectedRoom?.name,
+  const roomChoiceEnabled = DETAIL_SUNWEB_ROOM_QUOTES_ENABLED;
+  const visitorDate = roomChoiceEnabled && tripDate && /^\d{4}-\d{2}-\d{2}$/.test(tripDate) ? tripDate : undefined;
+  const datedOffer = visitorDate && visitorDate !== offer.departureDate
+    ? { ...offer, departureDate: visitorDate }
+    : offer;
+  const pricedRoom = rooms.find((room) => room.included) ?? (selectedRoom?.included ? selectedRoom : null);
+  const extras = extrasOverride ?? buildDetailOfferExtras(datedOffer, params, {
+    roomTypeLabel: roomChoiceEnabled ? selectedRoom?.name : pricedRoom?.name,
   });
   const occupancySummary = formatOccupancySummary(params);
   const travelerLines = formatTravelerLines(params);
-  const bookHref = affiliateHref(offer, params);
+  const quotes = roomChoiceEnabled ? (roomQuotes ?? []) : [];
+  const selectedQuote = quotes.length > 0
+    ? selectDetailRoomQuote(quotes, params.selectedRoom ?? selectedRoom?.id)
+    : null;
+  const quoteTotal = selectedQuote?.totalPrice;
+  let bookHref = affiliateHref(offer, params);
+  if (offer.provider === 'Sunweb' && bookHref) {
+    bookHref = buildSunwebOccupancyClickOutHref(offer, params) ?? bookHref;
+    if (tripDate && tripDate !== offer.departureDate) {
+      bookHref = withSunwebDepartureDate(bookHref, tripDate) ?? bookHref;
+    }
+    if (selectedQuote) {
+      bookHref = withSunwebRoomType(bookHref, selectedQuote.id) ?? bookHref;
+    }
+  }
   const priceKind = resultsPricePresentation(offer);
   const destination = formatDestination(offer);
   const hasStars = typeof offer.stars === 'number' && offer.stars > 0;
@@ -155,11 +207,42 @@ export function OfferDetailContent({
   );
   const departureAirportLabel = formatDepartureAirport(offer);
   const additionalAirport = formatAdditionalAirport(offer);
-  const departurePhrase = formatDeparturePresentation(params, offer.departureDate).phrase;
+  const departurePhrase = formatDeparturePresentation(params, datedOffer.departureDate).phrase;
   const flightIncludedLabel = formatFlightIncluded(offer.flightIncluded);
-  const showAmount = presentable && priceKind === 'amount' && Boolean(extras.liveTotalPrice);
+  const quoteReplacesCatalogTotal =
+    typeof quoteTotal === 'number' && quoteTotal !== extras.liveTotalPrice?.amount;
+  const pricedExtras = {
+    ...extras,
+    ...(selectedQuote ? { roomTypeLabel: selectedQuote.name } : {}),
+    ...(typeof quoteTotal === 'number'
+      ? {
+          liveTotalPrice: { amount: quoteTotal, currency: extras.liveTotalPrice?.currency ?? 'EUR' },
+          liveTotalPriceField: 'GetRoomSelectorApi.totalPrice',
+          // The feed p.p. line and strike-through belong to the original total.
+          ...(quoteReplacesCatalogTotal
+            ? { livePricePerPerson: undefined, listPrice: undefined, discountPercentage: undefined }
+            : {}),
+        }
+      : {}),
+  };
+  const blockCatalogPrice = Boolean(compositionFailed) || (Boolean(tripDate) && tripDate !== offer.departureDate && typeof quoteTotal !== 'number');
+  const displayPresentable = typeof quoteTotal === 'number' ? true : presentable && !blockCatalogPrice;
+  const displayPriceKind = typeof quoteTotal === 'number' ? 'amount' as const : priceKind;
+  const showAmount = displayPresentable && displayPriceKind === 'amount' && Boolean(pricedExtras.liveTotalPrice);
+  const partyTotal = typeof quoteTotal === 'number'
+    ? { amount: quoteTotal, currency: 'EUR' as const }
+    : priceKind === 'amount' && !blockCatalogPrice
+      ? extras.liveTotalPrice
+      : undefined;
+  const roomPriceNote = roomChoiceEnabled
+    ? selectedQuote && typeof selectedQuote.totalPrice !== 'number'
+      ? `Prijs voor deze kamer zie je bij ${offer.provider}`
+      : selectedRoom && !selectedRoom.included && quotes.length === 0
+        ? `Prijs voor deze kamer zie je bij ${offer.provider}`
+        : undefined
+    : undefined;
   const accommodationLine = formatDetailAccommodation(offer.accommodationType, offer.accommodation);
-  const canBook = Boolean(showAmount && bookHref);
+  const canBook = Boolean(bookHref && (showAmount || roomPriceNote));
 
   const facts = [
     departurePhrase ? { label: 'Vertrekdatum', value: departurePhrase } : undefined,
@@ -175,8 +258,37 @@ export function OfferDetailContent({
     flightIncludedLabel ? { label: 'Vlucht', value: flightIncludedLabel } : undefined,
   ].filter((fact): fact is { label: string; value: string; testId?: string } => Boolean(fact));
 
+  const traveler: TravelerModel = params.party && params.party.length > 0
+    ? modelFromParty(params.party, params.rooms)
+    : {
+        adults: params.adults && params.adults > 0 ? params.adults : 2,
+        childAges: params.childAges ?? [],
+        roomCount: (params.rooms ?? 1) > 1 ? 2 : 1,
+        roomAssignments: Array.from(
+          { length: (params.adults && params.adults > 0 ? params.adults : 2) + (params.childAges?.length ?? 0) },
+          () => 0,
+        ),
+      };
+  const preservedQuery = (() => {
+    const href = buildOfferDetailHref(offer.id, params);
+    const url = new URL(href, 'https://vacationweb.local');
+    for (const key of ['adults', 'childAges', 'children', 'babies', 'rooms', 'partyRooms', 'dob', 'room', 'tripDate']) {
+      url.searchParams.delete(key);
+    }
+    return url.searchParams.toString();
+  })();
+  const partyLine = formatOccupancyCompositionNl(params, {
+    includeRooms: traveler.roomCount > 1,
+    joiner: ', ',
+  });
+
   return (
     <main className="min-h-screen bg-vw-bg font-vw-sans text-vw-ink">
+      <DetailAdjustProvider
+        pagePath={adjustPath ?? `/offers/${encodeURIComponent(offer.id)}`}
+        preservedQuery={preservedQuery}
+        initial={traveler}
+      >
       <ResultsSiteHeader appearance="results" />
 
       <div
@@ -254,13 +366,18 @@ export function OfferDetailContent({
 
           {/* mt-28 keeps the in-flow card below the mobile sticky bar on the first screen. Desktop margin is reset. */}
           <aside className="mt-28 min-w-0 min-[901px]:sticky min-[901px]:top-5 min-[901px]:col-start-2 min-[901px]:row-span-2 min-[901px]:row-start-1 min-[901px]:mt-0 min-[901px]:max-h-[calc(100vh-2.5rem)] min-[901px]:self-start min-[901px]:overflow-auto">
-            <OfferPriceCard
-              provider={offer.provider}
-              presentable={presentable}
-              priceKind={priceKind}
-              extras={extras}
-              bookHref={bookHref}
-            />
+            <DetailAdjustPrice>
+              <OfferPriceCard
+                provider={offer.provider}
+                presentable={displayPresentable}
+                priceKind={displayPriceKind}
+                extras={pricedExtras}
+                bookHref={bookHref}
+                roomPriceNote={roomPriceNote}
+                pricedRoomCaption={Boolean(partyTotal && (selectedQuote || selectedRoom?.included))}
+                compositionFailed={compositionFailed && typeof quoteTotal !== 'number' && !roomPriceNote}
+              />
+            </DetailAdjustPrice>
           </aside>
 
           <div className="min-w-0 min-[901px]:col-start-1 min-[901px]:row-start-2">
@@ -330,25 +447,34 @@ export function OfferDetailContent({
               </section>
             ) : null}
 
-            {rooms.length > 0 ? (
-              <section className={sectionClassName()}>
-                <h2 className="font-vw-serif text-2xl font-medium text-vw-navy">Kamertype</h2>
-                <p className="mt-1 text-[13.5px] text-vw-muted">
-                  {rooms.length} {rooms.length === 1 ? 'type' : 'types'} uit de catalogusgegevens van deze reis.
-                </p>
+            <DetailPartySummary label={partyLine || '2 volwassenen'} />
+
+            {roomChoiceEnabled && quotes.length > 0 ? (
+              <DetailAdjustRooms
+                rooms={quotes}
+                selectedId={selectedQuote?.id}
+                provider={offer.provider}
+              />
+            ) : roomChoiceEnabled && rooms.length > 0 ? (
+              <section className={sectionClassName()} data-testid="detail-room-choice">
+                <h2 className="font-vw-serif text-2xl font-medium text-vw-navy">Kies je kamer</h2>
                 <div className="mt-4 grid gap-2.5">
                   {rooms.map((room) => {
                     const selected = selectedRoom?.id === room.id;
-                    const href = buildOfferDetailHref(offer.id, {
-                      ...params,
-                      selectedRoom: room.id,
-                    });
+                    const href = roomHref
+                      ? roomHref(room.id)
+                      : buildOfferDetailHref(offer.id, {
+                          ...params,
+                          selectedRoom: room.id,
+                        });
+                    const priced = Boolean(room.included && partyTotal);
                     return (
                       <Link
                         key={room.id}
                         href={href}
                         scroll={false}
                         aria-current={selected ? 'true' : undefined}
+                        data-testid={priced ? 'detail-room-priced' : 'detail-room-unpriced'}
                         className={`block rounded-2xl border px-4 py-3.5 ${
                           selected
                             ? 'border-vw-navy bg-[#f1f4fa] shadow-[inset_0_0_0_1px_var(--vw-navy)]'
@@ -363,29 +489,29 @@ export function OfferDetailContent({
                                 Code {room.code}
                               </p>
                             ) : null}
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {room.included ? (
-                              <span className="rounded-full bg-[#dcf2e9] px-2.5 py-0.5 text-[11.5px] font-semibold text-[#1d6b55]">
-                                Inbegrepen
-                              </span>
-                            ) : null}
-                            {selected ? (
-                              <span className="rounded-full bg-vw-navy px-2.5 py-0.5 text-[11.5px] font-semibold text-white">
-                                Geselecteerd
-                              </span>
+                            {room.bedrooms ? (
+                              <p className="mt-0.5 text-[13px] text-vw-muted">{room.bedrooms}</p>
                             ) : null}
                           </div>
+                          {selected ? (
+                            <span className="rounded-full bg-vw-navy px-2.5 py-0.5 text-[11.5px] font-semibold text-white">
+                              Geselecteerd
+                            </span>
+                          ) : null}
                         </div>
                         {room.area ? <p className="mt-1.5 text-[13px] text-vw-muted">{room.area}</p> : null}
-                        {room.included && showAmount && extras.liveTotalPrice && extras.livePricePerPerson ? (
-                          <p className="mt-2 text-sm font-bold text-vw-navy">
-                            Totaal {formatDetailEuro(extras.liveTotalPrice.amount)} · {formatDetailEuro(extras.livePricePerPerson.amount)} p.p.
+                        {priced && partyTotal ? (
+                          <p className="mt-2 text-sm text-vw-navy">
+                            <span className="font-semibold text-vw-green">Prijs gebaseerd op deze kamer</span>
+                            <span className="mt-0.5 block font-bold">
+                              Totaal {formatDetailEuro(partyTotal.amount)}
+                            </span>
                           </p>
-                        ) : null}
-                        {!room.included ? (
-                          <p className="mt-2 text-[13px] text-[#98a1b2]">Niet live geprijsd</p>
-                        ) : null}
+                        ) : (
+                          <p className="mt-2 text-[13px] text-[#475569]">
+                            Prijs voor deze kamer zie je bij {offer.provider}
+                          </p>
+                        )}
                       </Link>
                     );
                   })}
@@ -426,6 +552,39 @@ export function OfferDetailContent({
                   </div>
                 ) : null}
               </section>
+            ) : pricedRoom ? (
+              <section className={sectionClassName()} data-testid="detail-priced-room">
+                <h2 className="font-vw-serif text-2xl font-medium text-vw-navy">{pricedRoom.name}</h2>
+                {pricedRoom.images.length > 0 ? (
+                  <OfferImageGallery images={pricedRoom.images} alt={pricedRoom.name} />
+                ) : null}
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 min-[1100px]:grid-cols-3">
+                  <RoomFact label="Kamercode" value={pricedRoom.code} />
+                  <RoomFact label="Oppervlakte" value={pricedRoom.area} />
+                  <RoomFact label="Slaapkamers" value={pricedRoom.bedrooms} />
+                  <RoomFact label="Bedden" value={pricedRoom.bedConfig} />
+                  <RoomFact label="Airconditioning" value={pricedRoom.airConditioning} />
+                  <RoomFact label="Balkon / terras" value={pricedRoom.balcony} />
+                  <RoomFact label="Zeezicht" value={pricedRoom.seaView} />
+                  <RoomFact label="Zwembad" value={pricedRoom.pool} />
+                  <RoomFact label="Badkamer" value={pricedRoom.bathroom} />
+                  <RoomFact label="Minibar" value={pricedRoom.minibar} />
+                  <RoomFact label="Kluis" value={pricedRoom.safe} />
+                  <RoomFact label="Wifi" value={pricedRoom.wifi} />
+                </div>
+                {pricedRoom.facilities.length > 0 ? (
+                  <ul className="mt-4 columns-1 gap-6 text-[13.5px] text-[#475569] sm:columns-2">
+                    {pricedRoom.facilities.flatMap((item) => providerTextBlocks(item)).map((item, index) => (
+                      <li key={`${index}-${item}`} className="break-inside-avoid py-0.5">
+                        <span className="mr-2 font-bold text-vw-green" aria-hidden>
+                          ✓
+                        </span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
             ) : null}
 
             {(shortBlocks.length > 0 || introBlocks.length > 0 || visibleSections.length > 0) && (
@@ -452,13 +611,18 @@ export function OfferDetailContent({
         </div>
       </div>
 
-      <OfferDetailMobileBar
-        provider={offer.provider}
-        presentable={presentable}
-        priceKind={priceKind}
-        extras={extras}
-        bookHref={bookHref}
-      />
+      <DetailAdjustMobile>
+        <OfferDetailMobileBar
+          provider={offer.provider}
+          presentable={displayPresentable}
+          priceKind={displayPriceKind}
+          extras={pricedExtras}
+          bookHref={bookHref}
+          roomPriceNote={roomPriceNote}
+          compositionFailed={compositionFailed && typeof quoteTotal !== 'number' && !roomPriceNote}
+        />
+      </DetailAdjustMobile>
+      </DetailAdjustProvider>
     </main>
   );
 }

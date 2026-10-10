@@ -501,6 +501,49 @@ function clickOutLandingHasOccupancy(
  * original TT wrap. Fail-closed (null) when trip fields, host, or occupancy
  * are not the proven contract — never send feed 2A Participants as 4p/2r.
  */
+const SUNWEB_ROOM_CODE = /^[A-Za-z0-9]{2,16}$/;
+
+/**
+ * Put the room chosen on our detail page onto the existing Sunweb landing.
+ * `RoomType[0]` is the room id GetRoomSelectorApi returns (for example `3KA125`).
+ * A TradeTracker `r=` / `u=` wrap is kept. Returns null when the code is not that shape.
+ */
+export function withSunwebRoomType(productUrl: string, roomCode: string): string | null {
+  if (!SUNWEB_ROOM_CODE.test(roomCode)) {
+    return null;
+  }
+  let landing: URL;
+  try {
+    landing = new URL(unwrapSunwebProductUrl(productUrl));
+  } catch {
+    return null;
+  }
+  landing.searchParams.set('RoomType[0]', roomCode);
+  return wrapSunwebOccupancyLanding(productUrl, landing.toString());
+}
+
+/**
+ * Replace the landing departure date. Used when the visitor picks another date
+ * on the detail page. Month follows that date. The TT wrap is kept.
+ */
+export function withSunwebDepartureDate(productUrl: string, departureDate: string): string | null {
+  if (!ISO_DATE.test(departureDate)) {
+    return null;
+  }
+  let landing: URL;
+  try {
+    landing = new URL(unwrapSunwebProductUrl(productUrl));
+  } catch {
+    return null;
+  }
+  landing.searchParams.set('DepartureDate[0]', departureDate);
+  if (landing.searchParams.has('DepartureDate')) {
+    landing.searchParams.set('DepartureDate', departureDate);
+  }
+  landing.searchParams.set('Month', departureDate.slice(0, 7));
+  return wrapSunwebOccupancyLanding(productUrl, landing.toString());
+}
+
 export function buildSunwebOccupancyClickOutHref(
   offer: TravelOffer,
   params: SearchParams,

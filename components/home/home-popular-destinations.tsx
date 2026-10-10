@@ -41,63 +41,41 @@ export function HomePopularDestinations({
   const displayDestinations = prepareDestinationsForDisplay(destinations);
 
   return (
-    <section id="popular-destinations" className="bg-[#FBF6F0]">
-      <div className="mx-auto w-[86.8vw] px-4 py-2 sm:px-6 lg:px-0 lg:py-5">
-        <div className="flex items-end justify-between gap-4">
+    <section id="popular-destinations" className="px-[18px] pb-[clamp(48px,7vw,90px)] sm:px-[clamp(20px,4vw,56px)]">
+      <div className="mx-auto max-w-[1180px]">
+        <div className="mb-7 flex flex-col items-start gap-3 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2
-              className="text-[1.4rem] font-semibold tracking-tight text-[#0A2D62] lg:text-[27px]"
-              style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
-            >
-              {copy.title}
-            </h2>
-            <p className="mt-0.5 text-[12px] text-[#64748B]">{copy.subtitle}</p>
+            <h2 className="vw-home-h2">{copy.title}</h2>
+            <p className="mt-2 text-[15px] text-white/80">{copy.subtitle}</p>
           </div>
-          <Link
-            href="/bestemmingen"
-            className="hidden text-[12.5px] font-semibold text-[#3B82C4] sm:inline-flex"
-          >
-            {copy.viewAll} →
+          <Link href="/bestemmingen" className="border-b border-current pb-0.5 text-[14.5px] font-medium text-white">
+            {copy.viewAll}
           </Link>
         </div>
 
-        <ul className="mt-4 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:grid-cols-3 sm:overflow-visible lg:flex lg:flex-nowrap lg:justify-between lg:gap-3.5 lg:overflow-visible [&::-webkit-scrollbar]:hidden">
-          {displayDestinations.map((destination, index) => {
-            const imageSrc =
-              DESTINATION_IMAGES[destination.name] ?? '/images/verified/popular/greece.jpg';
+        <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+          {displayDestinations.map((destination) => {
+            const imageSrc = DESTINATION_IMAGES[destination.name] ?? '/images/verified/popular/greece.jpg';
+            const name = copy.countryNames[destination.name] ?? destination.name;
             return (
-              <li key={destination.name} className="flex w-[70%] shrink-0 sm:w-auto lg:min-w-0 lg:flex-1">
+              <li key={destination.name}>
                 <Link
                   href={buildPopularDestinationHref(destination.name)}
-                  className="group flex h-full w-full flex-col overflow-hidden rounded-[12px] bg-white shadow-[0_6px_18px_rgba(10,45,98,0.07)] ring-1 ring-[#E8E4DC]/80"
+                  className="vw-home-tile group relative block aspect-[3/4] overflow-hidden rounded-[16px] shadow-[0_24px_50px_-28px_rgba(0,0,0,0.6)]"
                 >
-                  <div className="relative h-[150px] shrink-0 overflow-hidden sm:h-[170px] lg:h-[200px]">
-                    <Image
-                      src={imageSrc}
-                      alt=""
-                      fill
-                      sizes="(max-width: 640px) 70vw, 20vw"
-                      className="object-cover object-center transition duration-700 group-hover:scale-[1.03]"
-                    />
-                  </div>
-                  <div className="flex h-[58px] shrink-0 items-center justify-between gap-2 px-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-[14px] font-semibold leading-tight text-[#0A2D62]">
-                        {copy.countryNames[destination.name] ?? destination.name}
-                      </h3>
-                      <p className="mt-0.5 truncate text-[12px] leading-tight text-[#64748B]">
-                        {copy.blurbs[destination.name] ?? copy.fallbackBlurb}
-                      </p>
-                    </div>
-                    <span
-                      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] text-[#0A2D62] shadow-sm ${
-                        index === 0 ? 'bg-[#E8C547]' : 'bg-[#F3F0EA]'
-                      }`}
-                      aria-hidden
-                    >
-                      →
+                  <Image
+                    src={imageSrc}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 46vw, 18vw"
+                    className="vw-home-tile-img object-cover group-hover:scale-105 motion-reduce:transform-none"
+                  />
+                  <span className="absolute inset-x-2 bottom-2 rounded-[12px] border border-white/35 bg-white/15 px-3 py-2 backdrop-blur-[14px]">
+                    <span className="block truncate font-vw-serif text-[17px] font-medium leading-tight">{name}</span>
+                    <span className="mt-0.5 hidden truncate text-[12px] text-white/80 sm:block">
+                      {copy.blurbs[destination.name] ?? copy.fallbackBlurb}
                     </span>
-                  </div>
+                  </span>
                 </Link>
               </li>
             );

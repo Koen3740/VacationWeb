@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { OfferDetailContent } from '@/components/offers/offer-detail-content';
 import { galleryKeyDelta, stepGalleryIndex } from '@/components/offers/offer-image-gallery';
 import { OfferPriceCard } from '@/components/offers/offer-price-card';
+import type { CatalogRoomType } from '@/lib/offers/catalog-content';
 import { buildDetailOfferExtras } from '@/lib/offers/detail-extras';
 import { collectThemeLabels } from '@/lib/offers/offer-detail-view';
 import type { TravelOffer } from '@/types/travel';
@@ -272,6 +273,127 @@ test('Sunweb detail copy turns br into paragraphs, drops object chips, and hides
   assert.doesNotMatch(html, /\[object Object\]/);
   assert.match(html, /Accommodatie<\/dt><dd[^>]*>Hotel</);
   assert.doesNotMatch(html, /40348/);
+});
+
+function catalogRoom(
+  partial: Pick<CatalogRoomType, 'id' | 'name' | 'included'> & Partial<CatalogRoomType>,
+): CatalogRoomType {
+  return {
+    facilities: [],
+    images: [],
+    ...partial,
+  };
+}
+
+test('detail shows the priced room and a travellers summary, without a room or date picker', () => {
+  const rooms = [
+    catalogRoom({ id: 'type-i', name: '2-kamerappartement type I', code: 'I', included: true, area: '28 m²' }),
+    catalogRoom({ id: 'villa-a', name: '3-kamer villa type A', code: 'A', included: false }),
+    catalogRoom({ id: 'apt-3', name: '3-kamerappartement type I', included: false, bedrooms: '3 slaapkamers' }),
+  ];
+  const priced = renderToStaticMarkup(
+    createElement(OfferDetailContent, {
+      offer: makeOffer(),
+      params: TWO_ADULTS,
+      resultsHref: '/results',
+      galleryImages: IMAGES,
+      rooms,
+      selectedRoom: rooms[1],
+      sections: [],
+      presentable: true,
+      themes: [],
+      isLastMinute: false,
+    }),
+  );
+
+  assert.match(priced, /data-testid="detail-party-summary"[^>]*>2 volwassenen · Wijzigen/);
+  assert.match(priced, /data-testid="detail-priced-room"[\s\S]*2-kamerappartement type I/);
+  assert.match(priced, /28 m²/);
+  assert.doesNotMatch(priced, /Kies je kamer/);
+  assert.doesNotMatch(priced, /Pas je reis aan/);
+  assert.doesNotMatch(priced, /3-kamer villa type A/);
+  assert.doesNotMatch(priced, /3 slaapkamers/);
+  assert.doesNotMatch(priced, /type="date"/);
+  assert.match(priced, /data-testid="detail-total"[^>]*>[^<]*2\.215,50/);
+  assert.doesNotMatch(priced, /data-testid="detail-room-price-note"/);
+  const outbound = [...priced.matchAll(/<a href="([^"]+)" target="_blank"/g)].map((match) => match[1]);
+  assert.deepEqual(outbound, ['https://www.sunweb.be/hotel', 'https://www.sunweb.be/hotel']);
+  assert.doesNotMatch(outbound.join(' '), /room=|RoomType|unit=|1986-01-01/i);
+
+  const withChild = renderToStaticMarkup(
+    createElement(OfferDetailContent, {
+      offer: makeOffer(),
+      params: {
+        adults: 2,
+        children: 1,
+        rooms: 1,
+        childAges: [8],
+        party: [
+          { age: null, roomIndex: 0 },
+          { age: null, roomIndex: 0 },
+          { age: 8, roomIndex: 0 },
+        ],
+      },
+      resultsHref: '/results',
+      galleryImages: IMAGES,
+      rooms,
+      selectedRoom: rooms[0],
+      sections: [],
+      presentable: true,
+      themes: [],
+      isLastMinute: false,
+    }),
+  );
+  assert.match(withChild, /data-testid="detail-party-summary"[^>]*>2 volwassenen, 1 kind · Wijzigen/);
+});
+
+test('parked room quotes do not replace the party total, and a missing total stays unlabeled', () => {
+  const html = renderToStaticMarkup(
+    createElement(OfferDetailContent, {
+      offer: makeOffer(),
+      params: TWO_ADULTS,
+      resultsHref: '/results',
+      galleryImages: IMAGES,
+      rooms: [],
+      selectedRoom: null,
+      sections: [],
+      presentable: true,
+      themes: [],
+      isLastMinute: false,
+      roomQuotes: [
+        { id: '2KA123', name: '2-kamerappartement type I', capacityText: 'geschikt voor 2 tot 3 personen', totalPrice: 1254.88 },
+        { id: '3KA125', name: '3-kamerappartement type I', totalPrice: 1336.98 },
+        { id: '3KVA25', name: '3-kamer villa type A' },
+      ],
+    }),
+  );
+  assert.match(html, /2 volwassenen · Wijzigen/);
+  assert.doesNotMatch(html, /Kies je kamer/);
+  assert.doesNotMatch(html, /1\.254,88/);
+  assert.doesNotMatch(html, /RoomType/);
+  assert.match(html, /data-testid="detail-total"[^>]*>[^<]*2\.215,50/);
+
+  const failed = renderToStaticMarkup(
+    createElement(OfferDetailContent, {
+      offer: makeOffer({ liveTotalPrice: undefined, livePriceStatus: 'unavailable' }),
+      params: { ...TWO_ADULTS, childAges: [8], children: 1 },
+      resultsHref: '/results',
+      galleryImages: IMAGES,
+      rooms: [],
+      selectedRoom: null,
+      sections: [],
+      presentable: false,
+      themes: [],
+      isLastMinute: false,
+      compositionFailed: true,
+    }),
+  );
+  assert.match(failed, /Prijs niet beschikbaar voor deze samenstelling/);
+  assert.doesNotMatch(failed, /data-testid="detail-total"/);
+  assert.match(
+    readFileSync(join(ROOT, 'components/offers/offer-trip-adjust.tsx'), 'utf8'),
+    /Prijs wordt opgehaald…/,
+  );
 });
 
 test('detail components do not hardcode unverified price claims', () => {

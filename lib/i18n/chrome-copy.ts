@@ -17,7 +17,7 @@ export type ChromeCopy = {
   nav: Record<SiteNavKey, string> & { ariaLabel: string };
   header: { saved: string; favorites: string; account: string };
   mobileNav: { title: string; open: string; close: string };
-  hero: { title: string; subtitle: string };
+  hero: { eyebrow: string; title: string; subtitle: string; scrollHint: string };
   search: {
     destinationLabel: string;
     destinationPlaceholder: string;
@@ -37,8 +37,13 @@ export type ChromeCopy = {
     cta: string;
     busy: string;
   };
-  trust: { ariaLabel: string; items: ReadonlyArray<{ label: string; detail: string }> };
-  discover: { title: string; subtitle: string; viewAll: string };
+  trust: {
+    ariaLabel: string;
+    kicker: string;
+    title: string;
+    items: ReadonlyArray<{ label: string; detail: string }>;
+  };
+  discover: { kicker: string; title: string; subtitle: string; viewAll: string; offers: string };
   inspiration: { eyebrow: string; title: string; body: string; cta: string; quote: string };
   popular: {
     title: string;
@@ -50,6 +55,7 @@ export type ChromeCopy = {
     blurbs: Readonly<Record<string, string>>;
   };
   value: {
+    kicker: string;
     title: string;
     body: string;
     cta: string;
@@ -67,6 +73,7 @@ export type ChromeCopy = {
     discoverHeading: string;
     aboutHeading: string;
     serviceHeading: string;
+    about: string;
     mission: string;
     howItWorks: string;
     faq: string;
@@ -104,8 +111,11 @@ const NL: ChromeCopy = {
   header: { saved: 'Opgeslagen', favorites: 'Favorieten', account: 'Account' },
   mobileNav: { title: 'Menu', open: 'Menu openen', close: 'Menu sluiten' },
   hero: {
+    eyebrow: 'Vakanties vergelijken bij meerdere reisaanbieders',
     title: 'Meer vakantie voor jouw budget.',
-    subtitle: 'Vergelijk vakanties van meerdere reisaanbieders in een zoekopdracht.',
+    subtitle:
+      'Zoek één keer, vergelijk aanbiedingen van verschillende reispartners en kies zelf waar je boekt.',
+    scrollHint: 'Scroll',
   },
   search: {
     destinationLabel: 'Bestemming',
@@ -128,6 +138,8 @@ const NL: ChromeCopy = {
   },
   trust: {
     ariaLabel: 'Vertrouwen',
+    kicker: 'Waarom VacationWeb',
+    title: 'Eén zoekopdracht. Jij houdt het overzicht.',
     items: [
       { label: 'Onafhankelijk', detail: 'Eerlijke vergelijking' },
       { label: 'Actuele prijs', detail: 'Direct van de aanbieder' },
@@ -136,9 +148,11 @@ const NL: ChromeCopy = {
     ],
   },
   discover: {
-    title: 'Vandaag ontdekt',
-    subtitle: 'Nieuwe plekken. Echte verhalen. Laat je inspireren.',
-    viewAll: 'Bekijk alle ontdekkingen',
+    kicker: 'Bestemmingen ontdekken',
+    title: 'Waar zou je nu willen zijn?',
+    subtitle: '',
+    viewAll: 'Alle bestemmingen',
+    offers: 'Aanbiedingen',
   },
   inspiration: {
     eyebrow: 'Meer dan vakanties',
@@ -162,13 +176,23 @@ const NL: ChromeCopy = {
     },
   },
   value: {
-    title: 'Jouw volgende vakantie begint hier',
-    body: 'Of je nu al weet waar je naartoe wilt, of gewoon wilt ontdekken — wij helpen je verder.',
+    kicker: 'Zo werkt het',
+    title: 'In drie stappen naar je vakantie',
+    body: 'VacationWeb vergelijkt. Boeken en betalen doe je bij de reispartner die jij kiest.',
     cta: 'Start met zoeken',
     points: [
-      { title: 'Eenvoudig vergelijken', body: 'Meerdere reisorganisaties' },
-      { title: 'Altijd actuele prijzen', body: 'Geen verouderde vanaf-prijzen' },
-      { title: 'Rechtstreeks boeken', body: 'Bij de aanbieder zelf' },
+      {
+        title: 'Zoeken',
+        body: 'Kies bestemming, periode, reisduur, luchthaven en reizigers.',
+      },
+      {
+        title: 'Vergelijken',
+        body: 'Bekijk aanbiedingen van verschillende reispartners naast elkaar.',
+      },
+      {
+        title: 'Boeken bij de aanbieder',
+        body: 'Je gaat door naar de reispartner en boekt daar rechtstreeks.',
+      },
     ],
   },
   newsletter: {
@@ -183,6 +207,7 @@ const NL: ChromeCopy = {
     discoverHeading: 'Ontdek',
     aboutHeading: 'Over ons',
     serviceHeading: 'Service',
+    about: 'Onafhankelijk vakanties vergelijken. Je boekt rechtstreeks bij de reispartner.',
     mission: 'Onze missie',
     howItWorks: 'Zo werkt het',
     faq: 'Veelgestelde vragen',
@@ -220,8 +245,11 @@ const FR: ChromeCopy = {
   header: { saved: 'Favoris', favorites: 'Favoris', account: 'Compte' },
   mobileNav: { title: 'Menu', open: 'Ouvrir le menu', close: 'Fermer le menu' },
   hero: {
+    eyebrow: 'Comparez des vacances chez plusieurs voyagistes',
     title: 'Plus de vacances pour votre budget.',
-    subtitle: 'Comparez les vacances de plusieurs voyagistes en une seule recherche.',
+    subtitle:
+      'Cherchez une fois, comparez les offres de différents partenaires et choisissez vous-même où réserver.',
+    scrollHint: 'Défiler',
   },
   search: {
     destinationLabel: 'Destination',
@@ -244,6 +272,8 @@ const FR: ChromeCopy = {
   },
   trust: {
     ariaLabel: 'Confiance',
+    kicker: 'Pourquoi VacationWeb',
+    title: 'Une recherche. Vous gardez la vue d’ensemble.',
     items: [
       { label: 'Indépendant', detail: 'Une comparaison honnête' },
       { label: 'Prix actuel', detail: 'Directement du voyagiste' },
@@ -252,9 +282,11 @@ const FR: ChromeCopy = {
     ],
   },
   discover: {
-    title: 'Découvert aujourd’hui',
-    subtitle: 'De nouveaux lieux. De vraies histoires. Laissez-vous inspirer.',
-    viewAll: 'Voir toutes les découvertes',
+    kicker: 'Découvrir des destinations',
+    title: 'Où aimeriez-vous être\u00a0?',
+    subtitle: '',
+    viewAll: 'Toutes les destinations',
+    offers: 'Promotions',
   },
   inspiration: {
     eyebrow: 'Bien plus que des vacances',
@@ -284,13 +316,23 @@ const FR: ChromeCopy = {
     },
   },
   value: {
-    title: 'Vos prochaines vacances commencent ici',
-    body: 'Que vous sachiez déjà où partir ou que vous ayez simplement envie de découvrir, nous vous aidons à trouver.',
+    kicker: 'Comment ça marche',
+    title: 'Vos vacances en trois étapes',
+    body: 'VacationWeb compare. Vous réservez et payez auprès du partenaire que vous choisissez.',
     cta: 'Lancer la recherche',
     points: [
-      { title: 'Comparer facilement', body: 'Plusieurs voyagistes' },
-      { title: 'Des prix toujours actuels', body: 'Pas de prix «\u00a0à partir de\u00a0» dépassés' },
-      { title: 'Réserver en direct', body: 'Chez le voyagiste lui-même' },
+      {
+        title: 'Chercher',
+        body: 'Choisissez la destination, la période, la durée, l’aéroport et les voyageurs.',
+      },
+      {
+        title: 'Comparer',
+        body: 'Voyez les offres de différents partenaires côte à côte.',
+      },
+      {
+        title: 'Réserver chez le voyagiste',
+        body: 'Vous continuez chez le partenaire et réservez directement là-bas.',
+      },
     ],
   },
   newsletter: {
@@ -305,6 +347,8 @@ const FR: ChromeCopy = {
     discoverHeading: 'Découvrir',
     aboutHeading: 'À propos',
     serviceHeading: 'Service',
+    about:
+      'Comparez des vacances en toute indépendance. Vous réservez directement auprès du partenaire de voyage.',
     mission: 'Notre mission',
     howItWorks: 'Comment ça marche',
     faq: 'Questions fréquentes',

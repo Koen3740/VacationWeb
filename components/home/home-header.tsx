@@ -9,7 +9,7 @@ import Link from 'next/link';
 function ProfileIcon() {
   return (
     <span
-      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D6D0C4] bg-white/80 text-[#0A2D62]"
+      className="inline-flex h-7 w-7 items-center justify-center text-white"
       aria-hidden
     >
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -46,53 +46,45 @@ export function HomeHeader() {
   const copy = useChromeCopy();
   const navLinks = SITE_NAV_ITEMS.map((item) => ({ label: copy.nav[item.key], href: item.href }));
   return (
-    <header className="relative z-50 bg-[#E8EDF4]">
-      <div className="mx-auto flex h-[56px] w-[86.8vw] items-center justify-between gap-3 px-4 sm:h-[70px] sm:px-6 lg:px-0">
-        <Link href="/" className="inline-flex min-w-0 items-center gap-2">
-          <span
-            className="text-[52px] font-bold leading-none text-[#0A2D62] drop-shadow-sm"
-            style={{ fontFamily: 'var(--font-vw-serif), Georgia, serif' }}
-          >
-            W
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[22px] font-bold leading-none tracking-tight text-[#0A2D62]">
-              VacationWeb
-            </span>
-            <span className="mt-0.5 hidden text-[9.5px] leading-tight text-[#334155]/90 min-[900px]:block">
-              Discover more. Travel smarter.
-            </span>
+    <header className="absolute inset-x-0 top-0 z-40 bg-transparent text-white">
+      <div className="mx-auto flex h-[64px] w-full max-w-[1180px] items-center justify-between gap-3 px-[18px] sm:h-[76px] sm:px-[clamp(20px,4vw,56px)]">
+        <Link href="/" className="inline-flex min-w-0 items-center gap-2 [text-shadow:0_1px_12px_rgba(0,0,0,0.25)]">
+          <span className="font-vw-serif text-[26px] font-medium leading-none">W</span>
+          <span className="font-vw-serif text-[22px] font-medium leading-none tracking-[-0.01em] sm:text-[24px]">
+            VacationWeb
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-5 xl:flex" aria-label={copy.nav.ariaLabel}>
+        <nav className="hidden items-center gap-7 xl:flex" aria-label={copy.nav.ariaLabel}>
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-[13.5px] font-medium text-[#1E293B] transition hover:text-[#0A2D62]"
+              className="text-[14.5px] font-medium text-white/90 transition hover:text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.3)]"
             >
               {link.label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-2.5 sm:gap-3.5">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/favorieten"
-            className="hidden items-center gap-1.5 text-[13px] font-medium text-[#1E293B] transition hover:text-[#0A2D62] sm:inline-flex"
+            className="vw-glass-chip hidden gap-1.5 text-[13px] font-medium text-white transition hover:bg-white/20 sm:inline-flex"
+            aria-label={copy.header.saved}
           >
             <HeartIcon />
-            {copy.header.saved}
+            <span className="hidden lg:inline">{copy.header.saved}</span>
           </Link>
-          <span className="hidden lg:inline-flex" title={copy.header.account}>
+          <span className="vw-glass-chip hidden h-9 w-9 p-0 lg:inline-flex" title={copy.header.account}>
             <ProfileIcon />
           </span>
-          <LanguageSwitcher />
+          <LanguageSwitcher tone="onPhoto" />
           <div className="xl:hidden">
             <HomeMobileNav
               links={[...navLinks, { label: copy.header.saved, href: '/favorieten' }]}
               labels={{ ...copy.mobileNav, navigation: copy.nav.ariaLabel }}
+              buttonClassName="vw-glass-chip inline-flex h-9 w-9 p-0 text-white hover:bg-white/20"
             />
           </div>
         </div>

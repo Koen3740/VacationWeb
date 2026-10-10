@@ -12,6 +12,7 @@ import { UI_LANGUAGE_CODES, UI_LANGUAGE_NAMES, type UiLanguage } from '@/lib/i18
  * vacationweb.nl (and hosts without market): static "NL" indicator, no FR option.
  */
 const BASE_CLASS = 'inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#0A2D62]';
+const ON_PHOTO_CLASS = 'vw-glass-chip inline-flex h-9 gap-1.5 px-3 text-[13px] font-semibold text-white';
 
 function LanguageIndicator({ language }: { language: UiLanguage }) {
   return (
@@ -25,19 +26,23 @@ function LanguageIndicator({ language }: { language: UiLanguage }) {
 export function LanguageSwitcher({
   className = '',
   initialOpen = false,
+  tone = 'default',
 }: {
   className?: string;
   /** Menu initially open (tests / static render only). */
   initialOpen?: boolean;
+  /** Homepage photo: glass chip. The menu itself stays a solid panel. */
+  tone?: 'default' | 'onPhoto';
 }) {
   const { language, supportedLanguages } = useUiLanguage();
   const copy = useChromeCopy();
+  const toneClass = tone === 'onPhoto' ? ON_PHOTO_CLASS : BASE_CLASS;
 
   if (supportedLanguages.length < 2) {
     // Static indicator: no router / cookie logic, so it renders anywhere (also outside the app router).
     return (
       <span
-        className={`${BASE_CLASS} ${className}`}
+        className={`${toneClass} ${className}`}
         title={UI_LANGUAGE_NAMES[language]}
         aria-label={`${copy.switcher.label}: ${UI_LANGUAGE_NAMES[language]}`}
         data-testid="language-indicator"
@@ -47,10 +52,18 @@ export function LanguageSwitcher({
     );
   }
 
-  return <LanguageSwitcherMenu className={className} initialOpen={initialOpen} />;
+  return <LanguageSwitcherMenu className={className} initialOpen={initialOpen} tone={tone} />;
 }
 
-function LanguageSwitcherMenu({ className, initialOpen }: { className: string; initialOpen: boolean }) {
+function LanguageSwitcherMenu({
+  className,
+  initialOpen,
+  tone,
+}: {
+  className: string;
+  initialOpen: boolean;
+  tone: 'default' | 'onPhoto';
+}) {
   const menuId = useId();
   const { language, supportedLanguages } = useUiLanguage();
   const copy = useChromeCopy();
@@ -96,10 +109,10 @@ function LanguageSwitcherMenu({ className, initialOpen }: { className: string; i
         aria-expanded={open}
         aria-controls={menuId}
         aria-label={`${copy.switcher.label}: ${UI_LANGUAGE_NAMES[language]}. ${copy.switcher.change}`}
-        className={`${BASE_CLASS} rounded-full px-1.5 py-1 transition hover:text-[#082452] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2D62]`}
+        className={`${tone === 'onPhoto' ? ON_PHOTO_CLASS : `${BASE_CLASS} rounded-full px-1.5 py-1 hover:text-[#082452]`} transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white`}
       >
         <LanguageIndicator language={language} />
-        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden className="text-[#64748B]">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden className={tone === 'onPhoto' ? 'text-white/80' : 'text-[#64748B]'}>
           <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>

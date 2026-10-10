@@ -1,63 +1,20 @@
 import { CHROME_COPY, type ChromeCopy } from '@/lib/i18n/chrome-copy';
 
-const TRUST_ICONS = [
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3z" stroke="#0A2D62" strokeWidth="1.5" />
-        <path d="M9 12l2 2 4-4" stroke="#0A2D62" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <rect x="4" y="6" width="16" height="13" rx="2" stroke="#0A2D62" strokeWidth="1.5" />
-        <path d="M8 6V5a2 2 0 012-2h4a2 2 0 012 2v1" stroke="#0A2D62" strokeWidth="1.5" />
-        <path d="M8 13h8M8 16h5" stroke="#0A2D62" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path
-          d="M12 20s-7-4.5-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.5-7 10-7 10z"
-          stroke="#0A2D62"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3z" stroke="#0A2D62" strokeWidth="1.5" />
-        <path
-          d="M12 11.5c.8 0 1.4-.6 1.4-1.3S12.8 9 12 9s-1.4.5-1.4 1.2.6 1.3 1.4 1.3z"
-          fill="#0A2D62"
-        />
-        <path d="M12 12.5v3" stroke="#0A2D62" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-] as const;
-
-/** t66u: labels from the chrome dictionary (default Dutch); icons stay in this order. */
+/** t66u: labels from the chrome dictionary (default Dutch). Glass cards over the hero photo. */
 export function HomeTrustStrip({ copy = CHROME_COPY.nl.trust }: { copy?: ChromeCopy['trust'] } = {}) {
-  const items = copy.items.map((item, index) => ({ ...item, icon: TRUST_ICONS[index]?.icon }));
   return (
-    <section aria-label={copy.ariaLabel} className="bg-[#FBF6F0]">
-      <div className="mx-auto flex min-h-0 w-[80vw] items-center px-4 py-3.5 sm:px-6 lg:min-h-[70px] lg:px-0 lg:py-0">
-        <ul className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:items-center lg:justify-between lg:gap-4">
-          {items.map((item) => (
-            <li key={item.label} className="flex items-center gap-2.5 lg:shrink-0">
-              <span className="shrink-0 text-[#0A2D62]">{item.icon}</span>
-              <div>
-                <p className="text-[14px] font-semibold leading-tight text-[#0A2D62]">{item.label}</p>
-                <p className="mt-0.5 text-[12px] leading-tight text-[#64748B]">{item.detail}</p>
-              </div>
+    <section aria-label={copy.ariaLabel} className="px-[18px] pb-4 pt-2 sm:px-[clamp(20px,4vw,56px)] sm:pt-[clamp(40px,5vw,70px)]">
+      <div className="mx-auto max-w-[1180px]">
+        <p className="vw-home-kicker">{copy.kicker}</p>
+        <h2 className="vw-home-h2 mb-8 max-w-[16ch] sm:mb-10">{copy.title}</h2>
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-[18px] xl:grid-cols-4">
+          {copy.items.map((item, index) => (
+            <li key={item.label} className="vw-glass px-6 py-6 sm:px-7 sm:py-8">
+              <p className="font-vw-serif text-[15px] text-white/70">{String(index + 1).padStart(2, '0')}</p>
+              <h3 className="mt-3 font-vw-serif text-[21px] font-medium leading-snug text-white sm:mt-4 sm:text-[23px]">
+                {item.label}
+              </h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-white/80">{item.detail}</p>
             </li>
           ))}
         </ul>
