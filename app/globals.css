@@ -115,3 +115,14 @@ body {
   outline: 2px solid #89acd3;
   outline-offset: 2px;
 }
+
+/* Detail gallery: one horizontal snap row on small screens, mosaic from 901px. */
+.vw-detail-snap {
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.vw-detail-snap::-webkit-scrollbar {
+  display: none;
+}

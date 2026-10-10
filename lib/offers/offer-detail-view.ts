@@ -142,6 +142,28 @@ export function formatOfferReturnDateLabel(offer: TravelOffer): string | undefin
   return formatReturnDateLabel(offer.departureDate, catalogReturnDateOffsetDays(offer));
 }
 
+/** Weekday + short date for the detail journey lines. Same ISO calendar as the return-date SSOT. */
+export function formatTripDateNl(raw: string | undefined): string | undefined {
+  const iso = normalizeDepartureDateToIso(raw);
+  if (!iso) {
+    return undefined;
+  }
+  const [year, month, day] = iso.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.toLocaleDateString('nl-NL', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/** Detail click-out label. Results cards keep their own label. */
+export function detailBookCtaLabel(provider: string): string {
+  return `Bekijk en boek bij ${provider.trim()}`;
+}
+
 export function formatDepartureAirport(offer: TravelOffer): string | undefined {
   return formatOfferDepartureAirportLabel(offer);
 }
