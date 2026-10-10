@@ -121,6 +121,7 @@ export function OfferDetailContent({
   isLastMinute,
   extras: extrasOverride,
   galleryNote,
+  roomHref,
 }: {
   offer: TravelOffer;
   params: SearchParams;
@@ -137,6 +138,8 @@ export function OfferDetailContent({
   extras?: DetailOfferExtras;
   /** Lab-only caption under the gallery. Omitted on the live detail page. */
   galleryNote?: string;
+  /** Lab-only room links. The live page keeps the offer detail URL. */
+  roomHref?: (roomId: string) => string;
 }) {
   const extras = extrasOverride ?? buildDetailOfferExtras(offer, params, {
     roomTypeLabel: selectedRoom?.name,
@@ -158,8 +161,13 @@ export function OfferDetailContent({
   const departurePhrase = formatDeparturePresentation(params, offer.departureDate).phrase;
   const flightIncludedLabel = formatFlightIncluded(offer.flightIncluded);
   const showAmount = presentable && priceKind === 'amount' && Boolean(extras.liveTotalPrice);
+  const partyTotal = priceKind === 'amount' ? extras.liveTotalPrice : undefined;
+  const roomPriceNote =
+    selectedRoom && !selectedRoom.included
+      ? `Prijs voor deze kamer zie je bij ${offer.provider}`
+      : undefined;
   const accommodationLine = formatDetailAccommodation(offer.accommodationType, offer.accommodation);
-  const canBook = Boolean(showAmount && bookHref);
+  const canBook = Boolean(bookHref && (showAmount || roomPriceNote));
 
   const facts = [
     departurePhrase ? { label: 'Vertrekdatum', value: departurePhrase } : undefined,
@@ -260,6 +268,8 @@ export function OfferDetailContent({
               priceKind={priceKind}
               extras={extras}
               bookHref={bookHref}
+              roomPriceNote={roomPriceNote}
+              pricedRoomCaption={Boolean(partyTotal && selectedRoom?.included)}
             />
           </aside>
 
@@ -331,24 +341,25 @@ export function OfferDetailContent({
             ) : null}
 
             {rooms.length > 0 ? (
-              <section className={sectionClassName()}>
-                <h2 className="font-vw-serif text-2xl font-medium text-vw-navy">Kamertype</h2>
-                <p className="mt-1 text-[13.5px] text-vw-muted">
-                  {rooms.length} {rooms.length === 1 ? 'type' : 'types'} uit de catalogusgegevens van deze reis.
-                </p>
+              <section className={sectionClassName()} data-testid="detail-room-choice">
+                <h2 className="font-vw-serif text-2xl font-medium text-vw-navy">Kies je kamer</h2>
                 <div className="mt-4 grid gap-2.5">
                   {rooms.map((room) => {
                     const selected = selectedRoom?.id === room.id;
-                    const href = buildOfferDetailHref(offer.id, {
-                      ...params,
-                      selectedRoom: room.id,
-                    });
+                    const href = roomHref
+                      ? roomHref(room.id)
+                      : buildOfferDetailHref(offer.id, {
+                          ...params,
+                          selectedRoom: room.id,
+                        });
+                    const priced = Boolean(room.included && partyTotal);
                     return (
                       <Link
                         key={room.id}
                         href={href}
                         scroll={false}
                         aria-current={selected ? 'true' : undefined}
+                        data-testid={priced ? 'detail-room-priced' : 'detail-room-unpriced'}
                         className={`block rounded-2xl border px-4 py-3.5 ${
                           selected
                             ? 'border-vw-navy bg-[#f1f4fa] shadow-[inset_0_0_0_1px_var(--vw-navy)]'
@@ -363,29 +374,29 @@ export function OfferDetailContent({
                                 Code {room.code}
                               </p>
                             ) : null}
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {room.included ? (
-                              <span className="rounded-full bg-[#dcf2e9] px-2.5 py-0.5 text-[11.5px] font-semibold text-[#1d6b55]">
-                                Inbegrepen
-                              </span>
-                            ) : null}
-                            {selected ? (
-                              <span className="rounded-full bg-vw-navy px-2.5 py-0.5 text-[11.5px] font-semibold text-white">
-                                Geselecteerd
-                              </span>
+                            {room.bedrooms ? (
+                              <p className="mt-0.5 text-[13px] text-vw-muted">{room.bedrooms}</p>
                             ) : null}
                           </div>
+                          {selected ? (
+                            <span className="rounded-full bg-vw-navy px-2.5 py-0.5 text-[11.5px] font-semibold text-white">
+                              Geselecteerd
+                            </span>
+                          ) : null}
                         </div>
                         {room.area ? <p className="mt-1.5 text-[13px] text-vw-muted">{room.area}</p> : null}
-                        {room.included && showAmount && extras.liveTotalPrice && extras.livePricePerPerson ? (
-                          <p className="mt-2 text-sm font-bold text-vw-navy">
-                            Totaal {formatDetailEuro(extras.liveTotalPrice.amount)} · {formatDetailEuro(extras.livePricePerPerson.amount)} p.p.
+                        {priced && partyTotal ? (
+                          <p className="mt-2 text-sm text-vw-navy">
+                            <span className="font-semibold text-vw-green">Prijs gebaseerd op deze kamer</span>
+                            <span className="mt-0.5 block font-bold">
+                              Totaal {formatDetailEuro(partyTotal.amount)}
+                            </span>
                           </p>
-                        ) : null}
-                        {!room.included ? (
-                          <p className="mt-2 text-[13px] text-[#98a1b2]">Niet live geprijsd</p>
-                        ) : null}
+                        ) : (
+                          <p className="mt-2 text-[13px] text-[#475569]">
+                            Prijs voor deze kamer zie je bij {offer.provider}
+                          </p>
+                        )}
                       </Link>
                     );
                   })}
@@ -458,6 +469,7 @@ export function OfferDetailContent({
         priceKind={priceKind}
         extras={extras}
         bookHref={bookHref}
+        roomPriceNote={roomPriceNote}
       />
     </main>
   );

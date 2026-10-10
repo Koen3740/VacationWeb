@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { OfferDetailContent } from '@/components/offers/offer-detail-content';
 import { galleryKeyDelta, stepGalleryIndex } from '@/components/offers/offer-image-gallery';
 import { OfferPriceCard } from '@/components/offers/offer-price-card';
+import type { CatalogRoomType } from '@/lib/offers/catalog-content';
 import { buildDetailOfferExtras } from '@/lib/offers/detail-extras';
 import { collectThemeLabels } from '@/lib/offers/offer-detail-view';
 import type { TravelOffer } from '@/types/travel';
@@ -272,6 +273,77 @@ test('Sunweb detail copy turns br into paragraphs, drops object chips, and hides
   assert.doesNotMatch(html, /\[object Object\]/);
   assert.match(html, /Accommodatie<\/dt><dd[^>]*>Hotel</);
   assert.doesNotMatch(html, /40348/);
+});
+
+function catalogRoom(
+  partial: Pick<CatalogRoomType, 'id' | 'name' | 'included'> & Partial<CatalogRoomType>,
+): CatalogRoomType {
+  return {
+    facilities: [],
+    images: [],
+    ...partial,
+  };
+}
+
+test('room choice prices only the included room and keeps the existing clickout', () => {
+  const rooms = [
+    catalogRoom({ id: 'type-i', name: '2-kamerappartement type I', code: 'I', included: true }),
+    catalogRoom({ id: 'villa-a', name: '3-kamer villa type A', code: 'A', included: false }),
+    catalogRoom({ id: 'apt-3', name: '3-kamerappartement type I', included: false, bedrooms: '3 slaapkamers' }),
+  ];
+  const priced = renderToStaticMarkup(
+    createElement(OfferDetailContent, {
+      offer: makeOffer(),
+      params: TWO_ADULTS,
+      resultsHref: '/results',
+      galleryImages: IMAGES,
+      rooms,
+      selectedRoom: rooms[0],
+      sections: [],
+      presentable: true,
+      themes: [],
+      isLastMinute: false,
+    }),
+  );
+
+  assert.match(priced, /Kies je kamer/);
+  assert.match(priced, /2-kamerappartement type I/);
+  assert.match(priced, /3-kamer villa type A/);
+  assert.match(priced, /3-kamerappartement type I/);
+  assert.match(priced, /3 slaapkamers/);
+  assert.match(priced, /Prijs gebaseerd op deze kamer/);
+  assert.match(priced, /data-testid="detail-room-priced"[\s\S]*Totaal [^<]*2\.215,50/);
+  assert.equal((priced.match(/Prijs voor deze kamer zie je bij Sunweb/g) ?? []).length, 2);
+  assert.match(priced, /data-testid="detail-total"/);
+  assert.doesNotMatch(priced, /data-testid="detail-room-price-note"/);
+  assert.doesNotMatch(priced, /max(?:imaal)?[^<]{0,20}persoon/i);
+  const pricedOutbound = [...priced.matchAll(/<a href="([^"]+)" target="_blank"/g)].map((match) => match[1]);
+  assert.deepEqual(pricedOutbound, ['https://www.sunweb.be/hotel', 'https://www.sunweb.be/hotel']);
+
+  const alternate = renderToStaticMarkup(
+    createElement(OfferDetailContent, {
+      offer: makeOffer(),
+      params: TWO_ADULTS,
+      resultsHref: '/results',
+      galleryImages: IMAGES,
+      rooms,
+      selectedRoom: rooms[1],
+      sections: [],
+      presentable: false,
+      themes: [],
+      isLastMinute: false,
+    }),
+  );
+
+  assert.match(alternate, /data-testid="detail-room-price-note"[^>]*>Prijs voor deze kamer zie je bij Sunweb/);
+  assert.match(alternate, /data-testid="detail-book-bar-note"[^>]*>Prijs voor deze kamer zie je bij Sunweb/);
+  assert.doesNotMatch(alternate, /data-testid="detail-total"/);
+  assert.doesNotMatch(alternate, /data-testid="detail-book-bar"[\s\S]*2\.215,50/);
+  assert.match(alternate, /data-testid="detail-room-priced"[\s\S]*Totaal [^<]*2\.215,50/);
+  assert.match(alternate, /Bekijk en boek bij Sunweb/);
+  const alternateOutbound = [...alternate.matchAll(/<a href="([^"]+)" target="_blank"/g)].map((match) => match[1]);
+  assert.deepEqual(alternateOutbound, ['https://www.sunweb.be/hotel', 'https://www.sunweb.be/hotel']);
+  assert.doesNotMatch(alternateOutbound.join(' '), /room=|RoomType|unit=/i);
 });
 
 test('detail components do not hardcode unverified price claims', () => {

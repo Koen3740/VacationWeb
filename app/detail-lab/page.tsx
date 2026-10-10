@@ -24,10 +24,19 @@ export const metadata: Metadata = {
  * Local visual harness for the detail redesign.
  * Returns 404 in production so fixture offers are not a public route.
  */
+function labRoomHref(roomId: string, variant: string | undefined): string {
+  const query = new URLSearchParams();
+  if (variant) {
+    query.set('variant', variant);
+  }
+  query.set('room', roomId);
+  return `/detail-lab?${query.toString()}`;
+}
+
 export default function DetailLabPage({
   searchParams,
 }: {
-  searchParams: { variant?: string };
+  searchParams: { variant?: string; room?: string };
 }) {
   if (process.env.NODE_ENV === 'production') {
     notFound();
@@ -47,7 +56,11 @@ export default function DetailLabPage({
   };
   const offer = rondreis ? rondreisLabOffer : sunwebCopy ? sunwebOffer : hotelLabOffer;
   const images = rondreis ? rondreisLabImages : hotelLabImages;
-  const selectedRoom = rondreis ? null : hotelLabRooms[0];
+  const rooms = rondreis ? [] : hotelLabRooms;
+  const selectedRoom = rooms.find((room) => room.id === searchParams.room)
+    ?? rooms.find((room) => room.included)
+    ?? rooms[0]
+    ?? null;
 
   return (
     <OfferDetailContent
@@ -55,15 +68,16 @@ export default function DetailLabPage({
       params={LAB_PARAMS}
       resultsHref="/results"
       galleryImages={images}
-      rooms={rondreis ? [] : hotelLabRooms}
+      rooms={rooms}
       selectedRoom={selectedRoom}
+      roomHref={rondreis ? undefined : (roomId) => labRoomHref(roomId, searchParams.variant)}
       sections={
         sunwebCopy
           ? [{ title: 'Ligging', items: ['Aan de jachthaven<br />Rustige omgeving'] }]
           : []
       }
       intro={sunwebCopy ? 'Eerste indruk van het hotel.&lt;br /&gt;Tweede indruk.' : undefined}
-      presentable
+      presentable={!selectedRoom || selectedRoom.included}
       themes={
         sunwebCopy
           ? collectThemeLabels(offer)
