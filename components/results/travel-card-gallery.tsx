@@ -52,8 +52,8 @@ function ArrowButton({
           onClick();
         }
       }}
-      className={`absolute top-1/2 z-[2] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#0A2D62] shadow-sm backdrop-blur-sm transition hover:bg-white ${
-        direction === 'left' ? 'left-2' : 'right-2'
+      className={`absolute top-1/2 z-[2] flex h-[30px] w-[30px] -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-vw-navy opacity-0 shadow-sm backdrop-blur-sm transition hover:bg-white group-hover:opacity-100 max-[900px]:hidden ${
+        direction === 'left' ? 'left-2.5' : 'right-2.5'
       }`}
       aria-label={direction === 'left' ? 'Vorige foto' : 'Volgende foto'}
     >
@@ -109,7 +109,7 @@ export function TravelCardGallery({
         alt={alt}
         fill
         className="object-cover object-center"
-        sizes="(max-width: 768px) 100vw, 340px"
+        sizes={fillCardHeight ? '(max-width: 900px) 42vw, 520px' : '(max-width: 768px) 100vw, 340px'}
         onError={() => {
           if (src === OFFER_IMAGE_PLACEHOLDER) {
             return;
@@ -142,6 +142,14 @@ export function TravelCardGallery({
           direction="right"
           onClick={() => setIndex((prev) => nextGalleryIndex(prev, count))}
         />
+      ) : null}
+      {fillCardHeight && count > 0 ? (
+        <span
+          className="absolute bottom-2 right-2 z-[2] rounded-full bg-[rgba(10,20,40,0.55)] px-2 py-0.5 text-[11px] text-white min-[901px]:bottom-3 min-[901px]:right-3"
+          data-testid="travel-card-photo-count"
+        >
+          {safeIndex + 1} / {count}
+        </span>
       ) : null}
     </div>
   );

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { filterOffers, sortOffers, countCarRentalFacet } from './filtering';
+import { parseRatingMinParam } from './rating-filter';
 import { carRentalIncludedLabel } from '@/lib/offers/has-car-rental';
 import type { TravelOffer } from '@/types/travel';
 
@@ -354,4 +355,24 @@ test('stars sort is descending and uses a stable identity tie-break', () => {
   const again = sortOffers([...offers].reverse(), 'stars').map((offer) => offer.id);
   assert.deepEqual(first, ['five', 'four-a', 'four-z']);
   assert.deepEqual(again, first);
+});
+
+test('ratingMin keeps guest scores at or above the minimum and drops offers without a rating', () => {
+  const offers = [
+    makeOffer({ id: 'nine', provider: 'Sunweb', rating: 9.2 }),
+    makeOffer({ id: 'eight', provider: 'Corendon', rating: 8 }),
+    makeOffer({ id: 'below', provider: 'Eliza was here', rating: 7.9 }),
+    makeOffer({ id: 'missing', provider: 'Corendon', rating: null }),
+    makeOffer({ id: 'blank', provider: 'Sunweb' }),
+  ];
+  assert.equal(parseRatingMinParam('8'), 8);
+  assert.equal(parseRatingMinParam('5'), undefined);
+  assert.deepEqual(
+    filterOffers(offers, {}).map((offer) => offer.id),
+    ['nine', 'eight', 'below', 'missing', 'blank'],
+  );
+  assert.deepEqual(
+    filterOffers(offers, { ratingMin: 8 }).map((offer) => offer.id),
+    ['nine', 'eight'],
+  );
 });

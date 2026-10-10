@@ -3,7 +3,36 @@
 import { RESULTS_CTA, RESULTS_NAVY } from '@/components/results-v2/results-design-tokens';
 
 /** Scrolls to top so the search bar is in view — no popup yet */
-export function ResultsAdjustSearchFab() {
+export function ResultsAdjustSearchFab({
+  tone = 'default',
+}: {
+  /** `results` matches Layout A and hides the control on small screens. */
+  tone?: 'default' | 'results';
+}) {
+  if (tone === 'results') {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        className="fixed bottom-[22px] right-[22px] z-40 hidden h-[46px] items-center gap-[9px] rounded-full border border-[#e1dacd] bg-white py-0 pl-2 pr-[18px] text-[13px] font-semibold text-vw-navy shadow-vw-fab min-[901px]:inline-flex"
+        aria-label="Zoekopdracht aanpassen"
+      >
+        <span
+          className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-white"
+          style={{ backgroundColor: 'var(--vw-navy)' }}
+          aria-hidden
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <circle cx="10.5" cy="10.5" r="6" stroke="currentColor" strokeWidth="2.2" />
+            <path d="M15 15l5 5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
+        </span>
+        Zoekopdracht aanpassen
+      </button>
+    );
+  }
   return (
     <button
       type="button"

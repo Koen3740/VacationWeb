@@ -16,6 +16,7 @@ import {
   parseResultsPageParam,
   RESULTS_PAGE_SIZE_DEFAULT,
 } from '@/lib/search/pagination';
+import { parseRatingMinParam } from '@/lib/search/rating-filter';
 import { parseStarsParam } from '@/lib/search/stars-param';
 import { parseHasCarRentalParam } from '@/lib/offers/has-car-rental';
 import { parseCatalogGenerationParam } from '@/lib/search/catalog-generation-freeze';
@@ -166,6 +167,9 @@ export function parseSearchParams(searchParams: ResultsSearchParamsInput): Searc
       const parsed = parseStarsParam(searchParams.stars);
       return parsed.length > 0 ? parsed : undefined;
     })(),
+    ratingMin: parseRatingMinParam(
+      typeof searchParams.ratingMin === 'string' ? searchParams.ratingMin : undefined,
+    ),
     vacationTypes: (() => {
       if (typeof searchParams.vacationTypes !== 'string') {
         return undefined;

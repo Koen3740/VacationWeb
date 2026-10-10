@@ -1,3 +1,5 @@
+import React, { type ReactNode } from 'react';
+
 const ITEMS = [
   {
     label: 'Meer vakantie voor jouw budget',
@@ -45,7 +47,46 @@ const ITEMS = [
   },
 ] as const;
 
-export function ResultsUspBar() {
+const RESULTS_REMOVED_CLAIMS = [
+  'Betrouwbare partners en veilige betaling',
+  '24/7 ondersteuning voor en na je reis',
+] as const;
+
+type ResultsUspBarProps = {
+  /**
+   * `results` drops claims VacationWeb does not make (no payment, no support).
+   * `default` is the existing bar used by other pages.
+   */
+  variant?: 'default' | 'results';
+};
+
+function ResultsUspIcon({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[18px] text-vw-gold">
+      {children}
+    </span>
+  );
+}
+
+export function ResultsUspBar({ variant = 'default' }: ResultsUspBarProps) {
+  if (variant === 'results') {
+    const items = ITEMS.filter(
+      (item) => !RESULTS_REMOVED_CLAIMS.includes(item.label as (typeof RESULTS_REMOVED_CLAIMS)[number]),
+    );
+    return (
+      <div className="border-t border-vw-line bg-vw-usp" data-testid="results-usp-bar">
+        <div className="mx-auto flex max-w-vw-page flex-col gap-3.5 px-4 py-[18px] font-vw-sans min-[901px]:flex-row min-[901px]:flex-wrap min-[901px]:gap-10 min-[901px]:px-7 min-[901px]:py-[22px]">
+          {items.map((item) => (
+            <div key={item.label} className="flex items-center gap-3 text-[14px] font-medium text-vw-navy">
+              <ResultsUspIcon>{item.icon}</ResultsUspIcon>
+              <p>{item.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="border-t border-[#DCE4EE] bg-[#EAF1F7]">
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6 lg:px-8">

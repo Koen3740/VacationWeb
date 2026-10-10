@@ -2,13 +2,9 @@
 
 
 import {
-  RESULTS_BORDER,
   RESULTS_NAVY,
-  RESULTS_PANEL_BG,
-  RESULTS_PANEL_SHADOW,
   RESULTS_STAR_GOLD,
 } from '@/components/results-v2/results-design-tokens';
-import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
 import {
@@ -67,6 +63,12 @@ import {
   type CenterDistance,
 } from '@/lib/search/ligging-filters';
 import {
+  RATING_MIN_OPTIONS,
+  parseRatingMinParam,
+  ratingFilterOptionLabel,
+  type RatingMinOption,
+} from '@/lib/search/rating-filter';
+import {
   STAR_FILTER_VALUES,
   parseStarsParam,
   serializeStarsParam,
@@ -116,6 +118,7 @@ function parseFilters(searchParams: URLSearchParams) {
     budgetMax: Number(searchParams.get('budgetMax') || BUDGET_FILTER_MAX),
     departureAirport: searchParams.get('departureAirport') || '',
     stars: parseStarsParam(searchParams.get('stars')),
+    ratingMin: parseRatingMinParam(searchParams.get('ratingMin')),
     boardTypes: canonicalizeBoardTypes(
       searchParams.get('boardTypes')?.split(',').filter(Boolean) || [],
     ),
@@ -138,6 +141,8 @@ type FilterSidebarProps = FilterOptions & {
   totalOffersLabel: string;
   carRentalCount: number | ReactNode;
   roadtripCount: number | ReactNode;
+  /** Counts for 9 / 8 / 7 / 6 of hoger. Same facet stream as Roadtrip. */
+  ratingCounts?: Partial<Record<RatingMinOption, ReactNode>>;
   /** Optional "Vakantieaanbieder" block (effective B-pool counts). */
   providerFilter?: ReactNode;
 };
@@ -169,7 +174,7 @@ function Accordion({
   children?: ReactNode;
 }) {
   return (
-    <div className="border-b border-[#EDE8E0]">
+    <div className="border-b border-[#ede7dc]">
       <button
         type="button"
         onClick={onToggle}
@@ -179,10 +184,12 @@ function Accordion({
         <span className="flex min-w-0 items-center gap-2.5">
           <span
             className="h-3.5 w-[3px] shrink-0 rounded-full"
-            style={{ backgroundColor: RESULTS_NAVY, opacity: open ? 0.9 : 0.35 }}
+            style={{ backgroundColor: 'var(--vw-navy)', opacity: open ? 0.9 : 0.35 }}
             aria-hidden
           />
-          <span className="text-[14.5px] font-semibold tracking-[-0.01em] text-[#0A2D62]">{title}</span>
+          <span className="font-vw-serif text-[15px] font-semibold leading-snug tracking-[-0.01em] text-vw-navy">
+          {title}
+        </span>
         </span>
         <Chevron open={open} />
       </button>
@@ -224,7 +231,7 @@ function NestedDisclosure({
 
 function SelectLike({ children, onClick }: { children: ReactNode; onClick?: () => void }) {
   const className =
-    'flex h-11 w-full items-center justify-between rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-left text-[14px] text-[#0A2D62]';
+    'flex h-[42px] w-full items-center justify-between rounded-[10px] border border-[#dcd5c8] bg-white px-3 text-left text-[14px] text-vw-navy';
   if (onClick) {
     return (
       <button type="button" onClick={onClick} className={className}>
@@ -271,6 +278,7 @@ export function FilterSidebar({
   totalOffersLabel,
   carRentalCount,
   roadtripCount,
+  ratingCounts,
   providerFilter,
 }: FilterSidebarProps) {
   const router = useRouter();
@@ -286,6 +294,7 @@ export function FilterSidebar({
     destination: true,
     budget: true,
     stay: true,
+    rating: true,
     vacation: true,
     location: true,
     extras: true,
@@ -420,6 +429,12 @@ export function FilterSidebar({
       params.delete('stars');
     }
 
+    if (next.ratingMin) {
+      params.set('ratingMin', String(next.ratingMin));
+    } else {
+      params.delete('ratingMin');
+    }
+
     if (next.departureAirport) {
       params.set('departureAirport', next.departureAirport);
     } else {
@@ -524,6 +539,14 @@ export function FilterSidebar({
     });
   };
 
+  const setRatingMin = (value: RatingMinOption | undefined) => {
+    const current = filtersRef.current;
+    updateFilters({
+      ...current,
+      ratingMin: value,
+    });
+  };
+
   const toggleVacationType = (value: VacationType) => {
     const current = filtersRef.current;
     updateFilters({
@@ -624,18 +647,11 @@ export function FilterSidebar({
       : `€ ${draftBudget.max.toLocaleString('nl-NL')}`;
 
   const selectClassName =
-    'h-11 w-full rounded-[10px] border border-[#D9E0EA] bg-white px-3 text-[14px] text-[#0A2D62] outline-none';
+    'h-[42px] w-full rounded-[10px] border border-[#dcd5c8] bg-white px-3 text-[14px] text-vw-navy outline-none';
 
   return (
     <aside>
-      <div
-        className="rounded-[16px] border px-4"
-        style={{
-          backgroundColor: RESULTS_PANEL_BG,
-          borderColor: RESULTS_BORDER,
-          boxShadow: RESULTS_PANEL_SHADOW,
-        }}
-      >
+      <div className="rounded-vw-panel border border-vw-line bg-vw-panel px-4 shadow-vw-panel max-[900px]:rounded-none max-[900px]:border-0 max-[900px]:bg-transparent max-[900px]:px-0 max-[900px]:shadow-none">
         <Accordion
           title="Waar wil ik naartoe?"
           open={!!openSections.destination}
@@ -775,7 +791,7 @@ export function FilterSidebar({
                         type="checkbox"
                         checked={active}
                         onChange={() => toggleAccommodationType(type)}
-                        className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                        className="h-[17px] w-[17px] shrink-0 rounded border-vw-line accent-vw-navy"
                       />
                       {type}
                     </label>
@@ -797,7 +813,7 @@ export function FilterSidebar({
                         type="checkbox"
                         checked={active}
                         onChange={() => toggleStars(value)}
-                        className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                        className="h-[17px] w-[17px] shrink-0 rounded border-vw-line accent-vw-navy"
                         aria-label={`${value} sterren`}
                       />
                       <StarRow count={value} />
@@ -824,7 +840,7 @@ export function FilterSidebar({
                         type="checkbox"
                         checked={active}
                         onChange={() => toggleBoardType(canonical)}
-                        className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                        className="h-[17px] w-[17px] shrink-0 rounded border-vw-line accent-vw-navy"
                       />
                       {canonical}
                     </label>
@@ -835,6 +851,39 @@ export function FilterSidebar({
           </div>
         </Accordion>
 
+        <Accordion title="Beoordeling" open={!!openSections.rating} onToggle={() => toggleSection('rating')}>
+          <div role="radiogroup" aria-label="Beoordeling" data-testid="rating-filter" className="space-y-1">
+            {RATING_MIN_OPTIONS.map((value) => (
+              <label
+                key={value}
+                className="flex min-h-11 cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]"
+              >
+                <input
+                  type="radio"
+                  name="ratingMin"
+                  checked={filters.ratingMin === value}
+                  onChange={() => setRatingMin(value)}
+                  className="h-[17px] w-[17px] shrink-0 accent-vw-navy"
+                  data-testid={`rating-min-${value}`}
+                />
+                <span>{ratingFilterOptionLabel(value)}</span>
+                <span className="text-[#8A93A3]">({ratingCounts?.[value] ?? '…'})</span>
+              </label>
+            ))}
+            <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
+              <input
+                type="radio"
+                name="ratingMin"
+                checked={filters.ratingMin == null}
+                onChange={() => setRatingMin(undefined)}
+                className="h-[17px] w-[17px] shrink-0 accent-vw-navy"
+                data-testid="rating-min-all"
+              />
+              Toon alle
+            </label>
+          </div>
+        </Accordion>
+
         <Accordion title="Wat zoek ik?" open={!!openSections.vacation} onToggle={() => toggleSection('vacation')}>
           <div className="space-y-2">
             <label className="flex cursor-pointer items-center gap-2.5 text-[14px] text-[#334155]">
@@ -842,7 +891,7 @@ export function FilterSidebar({
                 type="checkbox"
                 checked={filters.vacationTypes.includes(ROADTRIP_VACATION_TYPE)}
                 onChange={() => toggleVacationType(ROADTRIP_VACATION_TYPE)}
-                className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                className="h-[17px] w-[17px] shrink-0 rounded border-vw-line accent-vw-navy"
               />
               <span>{ROADTRIP_FILTER_LABEL}</span>
               <span className="text-[#8A93A3]">({roadtripCount})</span>
@@ -852,7 +901,7 @@ export function FilterSidebar({
                 type="checkbox"
                 checked={filters.hasCarRental}
                 onChange={toggleCarRental}
-                className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                className="h-[17px] w-[17px] shrink-0 rounded border-vw-line accent-vw-navy"
               />
               <span>Huurauto inbegrepen</span>
               <span className="text-[#8A93A3]">({carRentalCount})</span>
@@ -865,7 +914,7 @@ export function FilterSidebar({
                     type="checkbox"
                     checked={active}
                     onChange={() => toggleVacationType(type)}
-                    className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                    className="h-[17px] w-[17px] shrink-0 rounded border-vw-line accent-vw-navy"
                   />
                   {VACATION_TYPE_LABELS[type]}
                 </label>
@@ -895,7 +944,7 @@ export function FilterSidebar({
                   type="checkbox"
                   checked={filters[key]}
                   onChange={() => toggleLiggingFlag(key)}
-                  className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                  className="h-[17px] w-[17px] shrink-0 rounded border-vw-line accent-vw-navy"
                 />
                 {label}
               </label>
@@ -915,7 +964,7 @@ export function FilterSidebar({
                       type="checkbox"
                       checked={filters.centerDistances.includes(value)}
                       onChange={() => toggleCenterDistance(value)}
-                      className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                      className="h-[17px] w-[17px] shrink-0 rounded border-vw-line accent-vw-navy"
                     />
                     {CENTER_DISTANCE_LABELS[value]}
                   </label>
@@ -946,7 +995,7 @@ export function FilterSidebar({
                       type="checkbox"
                       checked={filters.beachDistances.includes(value)}
                       onChange={() => toggleBeachDistance(value)}
-                      className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                      className="h-[17px] w-[17px] shrink-0 rounded border-vw-line accent-vw-navy"
                     />
                     {BEACH_DISTANCE_LABELS[value]}
                   </label>
@@ -988,7 +1037,7 @@ export function FilterSidebar({
                         type="checkbox"
                         checked={active}
                         onChange={() => toggleAmenity(item)}
-                        className="h-4 w-4 rounded border-[#CBD5E1] accent-[#89ACD3]"
+                        className="h-[17px] w-[17px] shrink-0 rounded border-vw-line accent-vw-navy"
                       />
                       {AMENITY_LABELS[item]}
                     </label>
@@ -1000,8 +1049,6 @@ export function FilterSidebar({
         </Accordion>
 
       </div>
-
-      <ResultsWhyCard />
 
       <DestinationPopup
         open={destinationPopupOpen}

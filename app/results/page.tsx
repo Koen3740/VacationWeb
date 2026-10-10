@@ -26,6 +26,7 @@ import {
 } from '@/components/results/presentable-results-count';
 import {
   CarRentalFacetCount,
+  RatingFacetCount,
   RoadtripFacetCount,
 } from '@/components/results/results-facet-counts';
 import {
@@ -40,6 +41,8 @@ import {
 import { buildResultsPageHref } from '@/lib/search/pagination';
 import { loadRuntimeDataset } from '@/lib/offers/load-runtime-dataset';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
+import { buildResultsTripSummary } from '@/lib/search/results-trip-summary';
+import { stateFromUrl } from '@/components/results-v2/results-search-bar-utils';
 import { decodeDestinationLabel, destinationDisplayLabel } from '@/components/search/destination-popup/destination-search';
 import { attachSiteMarket } from '@/lib/search/site-market';
 import { SearchParams } from '@/types/travel';
@@ -108,6 +111,28 @@ function buildSummaryLine(params: SearchParams): string {
   return parts.join(' • ');
 }
 
+/** Dates the search bar shows. Search itself still uses the sanitized window. */
+function tripSummaryForRequest(
+  searchParams: Record<string, string | string[] | undefined>,
+  params: SearchParams,
+): string {
+  const raw = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (typeof value === 'string') {
+      raw.set(key, value);
+    } else if (Array.isArray(value) && value[0]) {
+      raw.set(key, value[0]);
+    }
+  }
+  const bar = stateFromUrl(raw);
+  return buildResultsTripSummary({
+    ...params,
+    departureStart: bar.departureStart ?? undefined,
+    departureEnd: bar.departureEnd ?? undefined,
+    flexibilityDays: bar.flexibilityDays,
+  });
+}
+
 export default async function ResultsPage({
   searchParams,
 }: {
@@ -174,6 +199,7 @@ export default async function ResultsPage({
   const pageShell = {
     departureAirports: filterOptions.departureAirports,
     summaryLine: buildSummaryLine(params),
+    tripSummary: tripSummaryForRequest(searchParams, params),
     sortControl: <SortSelector currentSort={params.sort && params.sort !== 'value' ? params.sort : ''} />,
     filters: (
       <FilterSidebar
@@ -205,6 +231,28 @@ export default async function ResultsPage({
             />
           </Suspense>
         }
+        ratingCounts={{
+          9: (
+            <Suspense fallback="…">
+              <RatingFacetCount filteringParams={filteringParams} params={params} page={page} pageSize={pageSize} isPage1={isPage1} minimum={9} />
+            </Suspense>
+          ),
+          8: (
+            <Suspense fallback="…">
+              <RatingFacetCount filteringParams={filteringParams} params={params} page={page} pageSize={pageSize} isPage1={isPage1} minimum={8} />
+            </Suspense>
+          ),
+          7: (
+            <Suspense fallback="…">
+              <RatingFacetCount filteringParams={filteringParams} params={params} page={page} pageSize={pageSize} isPage1={isPage1} minimum={7} />
+            </Suspense>
+          ),
+          6: (
+            <Suspense fallback="…">
+              <RatingFacetCount filteringParams={filteringParams} params={params} page={page} pageSize={pageSize} isPage1={isPage1} minimum={6} />
+            </Suspense>
+          ),
+        }}
         providerFilter={
           <Suspense
             fallback={
@@ -227,18 +275,6 @@ export default async function ResultsPage({
       <ResultsPageClient
         {...pageShell}
         resultCount={0}
-        heroTitle={
-          <Suspense fallback="…">
-            <PriceSortPresentableCount
-              filteringParams={filteringParams}
-              params={params}
-              page={page}
-              pageSize={pageSize}
-              summaryLine={pageShell.summaryLine}
-              variant="hero"
-            />
-          </Suspense>
-        }
         sectionHeading={
           <Suspense fallback="…">
             <PriceSortPresentableCount
@@ -271,20 +307,6 @@ export default async function ResultsPage({
     <ResultsPageClient
       {...pageShell}
       resultCount={0}
-      heroTitle={
-        <Suspense fallback="…">
-          <PresentableResultsCount
-            filteringParams={filteringParams}
-            params={params}
-            page={page}
-            pageSize={pageSize}
-            isPage1={isPage1}
-            summaryLine={pageShell.summaryLine}
-            refinementRequired={false}
-            variant="hero"
-          />
-        </Suspense>
-      }
       sectionHeading={
         <Suspense fallback="…">
           <PresentableResultsCount
