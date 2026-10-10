@@ -5,7 +5,6 @@ import {
   RESULTS_NAVY,
   RESULTS_STAR_GOLD,
 } from '@/components/results-v2/results-design-tokens';
-import { ResultsWhyCard } from '@/components/results-v2/results-why-card';
 import { DestinationPopup } from '@/components/search/destination-popup/destination-popup';
 import { formatSelectedCountriesLabel } from '@/components/search/destination-popup/destination-popup-utils';
 import {
@@ -992,8 +991,6 @@ export function FilterSidebar({
         </Accordion>
 
       </div>
-
-      <ResultsWhyCard tone="results" />
 
       <DestinationPopup
         open={destinationPopupOpen}
