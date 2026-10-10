@@ -116,7 +116,7 @@ body {
   outline-offset: 2px;
 }
 
-/* Detail gallery: one horizontal snap row on small screens, mosaic from 901px. */
+/* Detail gallery: horizontal snap row below 901px. Desktop uses its own stage. */
 .vw-detail-snap {
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;

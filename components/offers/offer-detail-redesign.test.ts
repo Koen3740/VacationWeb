@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import React, { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { OfferDetailContent } from '@/components/offers/offer-detail-content';
+import { galleryKeyDelta, stepGalleryIndex } from '@/components/offers/offer-image-gallery';
 import { OfferPriceCard } from '@/components/offers/offer-price-card';
 import { buildDetailOfferExtras } from '@/lib/offers/detail-extras';
 import { collectThemeLabels } from '@/lib/offers/offer-detail-view';
@@ -118,16 +119,39 @@ test('return date and book button are shown, including the mobile bar total', ()
   assert.doesNotMatch(html, /Boek bij Sunweb/);
 });
 
-test('gallery is a 4:3 snap row with counter, dots and a desktop all-photos control', () => {
+test('mobile gallery stays a 4:3 snap row; desktop is one wide photo with arrows, counter and thumbnails', () => {
   const html = detailHtml(makeOffer());
   assert.match(html, /data-testid="offer-gallery"/);
+  assert.match(html, /min-\[901px\]:hidden" aria-label="Foto&#x27;s" data-testid="offer-gallery-track"/);
   assert.match(html, /aspect-\[4\/3\]/);
   assert.match(html, /object-cover/);
   assert.match(html, /snap-start snap-always/);
   assert.match(html, /1 \/ 7/);
   assert.match(html, /7 \/ 7/);
-  assert.match(html, /Alle 7 foto&#x27;s|Alle 7 foto's/);
   assert.match(html, /data-testid="offer-gallery-dots"/);
+  assert.doesNotMatch(html, /grid-cols-\[2fr_1fr_1fr\]/);
+
+  assert.match(html, /data-testid="offer-gallery-desktop"/);
+  assert.match(html, /aspect-\[16\/9\]/);
+  assert.match(html, /aria-label="Vorige foto"/);
+  assert.match(html, /aria-label="Volgende foto"/);
+  assert.match(html, /data-testid="offer-gallery-desktop-counter"[^>]*>1 \/ 7/);
+  assert.match(html, /Alle 7 foto&#x27;s|Alle 7 foto's/);
+  assert.match(html, /data-testid="offer-gallery-thumbs"/);
+  assert.match(html, /overflow-x-auto/);
+  assert.match(html, /aria-current="true"/);
+  assert.match(html, /aria-label="Foto 3 van 7"/);
+  assert.match(html, /focus-visible:outline/);
+});
+
+test('gallery index wraps and arrow keys map to a step', () => {
+  assert.equal(stepGalleryIndex(0, -1, 40), 39);
+  assert.equal(stepGalleryIndex(39, 1, 40), 0);
+  assert.equal(stepGalleryIndex(2, 1, 40), 3);
+  assert.equal(stepGalleryIndex(0, 1, 1), 0);
+  assert.equal(galleryKeyDelta('ArrowLeft'), -1);
+  assert.equal(galleryKeyDelta('ArrowRight'), 1);
+  assert.equal(galleryKeyDelta('ArrowUp'), null);
 });
 
 test('roadtrip without a day programme keeps the hotel layout and a Fly & Drive badge', () => {

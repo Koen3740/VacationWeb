@@ -189,5 +189,5 @@ export const rondreisLabOffer: TravelOffer = {
   deepLink: 'https://www.corendon.be/',
 };
 
-export const hotelLabImages = HOTEL_IMAGES;
+export const hotelLabImages = [...HOTEL_IMAGES, ...ROUTE_IMAGES];
 export const rondreisLabImages = ROUTE_IMAGES;
