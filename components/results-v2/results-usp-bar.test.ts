@@ -27,7 +27,7 @@ test('/results uses the results USP variant and shows the trip summary', () => {
   assert.match(page, /data-testid="results-trip-summary"/);
   assert.match(page, /ResultsActiveFilters/);
   assert.match(route, /buildResultsTripSummary/);
-  assert.match(route, /tripSummary: buildResultsTripSummary/);
+  assert.match(route, /tripSummary: tripSummaryForRequest/);
   for (const claim of REMOVED) {
     assert.equal(page.includes(claim), false, claim);
   }

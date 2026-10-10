@@ -41,6 +41,7 @@ import { buildResultsPageHref } from '@/lib/search/pagination';
 import { loadRuntimeDataset } from '@/lib/offers/load-runtime-dataset';
 import { formatOccupancySummaryParts } from '@/lib/search/occupancy-category';
 import { buildResultsTripSummary } from '@/lib/search/results-trip-summary';
+import { stateFromUrl } from '@/components/results-v2/results-search-bar-utils';
 import { decodeDestinationLabel, destinationDisplayLabel } from '@/components/search/destination-popup/destination-search';
 import { attachSiteMarket } from '@/lib/search/site-market';
 import { SearchParams } from '@/types/travel';
@@ -109,6 +110,28 @@ function buildSummaryLine(params: SearchParams): string {
   return parts.join(' • ');
 }
 
+/** Dates the search bar shows. Search itself still uses the sanitized window. */
+function tripSummaryForRequest(
+  searchParams: Record<string, string | string[] | undefined>,
+  params: SearchParams,
+): string {
+  const raw = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (typeof value === 'string') {
+      raw.set(key, value);
+    } else if (Array.isArray(value) && value[0]) {
+      raw.set(key, value[0]);
+    }
+  }
+  const bar = stateFromUrl(raw);
+  return buildResultsTripSummary({
+    ...params,
+    departureStart: bar.departureStart ?? undefined,
+    departureEnd: bar.departureEnd ?? undefined,
+    flexibilityDays: bar.flexibilityDays,
+  });
+}
+
 export default async function ResultsPage({
   searchParams,
 }: {
@@ -175,7 +198,7 @@ export default async function ResultsPage({
   const pageShell = {
     departureAirports: filterOptions.departureAirports,
     summaryLine: buildSummaryLine(params),
-    tripSummary: buildResultsTripSummary(params),
+    tripSummary: tripSummaryForRequest(searchParams, params),
     sortControl: <SortSelector currentSort={params.sort && params.sort !== 'value' ? params.sort : ''} />,
     filters: (
       <FilterSidebar
